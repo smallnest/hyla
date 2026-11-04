@@ -33,7 +33,9 @@ it all in a draft release. Publishing the draft releases it.
    gh run watch <run id> --exit-status
    ```
 
-6. Once every job succeeded, publish the draft, without asking:
+6. Once every job succeeded, the release is ready and stays a draft:
+   publishing it is the user's call. Say it is green and wait for the
+   user to ask, then:
 
    ```sh
    gh release edit vX.Y.Z --draft=false

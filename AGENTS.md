@@ -1,6 +1,8 @@
 # Hyla
 
 - Cutting a release: follow [RELEASING.md](RELEASING.md), from `master`.
+- Publishing a release is the user's call: a green Release run leaves a
+  draft, which stays a draft until the user asks to publish it.
 
 ## The branches
 
