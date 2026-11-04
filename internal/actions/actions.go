@@ -65,9 +65,9 @@ var All = []Action{
 	{ID: "text.bigger", Title: "Bigger", Menu: "View", Keys: "CmdOrCtrl+=", Remote: true},
 	{ID: "text.smaller", Title: "Smaller", Menu: "View", Keys: "CmdOrCtrl+-", Remote: true},
 	{ID: "text.reset", Title: "Actual Size", Menu: "View", Keys: "CmdOrCtrl+0", Remote: true},
-	// No shortcut until the user gives it one: a global shortcut takes its
-	// keys from every other app, as Control+` from VS Code's terminal.
-	{ID: "quickTerminal.toggle", Title: "Quick Terminal", Menu: "View", Remote: true, Global: true},
+	// Ghostty's Control+`, which works in every app: the user may give it
+	// another, or none, in Settings › Keyboard.
+	{ID: "quickTerminal.toggle", Title: "Quick Terminal", Menu: "View", Keys: "Ctrl+`", Remote: true, Global: true},
 }
 
 // pcKeys are the defaults on Windows and Linux, where Control is the
