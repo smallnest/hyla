@@ -14,7 +14,7 @@ import (
 
 	"golang.org/x/sys/windows"
 
-	"kero/internal/clilink"
+	"hyla/internal/clilink"
 )
 
 // ptyProc is a program running in a pseudo console of its own (ConPTY),
@@ -63,7 +63,7 @@ var (
 func allowCtrlC() { procSetConsoleCtrlHandler.Call(0, 0) }
 
 // conPTY is a ConPTY's functions: Windows' own, in kernel32, or those of
-// the conpty.dll Kero ships, which runs the OpenConsole.exe beside it.
+// the conpty.dll Hyla ships, which runs the OpenConsole.exe beside it.
 type conPTY struct {
 	create, resize, close *windows.LazyProc
 	clear                 *windows.LazyProc // nil in kernel32, which has none
@@ -96,9 +96,9 @@ func bundledConPTY(dir string) (conPTY, bool) {
 	return c, true
 }
 
-// conpty returns the ConPTY panes run in: the one Kero ships next to its
-// executable (resources/windows-*), or next to the app the kero command is
-// a copy of, else Windows' own, as under go test. The one Kero ships is
+// conpty returns the ConPTY panes run in: the one Hyla ships next to its
+// executable (resources/windows-*), or next to the app the hyla command is
+// a copy of, else Windows' own, as under go test. The one Hyla ships is
 // newer, and passes what programs write on as it is: Windows' own drops
 // the mouse modes a program sets before it reads the console in VT input
 // mode, as pi does, which then gets the wheel as the arrow keys.

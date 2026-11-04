@@ -13,13 +13,13 @@ import (
 	"sync"
 	"time"
 
-	"kero/internal/detect"
-	"kero/internal/proto"
+	"hyla/internal/detect"
+	"hyla/internal/proto"
 )
 
-// Feishu is the configuration's Feishu keys: the app kerod connects to,
+// Feishu is the configuration's Feishu keys: the app hylad connects to,
 // who may use it, and what a chat's sessions run. The App Secret is not
-// among them, as the configuration file is often copied and synced: kerod
+// among them, as the configuration file is often copied and synced: hylad
 // keeps it in FeishuSecretPath.
 type Feishu struct {
 	App     string   `json:"app,omitempty"`     // cli_…, the app's ID
@@ -82,7 +82,7 @@ func AppEnv(host string) ([]string, time.Time) {
 	return m.Env, at
 }
 
-// SetAppEnv keeps the environment the app read for the host, in kerod's
+// SetAppEnv keeps the environment the app read for the host, in hylad's
 // directory as the configuration's settings have it.
 func SetAppEnv(host string, env []string, at time.Time) error {
 	loadMachines()
@@ -256,7 +256,7 @@ func UserHome() string {
 	return h
 }
 
-// FeishuSecret is what kero feishu setup asks for.
+// FeishuSecret is what hyla feishu setup asks for.
 type FeishuSecret struct {
 	AppID     string `json:"appId"`
 	AppSecret string `json:"appSecret"`
@@ -265,7 +265,7 @@ type FeishuSecret struct {
 	Me string `json:"me,omitempty"`
 }
 
-// FeishuSecretPath is where the App Secret goes: next to kerod's lock and
+// FeishuSecretPath is where the App Secret goes: next to hylad's lock and
 // log, readable by this account only.
 func FeishuSecretPath() string { return filepath.Join(proto.Dir(), "feishu.json") }
 
@@ -309,8 +309,8 @@ func SaveFeishuSecret(s FeishuSecret) error {
 	return os.Rename(tmp, FeishuSecretPath())
 }
 
-// ErrFeishuNotConfigured is no App Secret kept: kero feishu setup writes it.
-var ErrFeishuNotConfigured = errors.New("Feishu is not set up: run `kero feishu setup`")
+// ErrFeishuNotConfigured is no App Secret kept: hyla feishu setup writes it.
+var ErrFeishuNotConfigured = errors.New("Feishu is not set up: run `hyla feishu setup`")
 
 // SetFeishu writes the Feishu keys of the configuration, keeping the
 // others and the file's comments and order.
@@ -322,7 +322,7 @@ func SetFeishu(f Feishu) error {
 }
 
 // ValidateFeishu tells what is wrong with the feishu-* keys, for setup
-// and kero config check.
+// and hyla config check.
 func ValidateFeishu(f *Feishu) error {
 	if f == nil || f.App == "" {
 		return nil
@@ -395,7 +395,7 @@ func feishuCardKeys() []key {
 	return []key{
 		boolKey("feishu-cards", "show a turn from Feishu as a card that updates while the agent works, in the state's color, rather than as text messages when it ends", func(s *Settings) *bool { return &s.FeishuCards }),
 		boolKey("feishu-markdown", "the cards' text as Markdown", func(s *Settings) *bool { return &s.FeishuMarkdown }),
-		{name: "feishu-host", doc: "the machines whose Kero bots, on this app, hear its messages: only one answers each, and the others leave it (comma separated hostnames); empty for every message to be this machine's",
+		{name: "feishu-host", doc: "the machines whose Hyla bots, on this app, hear its messages: only one answers each, and the others leave it (comma separated hostnames); empty for every message to be this machine's",
 			get: func(s *Settings) []string {
 				if s.Feishu == nil {
 					return []string{""}
@@ -418,7 +418,7 @@ func feishuCardKeys() []key {
 				s.Feishu.Host = hosts
 				return nil
 			}},
-		boolKey("feishu-open-button", "a card's button opens its session in Kero", func(s *Settings) *bool { return &s.FeishuOpenButton }),
+		boolKey("feishu-open-button", "a card's button opens its session in Hyla", func(s *Settings) *bool { return &s.FeishuOpenButton }),
 		boolKey("feishu-card-body", "send a card as its body's JSON, as an update takes it (try it if Feishu shows no card, or does not update one)", func(s *Settings) *bool { return &s.FeishuCardBody }),
 	}
 }
@@ -445,7 +445,7 @@ func feishuKeys() []key {
 			}}
 	}
 	return []key{
-		{name: "feishu-app", doc: "the ID of the Feishu app the sessions take prompts from, cli_a1b2c3d4: empty for off; its secret is not here, but in kero's directory, as kero feishu setup writes it",
+		{name: "feishu-app", doc: "the ID of the Feishu app the sessions take prompts from, cli_a1b2c3d4: empty for off; its secret is not here, but in hyla's directory, as hyla feishu setup writes it",
 			get: func(s *Settings) []string {
 				if s.Feishu == nil {
 					return []string{""}
@@ -468,7 +468,7 @@ func feishuKeys() []key {
 				}
 				return nil
 			}},
-		{name: "feishu-allow", doc: "who may send prompts from Feishu: an open_id, user_id or email, or * for anyone who reaches the bot; repeat it, and leave it empty for only the person who ran kero feishu setup", list: true,
+		{name: "feishu-allow", doc: "who may send prompts from Feishu: an open_id, user_id or email, or * for anyone who reaches the bot; repeat it, and leave it empty for only the person who ran hyla feishu setup", list: true,
 			get: func(s *Settings) []string {
 				if s.Feishu == nil || len(s.Feishu.Allow) == 0 {
 					return []string{""}
@@ -528,7 +528,7 @@ func feishuKeys() []key {
 			set: func(s *Settings, v []string) error {
 				a := strings.TrimSpace(v[len(v)-1])
 				if a != "default" && !detect.Known(a) {
-					return fmt.Errorf("%q is not default or an agent Kero knows", a)
+					return fmt.Errorf("%q is not default or an agent Hyla knows", a)
 				}
 				ensure(s).Agent = a
 				return nil
@@ -569,7 +569,7 @@ func feishuKeys() []key {
 					name, cmd, ok := strings.Cut(line, "=")
 					name = strings.TrimSpace(name)
 					if !ok || !detect.Known(name) {
-						return fmt.Errorf("%q is not name=command, with an agent Kero knows", line)
+						return fmt.Errorf("%q is not name=command, with an agent Hyla knows", line)
 					}
 					if strings.TrimSpace(cmd) == "" {
 						return fmt.Errorf("%s= names no command", name)

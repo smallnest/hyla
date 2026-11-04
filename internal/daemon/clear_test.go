@@ -8,7 +8,7 @@ import (
 
 	"github.com/egoist/mygo/plugins/terminal"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
 // quiet is a client terminal's connection, which only frames feed.
@@ -78,7 +78,7 @@ func lines(term *terminal.Terminal) []string {
 func (c *client) check(when string, want ...string) {
 	c.t.Helper()
 	c.sync()
-	for name, term := range map[string]*terminal.Terminal{"kerod": c.s.term, "client": c.term} {
+	for name, term := range map[string]*terminal.Terminal{"hylad": c.s.term, "client": c.term} {
 		if got := lines(term); strings.Join(got, "\n") != strings.Join(want, "\n") {
 			c.t.Errorf("%s, %s shows %q, want %q", when, name, got, want)
 		}
@@ -119,17 +119,17 @@ func TestClearScreen(t *testing.T) {
 	}
 	c.sync()
 	if got, want := lines(c.term), lines(s.term); strings.Join(got, "\n") != strings.Join(want, "\n") {
-		t.Errorf("output after ⌘K: the client shows %d lines, kerod %d", len(got), len(want))
+		t.Errorf("output after ⌘K: the client shows %d lines, hylad %d", len(got), len(want))
 	}
 	if got := lines(s.term); len(got) != 51 || got[0] != "❯ ls -la" {
-		t.Errorf("output after ⌘K: kerod shows %d lines from %q, want 51 from the prompt", len(got), got[0])
+		t.Errorf("output after ⌘K: hylad shows %d lines from %q, want 51 from the prompt", len(got), got[0])
 	}
 
 	// Clear Scrollback leaves the screen.
 	s.clear(proto.ClearScrollback)
 	c.sync()
 	if got, want := lines(c.term), lines(s.term); len(want) != 39 || strings.Join(got, "\n") != strings.Join(want, "\n") {
-		t.Errorf("after Clear Scrollback: kerod shows %d lines, the client %d, want the screen's 39 above the cursor", len(want), len(got))
+		t.Errorf("after Clear Scrollback: hylad shows %d lines, the client %d, want the screen's 39 above the cursor", len(want), len(got))
 	}
 }
 
@@ -140,7 +140,7 @@ func TestClearScreenFullScreen(t *testing.T) {
 	s.output([]byte("\x1b[?1049h\x1b[Htop row\x1b[10;5Hmiddle"))
 	s.clear(proto.ClearScreen)
 	c.sync()
-	for name, term := range map[string]*terminal.Terminal{"kerod": s.term, "client": c.term} {
+	for name, term := range map[string]*terminal.Terminal{"hylad": s.term, "client": c.term} {
 		got := lines(term)
 		if len(got) != 10 || got[0] != "top row" || got[9] != "    middle" {
 			t.Errorf("%s shows %q", name, got)

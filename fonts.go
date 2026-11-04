@@ -8,7 +8,7 @@ import (
 	"github.com/egoist/mygo/ui"
 )
 
-// kero carries JetBrains Mono, with Nerd Fonts' icons (resources/fonts,
+// hyla carries JetBrains Mono, with Nerd Fonts' icons (resources/fonts,
 // SIL Open Font License, see OFL.txt there): the terminals' font unless
 // the user picks another, and the icons of prompts and of agents' TUIs.
 
@@ -19,7 +19,7 @@ const bundledFont = "JetBrainsMono Nerd Font"
 // for them only where they are.
 var fontsLoaded bool
 
-// loadFonts registers the fonts kero carries: from the app's resources,
+// loadFonts registers the fonts hyla carries: from the app's resources,
 // where `mygo build` and `mygo dev` put them, else from the source tree,
 // as under `go run`.
 func loadFonts() {
@@ -46,7 +46,7 @@ func loadFonts() {
 }
 
 // termFamily returns the family terminals draw with: the user's, else
-// the font kero carries, else the system's monospaced one.
+// the font hyla carries, else the system's monospaced one.
 func (a *App) termFamily() string {
 	if f := a.set.FontFamily; f != "" {
 		return f

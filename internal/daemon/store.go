@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"kero/internal/proto"
-	"kero/internal/settings"
+	"hyla/internal/proto"
+	"hyla/internal/settings"
 )
 
 // The daemon keeps its projects and sessions in state.json, and each
@@ -259,7 +259,7 @@ func newestChange(paths ...string) int64 {
 // noteRestore notes a restored session to mark once every session is back
 // (saveLoop), as one line for the whole restore: not one for each of the
 // sessions a restart brings back. A stop that no client asked for, as a
-// kill of every process named Kero, keeps its restarts from marking again:
+// kill of every process named Hyla, keeps its restarts from marking again:
 // settled marks the next one. Under session-history, each session has its
 // own line.
 func (d *Daemon) noteRestore(s *session, when string) {
@@ -309,7 +309,7 @@ func sameTime(a, b int64) bool {
 
 // restoredSince returns when to set the mark that a restore draws: now, or
 // a second after a mark already at now, which a restore right after
-// another, as one an old Kero keeps asking for, does not overgo.
+// another, as one an old Hyla keeps asking for, does not overgo.
 func restoredSince(dir string) int64 {
 	at := time.Now().UnixMilli()
 	path := filepath.Join(dir, dirSessions, restoreMark)
@@ -346,7 +346,7 @@ func (d *Daemon) markOnce() {
 }
 
 // markDone writes the mark, and where a client shows the pane, draws the
-// line: kerod feeds a terminal for itself alone, and a line of the
+// line: hylad feeds a terminal for itself alone, and a line of the
 // histories it saves would be one more on every restore. What the mark
 // tells decides the next restores.
 func (d *Daemon) markDone() {
@@ -379,15 +379,15 @@ func (d *Daemon) markSettled() {
 	writeAtomic(filepath.Join(dir, restoreMark), []byte(strconv.FormatInt(time.Now().UnixMilli(), 10)))
 }
 
-// leftover reports whether an older Kero than this one runs: it runs
-// kerod too, and their stopping each other is what a stop that no client
-// asked for may be, if kerod says one was running as it started.
+// leftover reports whether an older Hyla than this one runs: it runs
+// hylad too, and their stopping each other is what a stop that no client
+// asked for may be, if hylad says one was running as it started.
 func leftover(pid int) bool {
 	if pid <= 1 || pid == os.Getpid() {
 		return false
 	}
 	b, err := exec.Command("ps", "-o", "args=", "-p", strconv.Itoa(pid)).Output()
-	return err == nil && strings.Contains(string(b), "Kero")
+	return err == nil && strings.Contains(string(b), "Hyla")
 }
 
 // resumeCommand is the command that resumes an agent's session, nil for

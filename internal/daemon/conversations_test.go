@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
 // A conversation is remembered once, the last to run first, with what
-// each sighting tells, and no more of them than kerod keeps.
+// each sighting tells, and no more of them than hylad keeps.
 func TestConversationNote(t *testing.T) {
 	var cs convStore
 	cs.note(proto.Conversation{Agent: "claude", ID: "a", Dir: "/src/app", Project: "pr", Title: "Fix login"}, 100)

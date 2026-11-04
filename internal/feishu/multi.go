@@ -3,11 +3,11 @@ package feishu
 import (
 	"strings"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
 // A Feishu app may connect from several machines, each with its own
-// kerod: every host hears each event, and each reply to the bot's
+// hylad: every host hears each event, and each reply to the bot's
 // answer, which Feishu gives by its ID and chat alone, for the answer's
 // text belongs to the host that wrote it. The bot's answer names the
 // event in its first line; the host that answers the event's message
@@ -16,7 +16,7 @@ import (
 // one host with /host, or else to the first that hears its message,
 // which takes the event ("feishu.take").
 
-// keep is what kerod keeps of an answer: the event it names, the chat
+// keep is what hylad keeps of an answer: the event it names, the chat
 // it came to, and its lines.
 type keep struct {
 	Event string `json:"event"`
@@ -24,12 +24,12 @@ type keep struct {
 	Text  string `json:"text"`
 }
 
-// kept is what kerod keeps: its "feishu.kept" gives it.
+// kept is what hylad keeps: its "feishu.kept" gives it.
 func kept() ([]keep, error) {
 	var k struct {
 		Turns []keep `json:"turns"`
 	}
-	err := kerod.Call("feishu.kept", nil, &k)
+	err := hylad.Call("feishu.kept", nil, &k)
 	return k.Turns, err
 }
 
@@ -50,10 +50,10 @@ func (b *Bot) noteTurn(event, chatID, text string) {
 	if event == "" || text == "" {
 		return
 	}
-	kerod.Call("feishu.keep", keep{Event: event, Chat: chatID, Text: text}, nil)
+	hylad.Call("feishu.keep", keep{Event: event, Chat: chatID, Text: text}, nil)
 }
 
-// chatOf is the chat every answer kerod keeps is of: a bot answers one
+// chatOf is the chat every answer hylad keeps is of: a bot answers one
 // chat at a time.
 func chatOf() string {
 	turns, _ := kept()
@@ -84,13 +84,13 @@ func (b *Bot) takeAt(event, host string) string {
 	}
 	r = &take{Event: event, Host: host}
 	var res proto.FeishuTaken
-	if kerod == nil || kerod.Call("feishu.take", r, &res) != nil {
+	if hylad == nil || hylad.Call("feishu.take", r, &res) != nil {
 		return ""
 	}
 	return res.Host
 }
 
-// take is "feishu.take"'s params: the host takes the event, which kerod
+// take is "feishu.take"'s params: the host takes the event, which hylad
 // gives to it or to the host that has it.
 type take struct{ Event, Host string }
 
@@ -106,7 +106,7 @@ func (b *Bot) claim(parent, chatID string) (event string, leave bool) {
 		leave = true
 		return
 	}
-	// The answer names the event it answers: kerod keeps the answer
+	// The answer names the event it answers: hylad keeps the answer
 	// this host wrote, which Feishu gives another host by its ID alone.
 	event, from, tookof := linesOf(deref(msg.ChatId), deref(msg.Content))
 	if event == "" && chatID == chatOf() {
@@ -144,7 +144,7 @@ func (b *Bot) claim(parent, chatID string) (event string, leave bool) {
 // that each host that hears it writes. It gives the event, the host the
 // chat's messages go to, and the host that took the event. Feishu gives
 // a host another host's answer by its ID and chat alone, its lines ""
-// then: those are the answer's, which kerod keeps.
+// then: those are the answer's, which hylad keeps.
 func linesOf(chatID, content string) (event, from, tookof string) {
 	lines := strings.Split(messageText(content), "\n")
 	if len(lines) < 2 {

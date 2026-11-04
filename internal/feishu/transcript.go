@@ -10,15 +10,15 @@ import (
 	"strings"
 	"time"
 
-	"kero/internal/proto"
-	"kero/internal/settings"
+	"hyla/internal/proto"
+	"hyla/internal/settings"
 )
 
-// A chat window in Kero shows the agent's conversation in a session:
+// A chat window in Hyla shows the agent's conversation in a session:
 // the prompts, the tools it ran, and the messages it wrote, as the
 // agent keeps them. Claude Code keeps each message in a JSON line of its
 // session's file. A Stop hook that a chat driver runs writes each turn's
-// last message to the pane's answer file, and so does kero answer.
+// last message to the pane's answer file, and so does hyla answer.
 
 // maxFeedLines is how many lines a chat window shows: the end of a long
 // conversation.
@@ -104,7 +104,7 @@ func contentLines(content any) []proto.FeishuLine {
 	return out
 }
 
-// answersTranscript is a transcript as kero answer writes it: a JSON
+// answersTranscript is a transcript as hyla answer writes it: a JSON
 // object a line, with the conversation's ID and its answer, which the
 // hook gives, else the agent's last message.
 func answersTranscript(data []byte) []proto.FeishuLine {
@@ -423,9 +423,9 @@ func answersIn(dir string) []proto.FeishuLine {
 	return nil
 }
 
-// keroTranscript is the conversation Kero kept of a chat's turns: a JSON
+// hylaTranscript is the conversation Hyla kept of a chat's turns: a JSON
 // object a line, with the line's kind and its text.
-func keroTranscript(data []byte) []proto.FeishuLine {
+func hylaTranscript(data []byte) []proto.FeishuLine {
 	type line struct {
 		At   string `json:"at"`
 		Kind string `json:"kind"`
@@ -448,7 +448,7 @@ func keroTranscript(data []byte) []proto.FeishuLine {
 }
 
 // keepTurn records a turn in the conversation a chat window shows, which
-// the agent's own transcript does not give Kero for every agent: the
+// the agent's own transcript does not give Hyla for every agent: the
 // prompt, and what the turn answered.
 func (b *Bot) keepTurn(agent, conversation, prompt, answer string) {
 	if conversation == "" || agent == "" {
@@ -459,7 +459,7 @@ func (b *Bot) keepTurn(agent, conversation, prompt, answer string) {
 	if agent == "opencode" {
 		conversation = opencodeSession("", conversation)
 	}
-	file := keroTranscriptFile(agent, conversation)
+	file := hylaTranscriptFile(agent, conversation)
 	if err := os.MkdirAll(filepath.Dir(file), 0o700); err != nil {
 		return
 	}
@@ -482,8 +482,8 @@ func (b *Bot) keepTurn(agent, conversation, prompt, answer string) {
 	}
 }
 
-// keroTranscriptFile is the file Kero keeps of a conversation's turns.
-func keroTranscriptFile(agent, conversation string) string {
+// hylaTranscriptFile is the file Hyla keeps of a conversation's turns.
+func hylaTranscriptFile(agent, conversation string) string {
 	name := strings.Map(func(r rune) rune {
 		if r == '/' || r == '\\' || r == 0 {
 			return '-'
@@ -506,10 +506,10 @@ func transcript(agent string, data []byte) []proto.FeishuLine {
 		out = codexTranscript(data)
 	}
 	if len(out) == 0 {
-		// The turns Kero kept, which it reads for the agents whose own
+		// The turns Hyla kept, which it reads for the agents whose own
 		// transcript it does not read, as Pi's and OpenCode's, and for
 		// a file it read but found none of the agent's own lines in.
-		out = keroTranscript(data)
+		out = hylaTranscript(data)
 	}
 	return out
 }
@@ -530,12 +530,12 @@ func sessionDir(s *proto.Session) string {
 // transcriptFile finds the file of an agent's conversation: the one that
 // Claude Code keeps for the conversation's ID, which names it, or the
 // newest file of the directory, which resumes the directory's
-// conversation after kerod loses the ID.
+// conversation after hylad loses the ID.
 func transcriptFile(conv, agent, dir string) string {
-	// The conversation Kero kept of a chat's turns, for an agent whose
+	// The conversation Hyla kept of a chat's turns, for an agent whose
 	// transcript it does not read.
 	if conv != "" {
-		if file := keroTranscriptFile(agent, conv); exists(file) {
+		if file := hylaTranscriptFile(agent, conv); exists(file) {
 			return file
 		}
 	}

@@ -29,19 +29,19 @@ func SetFeishuOff() string { return In(i18n.Locale()).SetFeishuOffState() }
 // in the language of msgs.
 func (msgs Messages) SetFeishuOff() string { return msgs.SetFeishuOffState() }
 
-// SetFeishuSetup says "kero feishu setup"
+// SetFeishuSetup says "hyla feishu setup"
 // in the language the app shows.
 func SetFeishuSetup() string { return In(i18n.Locale()).SetFeishuSetupAction() }
 
-// SetFeishuSetup says "kero feishu setup"
+// SetFeishuSetup says "hyla feishu setup"
 // in the language of msgs.
 func (msgs Messages) SetFeishuSetup() string { return msgs.SetFeishuSetupAction() }
 
-// SetFeishuOnlySetup says "Only who ran kero feishu setup"
+// SetFeishuOnlySetup says "Only who ran hyla feishu setup"
 // in the language the app shows.
 func SetFeishuOnlySetup() string { return In(i18n.Locale()).SetFeishuOnlySetupAction() }
 
-// SetFeishuOnlySetup says "Only who ran kero feishu setup"
+// SetFeishuOnlySetup says "Only who ran hyla feishu setup"
 // in the language of msgs.
 func (msgs Messages) SetFeishuOnlySetup() string { return msgs.SetFeishuOnlySetupAction() }
 

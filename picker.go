@@ -6,14 +6,14 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/actions"
-	"kero/internal/proto"
+	"hyla/internal/actions"
+	"hyla/internal/proto"
 
-	"kero/locales"
+	"hyla/locales"
 )
 
 // folderPicker lists the folders of a host, to open a project in, as the
-// system's dialog does this machine's: kerod there lists them (fs.list).
+// system's dialog does this machine's: hylad there lists them (fs.list).
 type folderPicker struct {
 	open bool
 	host *host

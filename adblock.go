@@ -10,8 +10,8 @@ import (
 
 	"github.com/egoist/mygo"
 
-	"kero/internal/adblock"
-	"kero/internal/proto"
+	"hyla/internal/adblock"
+	"hyla/internal/proto"
 )
 
 // adBlock blocks ads and trackers in browser panes (browser-block-ads):
@@ -51,7 +51,7 @@ func (a *App) compileAds() {
 	go func() {
 		rules, err := compileAdBlock(lists)
 		if err != nil {
-			log.Printf("kero: ad blocking: %v", err)
+			log.Printf("hyla: ad blocking: %v", err)
 		}
 		a.update(func() {
 			if a.ads.gen != gen {
@@ -75,7 +75,7 @@ func (a *App) applyAdBlock() {
 }
 
 // compiling has one compile run at a time: each compiles the lists
-// kero-ads-0, kero-ads-1 and so on, and replaces what the one before it
+// hyla-ads-0, hyla-ads-1 and so on, and replaces what the one before it
 // compiled under those ids.
 var compiling sync.Mutex
 
@@ -103,7 +103,7 @@ func compileAdBlock(ids []string) ([]*mygo.ContentRules, error) {
 	}
 	var rules []*mygo.ContentRules
 	for i, list := range r.Lists() {
-		cr, cerr := mygo.CompileContentRules(fmt.Sprintf("kero-ads-%d", i), list)
+		cr, cerr := mygo.CompileContentRules(fmt.Sprintf("hyla-ads-%d", i), list)
 		if cerr != nil {
 			err = cerr
 			continue

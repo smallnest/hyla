@@ -18,7 +18,7 @@ export const Route = createRootRoute({
       { charset: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
       { name: 'theme-color', content: '#111310' },
-      { title: 'Kero' },
+      { title: 'Hyla' },
     ],
     links: [{ rel: 'icon', type: 'image/png', href: '/favicon.png' }],
     // Umami analytics, only on the built site so dev visits aren't counted.

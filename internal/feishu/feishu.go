@@ -1,4 +1,4 @@
-// Package feishu connects a Feishu app to kerod's sessions: a message to
+// Package feishu connects a Feishu app to hylad's sessions: a message to
 // the bot, or to it in a group, goes to the coding agent in the chat's
 // session, and the end of the pane's screen comes back to the chat
 // (docs/feishu.md).
@@ -21,12 +21,12 @@ import (
 	larkim "github.com/larksuite/oapi-sdk-go/v3/service/im/v1"
 	larkws "github.com/larksuite/oapi-sdk-go/v3/ws"
 
-	"kero/internal/proto"
-	"kero/internal/settings"
+	"hyla/internal/proto"
+	"hyla/internal/settings"
 )
 
-// Luna is the API: what the bridge asks of kerod, which inside kerod is
-// kerod itself (the bridge's Local), and larkAPI of Feishu, so that a
+// Luna is the API: what the bridge asks of hylad, which inside hylad is
+// hylad itself (the bridge's Local), and larkAPI of Feishu, so that a
 // test takes a fake of each.
 type Luna interface {
 	// State is every session, as the "state" method gives it.
@@ -38,10 +38,10 @@ type Luna interface {
 	Kept(id string) (proto.FeishuMessage, error)
 }
 
-// kerod is the API of the kerod that runs the bot, for what every host
+// hylad is the API of the hylad that runs the bot, for what every host
 // of a shared app shares: Run sets it, and a test's bot keeps what it
 // asks of the fake.
-var kerod Luna
+var hylad Luna
 
 // clientCall is the part of client.Client a Luna is built from.
 type clientCall interface {
@@ -138,7 +138,7 @@ type Bot struct {
 	ws    *larkws.Client
 	msgs  Messages
 	files Files  // where the messages' files go, nil in a test that takes none
-	me    string // the open_id of the one who ran kero feishu setup
+	me    string // the open_id of the one who ran hyla feishu setup
 	logf  func(format string, args ...any)
 	sync  bool // turns run in the handler's goroutine, for tests
 	// began is when this bot started: the turns that ran before it are
@@ -147,13 +147,13 @@ type Bot struct {
 
 	mu    sync.Mutex
 	chats map[string]*chat // by chat key
-	// binds are the chats' sessions, by chat key, which kerod's state
+	// binds are the chats' sessions, by chat key, which hylad's state
 	// file keeps across its restarts.
 	binds map[string]string
 	seen  map[string]bool // event IDs, for a while
 	order []string        // seen's, oldest first
 	// notes tell what the bot's cards are about, by message ID, for the
-	// button's click: kerod's directory keeps them across its restarts.
+	// button's click: hylad's directory keeps them across its restarts.
 	notes map[string]record
 	// heard tells, by event and host, when that host's answer came, as
 	// Unix milliseconds.
@@ -203,7 +203,7 @@ type chat struct {
 	peer string
 
 	// host is the machine the chat's messages go to, set by /host: "" for
-	// the one that hears them first, as kerod's directory keeps it.
+	// the one that hears them first, as hylad's directory keeps it.
 	host string
 	// card is the chat's last card, which a turn's replaces.
 	card cardMsg
@@ -264,7 +264,7 @@ type Config struct {
 	Yolo bool
 	Log  func(format string, args ...any)
 	// Env is the environment the app runs in, which the commands it runs
-	// take: kerod's, which runs them, may be a launchd job's.
+	// take: hylad's, which runs them, may be a launchd job's.
 	Env []string
 }
 
@@ -310,7 +310,7 @@ func New(c Config) *Bot {
 
 // Run holds the connection until ctx ends, reconnecting as Feishu asks.
 func (b *Bot) Run(ctx context.Context) error {
-	kerod = b.api
+	hylad = b.api
 	b.load()
 	return b.ws.Start(ctx)
 }
@@ -483,7 +483,7 @@ func Probe(appID, appSecret string) error {
 }
 
 // SendText sends text to a chat (receive_id_type chat_id) or a person
-// (open_id), as kero feishu send does.
+// (open_id), as hyla feishu send does.
 func SendText(appID, appSecret, receiveIDType, receiveID, text string) error {
 	c := lark.NewClient(appID, appSecret, lark.WithLogLevel(larkcore.LogLevelError))
 	_, err := (&larkAPI{c: c}).Send(receiveIDType, receiveID, text)

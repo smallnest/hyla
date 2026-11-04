@@ -1,10 +1,10 @@
-// kero is a terminal for coding agents: sessions grouped by project in a
+// hyla is a terminal for coding agents: sessions grouped by project in a
 // sidebar that shows which work, which need you and which are done. The
-// sessions run in kerod, a daemon of their own, so quitting kero leaves
+// sessions run in hylad, a daemon of their own, so quitting hyla leaves
 // them running, and opening it again shows everything as it was.
 //
-// The same executable is the kero CLI (kero help), which drives sessions
-// from a shell or an agent, and kerod itself (kero __kerod).
+// The same executable is the hyla CLI (hyla help), which drives sessions
+// from a shell or an agent, and hylad itself (hyla __hylad).
 package main
 
 import (
@@ -21,20 +21,21 @@ import (
 	"github.com/egoist/mygo/ui"
 	"golang.org/x/term"
 
-	"kero/internal/cli"
-	"kero/internal/clilink"
-	"kero/internal/daemon"
-	"kero/internal/proto"
+	"hyla/internal/cli"
+	"hyla/internal/clilink"
+	"hyla/internal/daemon"
+	"hyla/internal/proto"
 
-	"kero/locales"
+	"hyla/locales"
 )
 
 func main() {
+	proto.AdoptLegacyEnv()
 	if len(os.Args) > 1 {
 		switch {
-		case os.Args[1] == "__kerod":
+		case os.Args[1] == "__hylad":
 			if err := daemon.Run(daemon.Options{}); err != nil {
-				fmt.Fprintln(os.Stderr, "kerod:", err)
+				fmt.Fprintln(os.Stderr, "hylad:", err)
 				os.Exit(1)
 			}
 			return
@@ -42,7 +43,7 @@ func main() {
 			os.Exit(cli.Run(os.Args[1:]))
 		}
 	}
-	// `kero` alone in a terminal, through the CLI's link to the app's
+	// `hyla` alone in a terminal, through the CLI's link to the app's
 	// executable: open the app as the Finder would.
 	if len(os.Args) == 1 && term.IsTerminal(int(os.Stdin.Fd())) {
 		if exe, err := os.Executable(); err == nil {
@@ -66,10 +67,10 @@ func main() {
 }
 
 func runApp() {
-	// Started from a pane, as Kero Dev by `mygo dev` in the installed Kero:
-	// the pane's variables name its kerod, not this build's.
-	if os.Getenv("KERO_PANE") != "" {
-		for _, k := range []string{"KERO_SOCKET", "KERO_SESSION", "KERO_PANE"} {
+	// Started from a pane, as Hyla Dev by `mygo dev` in the installed Hyla:
+	// the pane's variables name its hylad, not this build's.
+	if os.Getenv("HYLA_PANE") != "" {
+		for _, k := range []string{"HYLA_SOCKET", "HYLA_SESSION", "HYLA_PANE"} {
 			os.Unsetenv(k)
 		}
 	}
@@ -77,7 +78,7 @@ func runApp() {
 		return
 	}
 	cli.SyncSkill()
-	// Updates from Kero's GitHub releases, in a window of native UI.
+	// Updates from Hyla's GitHub releases, in a window of native UI.
 	mygo.Use(native.Plugin)
 	a := newApp()
 	loadFonts()
@@ -149,11 +150,11 @@ func runApp() {
 	}
 }
 
-// openWindow makes the main window: as Kero starts, and again after
-// closing it left Kero running in the menu bar or the notification area.
+// openWindow makes the main window: as Hyla starts, and again after
+// closing it left Hyla running in the menu bar or the notification area.
 func (a *App) openWindow() {
 	a.win = mygo.NewWindow(framed(mygo.WindowOptions{
-		Title:     "Kero",
+		Title:     "Hyla",
 		Width:     1180,
 		Height:    760,
 		MinWidth:  560,

@@ -1,9 +1,9 @@
-// Package git reads what kero shows of git: a worktree's branch and
+// Package git reads what hyla shows of git: a worktree's branch and
 // changes, trees of its working tree as it was (snapshots), and its files
 // changed since one. It runs the user's git, and writes nothing to a
 // repository's index or working tree: snapshots go through an index of
 // their own, and every command takes --no-optional-locks, so that an agent
-// committing never finds kero holding index.lock.
+// committing never finds hyla holding index.lock.
 package git
 
 import (

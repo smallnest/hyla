@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
 // gitRepo makes a repository with a first commit on main.
@@ -45,7 +45,7 @@ func TestWorktreeSession(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := filepath.Join(repo, ".kero", "worktrees", "fix-login")
+	want := filepath.Join(repo, ".hyla", "worktrees", "fix-login")
 	wt := s.Worktree
 	if wt == nil || wt.Path != want || wt.Branch != "fix/login" || wt.Base != "main" || wt.Main != repo || s.Project != "pr" {
 		t.Fatalf("session %+v, worktree %+v", s, wt)
@@ -103,14 +103,14 @@ func TestWorktreeSession(t *testing.T) {
 }
 
 func TestWorktreePath(t *testing.T) {
-	main := filepath.FromSlash("/src/kero")
-	if got := worktreePath(main, "fix/login", ""); got != filepath.FromSlash("/src/kero/.kero/worktrees/fix-login") {
+	main := filepath.FromSlash("/src/hyla")
+	if got := worktreePath(main, "fix/login", ""); got != filepath.FromSlash("/src/hyla/.hyla/worktrees/fix-login") {
 		t.Error(got)
 	}
-	if got := worktreePath(main, "x", filepath.FromSlash("/wt")); got != filepath.FromSlash("/wt/kero/x") {
+	if got := worktreePath(main, "x", filepath.FromSlash("/wt")); got != filepath.FromSlash("/wt/hyla/x") {
 		t.Error(got)
 	}
-	if got := worktreePath(main, "x", "../trees"); got != filepath.FromSlash("/src/trees/kero/x") {
+	if got := worktreePath(main, "x", "../trees"); got != filepath.FromSlash("/src/trees/hyla/x") {
 		t.Error(got)
 	}
 }

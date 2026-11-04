@@ -224,7 +224,7 @@ func optionsCard(a *questionAsk, answered string) (string, error) {
 				"tag":   "button",
 				"type":  "primary",
 				"text":  map[string]any{"tag": "plain_text", "content": word(a.lang, "choice.send")},
-				"value": map[string]any{"kero": "choice", "ask": a.id, "opt": -1},
+				"value": map[string]any{"hyla": "choice", "ask": a.id, "opt": -1},
 			})
 	}
 	card := map[string]any{
@@ -247,7 +247,7 @@ func optionButton(id string, i int, text string) map[string]any {
 		"tag":   "button",
 		"type":  "default",
 		"text":  map[string]any{"tag": "plain_text", "content": fmt.Sprintf("%d. %s", i+1, truncateRunes(text, 40))},
-		"value": map[string]any{"kero": "choice", "ask": id, "opt": fmt.Sprint(i)},
+		"value": map[string]any{"hyla": "choice", "ask": id, "opt": fmt.Sprint(i)},
 	}
 }
 

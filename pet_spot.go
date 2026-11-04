@@ -5,7 +5,7 @@ import (
 
 	"github.com/egoist/mygo"
 
-	"kero/internal/pets"
+	"hyla/internal/pets"
 )
 
 // spotRoom is where the pet's speech starts, and how tall its room is, for

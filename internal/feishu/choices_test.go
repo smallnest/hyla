@@ -61,7 +61,7 @@ func TestChoiceAction(t *testing.T) {
 		id = id[strings.Index(id, `"ask":"`)+7:]
 		id = id[:strings.Index(id, `"`)]
 		res, err := b.onCardAction(nil, &callback.CardActionTriggerEvent{Event: &callback.CardActionTriggerRequest{
-			Action:  &callback.CallBackAction{Value: map[string]any{"kero": "choice", "ask": id, "opt": opt}},
+			Action:  &callback.CallBackAction{Value: map[string]any{"hyla": "choice", "ask": id, "opt": opt}},
 			Context: &callback.Context{OpenMessageID: "om_card_1"},
 		}})
 		if err != nil {
@@ -108,12 +108,12 @@ func choiceButtons(card map[string]any) []map[string]any {
 		inner, _ := m["elements"].([]any)
 		for _, e := range inner {
 			b, _ := e.(map[string]any)
-			if v, _ := b["value"].(map[string]any); v["kero"] == "choice" {
+			if v, _ := b["value"].(map[string]any); v["hyla"] == "choice" {
 				buttons = append(buttons, b)
 			}
 		}
 		if len(cols) == 0 {
-			if v, _ := m["value"].(map[string]any); v["kero"] == "choice" {
+			if v, _ := m["value"].(map[string]any); v["hyla"] == "choice" {
 				buttons = append(buttons, m)
 			}
 		}

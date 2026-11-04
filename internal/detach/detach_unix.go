@@ -1,8 +1,8 @@
 //go:build !windows
 
 // Package detach starts programs that outlive whoever started them, as
-// kerod, which the app, the CLI and a bridge start, and which starts the
-// kerod that follows it as it restarts.
+// hylad, which the app, the CLI and a bridge start, and which starts the
+// hylad that follows it as it restarts.
 package detach
 
 import (

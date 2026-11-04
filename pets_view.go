@@ -6,15 +6,15 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/pets"
-	"kero/internal/settings"
+	"hyla/internal/pets"
+	"hyla/internal/settings"
 
-	"kero/locales"
+	"hyla/locales"
 )
 
 // listPets lists the pets the settings may show, as the pop-up picks
-// them: Kero the frog, the Codex app's active pet, and each pet the Codex
-// app has, then those kero installed. It reads them once, and again when
+// them: Hyla the frog, the Codex app's active pet, and each pet the Codex
+// app has, then those hyla installed. It reads them once, and again when
 // a pet is installed, or another chosen.
 func (a *App) listPets() []pets.Builtin {
 	if a.petList != nil && a.petListFor == a.set.PetSet && a.petListGen == petsGen {
@@ -31,7 +31,7 @@ var petsGen int
 // readPets reads the pets listPets lists, their names from their
 // pet.json, not their spritesheets.
 func (a *App) readPets() []pets.Builtin {
-	ps := []pets.Builtin{{Name: settings.PetSetKero, Title: locales.PetName()}}
+	ps := []pets.Builtin{{Name: settings.PetSetHyla, Title: locales.PetName()}}
 	codex := pets.CodexIDs()
 	if active := pets.CodexActive(); active != "" {
 		title := active
@@ -47,7 +47,7 @@ func (a *App) readPets() []pets.Builtin {
 	for _, dirs := range [][]string{codex, installed} {
 		for _, id := range dirs {
 			if slices.Contains(installed, id) {
-				continue // kero's comes first
+				continue // hyla's comes first
 			}
 			title := id
 			if p, err := pets.NameID(id); err == nil {
@@ -92,7 +92,7 @@ func setPet(s *settings.Settings, name string) {
 // petGallery is the pet's setting's detail: what its description says,
 // or what went wrong with it.
 func (a *App) petGallery() string {
-	if a.set.PetSet == settings.PetSetKero {
+	if a.set.PetSet == settings.PetSetHyla {
 		return ""
 	}
 	p, err := pets.NameID(a.set.PetSet)
@@ -102,7 +102,7 @@ func (a *App) petGallery() string {
 	desc := strings.TrimSpace(p.Description)
 	// A pet of the same name in both directories: say which one shows.
 	if p.ID != settings.PetSetCodex && slices.Contains(pets.CodexIDs(), p.ID) {
-		desc += " (" + locales.SetPetKeroCopy() + ")"
+		desc += " (" + locales.SetPetHylaCopy() + ")"
 	}
 	return desc
 }

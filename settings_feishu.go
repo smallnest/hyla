@@ -8,11 +8,11 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/client"
-	"kero/internal/feishu"
-	"kero/internal/proto"
-	"kero/internal/settings"
-	"kero/locales"
+	"hyla/internal/client"
+	"hyla/internal/feishu"
+	"hyla/internal/proto"
+	"hyla/internal/settings"
+	"hyla/locales"
 )
 
 // The agents a new session from Feishu runs, unless the configuration
@@ -39,12 +39,12 @@ type feishuDraft struct {
 	err     string // why the last check failed
 	busy    bool   // a check with Feishu runs
 
-	st     proto.FeishuState // the bot, as kerod last told it
-	known  bool              // kerod has told it
+	st     proto.FeishuState // the bot, as hylad last told it
+	known  bool              // hylad has told it
 	filled bool              // the fields hold what the settings have
 }
 
-// feishuRead asks this machine's kerod for the bot's state.
+// feishuRead asks this machine's hylad for the bot's state.
 func (a *App) feishuRead() {
 	h := a.local()
 	if h.cl == nil {
@@ -63,7 +63,7 @@ func (a *App) feishuRead() {
 	})
 }
 
-// feishuState is the bot's state, as this machine's kerod tells it.
+// feishuState is the bot's state, as this machine's hylad tells it.
 func (a *App) feishuState(cl *client.Client) (proto.FeishuState, bool) {
 	var st proto.FeishuState
 	if err := cl.Call("feishu.status", nil, &st); err != nil {
@@ -256,7 +256,7 @@ func (a *App) feishuNormal() {
 }
 
 // feishuAppEnv is the app's environment, which the bot's agent commands
-// run in, as kerod reads it now: a command reaches kerod as its window
+// run in, as hylad reads it now: a command reaches hylad as its window
 // starts it, or from a login shell's. The variables a login shell's
 // profile reads live, as a token or a socket that changes, are read
 // again with each setting the group applies. The variables of AUTH,

@@ -5,11 +5,11 @@ import (
 	"slices"
 	"strings"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
 // A Feishu app may connect from several machines, each with its own
-// kerod: every host hears each event, and each reply to the bot's
+// hylad: every host hears each event, and each reply to the bot's
 // answer. The bot's answer names the event in its first line, which
 // every host hears; the host that took the event marks the event's
 // message with its answer, and the host the chat's messages go to
@@ -24,9 +24,9 @@ type heard struct {
 }
 
 const (
-	hopPrefix   = "kero-hop "
-	heardPrefix = "kero-heard "
-	fromPrefix  = "kero-from "
+	hopPrefix   = "hyla-hop "
+	heardPrefix = "hyla-heard "
+	fromPrefix  = "hyla-from "
 )
 
 // hopText is an answer's first line: the event it answers, which every
@@ -115,7 +115,7 @@ func (b *Bot) answers(chatID string) bool {
 }
 
 // hostCommand is /host: which machine the chat's messages go to, so
-// that another Kero, in another window, takes them.
+// that another Hyla, in another window, takes them.
 func (b *Bot) hostCommand(chatID, rest string) {
 	key := chatKey(chatID, "")
 	rest = strings.TrimSpace(rest)
@@ -139,7 +139,7 @@ func (b *Bot) hostCommand(chatID, rest string) {
 			found = found || h == rest
 		}
 		if !found {
-			b.reply(chatID, fmt.Sprintf("Kero knows no host %q. feishu-host names the hosts that share the app.", rest))
+			b.reply(chatID, fmt.Sprintf("Hyla knows no host %q. feishu-host names the hosts that share the app.", rest))
 			return
 		}
 	}
@@ -167,5 +167,5 @@ func (b *Bot) hostCommand(chatID, rest string) {
 		b.reply(chatID, "Messages here go to "+host+".")
 		return
 	}
-	b.reply(chatID, fmt.Sprintf("Messages here go to %s. Its session is there: open Kero on it to see a turn. /host here brings the chat back, when this host hears it.", host))
+	b.reply(chatID, fmt.Sprintf("Messages here go to %s. Its session is there: open Hyla on it to see a turn. /host here brings the chat back, when this host hears it.", host))
 }

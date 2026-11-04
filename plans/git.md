@@ -1,4 +1,4 @@
-# Plan: git in Kero
+# Plan: git in Hyla
 
 Status: Phases 1, 2 and 3 built, and the `repoRoot` fix; Phase 4 not
 started. Written 2026-10-21, after 2.0.9. Where the build differs from what
@@ -10,19 +10,19 @@ Answer, at a glance, the two questions you have about an agent's session:
 **where is it working, and what has it changed?** Then make the common next
 step one click away.
 
-Kero is a terminal for supervising coding agents, so git in Kero is
-read-mostly. Not goals: committing, staging, rebasing or pushing from Kero's
+Hyla is a terminal for supervising coding agents, so git in Hyla is
+read-mostly. Not goals: committing, staging, rebasing or pushing from Hyla's
 own UI. The agents do those, and lazygit or tig do them better in a pane.
 
 ## Where we start
 
-kerod already knows most of what's needed:
+hylad already knows most of what's needed:
 
 - Each pane has its shell's directory (`Pane.Dir`), and its foreground
   program's when it differs (`Pane.ProcessDir`), as an agent's that went into
   a worktree (`internal/daemon/session.go`). Both are refreshed at most every
   1.5s.
-- kerod sees each pane's status change, so it knows when an agent starts
+- hylad sees each pane's status change, so it knows when an agent starts
   working and when it stops.
 - Projects are folders. A new session joins the project whose directory holds
   it, or starts one at its repository's root (`projectFor` and `repoRoot` in
@@ -50,15 +50,15 @@ What's missing, or wrong:
 
 ## Principles
 
-- **kerod owns the data.** It runs git and puts the results in `proto.State`,
-  so the app, `kero status --json` and the agent skill all see the same thing,
+- **hylad owns the data.** It runs git and puts the results in `proto.State`,
+  so the app, `hyla status --json` and the agent skill all see the same thing,
   and it carries over to remote hosts (`plans/remote-servers.md`) for free.
 - **Run the user's `git`,** not go-git. It honours their config, fsmonitor,
   `core.untrackedCache` and credentials, and go-git's status is slow on large
   repositories.
-- **Never get in an agent's way.** Every command kerod runs takes
+- **Never get in an agent's way.** Every command hylad runs takes
   `--no-optional-locks`, so a background `git status` never holds
-  `index.lock` while an agent commits. kerod never writes to the repository's
+  `index.lock` while an agent commits. hylad never writes to the repository's
   index, and writes to the working tree only when the user reverts a change
   in the panel while no agent is working there (Phase 2).
 - **Quiet by default.** The sidebar row stays as it is unless git has
@@ -66,7 +66,7 @@ What's missing, or wrong:
 
 ## Phase 1: branch and changes on every session
 
-### kerod
+### hylad
 
 - A `GitInfo` per pane, an optional field on `proto.Pane`:
 
@@ -95,7 +95,7 @@ What's missing, or wrong:
     ahead/behind and changed files.
   - `git diff --numstat HEAD` gives the line counts.
   - Both take `--no-optional-locks`, a timeout (2s), and a niced process.
-  - On Windows, `git.exe` starts with `CREATE_NO_WINDOW`. kerod has no
+  - On Windows, `git.exe` starts with `CREATE_NO_WINDOW`. hylad has no
     console, so without it every refresh would flash one.
 - **When it refreshes,** never on a fast poll:
   - when a pane's directory changes;
@@ -111,7 +111,7 @@ What's missing, or wrong:
   that lies on a network mount, stops refreshing automatically. The tooltip
   says so, and selecting the session retries once.
 - **Configuration:** `git-status = true|false` (default `true`) in
-  `~/.config/kero/config`. Tests set `KERO_CONFIG` as usual.
+  `~/.config/hyla/config`. Tests set `HYLA_CONFIG` as usual.
 
 ### App
 
@@ -130,21 +130,21 @@ What's missing, or wrong:
 
 ### CLI
 
-- `kero status --json` and `kero ls --json` include `git` per pane.
-- `kero status` prints the branch and diffstat on its directory line.
+- `hyla status --json` and `hyla ls --json` include `git` per pane.
+- `hyla status` prints the branch and diffstat on its directory line.
 
 ### As built
 
 - `internal/git` runs git; `internal/daemon/git.go` follows the worktrees
-  (`gitFollow`). Instead of a file watcher, kerod stats the git directory's
+  (`gitFollow`). Instead of a file watcher, hylad stats the git directory's
   files once a second, which is portable and cheap.
 - The sidebar's branch label shows when a session's branch isn't the
   repository's default (`GitInfo.Default`), not compared with the main
   checkout's branch. The project header shows no branch: the row's label
   says what matters.
-- `kero status` prints as before; its `--json`, and `kero ls --json`, carry
+- `hyla status` prints as before; its `--json`, and `hyla ls --json`, carry
   `git`. git isn't niced.
-- On Windows git starts with `CREATE_NO_WINDOW`; on macOS kerod runs no git
+- On Windows git starts with `CREATE_NO_WINDOW`; on macOS hylad runs no git
   when `/usr/bin/git` is the stub that asks to install the command line
   tools.
 
@@ -170,7 +170,7 @@ and on **Uncommitted** otherwise.
 This is what no other terminal can offer, because no other terminal knows
 when an agent's turn starts.
 
-- When a pane with an agent goes from idle to working, kerod writes a tree of
+- When a pane with an agent goes from idle to working, hylad writes a tree of
   the working tree without touching the user's index:
 
   ```sh
@@ -180,29 +180,29 @@ when an agent's turn starts.
 
   `$tmp` is seeded by copying the real index first, so `git add -A` only
   hashes what changed, and `.gitignore` applies as it does for the user.
-- The tree's id is kept on the pane (in kerod's store, so it survives a
+- The tree's id is kept on the pane (in hylad's store, so it survives a
   restart), with the time. Only the latest is kept per pane. The objects are
   loose and unreferenced, so `git gc` prunes them after its grace period
   (two weeks by default), long after they're needed.
 - The diff is `git diff <tree>` against the working tree, again through a
   temporary index for untracked files.
 - **Cost:** a snapshot runs once per turn, not per frame. On a repository
-  where it takes over the timeout, kerod skips snapshots for that worktree,
+  where it takes over the timeout, hylad skips snapshots for that worktree,
   and the tab says why.
 
 ### Diff view
 
 MyGo's `editor.DiffView`, one `editor.DiffState` per open file.
 
-- **Fed whole texts, not patches.** kerod sends the file's old text (the
+- **Fed whole texts, not patches.** hylad sends the file's old text (the
   blob in the tab's base: the turn's tree, `HEAD` or the merge-base) and its
   text now. With both, the viewer highlights changed words, lets the user
   expand the lines between changes, and can revert a hunk. `editor.LanguageFor`
   picks the highlighting from the path.
-- **Patches for the large.** Above a size limit (1 MB, say), kerod sends the
+- **Patches for the large.** Above a size limit (1 MB, say), hylad sends the
   file's patch from `git diff` instead, shown with `SetPatch`: the hunks under
   their headers, no expanding. Binary files show a summary.
-- **It follows the agent.** While a diff is open, kerod's watcher (Phase 1)
+- **It follows the agent.** While a diff is open, hylad's watcher (Phase 1)
   tells the app when the file changes, and the app replaces `New`'s text. The
   viewer diffs again only around the edit, so a working agent's changes show
   as it makes them.
@@ -216,7 +216,7 @@ MyGo's `editor.DiffView`, one `editor.DiffState` per open file.
 - **Looks:** the `Theme` comes from the app's palette, light and dark. Its
   `Added`, `Deleted` and `Modified` take the terminal theme's green, red and
   yellow, so the diff matches the pane beside it. Separators and hunk actions
-  are Kero's own (`RenderSeparator`, `RenderHunkActions`): no borders in light
+  are Hyla's own (`RenderSeparator`, `RenderHunkActions`): no borders in light
   mode, Framework7 icons.
 - **Read-only to start** (`Editable` off). Editing in the panel would make it
   an editor, and `$EDITOR` is one click away.
@@ -226,7 +226,7 @@ MyGo's `editor.DiffView`, one `editor.DiffState` per open file.
 The viewer's `HunkActions` give each change Revert and Keep, which suit the
 **Last turn** tab: review what the agent just did, one change at a time.
 
-- **Revert** puts the old lines back. kerod writes the file, and only when:
+- **Revert** puts the old lines back. hylad writes the file, and only when:
   - no agent in the worktree is working, since writing under a working agent
     races its edits;
   - the file on disk is still the text the viewer showed (compared by hash),
@@ -249,7 +249,7 @@ The viewer's `HunkActions` give each change Revert and Keep, which suit the
   its patch when large, or that it's binary.
 - `git.revert {pane, path, hash, text}` writes `text` to the file when its
   content still hashes to `hash` and no agent in the worktree is working.
-- `kero diff <target> [--turn|--base] [path]` prints the changes as `git diff`
+- `hyla diff <target> [--turn|--base] [path]` prints the changes as `git diff`
   would, for agents and scripts.
 
 ### As built
@@ -266,7 +266,7 @@ The viewer's `HunkActions` give each change Revert and Keep, which suit the
 - A turn starts as an agent goes to work from idle or error, not from
   waiting: answering its question goes on with the same turn.
 - The RPCs are `git.changes`, `git.file`, `git.revert` (which returns the
-  hash of what it wrote) and `git.diff` for `kero diff`, whose flags are
+  hash of what it wrote) and `git.diff` for `hyla diff`, whose flags are
   `--turn` and `--branch`.
 - While an agent works in the session, the list is fetched again every few
   seconds, and an open file every moment or so (with `Known`); Revert and
@@ -279,21 +279,21 @@ The viewer's `HunkActions` give each change Revert and Keep, which suit the
 
 ### Starting one
 
-- **New Session in Worktree… (⌘⌥T),** and `kero new --worktree <branch>`.
-  Kero asks for a branch name, suggesting one from the session's name.
-- kerod runs `git worktree add -b <branch> <path> <base>`:
+- **New Session in Worktree… (⌘⌥T),** and `hyla new --worktree <branch>`.
+  Hyla asks for a branch name, suggesting one from the session's name.
+- hylad runs `git worktree add -b <branch> <path> <base>`:
   - `<base>` is the default branch's tip, or the current branch, as a setting
     picks (`worktree-base = default|current`).
-  - `<path>` is `<repo>/.kero/worktrees/<branch>` by default, so worktrees
+  - `<path>` is `<repo>/.hyla/worktrees/<branch>` by default, so worktrees
     stay inside their project. Setting `worktree-dir` moves them elsewhere.
-    Kero adds `.kero/` to the repository's `.git/info/exclude`, not to its
+    Hyla adds `.hyla/` to the repository's `.git/info/exclude`, not to its
     `.gitignore`.
 - The session records `Worktree{Path, Branch, Base}` and starts in it. The
   sidebar shows it under its repository's project with its branch label.
 
 ### Closing one
 
-When a worktree session closes, kerod checks the worktree before anything
+When a worktree session closes, hylad checks the worktree before anything
 else:
 
 - **Clean, and its commits are on the base branch or pushed:** "Remove the
@@ -305,7 +305,7 @@ else:
 - Another session still in the worktree: close this one and keep the
   worktree, without asking.
 
-`kero close --remove-worktree` does the same from the CLI, and refuses
+`hyla close --remove-worktree` does the same from the CLI, and refuses
 without `--force` where the dialog would warn.
 
 ### Fixing `repoRoot`
@@ -319,7 +319,7 @@ worktree, stays a root of its own.
 
 ## Phase 4: a few actions
 
-In the changes panel's menu, the title bar's branch menu, and `kero do`:
+In the changes panel's menu, the title bar's branch menu, and `hyla do`:
 
 - **Copy Branch Name.**
 - **Open Pull Request:** `gh pr view --web` when `gh` is installed and a PR
@@ -328,7 +328,7 @@ In the changes panel's menu, the title bar's branch menu, and `kero do`:
 - **Open in lazygit / tig:** a split pane running the first one installed, in
   the session's worktree.
 - **Ask the Agent to Commit / Open a PR:** types a prompt into the agent's
-  pane, through what `kero prompt` uses, and lets the agent do it its way. The
+  pane, through what `hyla prompt` uses, and lets the agent do it its way. The
   prompt text is a setting.
 - **Comment on lines, then send the comments to the agent,** as a code review
   does:
@@ -336,11 +336,11 @@ In the changes panel's menu, the title bar's branch menu, and `kero do`:
     and dragging over line numbers (`LineSelection`) comments on a range.
     Comments show under their lines (`Annotations`, `RenderAnnotation`).
   - **Send to Agent** types them into the agent's pane as one prompt, each as
-    `path:line: comment`, through what `kero prompt` uses.
+    `path:line: comment`, through what `hyla prompt` uses.
   - Comments live in the app until sent or discarded. They're dropped when
     their file changes under them.
 
-Nothing here writes to the repository from Kero itself, except Phase 3's
+Nothing here writes to the repository from Hyla itself, except Phase 3's
 worktree add and remove. The only other write is Phase 2's Revert.
 
 ## Security notes
@@ -348,7 +348,7 @@ worktree add and remove. The only other write is Phase 2's Revert.
 - **Branch names, commit subjects and file paths come from the repository,**
   which may be untrusted. They're shown as plain text, never as markup, and
   never typed into a pane.
-- **kerod runs `git` in directories the user's shells are already in,** as
+- **hylad runs `git` in directories the user's shells are already in,** as
   the user. Repository config can run programs (`core.fsmonitor`, filters,
   `diff.external`), as it does when the user's own prompt runs `git status`.
   - Pass `-c core.fsmonitor=false` only if a hook turns out to be slow or
@@ -357,7 +357,7 @@ worktree add and remove. The only other write is Phase 2's Revert.
     repository can't run a program just by being looked at in the panel.
 - **Snapshots stay local:** they are loose objects in the repository, never
   referenced, never pushed.
-- **`git.file` and `git.revert` take a path from the client.** kerod accepts
+- **`git.file` and `git.revert` take a path from the client.** hylad accepts
   it only when git lists it as changed in that tab, and only inside the pane's
   worktree once symbolic links are resolved, so neither reads nor writes any
   other file.
@@ -384,13 +384,13 @@ worktree add and remove. The only other write is Phase 2's Revert.
   conversation?** Per turn answers "what did it just do"; per conversation
   answers "what has this task done". Branch covers much of the second.
 - **How do Windows paths and `git.exe` behave** with `GIT_INDEX_FILE` and the
-  watcher? kerod runs on Windows, so check there before Phase 2.
-- **Remote hosts:** everything runs in kerod, so it should just work there.
+  watcher? hylad runs on Windows, so check there before Phase 2.
+- **Remote hosts:** everything runs in hylad, so it should just work there.
   Check that opening a file from the diff resolves on the host, as
   `plans/remote-servers.md` requires for ⌘-clicked paths.
 - **Should Keep outlive the app's memory?** Persisting it means a baseline
-  per file in kerod beside the turn's tree. Try the review with in-memory Keep
+  per file in hylad beside the turn's tree. Try the review with in-memory Keep
   first.
 - **Agents that already make worktrees,** such as Claude Code under
-  `.claude/worktrees`: should Kero offer to remove those on close too, or only
+  `.claude/worktrees`: should Hyla offer to remove those on close too, or only
   its own?

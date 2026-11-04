@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"kero/internal/remote"
+	"hyla/internal/remote"
 )
 
 // The tailcat keys read as the configuration writes them, and a listener

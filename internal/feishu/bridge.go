@@ -13,9 +13,9 @@ import (
 
 	larkim "github.com/larksuite/oapi-sdk-go/v3/service/im/v1"
 
-	"kero/internal/detect"
-	"kero/internal/proto"
-	"kero/internal/settings"
+	"hyla/internal/detect"
+	"hyla/internal/proto"
+	"hyla/internal/settings"
 )
 
 const (
@@ -35,7 +35,7 @@ const (
 // group's message it is not mentioned in is no message to it: the group
 // may have several bots.
 func (b *Bot) onMessage(clientCtx context.Context, e *larkim.P2MessageReceiveV1) error {
-	// Its turns keep kerod at its work, as a connection that stays does.
+	// Its turns keep hylad at its work, as a connection that stays does.
 	if _, err := b.api.State(); err == nil {
 		b.api.Call("watch", map[string]bool{"stay": true}, nil)
 	}
@@ -82,8 +82,8 @@ func (b *Bot) onMessage(clientCtx context.Context, e *larkim.P2MessageReceiveV1)
 		userID = deref(e.Event.Sender.SenderId.UserId)
 	}
 	if !b.allowed(openID, userID) {
-		b.reply(chatID, "You are not allowed to use Kero on this machine. Add your open_id ("+
-			firstNotEmpty(openID, userID)+") to feishu-allow in ~/.config/kero/config.")
+		b.reply(chatID, "You are not allowed to use Hyla on this machine. Add your open_id ("+
+			firstNotEmpty(openID, userID)+") to feishu-allow in ~/.config/hyla/config.")
 		return nil
 	}
 	// A group's messages go to the session of the chat, and each reply
@@ -116,7 +116,7 @@ func (b *Bot) onMessage(clientCtx context.Context, e *larkim.P2MessageReceiveV1)
 		return nil
 	} else if cmd == "" && !b.enter(key) {
 		if !b.hold(key, chatID, group, openID, m, text) {
-			b.reply(chatID, "Kero is still working on the last message there, and one waits. Wait for it, or send /stop.")
+			b.reply(chatID, "Hyla is still working on the last message there, and one waits. Wait for it, or send /stop.")
 		}
 		return nil
 	}
@@ -164,7 +164,7 @@ var takeOverOn = true
 
 // hostNote tells a chat that Feishu does not let the bot write there,
 // as a group it was not added to.
-const hostNote = "Feishu does not let Kero write here. Add the bot to the group, and let feishu-host name the hosts that share the app; the chat's host goes among them."
+const hostNote = "Feishu does not let Hyla write here. Add the bot to the group, and let feishu-host name the hosts that share the app; the chat's host goes among them."
 
 // isCommand tells a message's text that is a command.
 func isCommand(content string) bool {
@@ -201,7 +201,7 @@ func (b *Bot) textOf(chatID string, m *larkim.EventMessage) string {
 	case "post":
 		return strings.TrimSpace(postText(content) + b.attachment(chatID, "post", content))
 	}
-	b.reply(chatID, "Kero takes text, files, images and rich text. Send one of them.")
+	b.reply(chatID, "Hyla takes text, files, images and rich text. Send one of them.")
 	return ""
 }
 
@@ -312,7 +312,7 @@ func (b *Bot) hold(key, chatID string, group bool, openID string, m *larkim.Even
 	}
 	c.waiting = append(c.waiting, waitingTurn{chatID: chatID, openID: openID, group: group, m: m, text: text})
 	b.mu.Unlock()
-	b.reply(chatID, "Queued: Kero sends it when the turn there ends.")
+	b.reply(chatID, "Queued: Hyla sends it when the turn there ends.")
 	return true
 }
 
@@ -340,7 +340,7 @@ func splitCommand(text string) (cmd, rest string) {
 	return strings.ToLower(word), rest
 }
 
-const helpText = `Kero
+const helpText = `Hyla
 
 /new [project] [agent]   start a session, and bind this chat to it
 /use <session>           bind this chat to an open session
@@ -370,7 +370,7 @@ func (b *Bot) newSession(chatID, rest string) {
 		agent = b.cfg.Agent
 	}
 	if agent != "" && agent != "default" && !knownAgent(agent) {
-		b.reply(chatID, fmt.Sprintf("Kero has no agent %q.", agent))
+		b.reply(chatID, fmt.Sprintf("Hyla has no agent %q.", agent))
 		return
 	}
 	var s proto.Session
@@ -380,7 +380,7 @@ func (b *Bot) newSession(chatID, rest string) {
 		cmd, after = b.sessionCommand(agent)
 	}
 	if err := b.api.Call("create", proto.CreateParams{Project: project, Dir: b.cfg.Dir, Command: cmd}, &s); err != nil {
-		b.reply(chatID, "Kero could not start a session: "+err.Error())
+		b.reply(chatID, "Hyla could not start a session: "+err.Error())
 		return
 	}
 	if after {
@@ -409,7 +409,7 @@ func (b *Bot) use(chatID, ref string) {
 	}
 	st, err := b.api.State()
 	if err != nil {
-		b.reply(chatID, "Kero is unreachable: "+err.Error())
+		b.reply(chatID, "Hyla is unreachable: "+err.Error())
 		return
 	}
 	var found []*proto.Session
@@ -432,7 +432,7 @@ func (b *Bot) use(chatID, ref string) {
 				return
 			}
 		}
-		b.reply(chatID, fmt.Sprintf("Kero has no session %q to take prompts. /ls lists those that do.", ref))
+		b.reply(chatID, fmt.Sprintf("Hyla has no session %q to take prompts. /ls lists those that do.", ref))
 		return
 	}
 	if len(found) > 1 {
@@ -448,7 +448,7 @@ func (b *Bot) use(chatID, ref string) {
 			}
 		}
 		if by == "" {
-			b.reply(chatID, fmt.Sprintf("Kero has %d sessions named %q. /use their ids.", len(found), ref))
+			b.reply(chatID, fmt.Sprintf("Hyla has %d sessions named %q. /use their ids.", len(found), ref))
 			return
 		}
 		found = []*proto.Session{sessionOf(found, by)}
@@ -461,7 +461,7 @@ func (b *Bot) use(chatID, ref string) {
 func (b *Bot) list(chatID string) {
 	st, err := b.api.State()
 	if err != nil {
-		b.reply(chatID, "Kero is unreachable: "+err.Error())
+		b.reply(chatID, "Hyla is unreachable: "+err.Error())
 		return
 	}
 	var out strings.Builder
@@ -586,7 +586,7 @@ func (b *Bot) answer(chatID, text string) {
 		b.reply(chatID, err.Error())
 		return
 	}
-	// Its turn keeps kerod at its work, as a connection that stays does.
+	// Its turn keeps hylad at its work, as a connection that stays does.
 	b.api.Call("watch", map[string]bool{"stay": true}, nil)
 	var card *turnCard
 	if cards() && len(text) > 0 {
@@ -715,7 +715,7 @@ func (b *Bot) nameSession(s proto.Session) string {
 }
 
 // leadPane is a session's lead pane, else its first: a session no
-// client's state has told kerod the lead of has none.
+// client's state has told hylad the lead of has none.
 func leadPane(s *proto.Session) proto.Pane {
 	if s.Pane.ID != "" {
 		return s.Pane
@@ -786,8 +786,8 @@ func sessionOf(l []*proto.Session, id string) *proto.Session {
 	return nil
 }
 
-// bindFile is where the chats' bindings go: kerod's directory, kept with
-// its sessions, so that a chat finds its session again after kerod
+// bindFile is where the chats' bindings go: hylad's directory, kept with
+// its sessions, so that a chat finds its session again after hylad
 // restarts.
 func bindFile() string { return filepath.Join(proto.Dir(), "feishu-chats.json") }
 
@@ -887,7 +887,7 @@ func (b *Bot) replyTurn(key, event, chatID string, card Card, text string) {
 	}
 	if b.shared() {
 		// An answer names the event, which every host hears, and the host
-		// the chat's messages go to, which /host set. Kerod keeps the
+		// the chat's messages go to, which /host set. Hylad keeps the
 		// response, which the other hosts answer the event's next
 		// messages with: Feishu does not give a host another host's
 		// messages.
@@ -1043,7 +1043,7 @@ func (b *Bot) allowed(openID, userID string) bool {
 			return true
 		}
 	}
-	// Only who ran kero feishu setup, until feishu-allow names others.
+	// Only who ran hyla feishu setup, until feishu-allow names others.
 	return b.me != "" && (openID == b.me || userID == b.me)
 }
 

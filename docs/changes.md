@@ -5,7 +5,7 @@ description: See a session's git branch and what its agent changed, file by file
 
 # Changes
 
-When a session works in a git repository, Kero shows its branch and what changed, and lets you review an agent's work beside its panes.
+When a session works in a git repository, Hyla shows its branch and what changed, and lets you review an agent's work beside its panes.
 
 ## Branches at a glance
 
@@ -17,7 +17,7 @@ In the sidebar, a session on a branch other than the repository's default one, s
 
 Click a pane's branch, or press <kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>G</kbd>, to open the changes panel at the right of the session. It lists the files that changed, with what each adds and removes, since one of:
 
-- **Last Turn**: where the session's agent last started working, so you see what it did in its latest turn, and nothing that changed before it. Kero takes a snapshot of the worktree as the agent starts, without touching your index or files.
+- **Last Turn**: where the session's agent last started working, so you see what it did in its latest turn, and nothing that changed before it. Hyla takes a snapshot of the worktree as the agent starts, without touching your index or files.
 - **Uncommitted**: the last commit, untracked files included.
 - **Branch**: where the branch left the repository's default branch, as a pull request would show it.
 
@@ -40,38 +40,38 @@ Revert works only while no agent in the session is working, so it never races an
 
 Agents working side by side in one checkout trip over each other's changes. **Session › New Session in Worktree…** (<kbd>⌘</kbd> <kbd>⌥</kbd> <kbd>T</kbd>) asks for a branch name, then starts a session in a git worktree of its own: a folder checking out that new branch, from the repository's default branch.
 
-- The worktree goes in `.kero/worktrees/<branch>` inside the repository, which Kero ignores through `.git/info/exclude`, not your `.gitignore`. Set `worktree-dir` to put worktrees elsewhere.
+- The worktree goes in `.hyla/worktrees/<branch>` inside the repository, which Hyla ignores through `.git/info/exclude`, not your `.gitignore`. Set `worktree-dir` to put worktrees elsewhere.
 - Set `worktree-base = current` to branch from the session you're in instead of the default branch.
 - The session joins the repository's project, and the sidebar shows its branch.
 
 Closing the session asks whether its worktree goes too:
 
 - **Nothing uncommitted:** Remove Worktree is the default. The branch goes with it once it's merged; otherwise it stays, with its commits.
-- **Uncommitted changes:** Kero says how many files would be lost, and Keep Worktree is the default.
-- **Another session works in the worktree:** it stays, and Kero doesn't ask.
+- **Uncommitted changes:** Hyla says how many files would be lost, and Keep Worktree is the default.
+- **Another session works in the worktree:** it stays, and Hyla doesn't ask.
 
 From the command line:
 
 ```sh
-kero new --worktree fix-login -- claude   # a session on a new branch, in its own worktree
-kero new --worktree fix-login --base dev  # branch from dev
-kero close fix-login --remove-worktree    # close it and remove the worktree
-kero close fix-login --remove-worktree --force   # even with uncommitted changes
+hyla new --worktree fix-login -- claude   # a session on a new branch, in its own worktree
+hyla new --worktree fix-login --base dev  # branch from dev
+hyla close fix-login --remove-worktree    # close it and remove the worktree
+hyla close fix-login --remove-worktree --force   # even with uncommitted changes
 ```
 
 ## From the command line
 
-`kero diff` prints a pane's changes as `git diff` does, untracked files included:
+`hyla diff` prints a pane's changes as `git diff` does, untracked files included:
 
 ```sh
-kero diff                       # this pane's uncommitted changes
-kero diff --turn                # what its agent changed in its last turn
-kero diff review --branch       # the review session's changes since the default branch
-kero diff src/auth              # just these paths
+hyla diff                       # this pane's uncommitted changes
+hyla diff --turn                # what its agent changed in its last turn
+hyla diff review --branch       # the review session's changes since the default branch
+hyla diff src/auth              # just these paths
 ```
 
-`kero status --json` and `kero ls --json` include each pane's branch and changes as `git`.
+`hyla status --json` and `hyla ls --json` include each pane's branch and changes as `git`.
 
 ## Turning it off
 
-Set `git-status = false`, or turn off **Show git status** in Settings, to stop Kero running git in your repositories.
+Set `git-status = false`, or turn off **Show git status** in Settings, to stop Hyla running git in your repositories.

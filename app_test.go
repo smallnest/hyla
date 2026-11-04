@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"kero/internal/client"
-	"kero/internal/proto"
+	"hyla/internal/client"
+	"hyla/internal/proto"
 )
 
 // Split Right creates a session when there is no pane to split, and
@@ -73,8 +73,8 @@ func TestSplitRightWithoutSessionStartsOne(t *testing.T) {
 // projectClient speaks the real control protocol without starting the user's daemon.
 func projectClient(t *testing.T, handle func(string, json.RawMessage) (any, error)) (*client.Client, func()) {
 	t.Helper()
-	t.Setenv("KERO_HOME", t.TempDir())
-	t.Setenv("KERO_SOCKET", "")
+	t.Setenv("HYLA_HOME", t.TempDir())
+	t.Setenv("HYLA_SOCKET", "")
 	listener, err := net.Listen("unix", proto.SocketPath())
 	if err != nil {
 		t.Fatal(err)
@@ -220,7 +220,7 @@ func TestOpenProjectRemotePaths(t *testing.T) {
 	}
 }
 
-// The app's copy of a pane keeps the scrollback-limit, as kerod's does,
+// The app's copy of a pane keeps the scrollback-limit, as hylad's does,
 // not the terminal's default of 10 MB.
 func TestTermScrollback(t *testing.T) {
 	a := testApp(t)

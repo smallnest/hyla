@@ -1,5 +1,5 @@
 {
-  "name": "kero-monorepo",
+  "name": "hyla-monorepo",
   "private": true,
   "workspaces": [
     "website",

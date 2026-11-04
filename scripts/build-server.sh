@@ -1,6 +1,6 @@
 #!/bin/sh
-# Builds the server build of Kero as releases publish it, into build/server:
-# for each platform (update.Platforms), an archive of kero, libghostty-vt,
+# Builds the server build of Hyla as releases publish it, into build/server:
+# for each platform (update.Platforms), an archive of hyla, libghostty-vt,
 # on Windows the ConPTY of resources/windows-*, and the marker of an
 # install that updates itself (update.Marker), a .zip for Windows, else a
 # .tar.gz, named as update.Asset names it; and the install scripts, with
@@ -31,33 +31,33 @@ for p in $platforms; do
 	stage="$out/$os-$arch"
 	rm -rf "$stage"
 	mkdir -p "$stage"
-	exe=kero
+	exe=hyla
 	if [ "$os" = windows ]; then
-		exe=kero.exe
+		exe=hyla.exe
 	fi
-	echo "Building Kero $version for $os/$arch"
+	echo "Building Hyla $version for $os/$arch"
 	CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -trimpath \
 		-ldflags "-s -w -X main.version=$version -X github.com/egoist/mygo.production=1" \
-		-o "$stage/$exe" ./cmd/kero-server
-	# libghostty-vt, which the archive carries, as the app does: kero finds
+		-o "$stage/$exe" ./cmd/hyla-server
+	# libghostty-vt, which the archive carries, as the app does: hyla finds
 	# it beside itself, and downloads none.
 	file="$(jq -c ".libraries[] | select(.name == \"libghostty-vt\") | .files[\"$os-$arch\"]" "$manifest")"
 	lib="$(echo "$file" | jq -r .name)"
 	curl -fsSL "$(echo "$file" | jq -r .url)" -o "$stage/$lib"
 	echo "$(echo "$file" | jq -r .sha256)  $stage/$lib" | check
-	# On Windows, the ConPTY the app ships too, which kerod finds beside
+	# On Windows, the ConPTY the app ships too, which hylad finds beside
 	# itself (resources/windows-*).
 	extra=
 	if [ "$os" = windows ]; then
 		cp "resources/$os-$arch/conpty.dll" "resources/$os-$arch/OpenConsole.exe" "resources/$os-$arch/ConPTY-LICENSE.txt" "$stage/"
 		extra="conpty.dll OpenConsole.exe ConPTY-LICENSE.txt"
 	fi
-	: >"$stage/.kero-server"
+	: >"$stage/.hyla-server"
 	if [ "$os" = windows ]; then
-		rm -f "$out/kero-server-$version-$os-$arch.zip"
-		(cd "$stage" && zip -q -X "../kero-server-$version-$os-$arch.zip" "$exe" "$lib" $extra .kero-server)
+		rm -f "$out/hyla-server-$version-$os-$arch.zip"
+		(cd "$stage" && zip -q -X "../hyla-server-$version-$os-$arch.zip" "$exe" "$lib" $extra .hyla-server)
 	else
-		tar -C "$stage" -czf "$out/kero-server-$version-$os-$arch.tar.gz" "$exe" "$lib" .kero-server
+		tar -C "$stage" -czf "$out/hyla-server-$version-$os-$arch.tar.gz" "$exe" "$lib" .hyla-server
 	fi
 done
 

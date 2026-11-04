@@ -66,14 +66,14 @@ func TestRestoreMark(t *testing.T) {
 	}
 }
 
-// TestLeftover checks that a parent that is not Kero is no Kero that runs
+// TestLeftover checks that a parent that is not Hyla is no Hyla that runs
 // while this one does.
 func TestLeftover(t *testing.T) {
 	if leftover(os.Getpid()) || leftover(1) || leftover(0) || leftover(-1) {
-		t.Error("leftover reports this test, init or nothing as a Kero")
+		t.Error("leftover reports this test, init or nothing as a Hyla")
 	}
 	if !leftover(os.Getppid()) {
-		t.Log("the parent is not a Kero, as a test runner's")
+		t.Log("the parent is not a Hyla, as a test runner's")
 	}
 }
 

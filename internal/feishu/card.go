@@ -9,12 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"kero/internal/settings"
+	"hyla/internal/settings"
 )
 
 // Card is a turn's card: its title, the agent's text, the state it shows,
 // the time it took, what the agent used, and the session it is about,
-// which its button opens in Kero. Meta is the turn's summary, under the
+// which its button opens in Hyla. Meta is the turn's summary, under the
 // text; Note what it says under it, as an error's words.
 type Card struct {
 	Title    string
@@ -95,7 +95,7 @@ func cardJSON(c Card, lang string) (string, error) {
 			"tag":   "button",
 			"type":  "primary",
 			"text":  map[string]any{"tag": "plain_text", "content": word(lang, "open")},
-			"value": map[string]any{"kero": "open", "session": c.Session},
+			"value": map[string]any{"hyla": "open", "session": c.Session},
 		})
 	}
 	card := map[string]any{
@@ -289,7 +289,7 @@ func word(lang, key string) string {
 		"en_us": {
 			"state.working": "Working", "state.done": "Done", "state.asks": "Waiting for you", "state.error": "Error",
 			"asks": "The agent waits for your answer. Use /answer, or send a message.",
-			"open": "Open in Kero", "opened": "Kero shows the session.", "gone": "This card's session is gone.",
+			"open": "Open in Hyla", "opened": "Hyla shows the session.", "gone": "This card's session is gone.",
 			"inTerminal": "The answer follows in its own card.",
 			"earlier":    "An earlier turn",
 			"perm.title": "Permission needed",
@@ -304,7 +304,7 @@ func word(lang, key string) string {
 		"zh_cn": {
 			"state.working": "运行中", "state.done": "已完成", "state.asks": "等待你回答", "state.error": "出错",
 			"asks": "代理在等待你回答。用 /answer 回答，或发送一条消息。",
-			"open": "在 Kero 中打开", "opened": "Kero 已打开该会话。", "gone": "这张卡片的会话已不存在。",
+			"open": "在 Hyla 中打开", "opened": "Hyla 已打开该会话。", "gone": "这张卡片的会话已不存在。",
 			"inTerminal": "回答在下一张卡片中。",
 			"earlier":    "较早的一轮",
 			"perm.title": "需要授权",

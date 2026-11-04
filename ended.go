@@ -7,9 +7,9 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/cli"
-	"kero/internal/proto"
-	"kero/locales"
+	"hyla/internal/cli"
+	"hyla/internal/proto"
+	"hyla/locales"
 )
 
 const endedShown = 5
@@ -20,7 +20,7 @@ type hostEnded struct {
 	c proto.Conversation
 }
 
-// loadHostConversations asks a host's kerod for the conversations it
+// loadHostConversations asks a host's hylad for the conversations it
 // remembers, for the sidebar, as of the host's count of the changes to
 // them gen: a later answer, or a turn of Session history off, drops it.
 func (a *App) loadHostConversations(h *host, gen uint64) {
@@ -233,7 +233,7 @@ func (a *App) endedSectionMenu(m *ui.Menu, key string, list []hostEnded) {
 }
 
 // skillHint tells, while nothing has ended, that ended sessions need
-// Kero's skill, which tells kerod each conversation's id.
+// Hyla's skill, which tells hylad each conversation's id.
 func (a *App) skillHint(c *ui.Context, pal *palette) {
 	if now := c.Now(); now.Sub(a.skillsAt) > 5*time.Second {
 		a.skillsAt = now

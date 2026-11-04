@@ -8,13 +8,13 @@ import (
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/pets"
-	"kero/internal/proto"
-	"kero/locales"
+	"hyla/internal/pets"
+	"hyla/internal/proto"
+	"hyla/locales"
 )
 
 // The pet lives in a small, transparent window of its own, perched on the
-// main window's top edge, and follows the sessions. By default it is Kero
+// main window's top edge, and follows the sessions. By default it is Hyla
 // the frog: it peeks over the edge, its hands on the title bar, hops when
 // a session needs the user, scans left and right while an agent works,
 // cheers a finish, shakes at a failure, and dozes when everything is
@@ -338,7 +338,7 @@ func (a *App) petView(c *ui.Context) {
 		if set != nil {
 			wide = petSetWide(a)
 		}
-		body = ui.Box(c.Key("kero")).Size(wide, bodyH).Shrink(0).Cursor(ui.CursorGrab).
+		body = ui.Box(c.Key("hyla")).Size(wide, bodyH).Shrink(0).Cursor(ui.CursorGrab).
 			Description(petDescription(name, label))
 		hovered := body.Hovered()
 		state, since := pets.Idle, a.pet.since

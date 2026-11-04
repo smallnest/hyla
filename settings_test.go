@@ -11,10 +11,10 @@ import (
 	"github.com/egoist/mygo/i18n"
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/actions"
-	"kero/internal/settings"
+	"hyla/internal/actions"
+	"hyla/internal/settings"
 
-	"kero/locales"
+	"hyla/locales"
 )
 
 // Every page builds, and shows its settings.
@@ -134,7 +134,7 @@ func TestFeishuRunChoiceSticks(t *testing.T) {
 	}
 }
 
-// Dark pages, and the plain background, for a look ($KERO_SHOTS).
+// Dark pages, and the plain background, for a look ($HYLA_SHOTS).
 func TestDarkShots(t *testing.T) {
 	a := testApp(t)
 	tt := ui.NewTester(a.settingsView, 820, 640)
@@ -154,7 +154,7 @@ func TestDarkShots(t *testing.T) {
 	shot(t, main, "dark-plain-main")
 }
 
-// The segmented control, light and dark, for a look ($KERO_SHOTS).
+// The segmented control, light and dark, for a look ($HYLA_SHOTS).
 func TestSegmentedShots(t *testing.T) {
 	for _, dark := range []bool{false, true} {
 		a := testApp(t)
@@ -175,7 +175,7 @@ func TestSegmentedShots(t *testing.T) {
 }
 
 // The pop-up button with its menu open, and a focused field, light and
-// dark ($KERO_SHOTS).
+// dark ($HYLA_SHOTS).
 func TestControlShots(t *testing.T) {
 	for _, dark := range []bool{false, true} {
 		a := testApp(t)
@@ -211,7 +211,7 @@ func TestControlShots(t *testing.T) {
 	}
 }
 
-// The line height slider: a click on its track sets it ($KERO_SHOTS).
+// The line height slider: a click on its track sets it ($HYLA_SHOTS).
 func TestSlider(t *testing.T) {
 	for _, dark := range []bool{false, true} {
 		a := testApp(t)
@@ -246,8 +246,8 @@ func TestSlider(t *testing.T) {
 	}
 }
 
-// kero's font registers from the source tree, and the terminals take it
-// by default ($KERO_SHOTS shows the preview in it).
+// hyla's font registers from the source tree, and the terminals take it
+// by default ($HYLA_SHOTS shows the preview in it).
 func TestBundledFont(t *testing.T) {
 	loadFonts()
 	if !fontsLoaded {
@@ -271,7 +271,7 @@ func TestBundledFont(t *testing.T) {
 	shot(t, tt, "font-preview")
 }
 
-// A page scrolled under its header frosts there ($KERO_SHOTS).
+// A page scrolled under its header frosts there ($HYLA_SHOTS).
 func TestScrollEdgeShots(t *testing.T) {
 	for _, dark := range []bool{false, true} {
 		a := testApp(t)
@@ -330,7 +330,7 @@ func TestSettingsSearch(t *testing.T) {
 	shot(t, tt, "settings-search-font-size")
 
 	// Not the notifications page: it asks the system, which needs the app.
-	for q, page := range map[string]string{"vibrancy": "appearance", "osc 52": "terminal", "split right": "keyboard", "kerod": "advanced", "remote-control": "agents", "fish": "shell"} {
+	for q, page := range map[string]string{"vibrancy": "appearance", "osc 52": "terminal", "split right": "keyboard", "hylad": "advanced", "remote-control": "agents", "fish": "shell"} {
 		a.ss.query = q
 		tt.Frame()
 		if a.ss.page != page {
@@ -357,7 +357,7 @@ func TestSettingsSearch(t *testing.T) {
 }
 
 // Pop-up buttons open their menu over themselves; the font and theme
-// pickers search theirs ($KERO_SHOTS).
+// pickers search theirs ($HYLA_SHOTS).
 func TestPopupButtons(t *testing.T) {
 	for _, dark := range []bool{false, true} {
 		name := map[bool]string{false: "light", true: "dark"}[dark]
@@ -396,7 +396,7 @@ func TestPopupButtons(t *testing.T) {
 		}
 
 		// The theme picker: typing filters, Return chooses.
-		if err := tt.Click("kero"); err != nil {
+		if err := tt.Click("hyla"); err != nil {
 			t.Fatal(err)
 		}
 		tt.Frame()
@@ -646,7 +646,7 @@ func TestSearchMenuIsModal(t *testing.T) {
 }
 
 // A form's button stands as high as the field beside it, as Hosts' Add
-// ($KERO_SHOTS).
+// ($HYLA_SHOTS).
 func TestFieldButtonHeight(t *testing.T) {
 	a := testApp(t)
 	a.ss.page = "hosts"

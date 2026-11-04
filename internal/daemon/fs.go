@@ -12,13 +12,13 @@ import (
 	"strings"
 	"time"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
 // The methods a client on another machine sees the host's files through:
 // a folder to open a project in, a path a pane printed, an image to
 // preview, a file pasted into a pane. They read and write what the user
-// kerod runs as can, as the panes' programs do.
+// hylad runs as can, as the panes' programs do.
 
 // maxEntries bounds a directory's listing.
 const maxEntries = 5000
@@ -127,13 +127,13 @@ const maxPaste = 32 << 20
 // a directory of the shared temporary one that someone else made, or that
 // others may write to, is refused.
 func pasteDir() (string, error) {
-	base := filepath.Join(os.TempDir(), "kero")
+	base := filepath.Join(os.TempDir(), "hyla")
 	if uid := os.Getuid(); uid >= 0 {
-		base = filepath.Join(os.TempDir(), fmt.Sprintf("kero-%d", uid))
+		base = filepath.Join(os.TempDir(), fmt.Sprintf("hyla-%d", uid))
 	}
 	if rt := os.Getenv("XDG_RUNTIME_DIR"); rt != "" {
 		if st, err := os.Stat(rt); err == nil && st.IsDir() {
-			base = filepath.Join(rt, "kero")
+			base = filepath.Join(rt, "hyla")
 		}
 	}
 	dir := filepath.Join(base, "paste")

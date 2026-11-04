@@ -6,15 +6,15 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/pets"
-	"kero/internal/settings"
+	"hyla/internal/pets"
+	"hyla/internal/settings"
 
-	"kero/locales"
+	"hyla/locales"
 )
 
-// Pet sets are the pets on the window's edge beside Kero the frog: Codex
+// Pet sets are the pets on the window's edge beside Hyla the frog: Codex
 // pets' spritesheets, which the pet shows frame by frame for each mood,
-// where Kero the frog is drawn (pet_draw.go).
+// where Hyla the frog is drawn (pet_draw.go).
 
 const (
 	petSetFrame  = 150 * time.Millisecond // the Codex app's pace, 6⅔ frames a second
@@ -39,16 +39,16 @@ func petSetWide(a *App) float32 {
 // little, where it stands.
 func petSetBodyH(a *App) float32 { return petSetGround(a) + 8 }
 
-// petSet is the pet kero shows, where it is no frog.
+// petSet is the pet hyla shows, where it is no frog.
 type petSet struct {
 	name string // the setting's name, which finds the pet again
 	pet  *pets.Pet
 }
 
 // petSetLoad reads the pet the settings show, if it is no frog, and
-// says when it is not there, for the pet shows Kero the frog then.
+// says when it is not there, for the pet shows Hyla the frog then.
 func (a *App) petSetLoad() *petSet {
-	if a.set.PetSet == settings.PetSetKero {
+	if a.set.PetSet == settings.PetSetHyla {
 		return nil
 	}
 	p, err := pets.LoadID(a.set.PetSet)

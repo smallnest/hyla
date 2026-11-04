@@ -1,10 +1,10 @@
-// Package service runs kerod as a service of the user's: a systemd user
+// Package service runs hylad as a service of the user's: a systemd user
 // unit on Linux, which lingering starts with the machine and keeps running
 // with no one logged in, a launchd agent on macOS, which runs while the
 // user is logged in, and a task of Task Scheduler on Windows, which does
-// too. `kero daemon install-service` installs it, as a server wants: it
-// runs `kero daemon serve`, which never exits for being idle, with
-// KERO_SERVICE=1 under systemd and launchd, which tells kerod a manager
+// too. `hyla daemon install-service` installs it, as a server wants: it
+// runs `hyla daemon serve`, which never exits for being idle, with
+// HYLA_SERVICE=1 under systemd and launchd, which tells hylad a manager
 // starts it again as it exits; Task Scheduler does not.
 package service
 
@@ -13,15 +13,15 @@ import (
 	"os"
 	"strings"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
-// ErrUnsupported: the system runs no services of a user's that Kero knows.
-var ErrUnsupported = errors.New("kero runs kerod as a service with systemd (Linux), launchd (macOS) or Task Scheduler (Windows)")
+// ErrUnsupported: the system runs no services of a user's that Hyla knows.
+var ErrUnsupported = errors.New("hyla runs hylad as a service with systemd (Linux), launchd (macOS) or Task Scheduler (Windows)")
 
-// Name is the service's name: kerod, or kerod-dev for a development
-// build (proto.Name), whose kerod is of its own.
-func Name() string { return strings.Replace(proto.Name(), "kero", "kerod", 1) }
+// Name is the service's name: hylad, or hylad-dev for a development
+// build (proto.Name), whose hylad is of its own.
+func Name() string { return strings.Replace(proto.Name(), "hyla", "hylad", 1) }
 
 // Status is how the service stands.
 type Status struct {
@@ -36,7 +36,7 @@ type Status struct {
 	Linger bool
 }
 
-// Installed reports whether kerod runs as a service.
+// Installed reports whether hylad runs as a service.
 func Installed() bool {
 	f := file()
 	if f == "" {

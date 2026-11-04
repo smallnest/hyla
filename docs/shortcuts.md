@@ -1,15 +1,15 @@
 ---
 title: Keyboard Shortcuts
-description: Kero's default keyboard shortcuts and the action ids to rebind them.
+description: Hyla's default keyboard shortcuts and the action ids to rebind them.
 ---
 
 # Keyboard Shortcuts
 
 Rebind any of these in **Settings › Keyboard**, or with `keybind` in the [configuration file](./configuration.md#keyboard).
 
-On Windows and Linux, <kbd>Ctrl</kbd> with a letter belongs to the shell (<kbd>Ctrl</kbd> <kbd>D</kbd>, <kbd>Ctrl</kbd> <kbd>R</kbd>, <kbd>Ctrl</kbd> <kbd>W</kbd>…), so Kero's shortcuts add <kbd>Shift</kbd>, as Windows Terminal's do, or use <kbd>Alt</kbd>. A dash means the action has no shortcut there.
+On Windows and Linux, <kbd>Ctrl</kbd> with a letter belongs to the shell (<kbd>Ctrl</kbd> <kbd>D</kbd>, <kbd>Ctrl</kbd> <kbd>R</kbd>, <kbd>Ctrl</kbd> <kbd>W</kbd>…), so Hyla's shortcuts add <kbd>Shift</kbd>, as Windows Terminal's do, or use <kbd>Alt</kbd>. A dash means the action has no shortcut there.
 
-## Kero
+## Hyla
 
 | Action                       | macOS                                  | Windows & Linux                               | Action id        |
 | ---------------------------- | -------------------------------------- | --------------------------------------------- | ---------------- |
@@ -75,6 +75,6 @@ The quick terminal drops down from the top of the screen over any app, as Ghostt
 keybind = ctrl+`=quickTerminal.toggle
 ```
 
-It shows a session of its own, named Quick Terminal, which keeps running while it's hidden and after you quit Kero, and which the sidebar lists with the others. When its shell exits, the next press starts a new one. **View › Quick Terminal** and the menu bar icon's menu open it too, and `kero do quickTerminal.toggle` toggles it from a script.
+It shows a session of its own, named Quick Terminal, which keeps running while it's hidden and after you quit Hyla, and which the sidebar lists with the others. When its shell exits, the next press starts a new one. **View › Quick Terminal** and the menu bar icon's menu open it too, and `hyla do quickTerminal.toggle` toggles it from a script.
 
-On Wayland, the desktop binds the shortcut through the XDG desktop portal and may ask you to confirm it; desktops without the portal's global shortcuts can bind `kero do quickTerminal.toggle` to a key in their own keyboard settings.
+On Wayland, the desktop binds the shortcut through the XDG desktop portal and may ask you to confirm it; desktops without the portal's global shortcuts can bind `hyla do quickTerminal.toggle` to a key in their own keyboard settings.

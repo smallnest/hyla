@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"kero/internal/settings"
+	"hyla/internal/settings"
 )
 
 // homePaths are the account's places for programs, which a launchd job's

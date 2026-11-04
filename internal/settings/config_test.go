@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"kero/internal/actions"
+	"hyla/internal/actions"
 )
 
 func TestFormatKeepsTheUsersFile(t *testing.T) {
-	file := `# my kero
+	file := `# my hyla
 font-size = 14
 
 # colors
@@ -34,7 +34,7 @@ env = B=2
 	s.Env = []string{"C=3"}
 	s.CursorBlink = false
 	out := format(s, file)
-	want := `# my kero
+	want := `# my hyla
 font-size = 15
 
 # colors
@@ -142,7 +142,7 @@ func TestPaneTranslucency(t *testing.T) {
 	}
 }
 
-// Kero elsewhere updates the app here only once the user lets it.
+// Hyla elsewhere updates the app here only once the user lets it.
 func TestRemoteUpdatesOptIn(t *testing.T) {
 	if Default().RemoteUpdates {
 		t.Error("remote updates are on by default")
@@ -155,8 +155,8 @@ func TestRemoteUpdatesOptIn(t *testing.T) {
 
 func TestMigratesSettingsJSON(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("KERO_HOME", dir)
-	t.Setenv("KERO_CONFIG", filepath.Join(dir, "config", "kero", "config"))
+	t.Setenv("HYLA_HOME", dir)
+	t.Setenv("HYLA_CONFIG", filepath.Join(dir, "config", "hyla", "config"))
 	os.WriteFile(filepath.Join(dir, "settings.json"), []byte(`{"fontSize": 16, "appearance": "dark", "background": "rex"}`), 0o600)
 	mu.Lock()
 	cache = nil
@@ -208,16 +208,16 @@ func TestAdLists(t *testing.T) {
 
 func TestSaveKeepsASymlinkedConfig(t *testing.T) {
 	dir := t.TempDir()
-	dotfiles := filepath.Join(dir, "dotfiles", "kero", "config")
+	dotfiles := filepath.Join(dir, "dotfiles", "hyla", "config")
 	os.MkdirAll(filepath.Dir(dotfiles), 0o755)
 	os.WriteFile(dotfiles, []byte("# mine\nfont-size = 14\n"), 0o600)
-	link := filepath.Join(dir, "config", "kero", "config")
+	link := filepath.Join(dir, "config", "hyla", "config")
 	os.MkdirAll(filepath.Dir(link), 0o755)
-	if err := os.Symlink("../../dotfiles/kero/config", link); err != nil {
+	if err := os.Symlink("../../dotfiles/hyla/config", link); err != nil {
 		t.Skip(err) // Windows without the privilege
 	}
-	t.Setenv("KERO_HOME", dir)
-	t.Setenv("KERO_CONFIG", link)
+	t.Setenv("HYLA_HOME", dir)
+	t.Setenv("HYLA_CONFIG", link)
 	mu.Lock()
 	cache = nil
 	mu.Unlock()

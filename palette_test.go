@@ -6,7 +6,7 @@ import (
 	"github.com/egoist/mygo/i18n"
 	"github.com/egoist/mygo/ui"
 
-	"kero/locales"
+	"hyla/locales"
 )
 
 // The palette finds commands by their keywords and English names, in a

@@ -10,26 +10,26 @@ import (
 	"github.com/tailscale/tailcat"
 )
 
-// A tailcat listener (tailcat.go) for kerod: a Tailcat server that kerod's
+// A tailcat listener (tailcat.go) for hylad: a Tailcat server that hylad's
 // remote server answers the clients of, as it answers an http(s)://
 // listener's, at the listener's pair code as its address.
 
-// TailcatRelay is kerod's tailcat listener.
+// TailcatRelay is hylad's tailcat listener.
 type TailcatRelay struct {
 	*TailcatServer
 	ln net.Listener
 }
 
-// TailcatServer is a Tailcat server with kerod's remote server on one of
+// TailcatServer is a Tailcat server with hylad's remote server on one of
 // its ports.
 type TailcatServer struct {
 	*tailcat.Server
-	PairCode string // kerod's address, tailcat:// and the pair code
+	PairCode string // hylad's address, tailcat:// and the pair code
 }
 
-// ListenTailcat starts kerod's tailcat listener on port for k's key,
+// ListenTailcat starts hylad's tailcat listener on port for k's key,
 // whose pair code it makes, and answers the connections it takes with
-// srv, within ctx. Kerod is "kero", for whomever lists the clients.
+// srv, within ctx. Hylad is "hyla", for whomever lists the clients.
 func ListenTailcat(ctx context.Context, k *TailcatKey, port string, srv *Server) (*TailcatRelay, error) {
 	code, err := TailcatAddress(ctx, k)
 	if err != nil {
@@ -72,7 +72,7 @@ func ListenTailcat(ctx context.Context, k *TailcatKey, port string, srv *Server)
 		s.Close()
 		return nil, err
 	}
-	// Kerod says who connects: the pair code tells a client's key.
+	// Hylad says who connects: the pair code tells a client's key.
 	srv.Peer = func(c net.Conn, hello []byte) string { return peerName(hello) }
 	r := &TailcatRelay{TailcatServer: &TailcatServer{Server: s, PairCode: "tailcat://" + code}, ln: ln}
 	go r.serve(srv)

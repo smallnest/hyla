@@ -11,7 +11,7 @@ import (
 
 	"github.com/larksuite/oapi-sdk-go/v3/event/dispatcher/callback"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
 // A turn run in the background (feishu-run = command) has no terminal to
@@ -161,7 +161,7 @@ func askCard(a *permissionAsk, state string) (string, error) {
 				"tag":   "button",
 				"type":  kind,
 				"text":  map[string]any{"tag": "plain_text", "content": label},
-				"value": map[string]any{"kero": "perm", "ask": a.id, "do": id},
+				"value": map[string]any{"hyla": "perm", "ask": a.id, "do": id},
 			}
 		}
 		elems = append(elems,
@@ -340,7 +340,7 @@ var claudeStreamFlags = []string{"--output-format", "stream-json", "--verbose"}
 var claudeAskFlags = append([]string{"--permission-prompt-tool", "stdio"}, claudeStreamFlags...)
 
 // askPoll is how often a turn looks for the permissions its command asks
-// for, which kerod puts in the second file of its output's pair.
+// for, which hylad puts in the second file of its output's pair.
 const askPoll = 500 * time.Millisecond
 
 // answerAsks asks the chat for the permissions the turn's command asks

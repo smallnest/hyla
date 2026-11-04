@@ -20,7 +20,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
 // favicons are the icons browser panes show in their address bars. An
@@ -48,9 +48,9 @@ type favicon struct {
 const faviconMaxAge = 7 * 24 * time.Hour
 
 // faviconDir is where sites' icons are kept: the user's cache directory,
-// as they can always be downloaded again, else kero's.
+// as they can always be downloaded again, else hyla's.
 func faviconDir() string {
-	if os.Getenv("KERO_HOME") == "" {
+	if os.Getenv("HYLA_HOME") == "" {
 		if base, err := os.UserCacheDir(); err == nil {
 			return filepath.Join(base, proto.Name(), "favicons")
 		}

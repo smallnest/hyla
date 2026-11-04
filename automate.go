@@ -10,24 +10,24 @@ import (
 
 	"github.com/egoist/mygo"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
-// browseTimeout is how long kero browser waits, unless told: for an
+// browseTimeout is how long hyla browser waits, unless told: for an
 // element to show, or a page to load.
 const browseTimeout = 10 * time.Second
 
-// browse does what kero browser asks of a browser pane's page, and
+// browse does what hyla browser asks of a browser pane's page, and
 // answers: what waits on the page waits off the main thread. It is a
-// remote control of the app, as kero do is, and takes the user's leave
-// as kero do does.
+// remote control of the app, as hyla do is, and takes the user's leave
+// as hyla do does.
 func (a *App) browse(h *host, r *proto.BrowserRequest, answer func(*proto.BrowserResult, error)) {
 	fail := func(format string, args ...any) { answer(nil, fmt.Errorf(format, args...)) }
 	if !a.remoteControl(h) {
 		if h.remote() {
-			fail("Remote Control of %s is off: turn it on in Kero's Settings › Hosts", h.name)
+			fail("Remote Control of %s is off: turn it on in Hyla's Settings › Hosts", h.name)
 		} else {
-			fail("Remote Control is off: turn it on in Kero's Settings › Agents")
+			fail("Remote Control is off: turn it on in Hyla's Settings › Agents")
 		}
 		return
 	}
@@ -50,14 +50,14 @@ func (a *App) browse(h *host, r *proto.BrowserRequest, answer func(*proto.Browse
 	// sessions have no business with: they stay on this machine.
 	if r.Op == "cookies" {
 		if h.remote() {
-			fail("cookies stay on this machine: kero browser cookies works in its own sessions, not %s's", h.name)
+			fail("cookies stay on this machine: hyla browser cookies works in its own sessions, not %s's", h.name)
 			return
 		}
 		go func() { answer(cookies(r.Text, r.Domain, r.Cookies)) }()
 		return
 	}
 	// A pane never shown has no page yet: it gets one now, on the page
-	// kerod has, which loads though no one sees it, before it is used.
+	// hylad has, which loads though no one sees it, before it is used.
 	_, had := a.webs[p.ID]
 	e := a.ensureWeb(p)
 	if e.view == nil {
@@ -159,7 +159,7 @@ func (a *App) browse(h *host, r *proto.BrowserRequest, answer func(*proto.Browse
 			case err != nil:
 				return nil, err
 			case len(png) == 0:
-				return nil, fmt.Errorf("pane %s has no picture: show it with kero focus %s, then try again", r.Pane, r.Pane)
+				return nil, fmt.Errorf("pane %s has no picture: show it with hyla focus %s, then try again", r.Pane, r.Pane)
 			}
 			return &proto.BrowserResult{PNG: png}, nil
 		})
@@ -313,7 +313,7 @@ func settle(page *mygo.Page, done <-chan error, timeout time.Duration) error {
 	}
 }
 
-// pageScript is the script that does a kero browser command on the page:
+// pageScript is the script that does a hyla browser command on the page:
 // it waits for the element the command needs, then does as a user would,
 // with the events a page listens to.
 func pageScript(p proto.BrowserParams, timeout time.Duration) string {
@@ -335,8 +335,8 @@ const pageOps = `async (a) => {
   const visible = (el) => el.checkVisibility ? el.checkVisibility() : el.getClientRects().length > 0;
   // The refs a snapshot gave the elements it showed, which last as long
   // as the page: an element keeps its ref, and one gone fails.
-  const refs = window.__keroRefs || Object.defineProperty(window, "__keroRefs",
-    { value: { next: 0, ids: new WeakMap(), els: new Map() } }).__keroRefs;
+  const refs = window.__hylaRefs || Object.defineProperty(window, "__hylaRefs",
+    { value: { next: 0, ids: new WeakMap(), els: new Map() } }).__hylaRefs;
   const what = a.ref ? "ref " + a.ref : a.selector;
   const find = async (shown) => {
     for (;;) {

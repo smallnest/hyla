@@ -1,15 +1,15 @@
 ---
 title: 键盘快捷键
-description: Kero 的默认键盘快捷键，以及用于重新绑定的操作 id。
+description: Hyla 的默认键盘快捷键，以及用于重新绑定的操作 id。
 ---
 
 # 键盘快捷键
 
 以下任意快捷键都可以在 **设置 › 键盘** 中重新绑定，也可以在[配置文件](./configuration.md#keyboard)中用 `keybind` 修改。
 
-在 Windows 和 Linux 上，<kbd>Ctrl</kbd> 加字母的组合归 shell 使用（<kbd>Ctrl</kbd> <kbd>D</kbd>、<kbd>Ctrl</kbd> <kbd>R</kbd>、<kbd>Ctrl</kbd> <kbd>W</kbd>……），因此 Kero 的快捷键会像 Windows Terminal 一样额外加上 <kbd>Shift</kbd>，或改用 <kbd>Alt</kbd>。短横线表示该操作在对应平台上没有快捷键。
+在 Windows 和 Linux 上，<kbd>Ctrl</kbd> 加字母的组合归 shell 使用（<kbd>Ctrl</kbd> <kbd>D</kbd>、<kbd>Ctrl</kbd> <kbd>R</kbd>、<kbd>Ctrl</kbd> <kbd>W</kbd>……），因此 Hyla 的快捷键会像 Windows Terminal 一样额外加上 <kbd>Shift</kbd>，或改用 <kbd>Alt</kbd>。短横线表示该操作在对应平台上没有快捷键。
 
-## Kero
+## Hyla
 
 | 操作                         | macOS                                  | Windows 和 Linux                              | 操作 id          |
 | ---------------------------- | -------------------------------------- | --------------------------------------------- | ---------------- |
@@ -75,4 +75,4 @@ description: Kero 的默认键盘快捷键，以及用于重新绑定的操作 i
 keybind = ctrl+`=quickTerminal.toggle
 ```
 
-它显示一个专属会话“快速终端”，隐藏时和退出 Kero 后都会继续运行，边栏也会和其他会话一起列出它。shell 退出后，下次按下会启动新的 shell。也可以从**显示 › 快速终端**和菜单栏图标的菜单打开它，或用 `kero do quickTerminal.toggle` 在脚本中切换。
+它显示一个专属会话“快速终端”，隐藏时和退出 Hyla 后都会继续运行，边栏也会和其他会话一起列出它。shell 退出后，下次按下会启动新的 shell。也可以从**显示 › 快速终端**和菜单栏图标的菜单打开它，或用 `hyla do quickTerminal.toggle` 在脚本中切换。

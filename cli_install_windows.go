@@ -9,17 +9,17 @@ import (
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 
-	"kero/internal/clilink"
-	"kero/internal/proto"
+	"hyla/internal/clilink"
+	"hyla/internal/proto"
 
-	"kero/locales"
+	"hyla/locales"
 )
 
-// cliBin is the directory of the kero command, which kerod keeps and
+// cliBin is the directory of the hyla command, which hylad keeps and
 // sessions have on their PATH.
 func cliBin() string { return filepath.Join(proto.Dir(), "bin") }
 
-// installCLI puts the kero command on the user's PATH, for terminals
+// installCLI puts the hyla command on the user's PATH, for terminals
 // started from now on.
 func (a *App) installCLI() {
 	exe, err := os.Executable()
@@ -42,13 +42,13 @@ func (a *App) installCLI() {
 	}()
 }
 
-// cliInstalled returns where the kero command is installed, and what it
+// cliInstalled returns where the hyla command is installed, and what it
 // runs, "" when the user's PATH lacks it.
 func cliInstalled() string {
 	if !onUserPath(cliBin()) {
 		return ""
 	}
-	cmd := filepath.Join(cliBin(), "kero.exe")
+	cmd := filepath.Join(cliBin(), "hyla.exe")
 	if t := clilink.Target(cliBin()); t != "" {
 		return proto.ShortDir(cmd) + " → " + proto.ShortDir(t)
 	}

@@ -12,11 +12,11 @@ import (
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/proto"
-	"kero/internal/remote"
-	"kero/internal/settings"
+	"hyla/internal/proto"
+	"hyla/internal/remote"
+	"hyla/internal/settings"
 
-	"kero/locales"
+	"hyla/locales"
 )
 
 // withHost adds a remote host to a test app, connected, with a session of
@@ -25,7 +25,7 @@ func withHost(t *testing.T, a *App, name string) *host {
 	t.Helper()
 	addr, _ := remote.ParseAddr("me@" + name)
 	h := &host{name: name, cfg: settings.Host{Name: name, Addr: addr.String()}, addr: addr, conn: connReady,
-		info: proto.HostInfo{Hostname: name, OS: "linux", Arch: "amd64", Home: "/home/me", Kero: "2.1.0", Server: true}}
+		info: proto.HostInfo{Hostname: name, OS: "linux", Arch: "amd64", Home: "/home/me", Hyla: "2.1.0", Server: true}}
 	a.hosts = append(a.hosts, h)
 	a.set.Hosts = append(a.set.Hosts, h.cfg)
 	a.applied = a.set.Clone()
@@ -44,7 +44,7 @@ func withHost(t *testing.T, a *App, name string) *host {
 
 // Each host's state replaces its own part of what the app shows, in the
 // hosts' order, and leaves the others', with what the app changed in them
-// before their kerods' states come.
+// before their hylads' states come.
 func TestHostsMergeState(t *testing.T) {
 	a := testApp(t)
 	local := a.local()
@@ -175,17 +175,17 @@ func TestPickerHosts(t *testing.T) {
 	}
 }
 
-// A host the app can't reach says why, and offers what fixes it: Kero
+// A host the app can't reach says why, and offers what fixes it: Hyla
 // installed there, for one that has none.
 func TestSidebarHostProblems(t *testing.T) {
 	a := testApp(t)
 	a.mergeState(a.local(), a.st)
 	h := withHost(t, a, "build")
-	h.conn, h.err, h.errKind = connFailed, "kero is not installed on build", remote.ErrNotInstalled
+	h.conn, h.err, h.errKind = connFailed, "hyla is not installed on build", remote.ErrNotInstalled
 	tt := ui.NewTester(a.view, 1100, 700)
 	tt.Frame()
-	if !tt.HasText("Kero isn't installed on build") || !tt.HasText("Install Kero…") {
-		t.Errorf("no word of the missing Kero: %q", tt.Texts())
+	if !tt.HasText("Hyla isn't installed on build") || !tt.HasText("Install Hyla…") {
+		t.Errorf("no word of the missing Hyla: %q", tt.Texts())
 	}
 	h.errKind = remote.ErrAuth
 	h.err = "Permission denied (publickey)."
@@ -203,7 +203,7 @@ func TestSidebarHostProblems(t *testing.T) {
 	h.conn, h.errKind = connVersion, nil
 	h.daemonApp = "1.0.0"
 	tt.Frame()
-	if !tt.HasText("Kero on build is another version") {
+	if !tt.HasText("Hyla on build is another version") {
 		t.Errorf("no word of the version: %q", tt.Texts())
 	}
 }
@@ -247,7 +247,7 @@ func TestHostShortDir(t *testing.T) {
 	// Quoted for PowerShell, the shell of Windows' panes, in which nothing
 	// of a file's name runs.
 	for in, want := range map[string]string{
-		`C:\Temp\kero-paste\x\pasted-image.png`: `C:\Temp\kero-paste\x\pasted-image.png`,
+		`C:\Temp\hyla-paste\x\pasted-image.png`: `C:\Temp\hyla-paste\x\pasted-image.png`,
 		`C:\Temp\a b.png`:                       `'C:\Temp\a b.png'`,
 		`C:\Temp\$(calc).png`:                   `'C:\Temp\$(calc).png'`,
 		"C:\\Temp\\it\u2019s.png":               "'C:\\Temp\\it\u2019\u2019s.png'",
@@ -277,7 +277,7 @@ func TestEditorCommandWindows(t *testing.T) {
 
 func TestShellEscape(t *testing.T) {
 	for in, want := range map[string]string{
-		"/tmp/kero-1000/paste/x/pasted-image.png": "/tmp/kero-1000/paste/x/pasted-image.png",
+		"/tmp/hyla-1000/paste/x/pasted-image.png": "/tmp/hyla-1000/paste/x/pasted-image.png",
 		"/tmp/a b/it's (1).png":                   `/tmp/a\ b/it\'s\ \(1\).png`,
 		"/tmp/$HOME;rm":                           `/tmp/\$HOME\;rm`,
 	} {
@@ -358,28 +358,28 @@ func TestRemoteActionsStayOnTheirHost(t *testing.T) {
 	a.from = a.local()
 	a.selected = "rs-build"
 	if !a.fromMay("pane.split.right", nil) {
-		t.Error("this machine's kero do refused")
+		t.Error("this machine's hyla do refused")
 	}
 }
 
 // A host newer than the app gets no Update, which would take it back.
 func TestHostVersions(t *testing.T) {
-	h := &host{name: "b", info: proto.HostInfo{Server: true, Updates: true, Kero: "9.0.0"}}
+	h := &host{name: "b", info: proto.HostInfo{Server: true, Updates: true, Hyla: "9.0.0"}}
 	if h.behind() {
 		t.Error("a newer host is behind")
 	}
-	h.info.Kero = "0.1.0"
+	h.info.Hyla = "0.1.0"
 	h.daemonApp = "0.1.0"
 	if h.stale() {
-		t.Error("kerod of the bridge's version is stale")
+		t.Error("hylad of the bridge's version is stale")
 	}
-	h.conn, h.daemonApp, h.info.Kero = connReady, "0.1.0", "0.2.0"
+	h.conn, h.daemonApp, h.info.Hyla = connReady, "0.1.0", "0.2.0"
 	if !h.stale() {
-		t.Error("kerod older than the Kero installed is not stale")
+		t.Error("hylad older than the Hyla installed is not stale")
 	}
 	h.daemonApp = "0.3.0"
 	if h.stale() {
-		t.Error("kerod newer than the bridge that answered is stale")
+		t.Error("hylad newer than the bridge that answered is stale")
 	}
 }
 
@@ -387,7 +387,7 @@ func TestHostVersions(t *testing.T) {
 // to update; one that doesn't, as one to update there.
 func TestDesktopHostVersionDetail(t *testing.T) {
 	a := testApp(t)
-	h := &host{name: "pc", info: proto.HostInfo{Kero: "0.1.0"}}
+	h := &host{name: "pc", info: proto.HostInfo{Hyla: "0.1.0"}}
 	if got := a.hostVersionDetail(h); got != locales.HostDesktopDetail("pc", "0.1.0", mygo.App.Version()) {
 		t.Errorf("without remote updates: %q", got)
 	}
@@ -440,7 +440,7 @@ func TestHostColor(t *testing.T) {
 }
 
 // Dark, a remote group's tag and a remote pane's header in its host's
-// color ($KERO_SHOTS).
+// color ($HYLA_SHOTS).
 func TestSidebarFlatDarkShot(t *testing.T) {
 	a := testApp(t)
 	a.mergeState(a.local(), a.st)

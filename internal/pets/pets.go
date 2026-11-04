@@ -1,5 +1,5 @@
 // Package pets reads Codex pets: the spritesheets that the Codex desktop
-// app shows on its window's edge, which kero shows too, and installs the
+// app shows on its window's edge, which hyla shows too, and installs the
 // pet packs of codex-pets.net, codexpet.top and similar sites.
 //
 // A pet is a directory holding pet.json and a spritesheet, as the Codex
@@ -17,7 +17,7 @@ import (
 	"errors"
 	"fmt"
 	"image"
-	_ "image/png" // previews, and kero's own pet
+	_ "image/png" // previews, and hyla's own pet
 	"io"
 	"io/fs"
 	"os"
@@ -30,8 +30,8 @@ import (
 	"github.com/egoist/mygo/ui"
 	_ "golang.org/x/image/webp" // spritesheets
 
-	"kero/internal/proto"
-	"kero/internal/settings"
+	"hyla/internal/proto"
+	"hyla/internal/settings"
 )
 
 // A frame is 192×208 pixels, as the Codex app draws it; a row holds
@@ -226,7 +226,7 @@ func Names(dir string) (*Pet, error) {
 	return &Pet{ID: id, Name: name, Description: m.Description}, nil
 }
 
-// NameID is what Names reads for the pet that id names, from kero's pets
+// NameID is what Names reads for the pet that id names, from hyla's pets
 // first, then the Codex app's, as LoadID reads it.
 func NameID(id string) (*Pet, error) {
 	if id == settings.PetSetCodex {
@@ -245,14 +245,14 @@ func NameID(id string) (*Pet, error) {
 	return nil, errors.Join(errs...)
 }
 
-// Dir is where kero installs its pets, and the packs the user installs:
+// Dir is where hyla installs its pets, and the packs the user installs:
 // one directory a pet.
 func Dir() string { return filepath.Join(proto.Dir(), "pets") }
 
 // codexDir is where the Codex desktop app keeps its pets.
 func codexDir() string { return filepath.Join(proto.Home(), ".codex", "pets") }
 
-// LoadID reads the pet that id names, from kero's pets first, then the
+// LoadID reads the pet that id names, from hyla's pets first, then the
 // Codex app's; for settings.PetSetCodex, the one Codex has active now.
 func LoadID(id string) (*Pet, error) {
 	if id == settings.PetSetCodex {
@@ -314,7 +314,7 @@ func activeIn(v string) string {
 	return ""
 }
 
-// Installed lists the pets kero has, its built-in ones and those the
+// Installed lists the pets hyla has, its built-in ones and those the
 // user installed, as the settings name them.
 func Installed() []string { return petDirs(Dir()) }
 
@@ -339,7 +339,7 @@ func petDirs(root string) []string {
 }
 
 // Install installs the pet pack at path, a .codex-pet.zip or any zip of
-// pet.json and a spritesheet, or a pet's directory, into kero's pets,
+// pet.json and a spritesheet, or a pet's directory, into hyla's pets,
 // replacing a pet of the same name. It returns the pet's name, as the
 // settings have it.
 func Install(path string) (string, error) {

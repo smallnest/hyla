@@ -5,7 +5,7 @@ description: 在窗格旁查看会话的 git 分支，以及它的智能体逐�
 
 # 改动
 
-当会话在 git 仓库中工作时，Kero 会显示它的分支和改动，让你在窗格旁审阅智能体的工作。
+当会话在 git 仓库中工作时，Hyla 会显示它的分支和改动，让你在窗格旁审阅智能体的工作。
 
 ## 分支一览
 
@@ -17,7 +17,7 @@ description: 在窗格旁查看会话的 git 分支，以及它的智能体逐�
 
 点击窗格的分支，或按 <kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>G</kbd>，即可在会话右侧打开改动面板。它列出改动过的文件，以及每个文件增加和删除了多少，比较基准可以是以下之一：
 
-- **上一轮**：会话中的智能体上一次开始工作的位置，这样你只会看到它最近一轮做了什么，而不包括之前的改动。Kero 会在智能体开始时为 worktree 拍一个快照，不会动你的暂存区和文件。
+- **上一轮**：会话中的智能体上一次开始工作的位置，这样你只会看到它最近一轮做了什么，而不包括之前的改动。Hyla 会在智能体开始时为 worktree 拍一个快照，不会动你的暂存区和文件。
 - **未提交**：上一次提交，包括未跟踪的文件。
 - **分支**：当前分支从仓库默认分支分出的位置，与拉取请求中看到的一致。
 
@@ -40,38 +40,38 @@ description: 在窗格旁查看会话的 git 分支，以及它的智能体逐�
 
 多个智能体在同一个检出目录里并行工作，会被彼此的改动绊住。**会话 › 在工作树中新建会话…**（<kbd>⌘</kbd> <kbd>⌥</kbd> <kbd>T</kbd>）会询问分支名，然后在专属的 git 工作树中启动会话：一个从仓库默认分支创建并检出新分支的文件夹。
 
-- 工作树位于仓库内的 `.kero/worktrees/<branch>`，Kero 通过 `.git/info/exclude`（而不是你的 `.gitignore`）忽略它。设置 `worktree-dir` 可以把工作树放到别处。
+- 工作树位于仓库内的 `.hyla/worktrees/<branch>`，Hyla 通过 `.git/info/exclude`（而不是你的 `.gitignore`）忽略它。设置 `worktree-dir` 可以把工作树放到别处。
 - 设置 `worktree-base = current`，可以从你所在的会话而不是默认分支创建分支。
 - 会话会加入仓库所在的项目，边栏中会显示它的分支。
 
-关闭会话时，Kero 会询问是否一并删除它的工作树：
+关闭会话时，Hyla 会询问是否一并删除它的工作树：
 
 - **没有未提交的改动：** 默认是“删除工作树”。分支若已合并会一并删除，否则会连同提交一起保留。
-- **有未提交的改动：** Kero 会说明有多少文件会丢失，默认是“保留工作树”。
-- **还有其他会话在这个工作树中工作：** 工作树会保留，Kero 不会询问。
+- **有未提交的改动：** Hyla 会说明有多少文件会丢失，默认是“保留工作树”。
+- **还有其他会话在这个工作树中工作：** 工作树会保留，Hyla 不会询问。
 
 在命令行中：
 
 ```sh
-kero new --worktree fix-login -- claude   # 在专属工作树中、以新分支启动会话
-kero new --worktree fix-login --base dev  # 从 dev 创建分支
-kero close fix-login --remove-worktree    # 关闭会话并删除工作树
-kero close fix-login --remove-worktree --force   # 即使有未提交的改动
+hyla new --worktree fix-login -- claude   # 在专属工作树中、以新分支启动会话
+hyla new --worktree fix-login --base dev  # 从 dev 创建分支
+hyla close fix-login --remove-worktree    # 关闭会话并删除工作树
+hyla close fix-login --remove-worktree --force   # 即使有未提交的改动
 ```
 
 ## 在命令行中查看
 
-`kero diff` 以 `git diff` 的格式打印窗格的改动，包括未跟踪的文件：
+`hyla diff` 以 `git diff` 的格式打印窗格的改动，包括未跟踪的文件：
 
 ```sh
-kero diff                       # 此窗格未提交的改动
-kero diff --turn                # 它的智能体在上一轮中改了什么
-kero diff review --branch       # review 会话自默认分支以来的改动
-kero diff src/auth              # 只看这些路径
+hyla diff                       # 此窗格未提交的改动
+hyla diff --turn                # 它的智能体在上一轮中改了什么
+hyla diff review --branch       # review 会话自默认分支以来的改动
+hyla diff src/auth              # 只看这些路径
 ```
 
-`kero status --json` 和 `kero ls --json` 会在 `git` 字段中包含每个窗格的分支和改动。
+`hyla status --json` 和 `hyla ls --json` 会在 `git` 字段中包含每个窗格的分支和改动。
 
 ## 关闭此功能
 
-设置 `git-status = false`，或在设置中关闭 **显示 Git 状态**，Kero 就不会再在你的仓库中运行 git。
+设置 `git-status = false`，或在设置中关闭 **显示 Git 状态**，Hyla 就不会再在你的仓库中运行 git。

@@ -1,11 +1,11 @@
 name: Bug report
-description: Something in Kero, kerod or the kero CLI doesn't work as it should
+description: Something in Hyla, hylad or the hyla CLI doesn't work as it should
 labels: [bug]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for reporting. Please search [existing issues](https://github.com/smallnest/kero/issues) first, and update to the [latest release](https://github.com/smallnest/kero/releases) to check it still happens.
+        Thanks for reporting. Please search [existing issues](https://github.com/smallnest/hyla/issues) first, and update to the [latest release](https://github.com/smallnest/hyla/releases) to check it still happens.
   - type: textarea
     id: what
     attributes:
@@ -19,7 +19,7 @@ body:
       label: Steps to reproduce
       description: The smallest set of steps that shows it. Include the command if it's the CLI, or the program running in the pane (Claude Code, Codex, vim…) if it's a terminal problem.
       placeholder: |
-        1. kero new -n test -- claude
+        1. hyla new -n test -- claude
         2. Split the pane with ⌘D
         3. …
     validations:
@@ -27,8 +27,8 @@ body:
   - type: input
     id: version
     attributes:
-      label: Kero version
-      description: From **About Kero**.
+      label: Hyla version
+      description: From **About Hyla**.
       placeholder: "2.0.4"
     validations:
       required: true
@@ -58,8 +58,8 @@ body:
         - Sessions and panes
         - Sidebar and status
         - Notifications
-        - kero CLI
-        - kerod (background service)
+        - hyla CLI
+        - hylad (background service)
         - Settings and configuration
         - Install or update
         - Other
@@ -68,11 +68,11 @@ body:
     attributes:
       label: Logs and screenshots
       description: |
-        The kerod log is in **Settings › Advanced › Background service › Log**. Paste the lines around the problem, and attach screenshots or a recording if it's visual. `kero daemon status` and `kero config check` output help too.
+        The hylad log is in **Settings › Advanced › Background service › Log**. Paste the lines around the problem, and attach screenshots or a recording if it's visual. `hyla daemon status` and `hyla config check` output help too.
       render: text
   - type: textarea
     id: config
     attributes:
       label: Configuration
-      description: Anything you've changed in `kero config edit` that might matter, such as the font, theme or shell.
+      description: Anything you've changed in `hyla config edit` that might matter, such as the font, theme or shell.
       render: text

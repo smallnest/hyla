@@ -20,7 +20,7 @@ func lockFile(f *os.File) error {
 // UnlockFile lets go of f's lock.
 func UnlockFile(f *os.File) { syscall.Flock(int(f.Fd()), syscall.LOCK_UN) }
 
-// Terminate asks the process of pid to stop as kerod does when it is
+// Terminate asks the process of pid to stop as hylad does when it is
 // restarted, saving its sessions: SIGTERM.
 func Terminate(pid int) error { return syscall.Kill(pid, syscall.SIGTERM) }
 

@@ -15,9 +15,9 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 
-	"kero/locales"
+	"hyla/locales"
 )
 
 // Magpie is a coding agents' gateway that runs on this machine, on port
@@ -166,7 +166,7 @@ func (a *App) readMagpie(st *magpieInfo) {
 }
 
 // paneSession is the coding agent's session of the pane the user is in, as
-// its hooks told kerod: "" while it told of none.
+// its hooks told hylad: "" while it told of none.
 func (a *App) paneSession() string {
 	s := a.session(a.selected)
 	if s == nil {

@@ -6,9 +6,9 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/settings"
+	"hyla/internal/settings"
 
-	"kero/locales"
+	"hyla/locales"
 )
 
 // hostColors are the colors of settings.HostColors, light and dark, which

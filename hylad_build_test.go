@@ -9,10 +9,10 @@ import (
 	"testing"
 )
 
-// TestKerodSource checks that kerodSource and kerodModules hold all the
-// code kerod runs, or an update that changes it would leave kerod as it
+// TestHyladSource checks that hyladSource and hyladModules hold all the
+// code hylad runs, or an update that changes it would leave hylad as it
 // was.
-func TestKerodSource(t *testing.T) {
+func TestHyladSource(t *testing.T) {
 	for _, goos := range []string{"darwin", "linux", "windows"} {
 		cmd := exec.Command("go", "list", "-deps", "-f", "{{if .Module}}{{.Module.Main}} {{.Module.Path}} {{.ImportPath}}{{end}}", "./internal/daemon")
 		cmd.Env = append(cmd.Environ(), "GOOS="+goos)
@@ -24,11 +24,11 @@ func TestKerodSource(t *testing.T) {
 			f := strings.Fields(line)
 			if f[0] == "true" {
 				dir := strings.TrimPrefix(f[2], f[1]+"/")
-				if _, err := fs.Stat(kerodSource, dir); err != nil {
-					t.Errorf("%s: kerodSource has no %s", goos, dir)
+				if _, err := fs.Stat(hyladSource, dir); err != nil {
+					t.Errorf("%s: hyladSource has no %s", goos, dir)
 				}
-			} else if !slices.Contains(kerodModules, f[1]) {
-				t.Errorf("%s: kerodModules has no %s", goos, f[1])
+			} else if !slices.Contains(hyladModules, f[1]) {
+				t.Errorf("%s: hyladModules has no %s", goos, f[1])
 			}
 		}
 	}
@@ -58,8 +58,8 @@ func TestBuilds(t *testing.T) {
 	}
 }
 
-func TestKerodBuild(t *testing.T) {
-	if a, b := kerodBuild(), kerodBuild(); a == "" || a != b {
-		t.Errorf("kerodBuild() = %q then %q", a, b)
+func TestHyladBuild(t *testing.T) {
+	if a, b := hyladBuild(), hyladBuild(); a == "" || a != b {
+		t.Errorf("hyladBuild() = %q then %q", a, b)
 	}
 }

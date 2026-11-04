@@ -6,7 +6,7 @@ import (
 	"io"
 	"testing"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
 // A stream hands over FrameResized where it is in the output: after the

@@ -1,4 +1,4 @@
-# Plan: Kero on remote servers
+# Plan: Hyla on remote servers
 
 Status: Phases 1 and 2 are implemented (2026-10-22), with the changes to the
 plan below. Phases 3 and 4 are still to do. Written 2026-10-20 after looking
@@ -14,15 +14,15 @@ User docs: [docs/remote.md](../docs/remote.md).
   Windows, on amd64 and arm64, each archive installed and run on its own
   platform in CI (.github/workflows/server.yml). Windows is reached over
   OpenSSH: the bridge's `sh -c` has none of cmd's special characters, so
-  cmd and PowerShell say they have no sh, which tells Kero to run the
-  bridge as that shell takes it, from then on. kerod runs there as a Task
+  cmd and PowerShell say they have no sh, which tells Hyla to run the
+  bridge as that shell takes it, from then on. hylad runs there as a Task
   Scheduler task at logon, through `conhost --headless`, and an update
   moves the running files aside, as Windows can't replace them.
 - **SSH and WSL are transports too, beside HTTP.** Herdr (herdrdev/herdr)
   reaches machines only over SSH: `ssh host herdr remote-client-bridge` pipes
   stdio to the remote daemon's socket. That needs nothing set up on the host
-  but the binary, so it's the easiest first step for most people. Kero does
-  the same with `kero __bridge`, and with `wsl.exe` for a WSL distribution.
+  but the binary, so it's the easiest first step for most people. Hyla does
+  the same with `hyla __bridge`, and with `wsl.exe` for a WSL distribution.
   The objections below to SSH as *the* transport still hold, so the tailnet
   listeners are there for always-on servers, and are where an iOS client
   would connect.
@@ -40,22 +40,22 @@ User docs: [docs/remote.md](../docs/remote.md).
   answer for 10 seconds counted as dead, as Herdr does.
 - **Version skew:** the app offers **Update** for a server build of another
   version. It installs the app's version, signed with the updates' key, then
-  restarts kerod after asking. It never updates on a reconnect.
+  restarts hylad after asking. It never updates on a reconnect.
 - **Listeners:** `tailnet://:port` (identity from tailscaled's whois) and
   `tailnet-serve://` (Serve's headers, on a 0600 socket). Built-in tsnet is
-  not done: it would add Tailscale's whole client to kerod. Requests with an
-  `Origin`, or without Kero's header, are refused, so no web page can reach
-  kerod through a browser on the tailnet.
+  not done: it would add Tailscale's whole client to hylad. Requests with an
+  `Origin`, or without Hyla's header, are refused, so no web page can reach
+  hylad through a browser on the tailnet.
 - **Settings split:** documented and noted in Settings rather than edited
-  remotely. `kero config edit` on the host edits the host's.
+  remotely. `hyla config edit` on the host edits the host's.
 - Not done from Phase 2: uploading files dragged onto a remote pane (MyGo's
   terminal pastes dropped paths itself; pasting them works).
 
 ## Goal
 
 Run sessions on another machine, such as a Linux dev box, a cloud VM or a
-beefy desktop, and see them in the same Kero window as local ones: the same
-sidebar, statuses, notifications, `kero` CLI and agent skill. Quitting Kero or
+beefy desktop, and see them in the same Hyla window as local ones: the same
+sidebar, statuses, notifications, `hyla` CLI and agent skill. Quitting Hyla or
 closing the laptop leaves remote agents running, as it does locally.
 
 Not goals, for now: sharing one session between two people, a web client, an
@@ -63,7 +63,7 @@ iOS client.
 
 ## Where we start
 
-kerod is already most of a server:
+hylad is already most of a server:
 
 - It owns the sessions and runs them on their own. Quitting the app leaves them
   running.
@@ -82,14 +82,14 @@ What ties it to one machine today:
 - **Transport:** a Unix socket only (`proto.SocketPath`), mode 0600.
   - There's no authentication and no peer-credential check. The 0600 chmod
     comes after `listen`, so there's a short window before it applies.
-- **Lifetime:** kerod exits 30s after its last session and connection close,
-  and the app starts it on demand (`client.Connect` runs `kero __kerod`).
+- **Lifetime:** hylad exits 30s after its last session and connection close,
+  and the app starts it on demand (`client.Connect` runs `hyla __hylad`).
 - **Packaging:** there's one binary. `main.go` imports the UI, and the daemon
   imports `mygo` only for `mygo.App.Version()`.
   - Releases ship for macOS, Windows and Linux, on arm64 and amd64. Linux gets
     a `.deb`, plus an `install.sh` that installs into `~/.local` without root.
   - Every one is the full app. On Linux it links GTK, so a headless box needs
-    GTK installed just to run kerod.
+    GTK installed just to run hylad.
 - **The app assumes local paths:**
   - The Open Project dialog picks a local folder.
   - ⌘-clicking a file path runs `os.Stat` and opens the file locally.
@@ -98,29 +98,29 @@ What ties it to one machine today:
 - **Shell lookup:** `internal/shell/account_unix.go` reads `/etc/passwd`
   directly, so LDAP and SSSD accounts are missed.
 
-## Phase 1: headless kerod on Linux
+## Phase 1: headless hylad on Linux
 
-The smallest useful step: kerod running as a service on a Linux box, driven by
-the `kero` CLI there. That already helps agents on that box, before any remote
+The smallest useful step: hylad running as a service on a Linux box, driven by
+the `hyla` CLI there. That already helps agents on that box, before any remote
 UI exists.
 
-1. **A daemon-only build** (`cmd/kerod`, or a build tag) without the UI
+1. **A daemon-only build** (`cmd/hylad`, or a build tag) without the UI
    packages.
    - Pass the version in with `-ldflags` instead of `mygo.App.Version()`.
    - Check that it starts on a machine with no display.
-2. **`kero daemon serve`:** run in the foreground, with no idle exit, logging
+2. **`hyla daemon serve`:** run in the foreground, with no idle exit, logging
    to stderr. This is the entry point for systemd.
-3. **`kero daemon install-service`:** write and enable a systemd *user* unit
-   (`~/.config/systemd/user/kerod.service`), plus `loginctl enable-linger` so
+3. **`hyla daemon install-service`:** write and enable a systemd *user* unit
+   (`~/.config/systemd/user/hylad.service`), plus `loginctl enable-linger` so
    it survives logout.
-   - Remove the service with `kero daemon uninstall-service`.
+   - Remove the service with `hyla daemon uninstall-service`.
 4. **Release artifacts:** the release workflow already builds linux
    amd64/arm64 `.deb`s and `install.sh` from the same tags as the other
    platforms. Add a server flavour beside them:
-   - a tarball with the daemon-only `kero` and `libghostty-vt.so`, and no GTK
+   - a tarball with the daemon-only `hyla` and `libghostty-vt.so`, and no GTK
      dependency;
    - `install.sh --server`, which installs that build and runs
-     `kero daemon install-service`.
+     `hyla daemon install-service`.
 
    Arch packages and a Nix flake come later, on demand.
 5. **Fixes that matter once a box has several users:**
@@ -131,11 +131,11 @@ UI exists.
 
 ## Phase 2: remote access over the network, one user
 
-The app connects to a kerod on another machine that runs as the same person.
+The app connects to a hylad on another machine that runs as the same person.
 
 ### Transport: HTTP, with Tailscale saying who connects
 
-kerod gets network listeners beside its Unix socket, off by default. As in
+hylad gets network listeners beside its Unix socket, off by default. As in
 Rex, there's no SSH: the connection is HTTP(S), and the network says who the
 caller is.
 
@@ -165,7 +165,7 @@ Each listener lets in only callers it can identify:
 
 | Listener | Needs | Identity from |
 | --- | --- | --- |
-| Built-in Tailscale (`tsnet` in kerod) | A Tailscale account; the machine needs no Tailscale | `WhoIs` on the embedded node |
+| Built-in Tailscale (`tsnet` in hylad) | A Tailscale account; the machine needs no Tailscale | `WhoIs` on the embedded node |
 | Tailscale Serve, to a local socket | Tailscale on the machine | The headers Serve adds for tailnet users |
 | Tailnet address, such as `tailnet://:<port>` | Tailscale on the machine | `whois` on the local tailscaled API |
 
@@ -175,7 +175,7 @@ Each listener lets in only callers it can identify:
   tailnet address instead.
 - No anonymous listener at first. Rex has one behind `--allow-anonymous` for
   people who bring their own VPN. Wait until someone asks.
-- Tailscale's ACLs do the network-level restriction. Kero doesn't need its own
+- Tailscale's ACLs do the network-level restriction. Hyla doesn't need its own
   rules for that.
 
 ### Protocol changes
@@ -183,14 +183,14 @@ Each listener lets in only callers it can identify:
 - `Hello` negotiates **compression** for attach frames (zstd, or deflate from
   the standard library). Rendered diffs compress well, and they cost bandwidth
   only on scroll-heavy output.
-- **Version skew:** today a client refuses a kerod of another
+- **Version skew:** today a client refuses a hylad of another
   `proto.Version` and offers to restart it. That's fine locally, but a remote
-  kerod can't be restarted quietly, because it may hold someone's
+  hylad can't be restarted quietly, because it may hold someone's
   long-running agents.
-  - Show it per host, with "Update Kero on <host>". That has kerod fetch the
+  - Show it per host, with "Update Hyla on <host>". That has hylad fetch the
     matching release, using the updater the app already has, then restart
     when the user confirms.
-  - Kero is released now, so hosts will run older versions than the app for
+  - Hyla is released now, so hosts will run older versions than the app for
     days at a time. Decide whether the app speaks the previous
     `proto.Version` too, or only offers the update. Either way, the UI has to
     explain the mismatch rather than fail.
@@ -200,7 +200,7 @@ Each listener lets in only callers it can identify:
 ### App changes
 
 - **Hosts:**
-  - Settings › Hosts lists remote kerods by address, such as
+  - Settings › Hosts lists remote hylads by address, such as
     `https://build.<tailnet>.ts.net`.
   - In the config file: `host = name=address`.
   - The sidebar groups projects by host, with the local machine first and
@@ -216,17 +216,17 @@ Each listener lets in only callers it can identify:
 - **Settings split:**
   - Appearance and keyboard come from the app.
   - Shell, `env`, scrollback and `restore-sessions` come from the host's own
-    config, since kerod reads them there.
-  - Settings shows which is which, and `kero config` edits the host's.
+    config, since hylad reads them there.
+  - Settings shows which is which, and `hyla config` edits the host's.
 
 ### CLI and agents
 
-- `kero -H <host> ls` and `KERO_HOST` drive a remote kerod over the same
-  transport. `kero hosts add|ls|remove` saves addresses.
-- Inside a remote pane, `kero` already talks to the remote kerod through
-  `KERO_SOCKET`, so the skill works there unchanged. `kero skill setup` needs
+- `hyla -H <host> ls` and `HYLA_HOST` drive a remote hylad over the same
+  transport. `hyla hosts add|ls|remove` saves addresses.
+- Inside a remote pane, `hyla` already talks to the remote hylad through
+  `HYLA_SOCKET`, so the skill works there unchanged. `hyla skill setup` needs
   running on the host.
-- **Remote Control from a remote agent:** `kero focus` and `kero do` reach the
+- **Remote Control from a remote agent:** `hyla focus` and `hyla do` reach the
   local app, which is a new kind of trust (code on a server driving my
   laptop's UI). Add a per-host toggle, off by default for remote hosts.
 
@@ -234,42 +234,42 @@ Each listener lets in only callers it can identify:
 
 Rex has three server modes:
 
-- **Personal:** one kerod per user.
+- **Personal:** one hylad per user.
 - **Shared:** one service account that a group connects to.
 - **Login:** many OS users, with one front door that routes each to their own
   account.
 
-For Kero:
+For Hyla:
 
 - **Personal is multi-user-safe locally once Phase 1's fixes land.** Each user
-  has their own kerod, `~/.config/kero` at 0700, a 0600 socket and a uid
+  has their own hylad, `~/.config/hyla` at 0700, a 0600 socket and a uid
   check.
 - **Login server**, for reaching several accounts on one machine over the
-  network: a root-owned `kero gateway` (a systemd system service). It:
-  - holds the network listener, in place of each user's kerod;
+  network: a root-owned `hyla gateway` (a systemd system service). It:
+  - holds the network listener, in place of each user's hylad;
   - identifies the caller through Tailscale (Phase 2);
   - maps the caller to the OS accounts they may use, through an accounts
     file, such as `alice@example.com` to `alice`, and to `root` only when the
     file says so;
-  - starts that account's kerod through PAM, so limits, `nologin` and session
+  - starts that account's hylad through PAM, so limits, `nologin` and session
     setup apply as at a console login (for example with
     `systemd-run --uid=<user> --user`);
   - relays the connection to that account's socket.
 
   It's the only piece that runs privileged, so keep it small and audit it.
   The client picks an account as `https://alice@host`.
-- **Shared server** (several people's programs running as one `kero` account)
+- **Shared server** (several people's programs running as one `hyla` account)
   is the weakest model: everyone can read everyone's sessions. Skip it unless
   someone asks. A shared session for pairing is a different feature, with its
   own design.
 
-## Phase 4: Kero's own authentication
+## Phase 4: Hyla's own authentication
 
 For networks without Tailscale, and for the iOS client.
 
 - **Pair a device with a host once**, from the host's CLI or an
-  already-trusted client. The device gets a key. kerod, or the gateway, keeps
-  a list of trusted keys per account, which `kero devices` lists and revokes.
+  already-trusted client. The device gets a key. hylad, or the gateway, keeps
+  a list of trusted keys per account, which `hyla devices` lists and revokes.
 - **Existing SSH keys as one more way to log in:** a client proves it holds a
   key listed in the account's `~/.ssh/authorized_keys`. That's authentication
   only, still over the HTTP transport. Rex plans the same.
@@ -289,36 +289,36 @@ For networks without Tailscale, and for the iOS client.
 - **Remote Control** is per host and off by default for remote hosts (above).
 - **Identify first:** listeners and the gateway identify the caller before
   they parse any `Hello` past its version.
-- **Seeing who's connected:** `kero clients` on a host lists who is connected,
+- **Seeing who's connected:** `hyla clients` on a host lists who is connected,
   with each one's identity.
 
 ## Order and rough size
 
-1. **Phase 1, headless Linux kerod:** small to medium. Mostly packaging and
+1. **Phase 1, headless Linux hylad:** small to medium. Mostly packaging and
    CI, plus the socket and uid fixes. Worth doing on its own.
 2. **Phase 2, network transport and Tailscale:** large.
    - The multiplexed HTTP transport, and the three Tailscale listeners.
    - Hosts in the app, compression and reconnects.
    - The `fs.*` and `paste.file` RPCs, and the settings split.
 3. **Phase 3, login gateway:** medium. The accounts file, PAM, and starting
-   and relaying to each account's kerod.
+   and relaying to each account's hylad.
 4. **Phase 4, own authentication:** medium. Device keys first, then SSH keys.
 
 ## Open questions
 
-- Does `kero __kerod` from the Linux `.deb` start on a machine with no
+- Does `hyla __hylad` from the Linux `.deb` start on a machine with no
   display, given that it links GTK? Try it on a fresh server VM. Even if it
   starts, needing GTK installed argues for the daemon-only build.
 - **WebSockets or HTTP/2 streams** for the multiplexed transport? Check what
   passes Tailscale Serve, and what an iOS client can speak, before choosing.
 - **Built-in tsnet or the machine's Tailscale?**
   - Built-in tsnet needs nothing installed on the server, but it adds size to
-    kerod and a node per server.
+    hylad and a node per server.
   - The machine's Tailscale is lighter, but it's one more thing to have set
     up.
   - Rex offers both. Start with whichever the spike finds simpler, and add
     the other on demand.
-- How does input latency feel over a slow link? kerod renders every frame, so
+- How does input latency feel over a slow link? hylad renders every frame, so
   a typed key needs a round trip before it shows. Measure before considering
   local echo prediction.
 - Should a remote session show the host's own terminal theme, or always the

@@ -9,8 +9,8 @@ import (
 
 	"github.com/larksuite/oapi-sdk-go/v3/event/dispatcher/callback"
 
-	"kero/internal/proto"
-	"kero/internal/settings"
+	"hyla/internal/proto"
+	"hyla/internal/settings"
 )
 
 // A turn shows in a chat by the user's own message (feishu-cards): a
@@ -150,8 +150,22 @@ func (b *Bot) read(id string) string {
 // toolTail is the rows of the pane's text a working card shows.
 const toolTail = 16
 
+// cardValue is a button's value in a card: Hyla's, or Kero's, which a
+// card the bot sent before the rename carries.
+func cardValue(v map[string]any, key string) (string, bool) {
+	if x, ok := v[key]; ok {
+		return fmt.Sprint(x), true
+	}
+	if key == "hyla" {
+		if x, ok := v["kero"]; ok {
+			return fmt.Sprint(x), true
+		}
+	}
+	return "", false
+}
+
 // onCardAction answers the click of one of the bot's cards: the button
-// that opens its session in Kero.
+// that opens its session in Hyla.
 func (b *Bot) onCardAction(ctx context.Context, e *callback.CardActionTriggerEvent) (*callback.CardActionTriggerResponse, error) {
 	if e == nil || e.Event == nil || e.Event.Action == nil {
 		return nil, nil
@@ -160,13 +174,13 @@ func (b *Bot) onCardAction(ctx context.Context, e *callback.CardActionTriggerEve
 	if e.Event.Operator != nil {
 		openID = e.Event.Operator.OpenID
 	}
-	if v, ok := e.Event.Action.Value["kero"]; ok && fmt.Sprint(v) == "perm" {
+	if v, ok := cardValue(e.Event.Action.Value, "hyla"); ok && v == "perm" {
 		return b.onAskAction(e)
 	}
-	if v, ok := e.Event.Action.Value["kero"]; ok && fmt.Sprint(v) == "choice" {
+	if v, ok := cardValue(e.Event.Action.Value, "hyla"); ok && v == "choice" {
 		return b.onChoiceAction(e)
 	}
-	if v, ok := e.Event.Action.Value["kero"]; !ok || fmt.Sprint(v) != "open" {
+	if v, ok := cardValue(e.Event.Action.Value, "hyla"); !ok || v != "open" {
 		return nil, nil
 	}
 	msg := ""

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 
 	"github.com/larksuite/oapi-sdk-go/v3/event/dispatcher/callback"
 )
@@ -102,6 +102,6 @@ func (f *fakeLuna) inputs() []string {
 // action is a click of a permission card's button.
 func action(id, do string) *callback.CardActionTriggerEvent {
 	return &callback.CardActionTriggerEvent{Event: &callback.CardActionTriggerRequest{
-		Action: &callback.CallBackAction{Value: map[string]any{"kero": "perm", "ask": id, "do": do}},
+		Action: &callback.CallBackAction{Value: map[string]any{"hyla": "perm", "ask": id, "do": do}},
 	}}
 }

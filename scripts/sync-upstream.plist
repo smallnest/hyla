@@ -2,11 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!-- Runs scripts/sync-upstream.sh every 30 minutes. Install with
      scripts/sync-upstream.sh --install, which fills in the paths; see the
-     fetch-upstream skill. Output goes to /tmp/kero-sync-upstream.log. -->
+     fetch-upstream skill. Output goes to /tmp/hyla-sync-upstream.log. -->
 <plist version="1.0">
 <dict>
 	<key>Label</key>
-	<string>sh.kero.sync-upstream</string>
+	<string>sh.hyla.sync-upstream</string>
 	<key>ProgramArguments</key>
 	<array>
 		<string>/bin/sh</string>
@@ -24,8 +24,8 @@
 	<key>RunAtLoad</key>
 	<false/>
 	<key>StandardOutPath</key>
-	<string>/tmp/kero-sync-upstream.log</string>
+	<string>/tmp/hyla-sync-upstream.log</string>
 	<key>StandardErrorPath</key>
-	<string>/tmp/kero-sync-upstream.log</string>
+	<string>/tmp/hyla-sync-upstream.log</string>
 </dict>
 </plist>

@@ -6,16 +6,16 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
-	"kero/internal/proto"
+	"hyla/internal/proto"
 
-	"kero/locales"
+	"hyla/locales"
 )
 
 // feishuStatusTick is the time between the reads of the bot's state.
 const feishuStatusTick = 5 * time.Second
 
 // infoFeishu is the Info view's card of the Feishu bot: the app it
-// connects to, whether kerod connects, and who may use it, while
+// connects to, whether hylad connects, and who may use it, while
 // feishu-app names one. While the bot connects, the view reads the state
 // again, for the connection to drop.
 func (a *App) infoFeishu(c *ui.Context, pal *palette, p *proto.Pane) {
@@ -42,7 +42,7 @@ func (a *App) infoFeishu(c *ui.Context, pal *palette, p *proto.Pane) {
 		})
 	}
 	if st.feishu == nil || st.feishuGot {
-		// The state, once kerod answers; the card waits for it.
+		// The state, once hylad answers; the card waits for it.
 		return
 	}
 	who := locales.SetFeishuAllow() + ": " + locales.SetFeishuOnlySetup()

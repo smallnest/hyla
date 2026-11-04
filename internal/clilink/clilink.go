@@ -1,4 +1,4 @@
-// Package clilink puts the kero command in a directory: a link to the
+// Package clilink puts the hyla command in a directory: a link to the
 // app's executable, which is the CLI too.
 package clilink
 
@@ -6,5 +6,9 @@ package clilink
 // when there is none.
 func Target(bin string) string { return target(bin) }
 
-// Link makes bin's kero run exe, unless it does already.
+// Link makes bin's hyla run exe, unless it does already.
 func Link(exe, bin string) error { return link(exe, bin) }
+
+// DropLegacy removes the kero command older Hylas left in bin, which ran
+// an executable they no longer make.
+func DropLegacy(bin string) { dropLegacy(bin) }

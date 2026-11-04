@@ -6,12 +6,12 @@ import (
 	"slices"
 	"testing"
 
-	"kero/internal/remote"
-	"kero/internal/settings"
+	"hyla/internal/remote"
+	"hyla/internal/settings"
 )
 
 func TestSplitHost(t *testing.T) {
-	t.Setenv("KERO_HOST", "")
+	t.Setenv("HYLA_HOST", "")
 	for _, c := range []struct {
 		args []string
 		host string
@@ -31,12 +31,12 @@ func TestSplitHost(t *testing.T) {
 			t.Errorf("%q: %q %q %v", c.args, host, rest, err)
 		}
 	}
-	t.Setenv("KERO_HOST", "build")
+	t.Setenv("HYLA_HOST", "build")
 	if host, env, _, _ := splitHost([]string{"ls"}); host != "build" || !env {
-		t.Errorf("$KERO_HOST: %q", host)
+		t.Errorf("$HYLA_HOST: %q", host)
 	}
 	if host, env, _, _ := splitHost([]string{"-H", "other", "ls"}); host != "other" || env {
-		t.Errorf("-H over $KERO_HOST: %q", host)
+		t.Errorf("-H over $HYLA_HOST: %q", host)
 	}
 	for _, bad := range [][]string{{"-H"}, {"-H", "build"}} {
 		if _, _, _, err := splitHost(bad); err == nil {
@@ -71,35 +71,35 @@ func TestRemoteRepoPath(t *testing.T) {
 	}
 }
 
-// Inside a pane, $KERO_HOST, which a profile may set, gives way to the
+// Inside a pane, $HYLA_HOST, which a profile may set, gives way to the
 // pane's machine; a command of this machine alone ignores it.
-func TestKeroHostScope(t *testing.T) {
-	t.Setenv("KERO_HOST", "build")
-	t.Setenv("KERO_PANE", "p1")
+func TestHylaHostScope(t *testing.T) {
+	t.Setenv("HYLA_HOST", "build")
+	t.Setenv("HYLA_PANE", "p1")
 	if host, _, _, _ := splitHost([]string{"ls"}); host != "" {
 		t.Errorf("inside a pane: %q", host)
 	}
 	if host, _, _, _ := splitHost([]string{"-H", "build", "ls"}); host != "build" {
 		t.Errorf("-H inside a pane: %q", host)
 	}
-	t.Setenv("KERO_PANE", "")
+	t.Setenv("HYLA_PANE", "")
 	if !localOnly["hook"] || !localOnly["config"] || localOnly["ls"] {
 		t.Error("localOnly")
 	}
 	onHost = "build"
 	defer func() { onHost = "" }()
-	t.Setenv("KERO_PANE", "p1")
+	t.Setenv("HYLA_PANE", "p1")
 	if current() != "" {
 		t.Error("a pane of this machine named on another")
 	}
 }
 
-// `kero hosts tailcat` turns this machine's tailcat listener on and off,
+// `hyla hosts tailcat` turns this machine's tailcat listener on and off,
 // and rotates its pair code, in the settings file it reads.
 func TestHostsTailcat(t *testing.T) {
 	home := t.TempDir()
-	t.Setenv("KERO_HOME", home)
-	t.Setenv("KERO_CONFIG", filepath.Join(home, "config"))
+	t.Setenv("HYLA_HOME", home)
+	t.Setenv("HYLA_CONFIG", filepath.Join(home, "config"))
 	if err := tailcatCmd([]string{"enable"}); err == nil {
 		t.Error("a listener with Tailcat off")
 	}
@@ -130,7 +130,7 @@ func TestHostsTailcat(t *testing.T) {
 		t.Fatal(err)
 	}
 	if settings.Load().TailcatRotate == rot {
-		t.Error("kerod told not to start its listener again")
+		t.Error("hylad told not to start its listener again")
 	}
 	if st, err := os.Stat(remote.TailcatKeyPath()); err != nil || st.Mode().Perm() != 0o600 {
 		t.Fatalf("key file %v, %v", st, err)

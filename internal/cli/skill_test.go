@@ -13,7 +13,7 @@ func TestSkillLinks(t *testing.T) {
 	}
 	home := t.TempDir()
 	t.Setenv("HOME", home)
-	t.Setenv("KERO_HOME", filepath.Join(home, "kero"))
+	t.Setenv("HYLA_HOME", filepath.Join(home, "hyla"))
 	t.Setenv("CLAUDE_CONFIG_DIR", filepath.Join(home, ".claude"))
 	adopt := adoptCopies
 	adoptCopies = func() bool { return true }
@@ -21,12 +21,12 @@ func TestSkillLinks(t *testing.T) {
 	claude := skillDirs("claude")["claude"]
 	agents := skillDirs("agents")["agents"]
 
-	// An older kero's install: a copy, of another skill.
+	// An older hyla's install: a copy, of another skill.
 	os.MkdirAll(claude, 0o755)
 	os.WriteFile(filepath.Join(claude, "SKILL.md"), []byte("old"), 0o644)
 	SyncSkill()
 	if t1, err := os.Readlink(filepath.Join(claude, "SKILL.md")); err != nil || t1 != skillFile() {
-		t.Fatalf("the copy is no link to Kero's own: %q %v", t1, err)
+		t.Fatalf("the copy is no link to Hyla's own: %q %v", t1, err)
 	}
 	if skillState(claude) != "current" {
 		t.Errorf("state %s", skillState(claude))
@@ -36,8 +36,8 @@ func TestSkillLinks(t *testing.T) {
 		t.Errorf("SyncSkill installed %s", agents)
 	}
 
-	// Kero updates: its own copy follows, and the install with it.
-	os.WriteFile(skillFile(), []byte("of an older Kero"), 0o644)
+	// Hyla updates: its own copy follows, and the install with it.
+	os.WriteFile(skillFile(), []byte("of an older Hyla"), 0o644)
 	if skillState(claude) != "outdated" {
 		t.Errorf("state %s", skillState(claude))
 	}
@@ -56,14 +56,14 @@ func TestSkillLinks(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(skillFile()); err != nil {
-		t.Errorf("removing an install took Kero's own copy: %v", err)
+		t.Errorf("removing an install took Hyla's own copy: %v", err)
 	}
 
-	// Another Kero's link, as the installed Kero's to a development
+	// Another Hyla's link, as the installed Hyla's to a development
 	// build: SyncSkill leaves it, and so does a build that takes no copies.
 	other := filepath.Join(home, "other", "SKILL.md")
 	os.MkdirAll(filepath.Dir(other), 0o755)
-	os.WriteFile(other, []byte("another Kero's"), 0o644)
+	os.WriteFile(other, []byte("another Hyla's"), 0o644)
 	os.Remove(filepath.Join(claude, "SKILL.md"))
 	os.Symlink(other, filepath.Join(claude, "SKILL.md"))
 	os.MkdirAll(agents, 0o755)
@@ -71,25 +71,25 @@ func TestSkillLinks(t *testing.T) {
 	adoptCopies = func() bool { return false }
 	SyncSkill()
 	if t1, _ := os.Readlink(filepath.Join(claude, "SKILL.md")); t1 != other {
-		t.Errorf("another Kero's link taken: %q", t1)
+		t.Errorf("another Hyla's link taken: %q", t1)
 	}
 	if b, _ := os.ReadFile(filepath.Join(agents, "SKILL.md")); string(b) != "a copy" {
 		t.Errorf("a build that takes no copies took one: %q", b)
 	}
 
-	// A plugin of an older kero is made current; another Kero's, or one
+	// A plugin of an older hyla is made current; another Hyla's, or one
 	// not there, stays as it is.
 	pi := filepath.Join(home, ".pi", "agent")
 	t.Setenv("PI_CODING_AGENT_DIR", pi)
 	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
-	ts := filepath.Join(pi, "extensions", "kero.ts")
+	ts := filepath.Join(pi, "extensions", "hyla.ts")
 	os.MkdirAll(filepath.Dir(ts), 0o755)
-	os.WriteFile(ts, []byte(`run("/elsewhere/kero-dev/bin/kero")`), 0o644)
+	os.WriteFile(ts, []byte(`run("/elsewhere/hyla-dev/bin/hyla")`), 0o644)
 	SyncSkill()
-	if b, _ := os.ReadFile(ts); string(b) != `run("/elsewhere/kero-dev/bin/kero")` {
-		t.Errorf("another Kero's plugin taken: %q", b)
+	if b, _ := os.ReadFile(ts); string(b) != `run("/elsewhere/hyla-dev/bin/hyla")` {
+		t.Errorf("another Hyla's plugin taken: %q", b)
 	}
-	os.WriteFile(ts, append([]byte("// older\nrun("), append(marshal(kero()), ')')...), 0o644)
+	os.WriteFile(ts, append([]byte("// older\nrun("), append(marshal(hyla()), ')')...), 0o644)
 	SyncSkill()
 	for _, it := range agentHooks("pi") {
 		if it.state() != "current" {

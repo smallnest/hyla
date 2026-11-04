@@ -1,15 +1,15 @@
 ---
 title: キーボードショートカット
-description: Kero のデフォルトのキーボードショートカットと、割り当てを変えるためのアクション ID。
+description: Hyla のデフォルトのキーボードショートカットと、割り当てを変えるためのアクション ID。
 ---
 
 # キーボードショートカット
 
 どれも **設定 › キーボード**、または[設定ファイル](./configuration.md#keyboard)の `keybind` で割り当てを変えられます。
 
-Windows と Linux では、<kbd>Ctrl</kbd> と文字キーの組み合わせはシェルのもの（<kbd>Ctrl</kbd> <kbd>D</kbd>、<kbd>Ctrl</kbd> <kbd>R</kbd>、<kbd>Ctrl</kbd> <kbd>W</kbd>…）なので、Kero のショートカットは Windows Terminal と同じく <kbd>Shift</kbd> を加えるか、<kbd>Alt</kbd> を使います。ダッシュは、そのアクションにショートカットがないことを示します。
+Windows と Linux では、<kbd>Ctrl</kbd> と文字キーの組み合わせはシェルのもの（<kbd>Ctrl</kbd> <kbd>D</kbd>、<kbd>Ctrl</kbd> <kbd>R</kbd>、<kbd>Ctrl</kbd> <kbd>W</kbd>…）なので、Hyla のショートカットは Windows Terminal と同じく <kbd>Shift</kbd> を加えるか、<kbd>Alt</kbd> を使います。ダッシュは、そのアクションにショートカットがないことを示します。
 
-## Kero
+## Hyla
 
 | アクション                       | macOS                                  | Windows と Linux                              | アクション ID    |
 | -------------------------------- | -------------------------------------- | --------------------------------------------- | ---------------- |
@@ -75,4 +75,4 @@ Windows と Linux では、<kbd>Ctrl</kbd> と文字キーの組み合わせは�
 keybind = ctrl+`=quickTerminal.toggle
 ```
 
-専用のセッション「クイックターミナル」を表示し、隠している間も Kero を終了した後も動き続け、サイドバーにも他のセッションと一緒に表示されます。シェルが終了すると、次に押したときに新しいシェルが始まります。**表示 › クイックターミナル** やメニューバーのアイコンのメニューからも開け、`kero do quickTerminal.toggle` でスクリプトから切り替えられます。
+専用のセッション「クイックターミナル」を表示し、隠している間も Hyla を終了した後も動き続け、サイドバーにも他のセッションと一緒に表示されます。シェルが終了すると、次に押したときに新しいシェルが始まります。**表示 › クイックターミナル** やメニューバーのアイコンのメニューからも開け、`hyla do quickTerminal.toggle` でスクリプトから切り替えられます。

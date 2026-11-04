@@ -1,6 +1,6 @@
 // Package detach starts programs that outlive whoever started them, as
-// kerod, which the app, the CLI and a bridge start, and which starts the
-// kerod that follows it as it restarts.
+// hylad, which the app, the CLI and a bridge start, and which starts the
+// hylad that follows it as it restarts.
 package detach
 
 import (
@@ -47,7 +47,7 @@ func inJob() bool {
 
 // wmiStart starts cmd through WMI, whose provider starts it as this user,
 // in no job, with cmd's environment and directory, but none of its
-// files: kerod writes its log itself. The script goes to PowerShell on
+// files: hylad writes its log itself. The script goes to PowerShell on
 // its standard input, as the environment may be longer than a command
 // line takes, which reads it in the console's code page: the script is
 // ASCII, what it passes on in base64 of UTF-8.

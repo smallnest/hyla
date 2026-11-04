@@ -7,10 +7,10 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/remote"
-	"kero/internal/settings"
+	"hyla/internal/remote"
+	"hyla/internal/settings"
 
-	"kero/locales"
+	"hyla/locales"
 )
 
 // The Tailcat switch governs the tailcat hosts, off.
@@ -118,8 +118,8 @@ func TestTailcatFields(t *testing.T) {
 }
 
 // The Hosts page shows one Tailcat group: off, the switch and how to keep
-// it off, on, the fields of the hosts Kero adds, the relay, and this
-// machine as a host. KERO_SHOTS=dir writes the look.
+// it off, on, the fields of the hosts Hyla adds, the relay, and this
+// machine as a host. HYLA_SHOTS=dir writes the look.
 func TestTailcatSettingRows(t *testing.T) {
 	a := testApp(t)
 	a.ss.draft, a.ss.host = map[string]string{}, hostDraft{}
@@ -185,7 +185,7 @@ var testCode = func() string {
 func validPairCodeForTest(t *testing.T) bool { return testCode != "" }
 
 // Changing this machine's pair code keeps its listener, for the key's new
-// code, which kerod starts its listener again for.
+// code, which hylad starts its listener again for.
 func TestTailcatRotate(t *testing.T) {
 	a := testApp(t)
 	old, err := remote.LocalTailcatAddress(context.Background())
@@ -199,7 +199,7 @@ func TestTailcatRotate(t *testing.T) {
 	a.set, a.ss.tailcat = s, tailcatDraft{}
 	a.rotateTailcatCode()
 	if a.set.TailcatRotate == rot {
-		t.Error("kerod told not to start its listener again")
+		t.Error("hylad told not to start its listener again")
 	}
 	if l, port, ok := a.set.TailcatListen(); !ok || l != "tailcat://:7373" || port != "7373" {
 		t.Fatalf("listen %q", a.set.Listen)

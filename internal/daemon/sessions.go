@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
 // session is a row of the sidebar: a task's panes, in a layout. d.mu

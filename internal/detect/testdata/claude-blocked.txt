@@ -3,9 +3,9 @@
  ▝▝   ▝▝   ~/dev
 
 
-❯ First think briefly, then use the Bash tool to run exactly: date > /tmp/kero-probe-date.txt
+❯ First think briefly, then use the Bash tool to run exactly: date > /tmp/hyla-probe-date.txt
 
-⏺ Bash(date > /tmp/kero-probe-date.txt)
+⏺ Bash(date > /tmp/hyla-probe-date.txt)
   ⎿  Waiting…
 
 ────────────────────────────────────────────────────────────────────────────────────────────────
@@ -13,7 +13,7 @@
  Tip: auto mode handles these prompts for you — choose "switch to auto mode" below
  Write current date to a probe file
 ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
- date > /tmp/kero-probe-date.txt
+ date > /tmp/hyla-probe-date.txt
 ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
  Do you want to proceed?
  ❯ 1. Yes

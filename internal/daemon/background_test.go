@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
 // TestStreamAsks keeps the lines that ask for a permission apart from a

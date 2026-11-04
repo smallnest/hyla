@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
 // claudeLines is a Claude Code transcript: a prompt, a tool call and its
@@ -177,7 +177,7 @@ func TestTranscriptByID(t *testing.T) {
 // and the commands' notes too: any answer is a card when cards are on.
 func TestReplyCard(t *testing.T) {
 	b, _, msgs := newBot(t)
-	b.reply("c1", "## Fixed\n\nUse `kero`:\n\n- one\n- two")
+	b.reply("c1", "## Fixed\n\nUse `hyla`:\n\n- one\n- two")
 	if len(msgs.cards) != 1 || len(msgs.sent) != 0 {
 		t.Fatalf("cards %d, messages %d", len(msgs.cards), len(msgs.sent))
 	}
@@ -196,9 +196,9 @@ func TestReplyCard(t *testing.T) {
 }
 
 // A turn of a chat's is kept in the conversation its window shows, which
-// an agent's own transcript does not give Kero for every agent.
+// an agent's own transcript does not give Hyla for every agent.
 func TestKeptTurn(t *testing.T) {
-	t.Setenv("KERO_HOME", t.TempDir())
+	t.Setenv("HYLA_HOME", t.TempDir())
 	b, _, _ := newBot(t)
 	b.keepTurn("opencode", "ses_1", "1+1=?", "2")
 	b.keepTurn("opencode", "ses_1", "and two more?", "4")
@@ -224,8 +224,8 @@ func TestKeptTurn(t *testing.T) {
 	if got := transcriptFile(opencodeSession("", "ses_2"), "opencode", ""); got != "" {
 		t.Errorf("another conversation has %q", got)
 	}
-	// Pi and Codex windows read the turns Kero kept too: Pi's own file
-	// Kero does not read, and Codex's is the kept turns, not its events.
+	// Pi and Codex windows read the turns Hyla kept too: Pi's own file
+	// Hyla does not read, and Codex's is the kept turns, not its events.
 	for _, agent := range []string{"pi", "codex"} {
 		conv := "c-" + agent
 		b.keepTurn(agent, conv, "1+1=?", "2")
@@ -244,7 +244,7 @@ func TestKeptTurn(t *testing.T) {
 	}
 }
 
-// A chat window shows the turns Kero kept, and the agent the chat runs,
+// A chat window shows the turns Hyla kept, and the agent the chat runs,
 // which a background session's pane has no terminal to tell.
 func TestFeedShowsKeptTurns(t *testing.T) {
 	b, luna, _ := newBot(t)

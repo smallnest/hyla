@@ -1,8 +1,8 @@
 package proto
 
-// A remote client, the app or the CLI on another machine, reaches kerod
-// through one connection: an SSH or WSL session running `kero __bridge` on
-// the host, or one of kerod's network listeners (see package remote). It
+// A remote client, the app or the CLI on another machine, reaches hylad
+// through one connection: an SSH or WSL session running `hyla __bridge` on
+// the host, or one of hylad's network listeners (see package remote). It
 // opens with a Hello of kind "mux", which a MuxWelcome answers, then
 // carries streams (yamux): each stream is a connection as a local client
 // opens one to the socket, a control or an attach connection, starting
@@ -23,15 +23,15 @@ const (
 	// KindMux opens a remote connection (MuxHello).
 	KindMux = "mux"
 	// KindRestart asks the host, over a stream of a remote connection, to
-	// restart kerod into the Kero installed: its sessions start again, as
+	// restart hylad into the Hyla installed: its sessions start again, as
 	// after a reboot. A HostReply answers it.
 	KindRestart = "host.restart"
-	// KindUpdate asks a server build of Kero on the host to update itself
+	// KindUpdate asks a server build of Hyla on the host to update itself
 	// to App's version (Hello.App), signed as the app's own updates are. A
 	// HostReply answers it; a restart then runs the new version.
 	KindUpdate = "host.update"
-	// KindPairCode asks kerod for the pair code of its tailcat listener,
-	// which is how Kero elsewhere reaches it without Tailscale: its
+	// KindPairCode asks hylad for the pair code of its tailcat listener,
+	// which is how Hyla elsewhere reaches it without Tailscale: its
 	// address there. A HostReply's PairCode answers it.
 	KindPairCode = "host.tailcat"
 )
@@ -44,11 +44,11 @@ type MuxHello struct {
 	App     string `json:"app,omitempty"`
 	// Compress lists what the client reads, best first: "deflate".
 	Compress []string `json:"compress,omitempty"`
-	// Client names the client, as `kero clients` shows it: "Kero 2.1.0 on
+	// Client names the client, as `hyla clients` shows it: "Hyla 2.1.0 on
 	// laptop".
 	Client string `json:"client,omitempty"`
-	// Peer is whom the host's listener saw connect, as kerod fills in for
-	// kerod on a tailcat listener, which the client cannot say: "tailcat
+	// Peer is whom the host's listener saw connect, as hylad fills in for
+	// hylad on a tailcat listener, which the client cannot say: "tailcat
 	// [vzc7…]". The app adds it.
 	Peer string `json:"peer,omitempty"`
 }
@@ -69,12 +69,12 @@ type HostInfo struct {
 	Arch     string `json:"arch"`
 	User     string `json:"user,omitempty"`
 	Home     string `json:"home,omitempty"`
-	// Kero is the version of Kero that answered, the bridge's or kerod's,
-	// and Version the protocol it speaks; kerod's own come with each
-	// stream's Welcome, as it may run an older Kero until it restarts.
-	Kero    string `json:"kero,omitempty"`
+	// Hyla is the version of Hyla that answered, the bridge's or hylad's,
+	// and Version the protocol it speaks; hylad's own come with each
+	// stream's Welcome, as it may run an older Hyla until it restarts.
+	Hyla    string `json:"hyla,omitempty"`
 	Version int    `json:"version"`
-	// Server tells a server build of Kero, and Updates one that
+	// Server tells a server build of Hyla, and Updates one that
 	// install-server.sh installed, which updates itself (KindUpdate); a
 	// desktop app on the host updates as apps do.
 	Server  bool `json:"server,omitempty"`
@@ -101,7 +101,7 @@ type HostReply struct {
 	PairCode string `json:"pairCode,omitempty"`
 }
 
-// ClientInfo is a client connected to kerod, as `kero clients` lists it.
+// ClientInfo is a client connected to hylad, as `hyla clients` lists it.
 type ClientInfo struct {
 	Kind  string `json:"kind"` // control, attach
 	Peer  string `json:"peer"` // who: "uid 501", "alice@example.com"
@@ -114,7 +114,7 @@ type ClientInfo struct {
 }
 
 // Params and results of the methods for remote clients, which see the
-// host's files through kerod.
+// host's files through hylad.
 type (
 	// FSListParams list a directory of the host: Dir, absolute, or ~ and
 	// ~/… for the home, "" for the home.
@@ -168,7 +168,7 @@ type (
 		Data []byte `json:"data"` // base64 in JSON
 	}
 	// PasteFileParams put a file the user pasted or dropped into a pane on
-	// the host, in a directory of kero's, for the program to read by its
+	// the host, in a directory of hyla's, for the program to read by its
 	// path.
 	PasteFileParams struct {
 		Name string `json:"name"`

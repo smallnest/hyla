@@ -8,7 +8,7 @@ import (
 	"github.com/egoist/mygo/plugins/terminal"
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/settings"
+	"hyla/internal/settings"
 )
 
 // A translucent terminal's card has a material, and an opaque one none, in
@@ -31,7 +31,7 @@ func TestPaneGlass(t *testing.T) {
 }
 
 // A pane keeps its terminal, and its text, with a card material, and the
-// desktop shows through the card at 0% ($KERO_SHOTS).
+// desktop shows through the card at 0% ($HYLA_SHOTS).
 func TestPaneGlassKeepsTheTerminal(t *testing.T) {
 	if testing.Short() {
 		t.Skip("downloads libghostty-vt")

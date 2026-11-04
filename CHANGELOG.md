@@ -1,13 +1,33 @@
 # Changelog
 
-This is smallnest's fork of Kero. A fork release takes a number above
-upstream's, so it never takes an upstream tag's number; the notes of the
-upstream releases it includes follow its own.
+This is smallnest's fork of Kero, which Hyla was called. A fork release
+takes a number above upstream's, so it never takes an upstream tag's
+number; the notes of the upstream releases it includes follow its own.
+
+## 3.0.0
+
+Hyla was called Kero up to 2.1.37, and this release renames it: the app
+is **Hyla.app**, the command `hyla`, the daemon `hylad`, the server build
+`hyla-server`, and settings and sessions live in `~/.config/hyla`
+(`~/Library/Application Support/hyla` on macOS, `%AppData%\hyla` on
+Windows). The website stays at kero.sh for now.
+
+- **Your settings and sessions carry over.** The first Hyla to start
+  moves the directory of 2.x to the new name, and `KERO_*` environment
+  variables are read as `HYLA_*`, so hooks and scripts written for Kero
+  keep working. The `kero` command of 2.x, its skill, its plugins and its
+  service are replaced by Hyla's.
+- **2.x does not update itself to this release.** Install Hyla once from
+  the releases page; later releases update as before. A server build of
+  2.x on another machine: run install-server.sh again, which removes the
+  old install and keeps its settings and sessions.
+- The update key is the same, so a release signed for Kero verifies as
+  Hyla's.
 
 ## 2.1.37
 
 - OpenCode works as the agent a Feishu chat runs. A prompt in the
-  background found no program, as kerod did not look where OpenCode
+  background found no program, as hylad did not look where OpenCode
   installs, and a turn now continues a session of OpenCode's own, as
   OpenCode asks. On another machine, this works once that host gets
   this update.
@@ -20,8 +40,8 @@ upstream releases it includes follow its own.
   messages alone, without the banner and the tokens line. A chat whose
   thread Codex no longer knows starts anew rather than failing every
   turn.
-- A chat's window shows the turns Kero ran for it, also when the agent
-  is OpenCode, Codex or Pi, whose own transcripts Kero does not read: it
+- A chat's window shows the turns Hyla ran for it, also when the agent
+  is OpenCode, Codex or Pi, whose own transcripts Hyla does not read: it
   showed none of Codex's and Pi's before.
 
 ## 2.1.36
@@ -32,7 +52,7 @@ upstream releases it includes follow its own.
   text, as /answer does. A question takes one answer.
 - A message sent to a Feishu chat while a turn there still runs waits for
   it, one deep, and runs as that turn ends: it is no longer refused with
-  "Kero is still working on the last message there". A command, as /status
+  "Hyla is still working on the last message there". A command, as /status
   or /stop, runs at once, and /stop drops the message that waited.
 - A pane that the agent draws as a screen of its own, as OpenCode's, is
   answered with the turn's text: the bot waits for the turn to end, and
@@ -43,7 +63,7 @@ upstream releases it includes follow its own.
 - A pane's chat shows only where it was opened (a session's menu › Open
   Chat), not in every pane while Feishu is on.
 - A login shell whose profile starts a program that outlives it, as a
-  prompt's, no longer holds kerod at its start: the bot and the sessions
+  prompt's, no longer holds hylad at its start: the bot and the sessions
   come back.
 - The gap between the panes and the side panel is half what it was.
 
@@ -73,7 +93,7 @@ upstream releases it includes follow its own.
   click) makes a file or folder in its folder, or renames or deletes the
   row; the buttons above the tree make a file or folder at its top, and
   fold the folders open. A local file deleted goes to the Trash; a file
-  on a remote host is deleted for good, as kerod has no trash there.
+  on a remote host is deleted for good, as hylad has no trash there.
 - A file opened as an image shows as an image, and its header opens it
   in a file pane or in a program. A file's text follows the file as it
   changes, and a click on it again shows the viewer once its button
@@ -88,8 +108,8 @@ upstream releases it includes follow its own.
   its usage: today's calls, tokens and cost, the cache hit rate, the plan
   windows closest to their limits, and the latest call.
 - Sessions no longer come back with many "restored" lines. A restore
-  marks one, once. And two kerods no longer stop each other: the app stops
-  a kerod of an older Kero as it connects to it. kerod's log says who asked
+  marks one, once. And two hylads no longer stop each other: the app stops
+  a hylad of an older Hyla as it connects to it. hylad's log says who asked
   it to stop.
 
 ## Upstream releases
@@ -98,19 +118,19 @@ Upstream's notes for 2.1.22 to 2.1.24, which this fork has.
 
 ## 2.1.24
 
-- On macOS, dragging Kero's window by its top no longer makes it
+- On macOS, dragging Hyla's window by its top no longer makes it
   shake.
 
 ## 2.1.23
 
-- On macOS, Kero keeps its place in the Dock after it updates itself.
+- On macOS, Hyla keeps its place in the Dock after it updates itself.
 
 ## 2.1.22
 
 - With no session open, Split Right (⌘D) starts one. Thanks @iamvicliu
 - Images a program like Pi showed no longer stay over the screen once
   it clears it, as with Pi's `/new`. Thanks @jorben for the report
-- After Kero relaunches to use a newer kerod, quitting it quits it
+- After Hyla relaunches to use a newer hylad, quitting it quits it
   instead of leaving it stuck open.
 
 ## 2.1.21
@@ -131,7 +151,7 @@ Upstream's notes for 2.1.22 to 2.1.24, which this fork has.
   for the report
 - Return presses a confirmation's action, such as Close Pane, as its
   ↩ says. Thanks @iamvicliu
-- On a Mac, after Kero updates itself, quitting an app you started in
+- On a Mac, after Hyla updates itself, quitting an app you started in
   a pane no longer ends every pane's shell.
 
 ## 2.1.19
@@ -139,14 +159,14 @@ Upstream's notes for 2.1.22 to 2.1.24, which this fork has.
 - **Session › New Session in Worktree…** (⌘⌥T) starts a session on a
   new branch in a git worktree of its own, so agents working side by
   side don't trip over each other's changes. Closing the session offers
-  to remove the worktree. `kero new --worktree <branch>` does the same
+  to remove the worktree. `hyla new --worktree <branch>` does the same
   from the command line.
-- Kero remembers the conversations of Claude Code, Codex, Pi and
+- Hyla remembers the conversations of Claude Code, Codex, Pi and
   OpenCode that ran in its panes, so you can resume one after its
   session is closed: ⌘P lists recent ones, and **Session › Resume
   Conversation…** (⌘⇧O) lists them all. Turn on Settings › General ›
   **Session history** to list them at the bottom of the sidebar too,
-  under **Ended** and **Archived**. `kero history` and `kero resume` do
+  under **Ended** and **Archived**. `hyla history` and `hyla resume` do
   the same from the command line. Thanks @ak4duy
 - Drop folders onto the sidebar to open them as projects. Thanks
   @p1xelll
@@ -154,15 +174,15 @@ Upstream's notes for 2.1.22 to 2.1.24, which this fork has.
   does. Thanks @jamdaniels for the request
 
 
-## 2.1.31 (smallnest/kero)
+## 2.1.31 (smallnest/hyla)
 
-- A pet stays on the window's edge while Kero is in front: it no longer
+- A pet stays on the window's edge while Hyla is in front: it no longer
   goes behind the window as the app comes forward, which hid it where it
   stood at the window's bottom edge. It goes as another app comes
-  forward, and comes back with Kero.
+  forward, and comes back with Hyla.
 - This release has everything 2.1.30 has, whose notes follow.
 
-## 2.1.30 (smallnest/kero)
+## 2.1.30 (smallnest/hyla)
 
 - A Codex pet no longer loses its lower part under the window: it shows
   whole on the window's edge, and stays on the edge as the window is
@@ -173,7 +193,7 @@ Upstream's notes for 2.1.22 to 2.1.24, which this fork has.
   the pet's wave.
 - This release has everything 2.1.29 has, whose notes follow.
 
-## 2.1.29 (smallnest/kero)
+## 2.1.29 (smallnest/hyla)
 
 - The Tailcat settings in **Settings › Hosts** say what they do: **Use
   Tailcat to Reach Other Hosts**, **Remote Tailcat Port**, **Provide
@@ -181,22 +201,22 @@ Upstream's notes for 2.1.22 to 2.1.24, which this fork has.
   pair code has a **This Computer's Pair Code** label above it.
 - This release has everything 2.1.28 has, whose notes follow.
 
-## 2.1.28 (smallnest/kero)
+## 2.1.28 (smallnest/hyla)
 
 - Reaching hosts over **Tailcat** again: this release has the feature. A
   host that listened on Tailcat stopped when its configuration file
   wrote **Listen** before the Tailcat setting; hosts get the fix with
   their next update.
-- `kero daemon status` no longer crashes when kerod runs on this
+- `hyla daemon status` no longer crashes when hylad runs on this
   machine alone.
 
-## Unreleased (smallnest/kero)
+## Unreleased (smallnest/hyla)
 
 - While the window is translucent, the sidebar's rows and the cards let
   the desktop through as much as the background does, so that it shows
   through the window rather than only at its edges.
 
-## 2.1.21 (smallnest/kero)
+## 2.1.21 (smallnest/hyla)
 
 - A **quick terminal** drops down from the top of the screen over any
   app, as Ghostty's does. Give it a shortcut in **Settings › Keyboard**,
@@ -206,23 +226,23 @@ Upstream's notes for 2.1.22 to 2.1.24, which this fork has.
   setting says: it used to make the window opaque.
 - Return presses the action of a confirmation, such as **Close Pane**,
   though Cancel comes first. Thanks @iamvicliu.
-- On Windows and Linux, Kero tells when an agent finishes in the
-  session you watch only while Kero is the app in front, as on macOS.
+- On Windows and Linux, Hyla tells when an agent finishes in the
+  session you watch only while Hyla is the app in front, as on macOS.
 
-## 2.1.20 (smallnest/kero)
+## 2.1.20 (smallnest/hyla)
 
 - This release has everything upstream's 2.1.19 has, whose notes
   follow. The **Ended** section of the sidebar now lists the
   conversations that this 2.1.19 records, so it works for every
   conversation, on every host, and a conversation leaves the list when
   it runs again.
-- **Quitting Kero** can end this computer's sessions and their programs,
-  and stop kerod, as **Quit and End All Sessions** does: set
+- **Quitting Hyla** can end this computer's sessions and their programs,
+  and stop hylad, as **Quit and End All Sessions** does: set
   `quit-ends-sessions = true`. It asks first while a program runs.
 - The window takes a **window-opacity** and a **window-blur** setting:
   how much the background wash covers, 0 to 1, and whether the desktop
   behind it is blurred.
-- **Kero the frog** stays in the window, and follows your sessions.
+- **Hyla the frog** stays in the window, and follows your sessions.
   `pet = false` hides it, and `pet-offset` sets where it stands.
 - The sidebar groups sessions by project, with an icon for each, and
   sorts them by date or by name, or in the order you drag them to.
@@ -236,18 +256,18 @@ Upstream's notes for 2.1.22 to 2.1.24, which this fork has.
 - Updates come from this fork's releases again, and they take their key
   from this fork.
 
-## 2.1.19 (smallnest/kero)
+## 2.1.19 (smallnest/hyla)
 
 - **Session history**, off until you turn it on in **Settings › General**,
   or with `session-history = true`: when Claude Code, Codex, Pi or OpenCode
-  ends, Kero keeps its conversation, in an **Ended** section at the bottom
+  ends, Hyla keeps its conversation, in an **Ended** section at the bottom
   of the sidebar. A click on one starts a session in its folder that
   resumes the conversation; **Archived**, below it, holds the ones you put
-  aside. Kero keeps the last 50 of each, from every host, and the
+  aside. Hyla keeps the last 50 of each, from every host, and the
   section's menus resume, archive, restore, copy or delete them. Ended
-  sessions of this host come with the next update of kerod. Thanks
+  sessions of this host come with the next update of hylad. Thanks
   @ak4duy
-- Kero the frog has the colors of the icon's frog.
+- Hyla the frog has the colors of the icon's frog.
 - The question that **Quit and End All Sessions** asks no longer takes
   Return, which a program may be reading: it takes a click or Escape, and
   **Cancel** closes it.
@@ -256,17 +276,17 @@ Upstream's notes for 2.1.22 to 2.1.24, which this fork has.
 ## 2.1.18
 
 - A row above the tree of the **Files** view picks what a click on a
-  file does: show it under the tree, open it in a file pane with Kero's
+  file does: show it under the tree, open it in a file pane with Hyla's
   editor and its syntax highlighting, or open it in the host's editor.
-  Kero keeps the choice.
+  Hyla keeps the choice.
 - This release also has what upstream's 2.1.18 has, whose notes
   follow, credited to those who reported it.
 - This release takes in upstream's 2.1.15 to 2.1.17, whose notes follow:
-  Kero's icon in the menu bar and the menu it opens, `kero events`, the
+  Hyla's icon in the menu bar and the menu it opens, `hyla events`, the
   browser's snapshots and saved cookies, programs that can ask for the
   microphone and the camera, and Japanese.
 
-## 2.1.14 (smallnest/kero)
+## 2.1.14 (smallnest/hyla)
 
 - The side panel has a **Files** view beside **Changes**: a tree of the
   session's folder, each file opening under it as its text, with syntax
@@ -282,14 +302,14 @@ Upstream's notes for 2.1.22 to 2.1.24, which this fork has.
   opens the panel on the view you saw last, and closes it. **Toggle
   Files** (⌥⌘F, Ctrl+Alt+F) goes straight to Files.
 
-## 2.1.13 (smallnest/kero)
+## 2.1.13 (smallnest/hyla)
 
 - Open a project by dropping a folder into the sidebar: drop one or more
-  folders on it, and Kero opens a session in each project not open yet.
+  folders on it, and Hyla opens a session in each project not open yet.
   Files, folders it cannot read and macOS app bundles are refused, and
   folders always open on this computer, also with a remote session
   selected. Thanks @p1xelll
-- Kero the frog sits on the window's edge: it hops when a session needs
+- Hyla the frog sits on the window's edge: it hops when a session needs
   you, reads along while an agent works, and dozes when all is calm.
   Drag it along the edge, or turn it off in **Settings › Appearance**.
 - A **Sort and Group** menu in the sidebar orders sessions by when they
@@ -299,18 +319,18 @@ Upstream's notes for 2.1.22 to 2.1.24, which this fork has.
 - **Settings › Appearance › Background opacity** goes from 0% to 100%,
   with a blur toggle, so the window can be see-through or solid.
 - A new setting `quit-ends-sessions` ends this computer's sessions, and
-  their programs, when you quit Kero, as **Quit and End All Sessions**
+  their programs, when you quit Hyla, as **Quit and End All Sessions**
   does. Other computers' sessions keep running.
-- Remote hosts find `kero` when the path to it has a space in it, on
+- Remote hosts find `hyla` when the path to it has a space in it, on
   macOS and Windows, whose `sh` is bash and splits a list of paths at
   spaces.
 
 ## 2.1.18 (egoist/kero)
 
-- On a Mac, programs run in Kero can use the microphone and the camera,
+- On a Mac, programs run in Hyla can use the microphone and the camera,
   and control other apps: macOS asks first, as it does for other
   terminals. Thanks @jamdaniels for the report
-- Kero reaches SSH hosts with the SSH agent your shell sets up, such as
+- Hyla reaches SSH hosts with the SSH agent your shell sets up, such as
   1Password's, as `ssh` in a terminal does. Thanks @frankittee for the
   report
 - **Close All Sessions** in a project's menu ends every session in the
@@ -320,32 +340,32 @@ Upstream's notes for 2.1.22 to 2.1.24, which this fork has.
 
 ## 2.1.17
 
-- Codex 0.164's panes resume their own conversations after kerod
+- Codex 0.164's panes resume their own conversations after hylad
   restarts, now that one Codex app server runs every pane's hooks. On
   another machine, this works once that host gets this update. Thanks
   @voidyuu for the report
-- `kero browser snapshot` prints what a page shows as roles and names,
+- `hyla browser snapshot` prints what a page shows as roles and names,
   each element with a ref that `click`, `type` and the rest take with
-  `--ref`. `kero browser screenshot` works on a pane not on screen, and
-  `kero browser cookies save` and `load` keep a browser's sign-ins, as
+  `--ref`. `hyla browser screenshot` works on a pane not on screen, and
+  `hyla browser cookies save` and `load` keep a browser's sign-ins, as
   Playwright's storage state or a `cookies.txt`.
-- With Kero's icon showing, Command+W and the close button close the
-  main window rather than hide it, and Kero keeps running in the menu
+- With Hyla's icon showing, Command+W and the close button close the
+  main window rather than hide it, and Hyla keeps running in the menu
   bar or the notification area.
-- macOS 27 no longer runs an AutoFill helper process for Kero.
+- macOS 27 no longer runs an AutoFill helper process for Hyla.
 
 ## 2.1.16
 
-- **Settings › General › Show app icon** on a Mac puts Kero in the Dock
+- **Settings › General › Show app icon** on a Mac puts Hyla in the Dock
   and the menu bar, the Dock only, or the menu bar only. Windows and
-  Linux always show it in the notification area. Its menu opens Kero
+  Linux always show it in the notification area. Its menu opens Hyla
   and Settings and checks for updates. While the icon shows, closing
-  the window keeps Kero running there.
-- `kero events` prints what happens to sessions and panes as it
+  the window keeps Hyla running there.
+- `hyla events` prints what happens to sessions and panes as it
   happens, such as a pane coming to need you, so a script can follow
-  every agent without polling `kero status`. On another machine, it
+  every agent without polling `hyla status`. On another machine, it
   works once that host gets this update.
-- macOS no longer runs an AutoFill helper process for Kero.
+- macOS no longer runs an AutoFill helper process for Hyla.
 
 ## 2.1.15
 
@@ -356,7 +376,7 @@ Upstream's notes for 2.1.22 to 2.1.24, which this fork has.
 
 - On a Mac, Command+Left and Command+Right go to the start and end of
   the line in the shell, as in Ghostty. Thanks @eliottwantz
-- Kero speaks Japanese: pick it under **Language** in Settings.
+- Hyla speaks Japanese: pick it under **Language** in Settings.
 - Powerline's rounded separators in prompts fill the line's height,
   with no gap when the line height is above 1.
 - On Linux, closing Settings no longer closes the app.
@@ -401,21 +421,21 @@ Upstream's notes for 2.1.22 to 2.1.24, which this fork has.
 
 - With the Tailscale app on a Mac, **Settings › Hosts › Let other
   machines connect** no longer says Tailscale isn't running when it is,
-  and kerod listens on your tailnet as it should.
+  and hylad listens on your tailnet as it should.
 
 ## 2.1.7
 
-- Kero can update a host that runs the Kero desktop app, not only the
-  server build: turn on **Settings › Hosts › Let them update Kero here**
+- Hyla can update a host that runs the Hyla desktop app, not only the
+  server build: turn on **Settings › Hosts › Let them update Hyla here**
   on that computer (`remote-updates = true`), and its project in your
   sidebar shows **Update** when it's behind. The app there updates,
-  relaunches and restarts kerod. It's off unless you turn it on, and the
+  relaunches and restarts hylad. It's off unless you turn it on, and the
   host needs 2.1.7 itself, so update it there once more first.
 
 ## 2.1.6
 
-- A session open in Kero on two machines no longer takes the size of a
-  machine you've walked away from: Kero sizes it for the one you're at,
+- A session open in Hyla on two machines no longer takes the size of a
+  machine you've walked away from: Hyla sizes it for the one you're at,
   and gives it back to the other as soon as you return there or this one
   quits or sleeps. Hosts get it with their next update.
 - Panes and sessions on a Windows host are named by their folder
@@ -423,14 +443,14 @@ Upstream's notes for 2.1.22 to 2.1.24, which this fork has.
 
 ## 2.1.5
 
-- A session open in Kero on two machines takes the size of the one you're
+- A session open in Hyla on two machines takes the size of the one you're
   using, the one you last typed, scrolled or switched to the session in,
   rather than of the last to resize it. Resizing a split on one machine
   no longer cuts off the bottom of the pane on the other. Hosts get it
   with their next update.
 - Dragging the divider between panes, or the sidebar's edge, leaves the
   keyboard in the pane you were typing in.
-- After an update, Kero offers to restart kerod only when the update
+- After an update, Hyla offers to restart hylad only when the update
   changed it.
 
 ## 2.1.4
@@ -442,17 +462,17 @@ Upstream's notes for 2.1.22 to 2.1.24, which this fork has.
 ## 2.1.3
 
 - On Windows, turning on **Let other machines connect** in Settings ›
-  Hosts no longer flashes a console window open, nor does Kero on
+  Hosts no longer flashes a console window open, nor does Hyla on
   another machine connecting to it.
 - Settings › Hosts leaves the commands for setting up a host to the guide
   it links to.
 
 ## 2.1.2
 
-- Settings › Hosts can share this computer with Kero on your other
+- Settings › Hosts can share this computer with Hyla on your other
   machines: turn on **Let other machines connect**, and copy the address
-  it shows to add it there. kerod then listens on your tailnet, and only
-  your Tailscale account may connect. kerod now follows `listen` and
+  it shows to add it there. hylad then listens on your tailnet, and only
+  your Tailscale account may connect. hylad now follows `listen` and
   `listen-allow` in the config file as they change, without a restart,
   and a listener turned off drops the connections it took.
 - Hosts can be edited in Settings › Hosts: a host renamed keeps its
@@ -465,7 +485,7 @@ Upstream's notes for 2.1.22 to 2.1.24, which this fork has.
 
 - On Windows, the mouse wheel scrolls full-screen programs that take the
   mouse as they start, such as pi, rather than stepping through their
-  prompt history. Kero now runs panes in the newer console Windows
+  prompt history. Hyla now runs panes in the newer console Windows
   Terminal uses, which it ships, so programs get the mouse, the wheel and
   what they draw as they would there. Windows hosts get it with their
   next update.
@@ -475,14 +495,14 @@ Upstream's notes for 2.1.22 to 2.1.24, which this fork has.
 - Browser panes show web pages beside your terminals: the dev server an
   agent works on, the docs it reads, the pull request it opened. One
   splits, zooms, moves and closes like any pane, and comes back on the
-  same page when Kero restarts. Open one with <kbd>⌘</kbd> <kbd>⇧</kbd>
+  same page when Hyla restarts. Open one with <kbd>⌘</kbd> <kbd>⇧</kbd>
   <kbd>B</kbd>, by typing an address in the command palette, or with
-  `kero split --url localhost:3000`; <kbd>⌘</kbd> <kbd>L</kbd> goes to
+  `hyla split --url localhost:3000`; <kbd>⌘</kbd> <kbd>L</kbd> goes to
   its address bar, which shows the site's icon.
-- `kero browser` drives a browser pane's page the way `kero send` and
-  `kero read` drive a terminal: it opens pages, clicks, types, waits for
+- `hyla browser` drives a browser pane's page the way `hyla send` and
+  `hyla read` drive a terminal: it opens pages, clicks, types, waits for
   elements or text, reads the page's text and HTML, runs JavaScript and
-  takes screenshots. Like `kero do`, it needs Remote Control.
+  takes screenshots. Like `hyla do`, it needs Remote Control.
 - Browser panes block ads and trackers, with EasyList and EasyPrivacy to
   begin with. Settings › Browser turns it off or picks other filter
   lists, or `browser-block-ads` and `browser-filter-list` in the config
@@ -494,20 +514,20 @@ Upstream's notes for 2.1.22 to 2.1.24, which this fork has.
   from fading.
 - The command palette finds commands and Settings pages by keywords, and
   by their English names in any language.
-- Kero shows sessions that run on other machines, such as a Linux dev box,
+- Hyla shows sessions that run on other machines, such as a Linux dev box,
   a cloud VM or a WSL distribution, in the same sidebar, tagged with each
   host's name, with their statuses and notifications. Add a host in
-  Settings › Hosts by the address you'd give ssh, `me@devbox`: Kero
+  Settings › Hosts by the address you'd give ssh, `me@devbox`: Hyla
   reaches it over
-  SSH with your keys and agent, or through kerod's listener on your
+  SSH with your keys and agent, or through hylad's listener on your
   tailnet (`listen = tailnet://:7373`), which Tailscale tells who
   connects to. One compressed connection carries all of a host's panes,
-  and a host whose link drops shows its sessions faded until Kero
+  and a host whose link drops shows its sessions faded until Hyla
   reconnects on its own.
 - On a host, New Session, Open Project (which lists the host's folders),
   Command-clicking a path (which opens it in the host's `$EDITOR`) and
   pasting an image or files (which copies them to the host) all act on
-  the host. Its programs drive the app with `kero focus` and `kero do`
+  the host. Its programs drive the app with `hyla focus` and `hyla do`
   only once you turn on its Remote Control.
 - The sidebar stays flat with hosts: their projects follow yours, each
   tagged with its host's name, so the same repository on two machines
@@ -515,21 +535,21 @@ Upstream's notes for 2.1.22 to 2.1.24, which this fork has.
   as when it can't be reached; one with no sessions doesn't show. Its
   menu is in its projects'. Each host wears a color, picked from its name or set
   with `color=`, on its tag and its name in a pane's header. With hosts,
-  Open Project lists any machine's folders in Kero, with a switch
+  Open Project lists any machine's folders in Hyla, with a switch
   between them.
-- The server build of Kero runs kerod and the CLI on Linux, macOS and
+- The server build of Hyla runs hylad and the CLI on Linux, macOS and
   Windows with no app, display or GTK: `curl -fsSL
   https://github.com/egoist/kero/releases/latest/download/install-server.sh
   | sh`, or on Windows `irm .../install-server.ps1 | iex`. The app offers
-  to install it on a host that has no Kero, and to update it to the app's
+  to install it on a host that has no Hyla, and to update it to the app's
   version, signed as the app's updates are. Windows hosts are reached
   over OpenSSH, whose shell may be cmd or PowerShell.
-- `kero -H <host>` and `$KERO_HOST` run commands on a host's sessions; `kero
-  hosts` adds, checks and installs hosts; `kero clients` lists who is
-  connected to kerod; `kero daemon install-service` runs kerod as a
+- `hyla -H <host>` and `$HYLA_HOST` run commands on a host's sessions; `hyla
+  hosts` adds, checks and installs hosts; `hyla clients` lists who is
+  connected to hylad; `hyla daemon install-service` runs hylad as a
   systemd user service, a launchd agent or a Task Scheduler task, and
-  `kero daemon serve` in the foreground.
-- kerod's socket is its user's from the moment it is made, and kerod
+  `hyla daemon serve` in the foreground.
+- hylad's socket is its user's from the moment it is made, and hylad
   refuses connections of other users' processes. The login shell is
   looked up through NSS, so LDAP and SSSD accounts get theirs.
 
@@ -558,13 +578,13 @@ Upstream's notes for 2.1.22 to 2.1.24, which this fork has.
   below it, which follows the file as it changes. Fold a file, resize the
   panel, switch between unified and side-by-side diffs, and in Last Turn
   revert a change or mark it kept.
-- `kero diff` prints a pane's changes as `git diff` does, untracked files
-  included; `--turn` and `--branch` choose what to compare against. `kero
-  status --json` and `kero ls --json` include each pane's branch and
+- `hyla diff` prints a pane's changes as `git diff` does, untracked files
+  included; `--turn` and `--branch` choose what to compare against. `hyla
+  status --json` and `hyla ls --json` include each pane's branch and
   changes.
 - Sessions in a worktree outside its repository join the repository's
   project instead of starting one of their own.
-- `git-status = false` stops Kero running git in your repositories, and
+- `git-status = false` stops Hyla running git in your repositories, and
   `diff-layout` keeps the changes panel's diffs unified or side by side.
 
 ## 2.0.9
@@ -615,9 +635,9 @@ Upstream's notes for 2.1.22 to 2.1.24, which this fork has.
 - Box drawing and blocks keep their colors under `minimum-contrast`, and
   only rows a program fills extend into a pane's padding, as in Ghostty:
   Copilot CLI's input box and tabs draw as they should.
-- A name an agent gave its session with `kero rename` goes when a new
+- A name an agent gave its session with `hyla rename` goes when a new
   conversation starts in the session's first pane.
-- After updating, Kero asks to restart kerod, whose sessions restore as
+- After updating, Hyla asks to restart hylad, whose sessions restore as
   after a restart of the Mac.
 
 ## 2.0.5
@@ -631,7 +651,7 @@ Upstream's notes for 2.1.22 to 2.1.24, which this fork has.
   rather than the folder its shell started in. Links, Copy Directory and
   Reveal follow it.
 - Codex sessions are told to the pane that runs them, for resuming after
-  kerod restarts, rather than to the pane that first started Codex's
+  hylad restarts, rather than to the pane that first started Codex's
   background service.
 
 ## 2.0.4
@@ -653,23 +673,23 @@ Upstream's notes for 2.1.22 to 2.1.24, which this fork has.
 
 ## 2.0.1
 
-- Kero speaks Simplified Chinese; pick the language in Settings.
+- Hyla speaks Simplified Chinese; pick the language in Settings.
 - Rename a project from its menu in the sidebar.
-- `kero skill setup` hooks Claude Code, Codex, Pi and OpenCode into Kero as
+- `hyla skill setup` hooks Claude Code, Codex, Pi and OpenCode into Hyla as
   they start: an agent learns its session and pane, names an unnamed session
-  after its task, and resumes when kerod restarts.
-- `kero new|split --wait` and `kero wait --exit` exit with the command's
+  after its task, and resumes when hylad restarts.
+- `hyla new|split --wait` and `hyla wait --exit` exit with the command's
   status.
-- When kerod runs another version of Kero, a Restart Service chip offers to
+- When hylad runs another version of Hyla, a Restart Service chip offers to
   restart it. Settings shows updates on its General page.
 - A home directory pane shows `~` once in its header.
 
 ## 2.0.0
 
-Kero, rewritten from the ground up: sessions grouped by project in a sidebar
+Hyla, rewritten from the ground up: sessions grouped by project in a sidebar
 that shows which are working, which need you and which are done. Sessions run
-in kerod, a daemon of their own, so quitting Kero leaves them running.
+in hylad, a daemon of their own, so quitting Hyla leaves them running.
 
 - Runs on macOS, Windows and Linux.
-- The `kero` CLI drives sessions from a shell or an agent.
-- Updates itself from Kero's releases.
+- The `hyla` CLI drives sessions from a shell or an agent.
+- Updates itself from Hyla's releases.

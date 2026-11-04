@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-// Linked worktrees of a session's own (plans/git.md, Phase 3): what kero
+// Linked worktrees of a session's own (plans/git.md, Phase 3): what hyla
 // writes to a repository besides a revert, adding the worktree and its
 // branch as a session starts in it, and removing them as it closes.
 

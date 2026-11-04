@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"kero/internal/proto"
-	"kero/internal/settings"
+	"hyla/internal/proto"
+	"hyla/internal/settings"
 )
 
 // The bot's API is a client's: what it sends reaches the pane, its wait
@@ -84,8 +84,8 @@ func TestWaitTimeoutBringsThePane(t *testing.T) {
 // The status says what the keys and the secret make of Feishu.
 func TestFeishuStatus(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("KERO_HOME", dir)
-	t.Setenv("KERO_CONFIG", filepath.Join(dir, "config"))
+	t.Setenv("HYLA_HOME", dir)
+	t.Setenv("HYLA_CONFIG", filepath.Join(dir, "config"))
 	d := &Daemon{}
 	var st proto.FeishuState
 	if err := (&botLuna{d: d}).Call("feishu.status", nil, &st); err != nil {
@@ -212,7 +212,7 @@ func TestFeishuShared(t *testing.T) {
 	if _, err := luna.Kept("om_a"); err == nil {
 		t.Fatal("a message before a keep")
 	}
-	if err := luna.Call("feishu.keep", proto.FeishuKeep{Event: "om_a", Chat: "c1", Text: "> hi\nkero-heard linux 1"}, nil); err != nil {
+	if err := luna.Call("feishu.keep", proto.FeishuKeep{Event: "om_a", Chat: "c1", Text: "> hi\nhyla-heard linux 1"}, nil); err != nil {
 		t.Fatal(err)
 	}
 	if got, err := luna.Kept("om_a"); err != nil || derefStr(got.ChatId) != "c1" {

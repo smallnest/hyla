@@ -16,11 +16,11 @@ import (
 
 	"github.com/larksuite/oapi-sdk-go/v3/event/dispatcher/callback"
 
-	"kero/internal/proto"
-	"kero/internal/settings"
+	"hyla/internal/proto"
+	"hyla/internal/settings"
 )
 
-// fakeLuna is kerod: sessions, panes, and what the bot sends.
+// fakeLuna is hylad: sessions, panes, and what the bot sends.
 type fakeLuna struct {
 	host     string   // a host.info's hostname
 	order    []string // the methods that act on a session
@@ -45,10 +45,10 @@ type fakeLuna struct {
 	}
 	reads    []proto.ReadParams     // what was read
 	msgs     []*larkim.EventMessage // the messages sent or heard, by ID
-	kept     map[string]string      // the responses kerod keeps, by their events
-	keeps    []string               // the events kerod keeps a response of
+	kept     map[string]string      // the responses hylad keeps, by their events
+	keeps    []string               // the events hylad keeps a response of
 	took     map[string]string      // the host that took an event, by its message
-	keptChat map[string]string      // the chat of a response kerod keeps, by its event
+	keptChat map[string]string      // the chat of a response hylad keeps, by its event
 	byID     map[string]*string     // a sent message's chat, whose message Feishu gives by ID alone
 	answers  []string               // the answer directories a pane was given
 	onRead   func(string)           // what the first read does, as an agent's hook waking
@@ -60,7 +60,7 @@ func (f *fakeLuna) State() (proto.State, error) {
 
 	out := proto.State{}
 	for _, s := range f.sessions {
-		// As kerod does: the session's fields are its lead pane's,
+		// As hylad does: the session's fields are its lead pane's,
 		// which the state gives anew.
 		s.Pane = s.Panes[0]
 		out.Sessions = append(out.Sessions, s)
@@ -124,7 +124,7 @@ func (f *fakeLuna) Call(method string, params, out any) error {
 		}
 		decode(proto.ReadResult{Text: text})
 	case "feishu.reply":
-		// A message the bot sent, and then its answers, as kerod keeps
+		// A message the bot sent, and then its answers, as hylad keeps
 		// them for Feishu.
 		f.reads = append(f.reads, proto.ReadParams{ID: p.ID})
 		if out != nil {
@@ -189,7 +189,7 @@ func (f *fakeLuna) Call(method string, params, out any) error {
 		s.Pane = s.Panes[0]
 		f.sessions = append(f.sessions, s)
 		if r, ok := out.(*proto.Session); ok {
-			*r = s // a value beside the pointer: kerod's client fills both
+			*r = s // a value beside the pointer: hylad's client fills both
 		}
 	case "rename":
 		if out != nil {
@@ -212,7 +212,7 @@ func (f *fakeLuna) Call(method string, params, out any) error {
 		// hear.
 		if r, ok := out.(*proto.FeishuMessage); ok {
 			if m, err := f.Kept(p.ID); err == nil {
-				// As kerod's, which Feishu's JSON fills.
+				// As hylad's, which Feishu's JSON fills.
 				x, _ := json.Marshal(m)
 				json.Unmarshal(x, r)
 			}
@@ -226,7 +226,7 @@ func (f *fakeLuna) Call(method string, params, out any) error {
 			decode(true)
 		}
 	case "feishu.kept":
-		// Kerod keeps a turn's response.
+		// Hylad keeps a turn's response.
 		out := &proto.FeishuKept{Turns: []proto.FeishuTurn{}}
 		for i := len(f.keeps) - 1; i >= 0; i-- {
 			if ev := f.keeps[i]; f.kept[ev] != "" {
@@ -236,7 +236,7 @@ func (f *fakeLuna) Call(method string, params, out any) error {
 		}
 		decode(out)
 	case "feishu.take":
-		// The host that took an event: the one kerod keeps, or the one
+		// The host that took an event: the one hylad keeps, or the one
 		// that asks, which it keeps then.
 		taken := f.took[p.Event]
 		if taken == "" {
@@ -279,7 +279,7 @@ type fakeMessages struct {
 	reacts   []string
 	unreacts []string
 	fail     bool      // sending a card fails: the answers go as messages
-	keep     *fakeLuna // what kerod keeps of what is sent
+	keep     *fakeLuna // what hylad keeps of what is sent
 	targets  []string  // each message's receive ID, "kind id"
 	kept     int       // the messages sent, which the kept ones count
 	// send sends the text of every message, as a chat's does; false when
@@ -292,7 +292,7 @@ func (m *fakeMessages) Send(kind, id, text string) (string, error) {
 		m.sent = append(m.sent, text)
 	}
 	m.targets = append(m.targets, kind+" "+id)
-	// What kerod keeps of what is sent, which another host hears: Feishu,
+	// What hylad keeps of what is sent, which another host hears: Feishu,
 	// as the message that every host finds.
 	m.kept++
 	id = fmt.Sprintf("om_sent_%d", m.kept)
@@ -405,11 +405,11 @@ func cardText(c map[string]any) string {
 
 func newBot(t *testing.T) (*Bot, *fakeLuna, *fakeMessages) {
 	t.Helper()
-	kerod = nil
-	kerod = nil
-	t.Cleanup(func() { kerod = nil })
-	t.Setenv("KERO_HOME", t.TempDir())
-	t.Setenv("KERO_CONFIG", filepath.Join(t.TempDir(), "config"))
+	hylad = nil
+	hylad = nil
+	t.Cleanup(func() { hylad = nil })
+	t.Setenv("HYLA_HOME", t.TempDir())
+	t.Setenv("HYLA_CONFIG", filepath.Join(t.TempDir(), "config"))
 	settings.Reload()
 	defer settings.Reload()
 	luna := &fakeLuna{sessions: []proto.Session{session()}}
@@ -429,7 +429,7 @@ func newBot(t *testing.T) (*Bot, *fakeLuna, *fakeMessages) {
 	})
 	b.load()
 	msgs.keep = luna
-	kerod = luna
+	hylad = luna
 	b.msgs = msgs
 	b.files = msgs
 	b.sync = true
@@ -821,7 +821,7 @@ func TestSplitCommand(t *testing.T) {
 	for _, c := range []struct{ in, cmd, rest string }{
 		{"/new api pi", "new", "api pi"},
 		{"/New", "new", ""},
-		{"/help@kero-bot please", "help", "please"},
+		{"/help@hyla-bot please", "help", "please"},
 		{"fix /new", "", "fix /new"},
 		{"//server/share", "", "//server/share"},
 	} {
@@ -856,7 +856,7 @@ func replyContent(content string) string {
 // replyNamed is a reply's content: the event it names, and its text.
 func replyNamed(event, text string) string {
 	lines := ""
-	if !strings.HasPrefix(text, "kero-") {
+	if !strings.HasPrefix(text, "hyla-") {
 		lines = hopText(event)
 	}
 	content, _ := json.Marshal(map[string]string{"text": lines + text})
@@ -1051,7 +1051,7 @@ func parseCard(t *testing.T, shown string) map[string]any {
 
 // An image goes to the session by its saved path.
 func TestImage(t *testing.T) {
-	t.Setenv("KERO_HOME", t.TempDir())
+	t.Setenv("HYLA_HOME", t.TempDir())
 	b, luna, msgs := newBot(t)
 	b.chats["c1"] = &chat{id: "s1"}
 	b.leave("c1")
@@ -1068,14 +1068,14 @@ func TestImage(t *testing.T) {
 	}
 }
 
-// The button of a card opens its session in Kero, its end in the app.
+// The button of a card opens its session in Hyla, its end in the app.
 func TestCardButton(t *testing.T) {
 	b, luna, _ := newBot(t)
 	luna.msgs = []*larkim.EventMessage{{MessageId: str("om_c"), ChatId: str("c1"), MessageType: str("interactive")}}
 	b.remember("om_c", record{Chat: "c1", Session: "s1"})
 	res, err := b.onCardAction(nil, &callback.CardActionTriggerEvent{Event: &callback.CardActionTriggerRequest{
 		Operator: &callback.Operator{OpenID: "ou_me"},
-		Action:   &callback.CallBackAction{Value: map[string]any{"kero": "open"}},
+		Action:   &callback.CallBackAction{Value: map[string]any{"hyla": "open"}},
 		Context:  &callback.Context{OpenMessageID: "om_c"},
 	}})
 	if err != nil || res == nil || res.Toast == nil || res.Toast.Type != "success" {
@@ -1087,10 +1087,10 @@ func TestCardButton(t *testing.T) {
 	// Feishu rejects schema 2.0 cards with an action element: the open
 	// button is an element of the body.
 	c := Card{Title: "t", Session: "s1", State: "done"}
-	if body, err := cardJSON(c, "en"); err != nil || strings.Contains(body, `"action"`) || !strings.Contains(body, `"kero":"open"`) {
+	if body, err := cardJSON(c, "en"); err != nil || strings.Contains(body, `"action"`) || !strings.Contains(body, `"hyla":"open"`) {
 		t.Errorf("card %s, %v", body, err)
 	}
-	// The record of a card's session stays in kerod's directory.
+	// The record of a card's session stays in hylad's directory.
 	b2, _, _ := newBot(t)
 	b2.remember("om_c", record{Chat: "c1", Session: "s1"})
 	b2.loadNotes()
@@ -1103,8 +1103,8 @@ func TestCardButton(t *testing.T) {
 // answer's card; with them off, a message. Its answer is not lost.
 func TestCardRefused(t *testing.T) {
 	for _, cards := range []bool{true, false} {
-		t.Setenv("KERO_CONFIG", filepath.Join(t.TempDir(), "config"))
-		os.WriteFile(os.Getenv("KERO_CONFIG"), []byte(fmt.Sprintf("feishu-cards = %v\n", cards)), 0o600)
+		t.Setenv("HYLA_CONFIG", filepath.Join(t.TempDir(), "config"))
+		os.WriteFile(os.Getenv("HYLA_CONFIG"), []byte(fmt.Sprintf("feishu-cards = %v\n", cards)), 0o600)
 		settings.Reload()
 		defer settings.Reload()
 		shortWaits()()
@@ -1152,7 +1152,7 @@ func writeAnswer(dir, conversation, text string) {
 	os.WriteFile(filepath.Join(dir, conversation+".json"), []byte(text), 0o600)
 }
 
-// answerFile is an answer an agent's hook writes, as kero answer does:
+// answerFile is an answer an agent's hook writes, as hyla answer does:
 // the conversation's first.
 func answerFile(t *testing.T, dir, conversation, text string) string {
 	t.Helper()
@@ -1175,7 +1175,7 @@ func TestHookAnswerToQuestion(t *testing.T) {
 	b, luna, msgs := newBot(t)
 	b.bind("c1", session())
 	setup := luna.sessions[0]
-	// As kerod does, the session's fields are its lead pane's too.
+	// As hylad does, the session's fields are its lead pane's too.
 	setup.Agent, setup.Status, setup.Message = "claude", proto.Waiting, "Which branch?"
 	setup.Panes[0] = setup.Pane
 	luna.sessions[0] = setup

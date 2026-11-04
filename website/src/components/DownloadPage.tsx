@@ -24,21 +24,21 @@ export const latestVersion = createServerFn().handler(async () => {
 
 const copy = {
   en: {
-    title: 'Download | Kero',
-    description: 'Download Kero, a terminal for coding agents, for macOS, Windows and Linux.',
-    heading: 'Download Kero',
+    title: 'Download | Hyla',
+    description: 'Download Hyla, a terminal for coding agents, for macOS, Windows and Linux.',
+    heading: 'Download Hyla',
     lead: 'For macOS, Windows and Linux.',
     notes: (v: string) => `${v} release notes`,
     yours: 'Your system',
     platformNotes: {
-      mac: 'Install with Homebrew, or open the disk image and drag Kero into your Applications folder.',
-      windows: 'Run the installer, which needs no administrator rights. Kero needs Windows 10 1809 or later.',
-      linux: 'Install the package, or run the script to install Kero in ~/.local without root.',
+      mac: 'Install with Homebrew, or open the disk image and drag Hyla into your Applications folder.',
+      windows: 'Run the installer, which needs no administrator rights. Hyla needs Windows 10 1809 or later.',
+      linux: 'Install the package, or run the script to install Hyla in ~/.local without root.',
     },
     cliTitle: 'Then, Meet the CLI',
     cli: () => (
       <>
-        Choose <strong>Kero › Install Command Line Tool…</strong> to put <code>kero</code> on your PATH, and let your
+        Choose <strong>Hyla › Install Command Line Tool…</strong> to put <code>hyla</code> on your PATH, and let your
         agents drive it.
       </>
     ),
@@ -48,21 +48,21 @@ const copy = {
     copiedCommand: 'Copied',
   },
   ja: {
-    title: 'ダウンロード | Kero',
-    description: 'コーディングエージェントのためのターミナル Kero を、macOS、Windows、Linux 向けにダウンロード。',
-    heading: 'Kero をダウンロード',
+    title: 'ダウンロード | Hyla',
+    description: 'コーディングエージェントのためのターミナル Hyla を、macOS、Windows、Linux 向けにダウンロード。',
+    heading: 'Hyla をダウンロード',
     lead: 'macOS、Windows、Linux に対応。',
     notes: (v: string) => `${v} リリースノート`,
     yours: 'お使いのシステム',
     platformNotes: {
-      mac: 'Homebrew でインストールするか、ディスクイメージを開いて Kero を“アプリケーション”フォルダにドラッグしてください。',
-      windows: 'インストーラを実行してください。管理者権限は不要です。Kero には Windows 10 1809 以降が必要です。',
-      linux: 'パッケージをインストールするか、スクリプトを実行して root なしで ~/.local に Kero をインストールしてください。',
+      mac: 'Homebrew でインストールするか、ディスクイメージを開いて Hyla を“アプリケーション”フォルダにドラッグしてください。',
+      windows: 'インストーラを実行してください。管理者権限は不要です。Hyla には Windows 10 1809 以降が必要です。',
+      linux: 'パッケージをインストールするか、スクリプトを実行して root なしで ~/.local に Hyla をインストールしてください。',
     },
     cliTitle: '次は CLI を使ってみよう',
     cli: () => (
       <>
-        <strong>Kero › コマンドラインツールをインストール…</strong> を選ぶと <code>kero</code> が PATH
+        <strong>Hyla › コマンドラインツールをインストール…</strong> を選ぶと <code>hyla</code> が PATH
         に追加され、エージェントから操作できるようになります。
       </>
     ),
@@ -72,21 +72,21 @@ const copy = {
     copiedCommand: 'コピーしました',
   },
   zh: {
-    title: '下载 | Kero',
-    description: '下载 Kero，为编程智能体打造的终端，支持 macOS、Windows 和 Linux。',
-    heading: '下载 Kero',
+    title: '下载 | Hyla',
+    description: '下载 Hyla，为编程智能体打造的终端，支持 macOS、Windows 和 Linux。',
+    heading: '下载 Hyla',
     lead: '支持 macOS、Windows 和 Linux。',
     notes: (v: string) => `${v} 更新说明`,
     yours: '你的系统',
     platformNotes: {
-      mac: '用 Homebrew 安装，或打开磁盘映像，把 Kero 拖进“应用程序”文件夹。',
-      windows: '运行安装程序，无需管理员权限。Kero 需要 Windows 10 1809 或更高版本。',
-      linux: '安装软件包，或运行脚本把 Kero 装到 ~/.local，无需 root。',
+      mac: '用 Homebrew 安装，或打开磁盘映像，把 Hyla 拖进“应用程序”文件夹。',
+      windows: '运行安装程序，无需管理员权限。Hyla 需要 Windows 10 1809 或更高版本。',
+      linux: '安装软件包，或运行脚本把 Hyla 装到 ~/.local，无需 root。',
     },
     cliTitle: '然后，认识一下命令行',
     cli: () => (
       <>
-        选择 <strong>Kero › 安装命令行工具…</strong>，把 <code>kero</code> 加入 PATH，让你的智能体来驱动它。
+        选择 <strong>Hyla › 安装命令行工具…</strong>，把 <code>hyla</code> 加入 PATH，让你的智能体来驱动它。
       </>
     ),
     quickStart: '快速上手',
@@ -101,7 +101,7 @@ export function downloadHead(locale: Locale) {
 }
 
 const INSTALL_SCRIPTS: Partial<Record<OS, string>> = {
-  mac: 'brew install --cask kero',
+  mac: 'brew install --cask hyla',
   linux: `curl -fsSL ${GITHUB_URL}/releases/latest/download/install.sh | sh`,
 };
 
@@ -120,8 +120,8 @@ const platforms: {
     name: 'macOS',
     icon: AppleIcon,
     files: [
-      { label: 'Apple Silicon', kind: '.dmg', arch: 'arm', asset: (v) => `kero-${v}-arm64.dmg` },
-      { label: 'Intel', kind: '.dmg', arch: 'x86', asset: (v) => `kero-${v}-amd64.dmg` },
+      { label: 'Apple Silicon', kind: '.dmg', arch: 'arm', asset: (v) => `hyla-${v}-arm64.dmg` },
+      { label: 'Intel', kind: '.dmg', arch: 'x86', asset: (v) => `hyla-${v}-amd64.dmg` },
     ],
   },
   {
@@ -129,8 +129,8 @@ const platforms: {
     name: 'Windows',
     icon: WindowsIcon,
     files: [
-      { label: 'x64', kind: '.exe', arch: 'x86', asset: (v) => `kero-setup-${v}-amd64.exe` },
-      { label: 'ARM64', kind: '.exe', arch: 'arm', asset: (v) => `kero-setup-${v}-arm64.exe` },
+      { label: 'x64', kind: '.exe', arch: 'x86', asset: (v) => `hyla-setup-${v}-amd64.exe` },
+      { label: 'ARM64', kind: '.exe', arch: 'arm', asset: (v) => `hyla-setup-${v}-arm64.exe` },
     ],
   },
   {
@@ -138,8 +138,8 @@ const platforms: {
     name: 'Linux',
     icon: LinuxIcon,
     files: [
-      { label: 'x64', kind: '.deb', arch: 'x86', asset: (v) => `kero_${v}_amd64.deb` },
-      { label: 'ARM64', kind: '.deb', arch: 'arm', asset: (v) => `kero_${v}_arm64.deb` },
+      { label: 'x64', kind: '.deb', arch: 'x86', asset: (v) => `hyla_${v}_amd64.deb` },
+      { label: 'ARM64', kind: '.deb', arch: 'arm', asset: (v) => `hyla_${v}_arm64.deb` },
     ],
   },
 ];

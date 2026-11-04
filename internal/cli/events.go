@@ -9,12 +9,12 @@ import (
 	"sync"
 	"time"
 
-	"kero/internal/client"
-	"kero/internal/proto"
-	"kero/internal/settings"
+	"hyla/internal/client"
+	"hyla/internal/proto"
+	"hyla/internal/settings"
 )
 
-// event is a change kero events reports: what kerod's states tell, the
+// event is a change hyla events reports: what hylad's states tell, the
 // difference of one from the one before, or a program's notification.
 type event struct {
 	Event   string `json:"event"`
@@ -166,7 +166,7 @@ func (w *follower) take(m proto.Message, now time.Time) []event {
 	return nil
 }
 
-// eventFilter is which events kero events reports.
+// eventFilter is which events hyla events reports.
 type eventFilter struct {
 	session, pane string // the target's; "" for all
 	project       string // a project's id; "" for all
@@ -222,7 +222,7 @@ func (f eventFilter) gone(e event) bool {
 }
 
 // findProject finds a project by its id, its name, or a prefix of its
-// id; a name before a prefix of another's id, as kero new -p takes it.
+// id; a name before a prefix of another's id, as hyla new -p takes it.
 func findProject(st proto.State, ref string) (string, error) {
 	var named, prefixed []string
 	for _, p := range st.Projects {
@@ -248,7 +248,7 @@ func findProject(st proto.State, ref string) (string, error) {
 	return "", fmt.Errorf("%w: %q names several projects: %s", errNotFound, ref, strings.Join(ids, ", "))
 }
 
-// eventsCmd follows kerod's state, printing what changes, until the
+// eventsCmd follows hylad's state, printing what changes, until the
 // target goes, the first match with --once, or the timeout.
 func eventsCmd(c *client.Client, st proto.State, args []string) error {
 	fl, err := parse(args, map[string]string{"for": "for", "p": "project", "project": "project", "timeout": "timeout", "t": "timeout"},
@@ -280,7 +280,7 @@ func eventsCmd(c *client.Client, st proto.State, args []string) error {
 			ok = ok || string(v) == w
 		}
 		if !ok {
-			return usageErr("kero events: no status %q (idle, working, waiting, error, exited)", w)
+			return usageErr("hyla events: no status %q (idle, working, waiting, error, exited)", w)
 		}
 		f.statuses = append(f.statuses, w)
 	}
@@ -289,7 +289,7 @@ func eventsCmd(c *client.Client, st proto.State, args []string) error {
 		return err
 	}
 
-	// The messages wait here, so that kerod is never kept waiting on the
+	// The messages wait here, so that hylad is never kept waiting on the
 	// output, which would cut the watch off. A state still waiting gives
 	// way to the next, whose difference tells the same but for what came
 	// and went between; the first, where watching starts from, stays.
@@ -322,9 +322,9 @@ func eventsCmd(c *client.Client, st proto.State, args []string) error {
 	if err := c.Call("watch", nil, nil); err != nil {
 		if strings.Contains(err.Error(), "unknown method") {
 			if onHost != "" {
-				return fmt.Errorf("kerod on %s is too old for kero events: update it (kero -H %s daemon update)", onHost, onHost)
+				return fmt.Errorf("hylad on %s is too old for hyla events: update it (hyla -H %s daemon update)", onHost, onHost)
 			}
-			return fmt.Errorf("the running kerod is too old for kero events: run `kero daemon restart` (it restarts sessions)")
+			return fmt.Errorf("the running hylad is too old for hyla events: run `hyla daemon restart` (it restarts sessions)")
 		}
 		return err
 	}
@@ -334,7 +334,7 @@ func eventsCmd(c *client.Client, st proto.State, args []string) error {
 		defer t.Stop()
 		expire = t.C
 	}
-	// ended is how kero events ends without a match: the target closed, or
+	// ended is how hyla events ends without a match: the target closed, or
 	// the timeout passed.
 	ended := func() error {
 		if fl.set["once"] {
@@ -382,12 +382,12 @@ func eventsCmd(c *client.Client, st proto.State, args []string) error {
 			}
 		}
 		if closed {
-			return fmt.Errorf("%w: kerod went away", errUnreachable)
+			return fmt.Errorf("%w: hylad went away", errUnreachable)
 		}
 	}
 }
 
-// eventLine is an event as kero events prints it without --json.
+// eventLine is an event as hyla events prints it without --json.
 func eventLine(e event) string {
 	at := time.UnixMilli(e.Time).Format("15:04:05")
 	who := e.Name

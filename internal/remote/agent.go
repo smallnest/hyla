@@ -10,12 +10,12 @@ import (
 	"sync"
 	"time"
 
-	"kero/internal/shell"
+	"hyla/internal/shell"
 )
 
 // agentMark starts the line the login shell prints its SSH agent on,
 // after whatever its profile printed.
-const agentMark = "__kero_ssh_auth_sock="
+const agentMark = "__hyla_ssh_auth_sock="
 
 // shellAgent is the SSH agent the user's login shell names, as
 // 1Password's when a profile sets SSH_AUTH_SOCK to it: ssh in a terminal

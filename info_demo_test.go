@@ -10,17 +10,17 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/proto"
-	"kero/locales"
+	"hyla/internal/proto"
+	"hyla/locales"
 )
 
 // TestInfoDemo lays out the side panel's Info view with processes and
-// ports, for a look at it with KERO_SHOTS.
+// ports, for a look at it with HYLA_SHOTS.
 func TestInfoDemo(t *testing.T) {
 	a := testApp(t)
 	p := a.session("s1").FocusPane()
 	st := a.paneInfoOf(p)
-	st.dir = "/Users/smallnest/ai/kero"
+	st.dir = "/Users/smallnest/ai/hyla"
 	st.procs = []proto.Process{
 		{PID: 4211, Name: "zsh", Age: "2-03:11:40"},
 		{PID: 88130, Name: "claude", Age: "01:12:05", Ports: []int{3000}},
@@ -35,12 +35,12 @@ func TestInfoDemo(t *testing.T) {
 }
 
 // TestInfoMagpieDemo lays out the Info view with Magpie's card, for a look
-// at it with KERO_SHOTS.
+// at it with HYLA_SHOTS.
 func TestInfoMagpieDemo(t *testing.T) {
 	a := testApp(t)
 	p := a.session("s1").FocusPane()
 	st := a.paneInfoOf(p)
-	st.dir = "/Users/smallnest/ai/kero"
+	st.dir = "/Users/smallnest/ai/hyla"
 	st.procs = []proto.Process{
 		{PID: 4211, Name: "zsh", Age: "2-03:11:40"},
 		{PID: 88130, Name: "claude", Age: "01:12:05"},
@@ -73,7 +73,7 @@ func TestInfoMagpieDemo(t *testing.T) {
 
 // shotCrop saves the part of the frame around b, moved by off.
 func shotCrop(t *testing.T, tt *ui.Tester, b ui.Rect, off image.Rectangle, name string) {
-	dir := os.Getenv("KERO_SHOTS")
+	dir := os.Getenv("HYLA_SHOTS")
 	if dir == "" {
 		return
 	}

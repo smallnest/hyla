@@ -10,11 +10,11 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/actions"
+	"hyla/internal/actions"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 
-	"kero/locales"
+	"hyla/locales"
 )
 
 // paletteState is the command palette's: a field that finds sessions and
@@ -25,7 +25,7 @@ type paletteState struct {
 	index  int
 	scroll ui.ScrollState
 	reveal bool // the chosen item scrolls into view, once
-	// convs are the conversations the hosts' kerods remember, the last to
+	// convs are the conversations the hosts' hylads remember, the last to
 	// run first, as they come; only shows them alone (Resume
 	// Conversation…), and gen tells the palette they came for.
 	convs []hostConversation
@@ -33,7 +33,7 @@ type paletteState struct {
 	gen   int
 }
 
-// hostConversation is a conversation a host's kerod remembers.
+// hostConversation is a conversation a host's hylad remembers.
 type hostConversation struct {
 	host *host
 	proto.Conversation
@@ -67,7 +67,7 @@ func (a *App) openConversations() {
 	a.pal.only = true
 }
 
-// loadConversations asks every host's kerod for the conversations it
+// loadConversations asks every host's hylad for the conversations it
 // remembers. An older one knows of none.
 func (a *App) loadConversations() {
 	gen := a.pal.gen

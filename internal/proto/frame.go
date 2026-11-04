@@ -55,7 +55,7 @@ const (
 	// (terminal.ClearScreen).
 	ClearScreen byte = 's'
 	// ClearScrollback: the scrollback (terminal.ClearScrollback), which
-	// older apps' context menu asked with Clear Scrollback; kerod still
+	// older apps' context menu asked with Clear Scrollback; hylad still
 	// clears it for them.
 	ClearScrollback byte = 'b'
 )
@@ -181,7 +181,7 @@ func ParseResizePixels(p []byte) (cols, rows, cellWidth, cellHeight int, ok bool
 	return cols, rows, int(binary.BigEndian.Uint16(p[4:])), int(binary.BigEndian.Uint16(p[6:])), true
 }
 
-// MaxLine bounds a JSON line of a control connection: kerod's state, sent
+// MaxLine bounds a JSON line of a control connection: hylad's state, sent
 // whole, and a request carrying a pasted file (paste.file).
 const MaxLine = 64 << 20
 

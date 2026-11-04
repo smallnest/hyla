@@ -12,8 +12,8 @@ import (
 	"github.com/egoist/mygo/ui"
 	"github.com/egoist/mygo/ui/editor"
 
-	"kero/internal/git"
-	"kero/internal/proto"
+	"hyla/internal/git"
+	"hyla/internal/proto"
 )
 
 // A session in a worktree of its own shows its branch by its name, and
@@ -30,7 +30,7 @@ func TestSidePanel(t *testing.T) {
 	s.Pane = s.Panes[0]
 	a.prefs.Side = sideChanges
 
-	// What kerod would answer.
+	// What hylad would answer.
 	ch := &a.side.changes
 	turnScope := changesScope(&s.Panes[0], git.BaseTurn)
 	ch.base, ch.scope, ch.stamp = git.BaseTurn, turnScope, gitStamp(g)+"|abc"

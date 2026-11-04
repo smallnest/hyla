@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
 // osProc is a process, as procList lists it.

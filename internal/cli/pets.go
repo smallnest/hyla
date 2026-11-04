@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"text/tabwriter"
 
-	"kero/internal/pets"
-	"kero/internal/settings"
+	"hyla/internal/pets"
+	"hyla/internal/settings"
 )
 
 // petsCmd shows and chooses the pet on the window's edge, and installs
@@ -45,21 +45,21 @@ func petsCmd(args []string) error {
 			return nil
 		}
 		if len(rest) != 1 {
-			return usageErr("kero pets install <pack> (a .codex-pet.zip, or a pet's directory), or --builtin [name…]")
+			return usageErr("hyla pets install <pack> (a .codex-pet.zip, or a pet's directory), or --builtin [name…]")
 		}
 		id, err := pets.Install(rest[0])
 		if err != nil {
 			return err
 		}
 		fmt.Println("installed", id, "in", pets.Dir())
-		fmt.Println("show it with: kero pets use", id)
+		fmt.Println("show it with: hyla pets use", id)
 		return nil
 	case "use":
 		if len(rest) != 1 {
-			return usageErr("kero pets use <name|kero|codex>")
+			return usageErr("hyla pets use <name|hyla|codex>")
 		}
 		name := rest[0]
-		if name != settings.PetSetKero && name != settings.PetSetCodex {
+		if name != settings.PetSetHyla && name != settings.PetSetCodex {
 			if _, err := pets.LoadID(name); err != nil {
 				return err
 			}
@@ -74,27 +74,27 @@ func petsCmd(args []string) error {
 		return nil
 	case "rm", "remove":
 		if len(rest) != 1 {
-			return usageErr("kero pets rm <name>")
+			return usageErr("hyla pets rm <name>")
 		}
 		if !pets.ValidName(rest[0]) {
-			return usageErr("%q is no pet of kero's", rest[0])
+			return usageErr("%q is no pet of hyla's", rest[0])
 		}
 		dir := filepath.Join(pets.Dir(), rest[0])
 		if _, err := os.Stat(filepath.Join(dir, "pet.json")); err != nil {
 			return fmt.Errorf("%s is not an installed pet", rest[0])
 		}
 		if s := settings.Load(); s.PetSet == rest[0] {
-			s.PetSet = settings.PetSetKero
+			s.PetSet = settings.PetSetHyla
 			if err := settings.Save(s); err != nil {
 				return err
 			}
 		}
 		return os.RemoveAll(dir)
 	}
-	return usageErr("kero pets [ls|install|use|rm]")
+	return usageErr("hyla pets [ls|install|use|rm]")
 }
 
-// petsLs lists the pets Kero has, and which it shows.
+// petsLs lists the pets Hyla has, and which it shows.
 func petsLs() error {
 	shown := settings.Load().PetSet
 	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
@@ -120,7 +120,7 @@ func petsLs() error {
 	return w.Flush()
 }
 
-// petsList lists the pets kero offers to install, which --builtin
+// petsList lists the pets hyla offers to install, which --builtin
 // installs.
 func petsList() error {
 	for _, b := range pets.Builtins() {

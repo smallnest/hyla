@@ -1,14 +1,14 @@
 ---
 title: 飞书
-description: 在飞书的私聊或群聊中驱动 Kero 会话里的编程智能体。
+description: 在飞书的私聊或群聊中驱动 Hyla 会话里的编程智能体。
 status: draft
 ---
 
 # 飞书
 
-飞书支持把一台机器上的 kerod 连接到一个飞书应用。你给机器人发消息，或在群里 @ 它，Kero 会话中的编程智能体就会收到消息。回答以卡片的形式回到聊天中。会话始终在 Kero 侧边栏里，所以对话在飞书中继续时，你仍可以查看它，或从终端接管。
+飞书支持把一台机器上的 hylad 连接到一个飞书应用。你给机器人发消息，或在群里 @ 它，Hyla 会话中的编程智能体就会收到消息。回答以卡片的形式回到聊天中。会话始终在 Hyla 侧边栏里，所以对话在飞书中继续时，你仍可以查看它，或从终端接管。
 
-这个想法来自 [MetaBot](https://github.com/xvirobotics/metabot)，它把飞书等聊天渠道接到编程智能体上。Kero 的做法不同。MetaBot 运行自己的引擎。Kero **使用已有的会话**：它的进程、智能体识别、对话历史、状态，以及对其他主机的访问。
+这个想法来自 [MetaBot](https://github.com/xvirobotics/metabot)，它把飞书等聊天渠道接到编程智能体上。Hyla 的做法不同。MetaBot 运行自己的引擎。Hyla **使用已有的会话**：它的进程、智能体识别、对话历史、状态，以及对其他主机的访问。
 
 ## 架构
 
@@ -16,29 +16,29 @@ status: draft
 Feishu Open Platform
    |  a long-lived WebSocket (im.message.receive_v1 events)
    v
-kerod -- internal/feishu
+hylad -- internal/feishu
    |-- IM adapter      messages  <->  commands, reply cards
    |-- Bridge          the binding of a chat to a session, the replies to Feishu
    |-- Prompt host     the prompts in the session's pane
    +-- existing code   detect / resume / pane.report / notify
    ^
    |  the same RPC
-Kero app (the session is visible, and can be taken over)
-kero CLI
+Hyla app (the session is visible, and can be taken over)
+hyla CLI
 other hosts
 ```
 
 机器人保持一条到飞书的长连接 WebSocket。飞书称之为"长连接"。短连接需要一个公网 HTTPS 地址来接收 webhook。长连接不需要开放端口。
 
-### 为什么放在 kerod 里
+### 为什么放在 hylad 里
 
 | 选择 | 得到什么 | 失去什么 |
 | --- | --- | --- |
-| 单独的程序，如 MetaBot | 功能已就绪 | 第二套运行时和第二套会话；无法驱动或接管 Kero 的窗格 |
-| 放在 kerod 里 | 智能体识别、对话恢复、状态、主机，以及单个二进制；能在应用里看到聊天的工作 | kerod 里多一些代码 |
-| 放在应用中 | 应用退出时机器人随之停止 | 应用要在后台保存 App Secret，且 kerod 关闭时没有帮助 |
+| 单独的程序，如 MetaBot | 功能已就绪 | 第二套运行时和第二套会话；无法驱动或接管 Hyla 的窗格 |
+| 放在 hylad 里 | 智能体识别、对话恢复、状态、主机，以及单个二进制；能在应用里看到聊天的工作 | hylad 里多一些代码 |
+| 放在应用中 | 应用退出时机器人随之停止 | 应用要在后台保存 App Secret，且 hylad 关闭时没有帮助 |
 
-无论如何，提示都经由 kerod 进入窗格。以后可以把 IM 适配层移到应用里，通过应用已有的 kerod 连接进入窗格。kerod 不变。
+无论如何，提示都经由 hylad 进入窗格。以后可以把 IM 适配层移到应用里，通过应用已有的 hylad 连接进入窗格。hylad 不变。
 
 ## 飞书中的命令
 
@@ -56,7 +56,7 @@ other hosts
 
 ### 命令模式
 
-设置 `feishu-run = command` 后，kerod 为每个提示运行智能体自己的命令，不需要终端：
+设置 `feishu-run = command` 后，hylad 为每个提示运行智能体自己的命令，不需要终端：
 
 ```text
 claude -p --output-format text --session-id <id> "<prompt>"    # Claude Code
@@ -66,7 +66,7 @@ opencode run "<prompt>"
 codex exec --json "<prompt>"
 ```
 
-每条命令在聊天的会话中运行，该会话没有终端和 shell：命令运行时侧边栏显示工作中，结束后显示空闲。它在 `feishu-dir` 指定的目录中运行，环境与窗格相同。命令的输出写到 kero 目录下 `feishu-run` 中的文件，其文本就是回复。聊天会继续这段对话。第一轮用 kerod 生成的 ID 开始会话，之后的轮次继续它：
+每条命令在聊天的会话中运行，该会话没有终端和 shell：命令运行时侧边栏显示工作中，结束后显示空闲。它在 `feishu-dir` 指定的目录中运行，环境与窗格相同。命令的输出写到 hyla 目录下 `feishu-run` 中的文件，其文本就是回复。聊天会继续这段对话。第一轮用 hylad 生成的 ID 开始会话，之后的轮次继续它：
 
 | 智能体 | 第一轮 | 之后的轮次 |
 | --- | --- | --- |
@@ -84,7 +84,7 @@ codex exec --json "<prompt>"
 
 ### 一轮的权限
 
-命令模式下，Claude Code 的一轮以消息流方式运行。当这一轮需要某个工具的权限时，Claude Code 在消息流上请求，kerod 把请求写入这一轮输出旁的请求文件。机器人向聊天发送一张卡片，写明工具以及它将使用的命令、文件或地址。卡片有三个按钮：
+命令模式下，Claude Code 的一轮以消息流方式运行。当这一轮需要某个工具的权限时，Claude Code 在消息流上请求，hylad 把请求写入这一轮输出旁的请求文件。机器人向聊天发送一张卡片，写明工具以及它将使用的命令、文件或地址。卡片有三个按钮：
 
 | 按钮 | 作用 |
 | --- | --- |
@@ -100,16 +100,16 @@ codex exec --json "<prompt>"
 
 机器人把提示输入窗格，按回车，并跟踪窗格直到这一轮结束：智能体等待用户，或工作后屏幕和状态保持不动。它也能结束一轮状态始终不说"工作中"的对话：
 
-- 如果屏幕和发提示前一样，也没有出现回答，机器人回复"Kero 无法区分这一轮的文本和之前的文本"。
+- 如果屏幕和发提示前一样，也没有出现回答，机器人回复"Hyla 无法区分这一轮的文本和之前的文本"。
 - 如果窗格保持"工作中"超过 5 秒，又没有工作迹象，机器人认为这一轮已结束。
 
 `feishu-timeout` 之后智能体仍在工作，回复会说明这一点。
 
 ### 每一轮的回答
 
-终端屏幕不是干净的回答：它包含 TUI 的框架和状态栏。对 Claude Code，`kero skill setup` 安装的 `Stop` 钩子（`kero answer claude`）在每轮结束时把智能体的最后一条消息写到机器人交给窗格的文件中（kerod 目录下的 `feishu-answers`）。机器人用这条消息作回复，而不是屏幕上的文字。其他智能体没有可用的 Stop 钩子，机器人使用终端文本。
+终端屏幕不是干净的回答：它包含 TUI 的框架和状态栏。对 Claude Code，`hyla skill setup` 安装的 `Stop` 钩子（`hyla answer claude`）在每轮结束时把智能体的最后一条消息写到机器人交给窗格的文件中（hylad 目录下的 `feishu-answers`）。机器人用这条消息作回复，而不是屏幕上的文字。其他智能体没有可用的 Stop 钩子，机器人使用终端文本。
 
-不给机器人交给窗格文件时，`kero answer` 不做任何事。在 Kero 之外，或在任何错误下，它也不做任何事：它从不让智能体失败。
+不给机器人交给窗格文件时，`hyla answer` 不做任何事。在 Hyla 之外，或在任何错误下，它也不做任何事：它从不让智能体失败。
 
 ## 对话视图
 
@@ -139,7 +139,7 @@ codex exec --json "<prompt>"
 ## 设置
 
 ```ini
-# ~/.config/kero/config
+# ~/.config/hyla/config
 
 # The same Feishu app may connect from more than one machine. By
 # default, only the machine the chat is bound to receives its events.
@@ -151,8 +151,8 @@ feishu-allow = *                # who may use it: open_id, user_id or email; rep
 feishu-timeout = 30m            # the longest a turn waits
 feishu-stream = 2s              # how often a card updates
 
-# While the bot is connected, kerod stays even with no session open:
-# sessions started from Feishu restore after a kerod restart.
+# While the bot is connected, hylad stays even with no session open:
+# sessions started from Feishu restore after a hylad restart.
 
 # This machine
 feishu-run = command            # how a prompt runs its agent: command, in the background; or session, in a pane
@@ -168,7 +168,7 @@ feishu-agent-command = pi=pi
 | 键 | 默认值 | 说明 |
 | --- | --- | --- |
 | `feishu-app` | 空 | 飞书应用的 App ID。为空则关闭飞书。 |
-| `feishu-allow` | 空 | 谁可以发提示：`open_id`、`user_id` 或 `email`。为空时只允许运行 `kero feishu setup` 的用户。 |
+| `feishu-allow` | 空 | 谁可以发提示：`open_id`、`user_id` 或 `email`。为空时只允许运行 `hyla feishu setup` 的用户。 |
 | `feishu-timeout` | `30m` | 一轮等待的最长时间，超过后卡片说明已超时。 |
 | `feishu-stream` | `2s` | 工作中的卡片多久更新一次文本。 |
 | `feishu-cards` | `true` | 每条回复都以卡片显示：先是本轮的执行卡片，然后是回答的卡片，正文按 Markdown 渲染。设为 `false` 时回复以普通消息发送。 |
@@ -179,25 +179,25 @@ feishu-agent-command = pi=pi
 
 ### 智能体的运行环境
 
-kerod 用自身的环境启动任务，而这个环境来自 launchd 的任务。PATH 先是你登录 shell 的 PATH，再加上智能体通常安装的位置（`~/.local/bin`、`~/.bun/bin`、`~/.cargo/bin`、nvm 和 fnm 的 Node、`/opt/homebrew/bin`、`/usr/local/bin`）。登录 shell 的 PATH 最多每分钟重新读取一次。如果找不到某个智能体，就用 `feishu-agent-command` 指定它的命令。
+hylad 用自身的环境启动任务，而这个环境来自 launchd 的任务。PATH 先是你登录 shell 的 PATH，再加上智能体通常安装的位置（`~/.local/bin`、`~/.bun/bin`、`~/.cargo/bin`、nvm 和 fnm 的 Node、`/opt/homebrew/bin`、`/usr/local/bin`）。登录 shell 的 PATH 最多每分钟重新读取一次。如果找不到某个智能体，就用 `feishu-agent-command` 指定它的命令。
 
 ### App Secret
 
-App Secret 不在配置文件中。配置文件常被复制、备份并同步到 dotfiles，而 App Secret 是长期凭证。kerod 把它保存在 `kerod.lock` 旁边的文件里，只有你的账户可读，由 `kero feishu setup` 写入：
+App Secret 不在配置文件中。配置文件常被复制、备份并同步到 dotfiles，而 App Secret 是长期凭证。hylad 把它保存在 `hylad.lock` 旁边的文件里，只有你的账户可读，由 `hyla feishu setup` 写入：
 
 ```sh
-kero feishu setup     # asks for the App ID and App Secret, connects, and checks the app's settings
-kero feishu status    # whether the bot is connected
+hyla feishu setup     # asks for the App ID and App Secret, connects, and checks the app's settings
+hyla feishu status    # whether the bot is connected
 ```
 
-`kero feishu setup` 逐步检查飞书应用：机器人能力、`im:message` 和 `im:resource` 权限、`im.message.receive` 事件，以及已发布的版本。某一步失败时，它指出这一步，以及在[飞书开放平台控制台](https://open.feishu.cn/app)中要改什么。
+`hyla feishu setup` 逐步检查飞书应用：机器人能力、`im:message` 和 `im:resource` 权限、`im.message.receive` 事件，以及已发布的版本。某一步失败时，它指出这一步，以及在[飞书开放平台控制台](https://open.feishu.cn/app)中要改什么。
 
 设置窗口显示应用名、连接状态，以及谁可以使用。它从不显示 App Secret。信息视图（⌥⌘I）在 `feishu-app` 指定了应用时也显示一张飞书卡片：App ID、机器人是否已连接、谁可以使用。
 
-## 与 Kero 的配合
+## 与 Hyla 的配合
 
 - **智能体识别**告诉桥，智能体在工作、等待回答，还是空闲。
-- **对话恢复**使 kerod 重启时不丢失任何东西：会话和智能体对话像其他会话一样恢复。
+- **对话恢复**使 hylad 重启时不丢失任何东西：会话和智能体对话像其他会话一样恢复。
 - **文件窗格**打开智能体修改的文件，和任何会话一样。
 - **主机**与 `-H` 配合使用：飞书中的命令作用于绑定会话所在的主机。
 
@@ -209,10 +209,10 @@ kero feishu status    # whether the bot is connected
 
 ## 安全
 
-- **飞书消息就是你的 shell 输入。** 智能体以你账户的权限运行，和在窗格里输入时一样。`feishu-allow` 限制谁能发送。除非你添加其他人，它只允许运行 `kero feishu setup` 的账户。`*` 允许任何能找到机器人的人。
+- **飞书消息就是你的 shell 输入。** 智能体以你账户的权限运行，和在窗格里输入时一样。`feishu-allow` 限制谁能发送。除非你添加其他人，它只允许运行 `hyla feishu setup` 的账户。`*` 允许任何能找到机器人的人。
 - 桥忽略机器人自己发的消息、其他应用的消息（`app_id` 必须匹配），以及重复事件（按 `event_id`）。
 - 卡片按钮只对聊天的主人，或 `feishu-allow` 列出的人生效。
-- 日志和 `kero clients` 从不显示 App Secret。
+- 日志和 `hyla clients` 从不显示 App Secret。
 
 ## 依赖
 
@@ -226,10 +226,10 @@ kero feishu status    # whether the bot is connected
 
 | 阶段 | 内容 |
 | --- | --- |
-| **M1：连接** | `feishu-*` 设置；`kero feishu setup`、`status`、`test`、`send`；长连接；`feishu-allow`；`/new`、`/use`、`/ls`、`/status`、`/stop`、`/answer`、`/close`；通过 @ 的群聊；发到绑定会话的文字；带这一轮输出的文字回复 |
+| **M1：连接** | `feishu-*` 设置；`hyla feishu setup`、`status`、`test`、`send`；长连接；`feishu-allow`；`/new`、`/use`、`/ls`、`/status`、`/stop`、`/answer`、`/close`；通过 @ 的群聊；发到绑定会话的文字；带这一轮输出的文字回复 |
 | **M2：协议** | 等待空闲、等待或超时；更新的卡片；工作中、等待和错误的颜色 |
-| **M3：体验** | 带 @ 和话题的群聊；复制到会话中的图片和文件；按钮，以及在 Kero 中打开 |
-| **M4：每个智能体** | 每轮的回答写到文件：Claude Code 的 `Stop` 钩子（`kero answer`）；没有文件时用终端文本 |
+| **M3：体验** | 带 @ 和话题的群聊；复制到会话中的图片和文件；按钮，以及在 Hyla 中打开 |
+| **M4：每个智能体** | 每轮的回答写到文件：Claude Code 的 `Stop` 钩子（`hyla answer`）；没有文件时用终端文本 |
 | **M5：多台机器** | 一个应用的事件如何发到多台机器；`/host` |
 | **M6：收尾** | 流式卡片；Markdown；设置 › 智能体 › 飞书；本文的日文和中文版本 |
 

@@ -19,20 +19,20 @@ import (
 	"github.com/egoist/mygo/plugins/terminal"
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/actions"
-	"kero/internal/proto"
+	"hyla/internal/actions"
+	"hyla/internal/proto"
 
-	"kero/locales"
+	"hyla/locales"
 )
 
 // testApp is the app with a session of two panes side by side, a | b,
-// and no kerod.
+// and no hylad.
 func testApp(t *testing.T) *App {
 	t.Helper()
 	home := t.TempDir()
-	t.Setenv("KERO_HOME", home)
+	t.Setenv("HYLA_HOME", home)
 	// The configuration too: never the user's.
-	t.Setenv("KERO_CONFIG", filepath.Join(home, "config"))
+	t.Setenv("HYLA_CONFIG", filepath.Join(home, "config"))
 	a := newApp()
 	var l *proto.Layout
 	a.st = proto.State{
@@ -52,9 +52,9 @@ func testApp(t *testing.T) *App {
 	return a
 }
 
-// shot writes the tester's frame to $KERO_SHOTS, to look at.
+// shot writes the tester's frame to $HYLA_SHOTS, to look at.
 func shot(t *testing.T, tt *ui.Tester, name string) {
-	dir := os.Getenv("KERO_SHOTS")
+	dir := os.Getenv("HYLA_SHOTS")
 	if dir == "" {
 		return
 	}
@@ -320,7 +320,7 @@ func TestCopyOnSelectToast(t *testing.T) {
 }
 
 // The sidebar's foot counts what wants a look, each count going to the
-// next session of it, and says nothing while nothing does ($KERO_SHOTS).
+// next session of it, and says nothing while nothing does ($HYLA_SHOTS).
 func TestSidebarFooter(t *testing.T) {
 	a := testApp(t)
 	a.local().conn = connReady
@@ -360,12 +360,12 @@ func TestSidebarFooter(t *testing.T) {
 }
 
 // A session's tooltip shows below the pointer where it rested, as macOS
-// shows tooltips, not centered over the row ($KERO_SHOTS).
+// shows tooltips, not centered over the row ($HYLA_SHOTS).
 func TestSessionTooltipAtPointer(t *testing.T) {
 	for _, dx := range []float32{20, 160} {
 		a := testApp(t)
 		a.st.Sessions[0].Process = "claude"
-		a.st.Sessions[0].Dir = "/Users/someone/dev/kero"
+		a.st.Sessions[0].Dir = "/Users/someone/dev/hyla"
 		tt := ui.NewTester(a.view, 1100, 700)
 		tt.Frame()
 		r, ok := tt.Find("1") // the project header's count, above the row
@@ -396,7 +396,7 @@ func TestSessionTooltipAtPointer(t *testing.T) {
 	}
 }
 
-// A kerod of another version of Kero gets a chip to restart it, which asks
+// A hylad of another version of Hyla gets a chip to restart it, which asks
 // first while a program runs, as the restart ends it.
 func TestRestartStaleDaemon(t *testing.T) {
 	a := testApp(t)
@@ -405,17 +405,17 @@ func TestRestartStaleDaemon(t *testing.T) {
 	tt := ui.NewTester(a.view, 1100, 640)
 	tt.Frame()
 	if err := tt.Click("Restart Service"); err != nil {
-		t.Fatalf("no chip to restart kerod: %v; texts %q", err, tt.Texts())
+		t.Fatalf("no chip to restart hylad: %v; texts %q", err, tt.Texts())
 	}
 	tt.Frame()
-	if a.confirm == nil || !strings.Contains(a.confirm.detail, "Kero 1.9.0") {
+	if a.confirm == nil || !strings.Contains(a.confirm.detail, "Hyla 1.9.0") {
 		t.Fatalf("no question before the restart: %+v", a.confirm)
 	}
 
 	a.confirm, a.local().daemonApp = nil, mygo.App.Version()
 	tt.Frame()
 	if tt.HasText("Restart Service") {
-		t.Error("a chip to restart a kerod of this version")
+		t.Error("a chip to restart a hylad of this version")
 	}
 }
 

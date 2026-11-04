@@ -1,5 +1,5 @@
-// Package settings is kero's settings: one file, settings.json in kero's
-// directory, that the app writes from its Settings window and kerod reads
+// Package settings is hyla's settings: one file, settings.json in hyla's
+// directory, that the app writes from its Settings window and hylad reads
 // as it starts panes, so that the shell, its environment and the
 // scrollback apply to new panes at once.
 package settings
@@ -14,9 +14,9 @@ import (
 	"strings"
 	"sync"
 
-	"kero/internal/adblock"
-	"kero/internal/proto"
-	"kero/internal/remote"
+	"hyla/internal/adblock"
+	"hyla/internal/proto"
+	"hyla/internal/remote"
 )
 
 // Settings are the user's choices. The zero value of a field is never a
@@ -28,7 +28,7 @@ type Settings struct {
 	SidebarRows       string `json:"sidebarRows"`       // "detailed", two lines a session, or "compact", one
 	FocusFollowsMouse bool   `json:"focusFollowsMouse"` // a pane the pointer enters takes the focus
 	ConfirmClose      bool   `json:"confirmClose"`      // before closing a pane a program runs in
-	RestoreSessions   bool   `json:"restoreSessions"`   // after kerod restarts, as after a reboot
+	RestoreSessions   bool   `json:"restoreSessions"`   // after hylad restarts, as after a reboot
 	ResumeAgents      bool   `json:"resumeAgents"`      // as it restores sessions: the agents' own
 	QuitEndsSessions  bool   `json:"quitEndsSessions"`  // quitting ends this machine's sessions, as app.quitAll
 	SessionHistory    bool   `json:"sessionHistory"`    // the sidebar lists the agents' ended conversations
@@ -46,11 +46,11 @@ type Settings struct {
 	PaneBlur      bool    `json:"paneBlur"`      // blur what shows through the terminals
 	Pet           bool    `json:"pet"`           // the frog on the window's top edge
 	PetOffset     float32 `json:"petOffset"`     // where it stands, 0 to 1 across the window
-	PetSet        string  `json:"petSet"`        // who: "kero", a Codex pet's directory name, or "codex" for the active one
+	PetSet        string  `json:"petSet"`        // who: "hyla", a Codex pet's directory name, or "codex" for the active one
 	PetSize       float32 `json:"petSize"`       // how tall a Codex pet shows, against the Codex app's frame
 
 	// Terminal
-	FontFamily   string  `json:"fontFamily"` // "" the font kero carries; "monospace" the system's
+	FontFamily   string  `json:"fontFamily"` // "" the font hyla carries; "monospace" the system's
 	FontSize     float32 `json:"fontSize"`
 	LineHeight   float32 `json:"lineHeight"`
 	FontWeight   int     `json:"fontWeight"`
@@ -60,7 +60,7 @@ type Settings struct {
 	DimUnfocused bool    `json:"dimUnfocusedTerminals"` // the terminals the user is not in fade
 	Cursor       string  `json:"cursor"`                // "block", "bar" or "underline"
 	CursorBlink  bool    `json:"cursorBlink"`
-	LightTheme   string  `json:"lightTheme"` // "kero", or a Ghostty theme's name
+	LightTheme   string  `json:"lightTheme"` // "hyla", or a Ghostty theme's name
 	DarkTheme    string  `json:"darkTheme"`
 	OptionAsAlt  bool    `json:"optionAsAlt"`
 	CopyOnSelect bool    `json:"copyOnSelect"`
@@ -80,7 +80,7 @@ type Settings struct {
 	// Feishu's cards
 	FeishuCards      bool `json:"feishuCards"`      // a turn's card updates as the agent works
 	FeishuMarkdown   bool `json:"feishuMarkdown"`   // cards' text as Markdown
-	FeishuOpenButton bool `json:"feishuOpenButton"` // a card's button opens its session in Kero
+	FeishuOpenButton bool `json:"feishuOpenButton"` // a card's button opens its session in Hyla
 	FeishuCardBody   bool `json:"feishuCardBody"`   // a card is sent as its body's JSON, as an update takes it
 	FeishuYolo       bool `json:"feishuYolo"`       // every agent from Feishu runs in its yolo mode, as feishu-yolo
 
@@ -93,17 +93,17 @@ type Settings struct {
 	BounceDock    bool `json:"bounceDock"`
 
 	// Agents
-	RemoteControl bool `json:"remoteControl"` // kero focus and kero do drive the app
+	RemoteControl bool `json:"remoteControl"` // hyla focus and hyla do drive the app
 	// Feishu drives the sessions from Feishu chats (package feishu).
 	Feishu *Feishu `json:"feishu,omitempty"`
 
 	// Git
-	GitStatus  bool   `json:"gitStatus"`  // each pane's branch and changes, which kerod follows
+	GitStatus  bool   `json:"gitStatus"`  // each pane's branch and changes, which hylad follows
 	DiffLayout string `json:"diffLayout"` // the changes panel's diffs: "auto", "unified" or "split"
 	// WorktreeBase is what a session's own worktree branches from:
 	// "default", the repository's default branch, or "current", the
 	// branch of the session the user is in. WorktreeDir is where its
-	// worktrees go, "" for .kero/worktrees in the repository.
+	// worktrees go, "" for .hyla/worktrees in the repository.
 	WorktreeBase string `json:"worktreeBase"`
 	WorktreeDir  string `json:"worktreeDir"`
 
@@ -114,18 +114,18 @@ type Settings struct {
 	// Keyboard: accelerators by action, over the defaults; "" unbinds.
 	Shortcuts map[string]string `json:"shortcuts,omitempty"`
 
-	// Hosts are other machines' kerods, which the app shows beside this
+	// Hosts are other machines' hylads, which the app shows beside this
 	// one's and the CLI reaches with -H.
 	Hosts []Host `json:"hosts,omitempty"`
-	// Listen are kerod's network listeners, for clients on other machines
+	// Listen are hylad's network listeners, for clients on other machines
 	// (tailnet://:7373, tailnet-serve://), and ListenAllow who may connect
 	// besides the machine's owner: tailnet logins, tag:name, or *.
 	Listen      []string `json:"listen,omitempty"`
 	ListenAllow []string `json:"listenAllow,omitempty"`
-	// TailcatHosts are hosts Kero reaches over tailcat, and TailcatPort
+	// TailcatHosts are hosts Hyla reaches over tailcat, and TailcatPort
 	// the port of their listeners. Tailcat, false, stops the app from
 	// connecting to them, and from listing them, for whom its relay is
-	// not one to trust, and kerod from listening through tailcat (a
+	// not one to trust, and hylad from listening through tailcat (a
 	// tailcat:// listen). TailcatRelay is the DERP map where tailcat
 	// finds relays: "" for remote.DefaultDERPMapURL, Tailscale's public
 	// ones.
@@ -133,23 +133,23 @@ type Settings struct {
 	TailcatPort  string        `json:"tailcatPort,omitempty"`
 	Tailcat      bool          `json:"tailcat"`
 	TailcatRelay string        `json:"tailcatRelay,omitempty"`
-	// TailcatRotate makes kerod start its tailcat listener with the key
-	// again, whose pair code changed: this machine's, as `kero tailcat
+	// TailcatRotate makes hylad start its tailcat listener with the key
+	// again, whose pair code changed: this machine's, as `hyla tailcat
 	// rotate` sets it.
 	TailcatRotate bool `json:"tailcatRotate,omitempty"`
-	// RemoteUpdates lets Kero on another machine that connects update the
-	// app here to its version, and restart kerod into it, as it can a
+	// RemoteUpdates lets Hyla on another machine that connects update the
+	// app here to its version, and restart hylad into it, as it can a
 	// server build: off unless the user turns it on here.
 	RemoteUpdates bool `json:"remoteUpdates,omitempty"`
 }
 
-// Host is a machine whose kerod the app shows: its name, and its address
+// Host is a machine whose hylad the app shows: its name, and its address
 // (package remote).
 type Host struct {
 	Name string `json:"name"`
 	Addr string `json:"addr"`
-	// RemoteControl lets the host's programs drive the app, as kero focus
-	// and kero do, which remote-control lets this machine's: off unless the
+	// RemoteControl lets the host's programs drive the app, as hyla focus
+	// and hyla do, which remote-control lets this machine's: off unless the
 	// user trusts the host with it.
 	RemoteControl bool `json:"remoteControl,omitempty"`
 	// Color marks the host's sessions in the sidebar and its panes: one of
@@ -203,7 +203,7 @@ func Default() Settings {
 		PaneOpacity:      DefaultPaneOpacity,
 		Pet:              true,
 		PetOffset:        0.5,
-		PetSet:           PetSetKero,
+		PetSet:           PetSetHyla,
 		PetSize:          DefaultPetSize,
 		DimUnfocused:     true,
 		FontSize:         13,
@@ -213,8 +213,8 @@ func Default() Settings {
 		MinContrast:      3,
 		Cursor:           "block",
 		CursorBlink:      true,
-		LightTheme:       "kero",
-		DarkTheme:        "kero",
+		LightTheme:       "hyla",
+		DarkTheme:        "hyla",
 		Clipboard:        "ask",
 		RightClick:       "menu",
 		ScrollPrecision:  1,
@@ -245,7 +245,7 @@ const (
 )
 
 // Languages are the languages the app is written in, as the catalogs of
-// kero/locales name them.
+// hyla/locales name them.
 var Languages = []string{"en", "ja", "zh-Hans"}
 
 // AppIcons are where the app's icon shows on macOS: the Dock and the menu
@@ -264,7 +264,7 @@ var Backgrounds = []struct{ ID, Name string }{
 // Path returns the settings' file, the configuration (ConfigPath).
 func Path() string { return ConfigPath() }
 
-// legacyPath is where kero kept its settings before the configuration
+// legacyPath is where hyla kept its settings before the configuration
 // file, as JSON, which the first Load moves into it.
 func legacyPath() string { return filepath.Join(proto.Dir(), "settings.json") }
 
@@ -277,7 +277,7 @@ var (
 
 // Load returns the settings, the defaults where the file says nothing.
 // It reads the file again when it changed, so that a long-running reader,
-// as kerod, sees the app's changes, and the user's.
+// as hylad, sees the app's changes, and the user's.
 func Load() Settings {
 	mu.Lock()
 	defer mu.Unlock()
@@ -300,7 +300,7 @@ func Load() Settings {
 }
 
 // Reload forgets the last Load: the settings are read again, as a
-// test's KERO_HOME takes another configuration. It is no key.
+// test's HYLA_HOME takes another configuration. It is no key.
 func Reload() {
 	mu.Lock()
 	defer mu.Unlock()
@@ -308,7 +308,7 @@ func Reload() {
 }
 
 // Problems returns what the file got wrong, as of the last Load: keys
-// kero does not know, and values it cannot take, which keep their
+// hyla does not know, and values it cannot take, which keep their
 // defaults.
 func Problems() []string {
 	mu.Lock()
@@ -316,7 +316,7 @@ func Problems() []string {
 	return slices.Clone(problems)
 }
 
-// migrate moves the settings of the JSON file kero kept before into the
+// migrate moves the settings of the JSON file hyla kept before into the
 // configuration, once; mu is held.
 func migrate() {
 	if _, err := os.Stat(Path()); err == nil {
@@ -398,7 +398,7 @@ func target(path string) string {
 func (s Settings) Clone() Settings { return clone(s) }
 
 // ScrollbackBytes is a terminal's terminal.Options.Scrollback for the
-// scrollback-limit, the same in kerod's copy of a pane and the app's: -1
+// scrollback-limit, the same in hylad's copy of a pane and the app's: -1
 // keeps none, as 0 would take the terminal's default.
 func (s Settings) ScrollbackBytes() int {
 	if s.Scrollback == 0 {
@@ -511,6 +511,16 @@ func (s *Settings) normalize() {
 		s.LightTheme = d.LightTheme
 	}
 	if s.DarkTheme == "" {
+		s.DarkTheme = d.DarkTheme
+	}
+	// 2.x, which called Hyla Kero, named its pet and its theme kero.
+	if s.PetSet == "kero" {
+		s.PetSet = PetSetHyla
+	}
+	if s.LightTheme == "kero" {
+		s.LightTheme = d.LightTheme
+	}
+	if s.DarkTheme == "kero" {
 		s.DarkTheme = d.DarkTheme
 	}
 }

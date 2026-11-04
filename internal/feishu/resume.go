@@ -5,11 +5,11 @@ import (
 	"sync"
 	"time"
 
-	"kero/internal/proto"
-	"kero/internal/settings"
+	"hyla/internal/proto"
+	"hyla/internal/settings"
 )
 
-// A turn that runs while kerod restarts leaves its card grey. The chat's
+// A turn that runs while hylad restarts leaves its card grey. The chat's
 // next message takes it on: the bot sees its session at work, a command
 // in the background or an agent in its pane, and follows it to its end,
 // card and answer alike. A turn that ended well within its timeout, and
@@ -42,7 +42,7 @@ func (b *Bot) takeOver(c *chat) bool {
 		b.followCommand(c, out, started, event, text)
 		return true
 	}
-	// The session's pane, as kerod's state has it, shows its state.
+	// The session's pane, as hylad's state has it, shows its state.
 	var p proto.Pane
 	if !b.paneStatus(c.id, &p) || p.Status != proto.Working {
 		return false
@@ -115,7 +115,7 @@ func (b *Bot) followPane(c *chat, started time.Time, event, text string) {
 	b.replyAt(key, event, c.chat, reply)
 }
 
-// paneStatus is the session's lead pane, as kerod's state has it: a read
+// paneStatus is the session's lead pane, as hylad's state has it: a read
 // of its ID alone reads no pane.
 func (b *Bot) paneStatus(id string, p *proto.Pane) bool {
 	st, err := b.api.State()

@@ -1,24 +1,24 @@
 ---
 title: 配置
-description: Kero 的配置文件、配置项及其默认值。
+description: Hyla 的配置文件、配置项及其默认值。
 ---
 
 # 配置
 
-Kero 把所有设置放在一个纯文本文件里。设置窗口（<kbd>⌘</kbd> <kbd>,</kbd>）会替你修改它，并保留你的注释和顺序；你手动编辑后，Kero 也会自动重新加载。
+Hyla 把所有设置放在一个纯文本文件里。设置窗口（<kbd>⌘</kbd> <kbd>,</kbd>）会替你修改它，并保留你的注释和顺序；你手动编辑后，Hyla 也会自动重新加载。
 
 ## 配置文件
 
-Kero 按以下优先顺序读取：
+Hyla 按以下优先顺序读取：
 
-1. `$KERO_CONFIG`
-2. `$XDG_CONFIG_HOME/kero/config`
-3. `~/.config/kero/config`
+1. `$HYLA_CONFIG`
+2. `$XDG_CONFIG_HOME/hyla/config`
+3. `~/.config/hyla/config`
 
 它采用 Ghostty 的语法：每行一个 `key = value`，`#` 开头为注释，列表类的配置项写成多行重复。凡是含义与 Ghostty 相同的配置项，都沿用 Ghostty 的名字。
 
 ```ini
-# ~/.config/kero/config
+# ~/.config/hyla/config
 font-size = 14
 theme = light:GitHub Light Default,dark:Catppuccin Mocha
 cursor-style = bar
@@ -32,9 +32,9 @@ keybind = cmd+shift+d=pane.split.down
 文件里只需写你要改的项，其余都保持默认。
 
 ```sh
-kero config edit              # 在 $EDITOR 中打开
-kero config show              # 列出所有配置项及其当前值
-kero config check             # 报告未知的配置项和无效的值
+hyla config edit              # 在 $EDITOR 中打开
+hyla config show              # 列出所有配置项及其当前值
+hyla config check             # 报告未知的配置项和无效的值
 ```
 
 ## 通用
@@ -46,11 +46,11 @@ kero config check             # 报告未知的配置项和无效的值
 | `sidebar-rows`          | `detailed` | 侧边栏如何显示会话：`detailed` 在第二行显示状态消息，没有时显示分支和改动；`compact` 只占一行 |
 | `focus-follows-mouse`   | `false`   | 指针移入哪个窗格，就聚焦哪个窗格                              |
 | `confirm-close`         | `true`    | 关闭仍有程序在运行的窗格前先确认                              |
-| `restore-sessions`      | `true`    | kerod 重启后（例如开机后）重新启动之前的会话                   |
+| `restore-sessions`      | `true`    | hylad 重启后（例如开机后）重新启动之前的会话                   |
 | `resume-agents`         | `true`    | 会话重新启动时，恢复每个窗格中智能体的对话                    |
-| `quit-ends-sessions`    | `false`   | 退出 Kero（点关闭按钮、按 ⌘Q 或使用菜单）时，结束本机的全部会话及其中的程序并停止 kerod，与“退出并结束所有会话”相同；有程序在运行时，按 `confirm-close` 的设置先确认。其他机器上的会话继续运行（[详情](./sessions.md#退出)） |
+| `quit-ends-sessions`    | `false`   | 退出 Hyla（点关闭按钮、按 ⌘Q 或使用菜单）时，结束本机的全部会话及其中的程序并停止 hylad，与“退出并结束所有会话”相同；有程序在运行时，按 `confirm-close` 的设置先确认。其他机器上的会话继续运行（[详情](./sessions.md#退出)） |
 | `session-history`       | `false`   | 在侧边栏中列出智能体已结束的对话，可恢复或归档（[详情](./sessions.md#ended-sessions)） |
-| `macos-show-app-icon`   | `dock-and-menubar` | 在 macOS 上显示 Kero 图标的位置：`dock-and-menubar`、`dock` 或 `menubar`。图标显示在菜单栏时，关闭窗口后 Kero 会继续在那里运行。Windows 和 Linux 上始终显示在通知区域，关闭窗口后同样会继续运行 |
+| `macos-show-app-icon`   | `dock-and-menubar` | 在 macOS 上显示 Hyla 图标的位置：`dock-and-menubar`、`dock` 或 `menubar`。图标显示在菜单栏时，关闭窗口后 Hyla 会继续在那里运行。Windows 和 Linux 上始终显示在通知区域，关闭窗口后同样会继续运行 |
 
 ## 外观
 
@@ -64,17 +64,17 @@ kero config check             # 报告未知的配置项和无效的值
 | `window-blur`        | `true`   | 模糊半透明背景后的桌面；关闭后是普通透明                      |
 | `pane-opacity`       | `0.82`   | 窗口半透明时，终端中显示多少窗口背景，0 到 1，与 `window-opacity` 相同：为 0 时直接看到桌面；文字始终不透明 |
 | `pane-blur`          | `false`  | 模糊终端背后透出的内容；关闭后是普通透明 |
-| `pet`                | `true`   | 小青蛙 Kero：趴在窗口上沿，跟着你的会话                          |
-| `pet-offset`         | `0.5`    | Kero 站在窗口宽度的哪里，0 到 1；直接拖动即可                    |
-| `pet-set`            | `kero`   | 窗口上沿显示的宠物：`kero` 小青蛙、`codex` 表示 Codex 应用当前启用的宠物，或 `~/.codex/pets` 中某个宠物目录的名字
+| `pet`                | `true`   | 小青蛙 Hyla：趴在窗口上沿，跟着你的会话                          |
+| `pet-offset`         | `0.5`    | Hyla 站在窗口宽度的哪里，0 到 1；直接拖动即可                    |
+| `pet-set`            | `hyla`   | 窗口上沿显示的宠物：`hyla` 小青蛙、`codex` 表示 Codex 应用当前启用的宠物，或 `~/.codex/pets` 中某个宠物目录的名字
 | `pet-size`           | `1.5`    | Codex 宠物的显示高度，相对 Codex 应用的大小：0.5 到 3
 
 ## 终端
 
 | 配置项                | 默认值  | 说明                                                                     |
 | --------------------- | ------- | ------------------------------------------------------------------------ |
-| `theme`               | `kero`  | 终端配色：`kero`、任意 Ghostty 主题，或 `light:<theme>,dark:<theme>`      |
-| `font-family`         |         | 留空则使用 Kero 自带的 JetBrains Mono Nerd Font；设为 `monospace` 则使用系统等宽字体；也可以填任何已安装的字体族 |
+| `theme`               | `hyla`  | 终端配色：`hyla`、任意 Ghostty 主题，或 `light:<theme>,dark:<theme>`      |
+| `font-family`         |         | 留空则使用 Hyla 自带的 JetBrains Mono Nerd Font；设为 `monospace` 则使用系统等宽字体；也可以填任何已安装的字体族 |
 | `font-size`           | `13`    | 单位为磅                                                                 |
 | `font-weight`         | `400`   | `100` 到 `900`                                                           |
 | `line-height`         | `1.22`  | 字体默认行高的倍数                                                       |
@@ -113,18 +113,18 @@ kero config check             # 报告未知的配置项和无效的值
 
 | 配置项           | 默认值  | 说明                                                |
 | ---------------- | ------- | --------------------------------------------------- |
-| `remote-control` | `true`  | 允许 `kero do` 和 `kero focus` 操控应用             |
+| `remote-control` | `true`  | 允许 `hyla do` 和 `hyla focus` 操控应用             |
 
 ## 主机
 
-应用会显示这些机器上的会话，`kero -H` 也能连到它们。参见[远程主机](./remote.md)。
+应用会显示这些机器上的会话，`hyla -H` 也能连到它们。参见[远程主机](./remote.md)。
 
 | 配置项         | 默认值  | 说明 |
 | -------------- | ------- | ---- |
-| `host`         |         | 一台主机，写作 `name=address`：通过 SSH 连接时用 `me@devbox` 或 `ssh://…`，WSL 用 `wsl://distro`，kerod 的 tailnet 监听地址用 `http(s)://…`。在后面加上 ` remote-control` 可允许它的程序操控应用，加上 ` color=teal`（red、orange、amber、green、teal、blue、purple 或 pink）可为它的会话标色。每台主机写一行 |
-| `listen`       |         | 允许其他机器上的 Kero 连接本机：`tailnet://:7373` 监听本机的 Tailscale 地址，`tailnet-serve://` 使用 Tailscale Serve。每个地址写一行 |
+| `host`         |         | 一台主机，写作 `name=address`：通过 SSH 连接时用 `me@devbox` 或 `ssh://…`，WSL 用 `wsl://distro`，hylad 的 tailnet 监听地址用 `http(s)://…`。在后面加上 ` remote-control` 可允许它的程序操控应用，加上 ` color=teal`（red、orange、amber、green、teal、blue、purple 或 pink）可为它的会话标色。每台主机写一行 |
+| `listen`       |         | 允许其他机器上的 Hyla 连接本机：`tailnet://:7373` 监听本机的 Tailscale 地址，`tailnet-serve://` 使用 Tailscale Serve。每个地址写一行 |
 | `listen-allow` |         | 除本机所有者外还允许谁连接：某个 tailnet 登录账号、`tag:name`，或用 `*` 允许 tailnet 上的所有人。每项写一行 |
-| `remote-updates` | `false` | 允许你其他机器上的 Kero 把这里的 Kero 应用更新到它的版本，应用会随之重新启动 |
+| `remote-updates` | `false` | 允许你其他机器上的 Hyla 把这里的 Hyla 应用更新到它的版本，应用会随之重新启动 |
 
 ## Git
 
@@ -133,7 +133,7 @@ kero config check             # 报告未知的配置项和无效的值
 | `git-status`  | `true`  | 显示每个会话的分支和[改动](./changes.md)                                                          |
 | `diff-layout` | `auto`  | 改动面板中的 diff 布局：`unified`、`split`（左右对照）或 `auto`（面板够宽时左右对照）             |
 | `worktree-base` | `default` | [会话专属工作树](./changes.md#sessions-in-their-own-worktree)的起点：`default` 为仓库的默认分支，`current` 为你所在会话的分支 |
-| `worktree-dir` |        | 会话专属工作树的存放位置，各自放在仓库名之下；留空则放在仓库内的 `.kero/worktrees` |
+| `worktree-dir` |        | 会话专属工作树的存放位置，各自放在仓库名之下；留空则放在仓库内的 `.hyla/worktrees` |
 
 <a id="browser"></a>
 
@@ -144,7 +144,7 @@ kero config check             # 报告未知的配置项和无效的值
 | `browser-block-ads`   | `true`                     | 在浏览器窗格中[拦截广告和跟踪器](./panes.md#blocking-ads)                            |
 | `browser-filter-list` | `easylist`、`easyprivacy`  | 用于拦截的过滤列表。每个列表写一行；留空则不使用任何列表                            |
 
-`browser-filter-list` 可以填 Kero 内置列表的名称，也可以填任意 Adblock Plus 语法列表的 `https://` URL：
+`browser-filter-list` 可以填 Hyla 内置列表的名称，也可以填任意 Adblock Plus 语法列表的 `https://` URL：
 
 | 名称               | 列表                                                                |
 | ------------------ | ------------------------------------------------------------------- |
@@ -175,4 +175,4 @@ keybind = cmd+k=palette.open
 keybind = cmd+b=unbind
 ```
 
-运行 `kero actions` 查看所有操作 id，默认快捷键见[键盘快捷键](./shortcuts.md)。
+运行 `hyla actions` 查看所有操作 id，默认快捷键见[键盘快捷键](./shortcuts.md)。

@@ -14,20 +14,20 @@ import (
 	"sync"
 	"time"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
-// kerod remembers the coding agents' conversations that its panes ran, as
+// hylad remembers the coding agents' conversations that its panes ran, as
 // their hooks told it (pane.agentSession), in conversations.json, so that
 // one can be picked up again after its pane is gone: the app's palette and
-// `kero history` list them, and `kero resume` starts one again in a
+// `hyla history` list them, and `hyla resume` starts one again in a
 // session of its own, with the agent's own resume.
 
-// maxConversations is how many conversations kerod remembers, the last
+// maxConversations is how many conversations hylad remembers, the last
 // to run.
 const maxConversations = 200
 
-// convStore is the conversations kerod remembers, the last to run first.
+// convStore is the conversations hylad remembers, the last to run first.
 // Its lock comes after d.mu and the panes' own.
 type convStore struct {
 	mu    sync.Mutex
@@ -49,7 +49,7 @@ type claudeTitle struct {
 
 func (d *Daemon) convPath() string { return filepath.Join(d.dir, "conversations.json") }
 
-// loadConversations reads the conversations the last kerod remembered.
+// loadConversations reads the conversations the last hylad remembered.
 func (d *Daemon) loadConversations() {
 	data, err := os.ReadFile(d.convPath())
 	if err != nil {
@@ -268,7 +268,7 @@ func (d *Daemon) noteEndedLocked(p *pane) {
 	}
 }
 
-// conversations lists the conversations kerod remembers, the last to run
+// conversations lists the conversations hylad remembers, the last to run
 // first, with the panes that run them now.
 func (d *Daemon) conversations() []proto.Conversation {
 	d.noteConversations()

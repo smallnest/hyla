@@ -24,7 +24,7 @@ const copyCode: Record<Locale, string> = { '': 'Copy Code', ja: 'コードをコ
 export function markdown(): Plugin {
   let md: Promise<MarkdownExit> | undefined;
   return {
-    name: 'kero-markdown',
+    name: 'hyla-markdown',
     enforce: 'pre',
     async transform(source, id) {
       if (!id.startsWith(docsDir) || !id.endsWith('.md')) return;

@@ -21,43 +21,43 @@ import (
 
 	"github.com/coder/websocket"
 
-	"kero/internal/shell"
+	"hyla/internal/shell"
 )
 
 // Errors a dial tells apart, for the app to say what to do.
 var (
-	// ErrNotInstalled: the host answered, but has no kero to run.
-	ErrNotInstalled = errors.New("Kero is not installed on the host")
+	// ErrNotInstalled: the host answered, but has no hyla to run.
+	ErrNotInstalled = errors.New("Hyla is not installed on the host")
 	// ErrAuth: the host refused us, or its key is not one ssh trusts yet.
 	ErrAuth = errors.New("the host refused the connection")
 )
 
-// MuxPath is where kerod's network listeners take remote connections, as
+// MuxPath is where hylad's network listeners take remote connections, as
 // a WebSocket.
-const MuxPath = "/kero/mux"
+const MuxPath = "/hyla/mux"
 
 // ClientHeader is the header a client sends with its WebSocket handshake:
-// browsers cannot send one, so that no web page reaches kerod through a
+// browsers cannot send one, so that no web page reaches hylad through a
 // browser on the tailnet.
-const ClientHeader = "Kero-Client"
+const ClientHeader = "Hyla-Client"
 
-// BridgeLocations are where the bridge command looks for kero on a host,
+// BridgeLocations are where the bridge command looks for hyla on a host,
 // in order: a server install, the command line tool a desktop install
 // links, the PATH, the apps. The last are of Windows, whose sh, as Git's,
 // has its home in the user's profile.
 var BridgeLocations = []string{
-	`$HOME/.local/bin/kero`,
-	`$HOME/.config/kero/bin/kero`,
-	`$HOME/Library/Application Support/kero/bin/kero`,
-	`kero`,
-	`/usr/local/bin/kero`,
-	`/usr/bin/kero`,
-	`/Applications/Kero.app/Contents/MacOS/Kero`,
-	`$HOME/AppData/Local/Programs/kero-server/kero`,
-	`$HOME/AppData/Roaming/kero/bin/kero`,
+	`$HOME/.local/bin/hyla`,
+	`$HOME/.config/hyla/bin/hyla`,
+	`$HOME/Library/Application Support/hyla/bin/hyla`,
+	`hyla`,
+	`/usr/local/bin/hyla`,
+	`/usr/bin/hyla`,
+	`/Applications/Hyla.app/Contents/MacOS/Hyla`,
+	`$HOME/AppData/Local/Programs/hyla-server/hyla`,
+	`$HOME/AppData/Roaming/hyla/bin/hyla`,
 }
 
-// bridgeNotFound is how the bridge command says there is no kero, as its
+// bridgeNotFound is how the bridge command says there is no hyla, as its
 // exit status: a shell's for a command not found.
 const bridgeNotFound = 127
 
@@ -83,7 +83,7 @@ func hostShell(a Addr) string {
 // server runs commands with cmd or PowerShell: what a connection found.
 func Windows(a Addr) bool { return hostShell(a) != "" }
 
-// bridgeCommand is the command that runs kero's bridge on a host over SSH,
+// bridgeCommand is the command that runs hyla's bridge on a host over SSH,
 // for the shell that runs it there: sh, whatever the user's shell, so that
 // fish and csh take it too, else Windows' cmd or PowerShell.
 func bridgeCommand(a Addr, shell string) string {
@@ -96,20 +96,20 @@ func bridgeCommand(a Addr, shell string) string {
 	return "sh -c " + shellQuote(bridgeScript(a, "ssh"))
 }
 
-// cmdBridge is the bridge's command for cmd: kero where install-server.ps1
+// cmdBridge is the bridge's command for cmd: hyla where install-server.ps1
 // puts it, then the desktop app's command line tool, then the PATH's.
 // Paths are quoted, which no %VAR% of them, as a user's name, can end;
 // the command starts with no quote, which cmd /c would take off.
 func cmdBridge(a Addr) string {
 	const run = " __bridge --via ssh"
-	const missing = `echo kero is not installed on %COMPUTERNAME% 1>&2 & exit /b 127`
-	locs := []string{`%LOCALAPPDATA%\Programs\kero-server\kero.exe`, `%APPDATA%\kero\bin\kero.exe`}
-	// The PATH's kero.exe, the PATH's only, not the directory's, exits as
+	const missing = `echo hyla is not installed on %COMPUTERNAME% 1>&2 & exit /b 127`
+	locs := []string{`%LOCALAPPDATA%\Programs\hyla-server\hyla.exe`, `%APPDATA%\hyla\bin\hyla.exe`}
+	// The PATH's hyla.exe, the PATH's only, not the directory's, exits as
 	// the bridge does, which may be with an error of its own, never taken
-	// for a kero missing.
-	s := `((for %k in (kero.exe) do @if not "%~$PATH:k"=="" ("%~$PATH:k"` + run + ` & exit /b)) & ` + missing + `)`
-	if a.Kero != "" {
-		locs, s = []string{a.Kero}, `(`+missing+`)`
+	// for a hyla missing.
+	s := `((for %k in (hyla.exe) do @if not "%~$PATH:k"=="" ("%~$PATH:k"` + run + ` & exit /b)) & ` + missing + `)`
+	if a.Hyla != "" {
+		locs, s = []string{a.Hyla}, `(`+missing+`)`
 	}
 	for i := len(locs) - 1; i >= 0; i-- {
 		s = `if exist "` + locs[i] + `" ("` + locs[i] + `"` + run + `) else ` + s
@@ -121,13 +121,13 @@ func cmdBridge(a Addr) string {
 // where cmdBridge does. It has no double quotes, which the SSH server
 // would not keep as it passes the command to PowerShell.
 func powershellBridge(a Addr) string {
-	locs := `($env:LOCALAPPDATA + '\Programs\kero-server\kero.exe'), ($env:APPDATA + '\kero\bin\kero.exe')`
-	path := `if (-not $k) { $k = (Get-Command kero -CommandType Application -ErrorAction Ignore | Select-Object -First 1).Source }; `
-	if a.Kero != "" {
-		locs, path = shell.PSQuote(a.Kero), ""
+	locs := `($env:LOCALAPPDATA + '\Programs\hyla-server\hyla.exe'), ($env:APPDATA + '\hyla\bin\hyla.exe')`
+	path := `if (-not $k) { $k = (Get-Command hyla -CommandType Application -ErrorAction Ignore | Select-Object -First 1).Source }; `
+	if a.Hyla != "" {
+		locs, path = shell.PSQuote(a.Hyla), ""
 	}
 	return `$k = @(` + locs + `) | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1; ` + path +
-		`if (-not $k) { [Console]::Error.WriteLine('kero is not installed on ' + $env:COMPUTERNAME); exit 127 }; ` +
+		`if (-not $k) { [Console]::Error.WriteLine('hyla is not installed on ' + $env:COMPUTERNAME); exit 127 }; ` +
 		`& $k __bridge --via ssh; exit $LASTEXITCODE`
 }
 
@@ -172,12 +172,12 @@ type shellError struct {
 func (e *shellError) Error() string { return e.err.Error() }
 func (e *shellError) Unwrap() error { return e.err }
 
-// bridgeScript is the script of sh that finds kero and runs its bridge.
+// bridgeScript is the script of sh that finds hyla and runs its bridge.
 func bridgeScript(a Addr, via string) string {
 	run := " __bridge --via " + via
 	var script string
-	if a.Kero != "" {
-		script = "exec " + shellQuote(a.Kero) + run
+	if a.Hyla != "" {
+		script = "exec " + shellQuote(a.Hyla) + run
 	} else {
 		// No character cmd reads as its own, as > & | " %, which it would
 		// act on before it says it has no sh: words split at colons only,
@@ -216,9 +216,9 @@ func sshArgs(a Addr) []string {
 	return append(args, "--", a.Host, bridgeCommand(a, hostShell(a)))
 }
 
-// SSHCommand is the program that runs ssh: $KERO_SSH, else ssh.
+// SSHCommand is the program that runs ssh: $HYLA_SSH, else ssh.
 func SSHCommand() string {
-	if s := os.Getenv("KERO_SSH"); s != "" {
+	if s := os.Getenv("HYLA_SSH"); s != "" {
 		return s
 	}
 	return "ssh"
@@ -261,7 +261,7 @@ func dialHTTP(ctx context.Context, a Addr, addr, client string) (io.ReadWriteClo
 		scheme = "wss"
 	}
 	if client == "" {
-		client = "Kero"
+		client = "Hyla"
 	}
 	h := http.Header{}
 	h.Set(ClientHeader, client)
@@ -333,7 +333,7 @@ func startBridge(cmd *exec.Cmd, ssh bool) (*cmdConn, error) {
 	cmd.Stderr = &c.stderr
 	if err := cmd.Start(); err != nil {
 		if errors.Is(err, exec.ErrNotFound) {
-			return nil, fmt.Errorf("%s is not installed: Kero reaches the host with it", cmd.Path)
+			return nil, fmt.Errorf("%s is not installed: Hyla reaches the host with it", cmd.Path)
 		}
 		return nil, err
 	}
@@ -394,9 +394,9 @@ func (c *cmdConn) failure() error {
 		}
 	}
 	switch {
-	case code == bridgeNotFound || strings.Contains(msg, "kero is not installed"):
+	case code == bridgeNotFound || strings.Contains(msg, "hyla is not installed"):
 		if msg == "" {
-			msg = "no kero there"
+			msg = "no hyla there"
 		}
 		return fmt.Errorf("%w: %s", ErrNotInstalled, msg)
 	case code == 255 && authFailure(msg):
@@ -460,7 +460,7 @@ func (t *tail) last() string {
 var tailnets = []netip.Prefix{netip.MustParsePrefix("100.64.0.0/10"), netip.MustParsePrefix("fd7a:115c:a1e0::/48")}
 
 // tailnetAddr reports whether an address is one plain HTTP may carry
-// Kero over: a tailnet peer's, or this machine's, as through a tunnel of
+// Hyla over: a tailnet peer's, or this machine's, as through a tunnel of
 // ssh -L.
 func tailnetAddr(ip netip.Addr) bool {
 	ip = ip.Unmap()
@@ -489,7 +489,7 @@ func dialTailnet(ctx context.Context, network, addr string) (net.Conn, error) {
 	}
 	ips = slices.DeleteFunc(ips, func(ip netip.Addr) bool { return !tailnetAddr(ip) })
 	if len(ips) == 0 {
-		return nil, fmt.Errorf("%s is not on your tailnet: Kero connects with plain http:// only to Tailscale addresses; use https:// or ssh", host)
+		return nil, fmt.Errorf("%s is not on your tailnet: Hyla connects with plain http:// only to Tailscale addresses; use https:// or ssh", host)
 	}
 	var d net.Dialer
 	c, err := d.DialContext(ctx, network, net.JoinHostPort(ips[0].String(), port))
@@ -498,7 +498,7 @@ func dialTailnet(ctx context.Context, network, addr string) (net.Conn, error) {
 	}
 	if ap, err := netip.ParseAddrPort(c.RemoteAddr().String()); err != nil || !tailnetAddr(ap.Addr()) {
 		c.Close()
-		return nil, fmt.Errorf("%s is not on your tailnet: Kero connects with plain http:// only to Tailscale addresses; use https:// or ssh", addr)
+		return nil, fmt.Errorf("%s is not on your tailnet: Hyla connects with plain http:// only to Tailscale addresses; use https:// or ssh", addr)
 	}
 	return c, nil
 }

@@ -16,7 +16,7 @@ import (
 
 	"github.com/tailscale/tailcat"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 	"tailscale.com/ipn/ipnstate"
 	"tailscale.com/tailcfg"
 )
@@ -24,7 +24,7 @@ import (
 // A tailcat address reaches a host over Tailcat (github.com/tailscale/
 // tailcat): WireGuard between the two machines, through a DERP relay to
 // find each other, and directly once they do. There is no Tailscale, and
-// no account: kerod's tailcat://:port listener makes a key and a pair
+// no account: hylad's tailcat://:port listener makes a key and a pair
 // code (TailcatAddress), a tc… string of the host's key, its pre-shared
 // key and its region, which is the host's address here. Whoever has the
 // pair code may connect, as whoever has a key may, so the address is a
@@ -32,7 +32,7 @@ import (
 //
 // The pair code is whole in the address. A code whose region is only a
 // number has the region's details looked up in the relay set (SetRelay),
-// as kerod makes codes when the client's relay is not that.
+// as hylad makes codes when the client's relay is not that.
 
 // DefaultDERPMapURL is where tailcat finds its relays, unless SetRelay
 // names a map of others: Tailscale's public, rate-limited ones.
@@ -51,21 +51,21 @@ func relayURL() string {
 	return DefaultDERPMapURL
 }
 
-// TailcatKey is what kerod's tailcat listener keeps on disk: its key,
+// TailcatKey is what hylad's tailcat listener keeps on disk: its key,
 // its pre-shared key, and the region of the relay it chose, so that its
-// pair code stays the same across kerod's restarts.
+// pair code stays the same across hylad's restarts.
 type TailcatKey struct {
 	Key    string `json:"key"`
 	PSK    string `json:"psk"`
 	Region string `json:"region,omitempty"` // a region of the relay set's
 }
 
-// TailcatKeyPath is where kerod keeps its tailcat key: "tailcat.json" in
-// Kero's data folder.
+// TailcatKeyPath is where hylad keeps its tailcat key: "tailcat.json" in
+// Hyla's data folder.
 func TailcatKeyPath() string { return filepath.Join(proto.Dir(), "tailcat.json") }
 
-// LocalTailcatAddress is this machine's tailcat address, as kerod's key
-// makes it: "tailcat://…", for kerod's listener at the settings' port.
+// LocalTailcatAddress is this machine's tailcat address, as hylad's key
+// makes it: "tailcat://…", for hylad's listener at the settings' port.
 func LocalTailcatAddress(ctx context.Context) (string, error) {
 	k, err := LoadTailcatKey(TailcatKeyPath())
 	if err != nil {
@@ -78,7 +78,7 @@ func LocalTailcatAddress(ctx context.Context) (string, error) {
 	return "tailcat://" + code, nil
 }
 
-// LoadTailcatKey reads kerod's tailcat key at path, or makes one, which
+// LoadTailcatKey reads hylad's tailcat key at path, or makes one, which
 // it keeps there for the user alone: the pair code is a secret.
 func LoadTailcatKey(path string) (*TailcatKey, error) {
 	b, err := os.ReadFile(path)
@@ -143,7 +143,7 @@ func NewTailcatKey() (*TailcatKey, error) {
 // TailcatAddress is k's pair code at the relay set's nearest region,
 // which k keeps for the next time. The code names the region, as
 // "derp302" in this list, without the relay's details: a client looks
-// them up in its relay set, which is the one kerod listens with.
+// them up in its relay set, which is the one hylad listens with.
 func TailcatAddress(ctx context.Context, k *TailcatKey) (string, error) {
 	t := &tailcat.PrivateKey{Public: tailcat.ConnInfo{RegionID: -1}}
 	if err := t.Private.UnmarshalText([]byte(k.Key)); err != nil {
@@ -197,7 +197,7 @@ func hostRegion(saved string) *tailcfg.DERPRegion {
 	}
 	return &tailcfg.DERPRegion{
 		RegionID:   tailcfg.DERPRegionID(id),
-		RegionCode: "kero",
+		RegionCode: "hyla",
 		RegionName: "Tailcat relay",
 		Nodes:      []*tailcfg.DERPNode{{Name: saved, HostName: "relay", RegionID: tailcfg.DERPRegionID(id)}},
 	}

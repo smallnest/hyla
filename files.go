@@ -11,14 +11,14 @@ import (
 	"github.com/egoist/mygo/ui"
 	"github.com/egoist/mygo/ui/editor"
 
-	"kero/internal/client"
-	"kero/internal/proto"
+	"hyla/internal/client"
+	"hyla/internal/proto"
 
-	"kero/locales"
+	"hyla/locales"
 )
 
 // The Files tab is the tree of the worktree of the pane the user is in,
-// else of its directory, as kerod lists it (fs.list), a folder at a time
+// else of its directory, as hylad lists it (fs.list), a folder at a time
 // as the user unfolds it: .git not at all, each file and folder with the
 // icon of its kind. A click on a file opens it in the viewer over the
 // tab, as text, or, an image, as an image; its header opens it in a file
@@ -44,7 +44,7 @@ type filesState struct {
 	edit  *nameEdit
 }
 
-// dirList is a folder as kerod listed it.
+// dirList is a folder as hylad listed it.
 type dirList struct {
 	entries []proto.FSEntry
 	err     string
@@ -362,7 +362,7 @@ func (a *App) treeEntry(c *ui.Context, pal *palette, it fileItem, current bool, 
 	return row
 }
 
-// fetchDir asks kerod for a folder's entries, dotfiles too.
+// fetchDir asks hylad for a folder's entries, dotfiles too.
 func (a *App) fetchDir(h *host, dir string, stamp string) *dirList {
 	fs := &a.side.files
 	key := filesKey(h, dir)
@@ -388,8 +388,8 @@ func (a *App) fetchDir(h *host, dir string, stamp string) *dirList {
 	return l
 }
 
-// remoteError says what a call to a host's kerod came to: a method its
-// kerod has not is told to update.
+// remoteError says what a call to a host's hylad came to: a method its
+// hylad has not is told to update.
 func remoteError(err error) string {
 	if strings.Contains(err.Error(), "unknown method") {
 		return locales.FilesUpdateHost()

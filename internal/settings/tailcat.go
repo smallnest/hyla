@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"strings"
 
-	"kero/internal/remote"
+	"hyla/internal/remote"
 )
 
-// TailcatHost is a host Kero reaches over tailcat, the app's own: the
+// TailcatHost is a host Hyla reaches over tailcat, the app's own: the
 // configuration's hosts are of a machine's file, which a client may not
 // have, but the client's, kept here.
 type TailcatHost struct {
@@ -56,7 +56,7 @@ func ValidDERPMapURL(s string) bool {
 }
 
 // TailcatPortDefault is a tailcat host's port, of a listener that names
-// none: kerod's DefaultPort.
+// none: hylad's DefaultPort.
 func TailcatPortDefault() string { return remote.DefaultPort }
 
 // TailcatHostByName finds a tailcat host, by its name.

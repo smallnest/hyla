@@ -12,11 +12,11 @@ import (
 
 // On Windows the command is a copy of the app's executable that runs in
 // the console: the app's runs without one (the GUI subsystem), so shells
-// would neither wait for it nor show what it prints. kero.target names the
+// would neither wait for it nor show what it prints. hyla.target names the
 // executable it is a copy of, as it was then.
 
 func target(bin string) string {
-	b, err := os.ReadFile(filepath.Join(bin, "kero.target"))
+	b, err := os.ReadFile(filepath.Join(bin, "hyla.target"))
 	if err != nil {
 		return ""
 	}
@@ -35,14 +35,15 @@ func stamp(exe string) (string, error) {
 
 func link(exe, bin string) error {
 	if strings.EqualFold(filepath.Dir(exe), filepath.Clean(bin)) {
-		return nil // the command itself, which started kerod
+		return nil // the command itself, which started hylad
 	}
+	dropLegacy(bin)
 	want, err := stamp(exe)
 	if err != nil {
 		return err
 	}
-	cmd := filepath.Join(bin, "kero.exe")
-	if have, err := os.ReadFile(filepath.Join(bin, "kero.target")); err == nil && string(have) == want {
+	cmd := filepath.Join(bin, "hyla.exe")
+	if have, err := os.ReadFile(filepath.Join(bin, "hyla.target")); err == nil && string(have) == want {
 		if _, err := os.Stat(cmd); err == nil {
 			return nil
 		}
@@ -63,7 +64,7 @@ func link(exe, bin string) error {
 	}
 	// A running executable can't be replaced, but it can be moved: the
 	// last one goes aside, to be removed once nothing runs it.
-	olds, _ := filepath.Glob(filepath.Join(bin, "kero.exe.old*"))
+	olds, _ := filepath.Glob(filepath.Join(bin, "hyla.exe.old*"))
 	for _, o := range olds {
 		os.Remove(o)
 	}
@@ -76,7 +77,19 @@ func link(exe, bin string) error {
 	if err := os.Rename(tmp, cmd); err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(bin, "kero.target"), []byte(want), 0o644)
+	return os.WriteFile(filepath.Join(bin, "hyla.target"), []byte(want), 0o644)
+}
+
+// dropLegacy removes the kero command older Hylas left in bin: a copy
+// of an executable that is no longer made.
+func dropLegacy(bin string) {
+	os.Remove(filepath.Join(bin, "kero.target"))
+	os.Remove(filepath.Join(bin, "kero.exe"))
+	if olds, err := filepath.Glob(filepath.Join(bin, "kero.exe.old*")); err == nil {
+		for _, o := range olds {
+			os.Remove(o)
+		}
+	}
 }
 
 // consoleExecutable turns a GUI executable into a console one: its

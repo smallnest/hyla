@@ -1,4 +1,4 @@
-# Releasing Kero
+# Releasing Hyla
 
 A release is a tag: pushing `vX.Y.Z` runs the Release workflow
 (`.github/workflows/release.yml`), which builds the app for macOS, Windows
@@ -11,18 +11,18 @@ it all in a draft release. Publishing the draft releases it.
    changes, a minor for features.
 2. Set it in `mygo.json` (`"version"`).
 3. Add its section to the top of `CHANGELOG.md`: what changed since the
-   last release (`git log vX.Y.Z..HEAD`), for the people who use Kero,
+   last release (`git log vX.Y.Z..HEAD`), for the people who use Hyla,
    not for who reads the code. Name settings as the app shows them
    (Settings › Hosts), credit outside contributors (Thanks @name), and
    say when hosts get a change with their next update. Leave out what
    changes nothing a user would notice, and fixes not confirmed to work.
-4. Commit both as `Release X.Y.Z`, tag it `vX.Y.Z`, and push `main` and
+4. Commit both as `Release X.Y.Z`, tag it `vX.Y.Z`, and push `master` and
    the tag:
 
    ```sh
    git commit -am "Release X.Y.Z"
    git tag vX.Y.Z
-   git push origin main
+   git push origin master
    git push origin vX.Y.Z
    ```
 
@@ -40,15 +40,15 @@ it all in a draft release. Publishing the draft releases it.
    ```
 
    Where `gh` can't edit releases, run the Publish release workflow
-   (`.github/workflows/publish-release.yml`) on `main` instead: it
+   (`.github/workflows/publish-release.yml`) on `master` instead: it
    publishes the draft of `mygo.json`'s version.
 
    If a job failed, leave the draft unpublished and report what failed.
-   Fixed, the workflow can run again by hand (Run workflow on `main`),
+   Fixed, the workflow can run again by hand (Run workflow on `master`),
    which replaces the draft and moves the tag to that commit; a
    published release stays as it is.
 
 The tag must match `mygo.json`'s version, or the run stops at its first
-job. Kero is released, so changes keep older apps, kerods and config
+job. Hyla is released, so changes keep older apps, hylads and config
 files working: `proto.Version` goes up only for a breaking change to the
 protocol, not for a new optional field or frame.

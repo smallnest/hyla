@@ -9,13 +9,13 @@ import (
 	"sync"
 	"testing"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
 func projectDaemon(t *testing.T) *Daemon {
 	t.Helper()
 	dir := t.TempDir()
-	t.Setenv("KERO_CONFIG", filepath.Join(dir, "config"))
+	t.Setenv("HYLA_CONFIG", filepath.Join(dir, "config"))
 	d := &Daemon{dir: dir, changeCh: make(chan struct{}, 1), saveCh: make(chan struct{}, 1)}
 	d.viewed.Store(new(string))
 	return d

@@ -8,18 +8,19 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"kero/internal/proto"
+	"hyla/internal/clilink"
+	"hyla/internal/proto"
 
-	"kero/locales"
+	"hyla/locales"
 )
 
-// cliLinks are where installCLI puts the kero command, and where Settings
+// cliLinks are where installCLI puts the hyla command, and where Settings
 // looks for it.
 func cliLinks() []string {
-	return []string{"/usr/local/bin/kero", "/opt/homebrew/bin/kero", filepath.Join(proto.Home(), ".local/bin/kero")}
+	return []string{"/usr/local/bin/hyla", "/opt/homebrew/bin/hyla", filepath.Join(proto.Home(), ".local/bin/hyla")}
 }
 
-// installCLI links the kero command to this executable: /usr/local/bin's
+// installCLI links the hyla command to this executable: /usr/local/bin's
 // on macOS, asking for an administrator's password when the directory
 // needs it; ~/.local/bin's on Linux, which needs none.
 func (a *App) installCLI() {
@@ -29,19 +30,23 @@ func (a *App) installCLI() {
 		return
 	}
 	go func() {
-		link := "/usr/local/bin/kero"
+		link := "/usr/local/bin/hyla"
 		if runtime.GOOS != "darwin" {
-			link = filepath.Join(proto.Home(), ".local/bin/kero")
+			link = filepath.Join(proto.Home(), ".local/bin/hyla")
 			os.MkdirAll(filepath.Dir(link), 0o755)
 		}
 		os.Remove(link)
 		err := os.Symlink(exe, link)
+		if err == nil {
+			// The kero command of 2.x, whose executable is gone.
+			clilink.DropLegacy(filepath.Dir(link))
+		}
 		if err != nil && runtime.GOOS == "darwin" {
 			// The paths go in as arguments, quoted by AppleScript itself,
 			// so no app location can break the script.
 			err = exec.Command("/usr/bin/osascript",
 				"-e", "on run argv",
-				"-e", `do shell script "mkdir -p /usr/local/bin && ln -sf " & quoted form of item 1 of argv & " " & quoted form of item 2 of argv with administrator privileges`,
+				"-e", `do shell script "mkdir -p /usr/local/bin && ln -sf " & quoted form of item 1 of argv & " " & quoted form of item 2 of argv & " && rm -f /usr/local/bin/kero" with administrator privileges`,
 				"-e", "end run",
 				exe, link).Run()
 		}
@@ -55,7 +60,7 @@ func (a *App) installCLI() {
 	}()
 }
 
-// cliInstalled returns where the kero command is installed, and what it
+// cliInstalled returns where the hyla command is installed, and what it
 // runs, "" when it is nowhere.
 func cliInstalled() string {
 	for _, p := range cliLinks() {

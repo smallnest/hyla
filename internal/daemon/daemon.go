@@ -1,5 +1,5 @@
-// Package daemon is kerod: the process that owns every session's
-// pseudo-terminal, so that sessions outlive the app. The app, and the kero
+// Package daemon is hylad: the process that owns every session's
+// pseudo-terminal, so that sessions outlive the app. The app, and the hyla
 // CLI, attach to it through a Unix socket; quitting the app detaches it,
 // and opening it again attaches it where it left off.
 package daemon
@@ -28,17 +28,17 @@ import (
 
 	"github.com/egoist/mygo/plugins/terminal"
 
-	"kero/internal/build"
-	"kero/internal/clilink"
-	"kero/internal/detach"
-	"kero/internal/feishu"
-	"kero/internal/proto"
-	"kero/internal/settings"
-	"kero/internal/shell"
-	"kero/internal/update"
+	"hyla/internal/build"
+	"hyla/internal/clilink"
+	"hyla/internal/detach"
+	"hyla/internal/feishu"
+	"hyla/internal/proto"
+	"hyla/internal/settings"
+	"hyla/internal/shell"
+	"hyla/internal/update"
 )
 
-// Daemon is kerod's state.
+// Daemon is hylad's state.
 type Daemon struct {
 	dir     string
 	exe     string
@@ -53,10 +53,10 @@ type Daemon struct {
 	ended    []proto.EndedSession
 	subs     map[*controlConn]struct{}
 	// watchers are the connections that follow the state and notices,
-	// as kero events does, but are no app: no action, select or browser
+	// as hyla events does, but are no app: no action, select or browser
 	// call goes to them, nor do they count as an app being open.
 	watchers map[*controlConn]struct{}
-	clients  map[*proto.ClientInfo]struct{} // the connections, for kero clients
+	clients  map[*proto.ClientInfo]struct{} // the connections, for hyla clients
 	conns    int
 	idleAt   time.Time
 	// bot is the connection to Feishu, nil unless feishu-app names one;
@@ -68,7 +68,7 @@ type Daemon struct {
 	// Unix milliseconds (store.go).
 	restoredAt int64
 	// restoreN is the time of the restore's last mark, lastStopped that of
-	// kerod's last stop that no client asked for (store.go).
+	// hylad's last stop that no client asked for (store.go).
 	restoreN    int64
 	lastStopped int64
 	// markPane, markWhen and markAt are a restore's mark: the pane of it,
@@ -78,11 +78,11 @@ type Daemon struct {
 	markWhen string
 	markAt   int64
 	ending   bool
-	// restarting: kerod stops to start again, as a remote client asked
+	// restarting: hylad stops to start again, as a remote client asked
 	// (proto.KindRestart).
 	restarting bool
 	// appEnv is the environment of the app that last connected, which
-	// the agents it starts without a terminal run in (botEnv). A kerod
+	// the agents it starts without a terminal run in (botEnv). A hylad
 	// its app starts has it already; one launchd started may not.
 	appEnv []string
 	// asks are the browser calls waiting for the app's answer, by the
@@ -103,9 +103,9 @@ type Daemon struct {
 	quitOnce sync.Once
 }
 
-// Options are how kerod runs.
+// Options are how hylad runs.
 type Options struct {
-	// Serve: kerod runs in the foreground, as a service does (kero daemon
+	// Serve: hylad runs in the foreground, as a service does (hyla daemon
 	// serve): it logs to its standard error too, and never exits for being
 	// idle.
 	Serve bool
@@ -122,7 +122,7 @@ func Run(opts Options) error {
 	if err := os.MkdirAll(filepath.Join(dir, "sessions"), 0o700); err != nil {
 		return err
 	}
-	logf, err := os.OpenFile(filepath.Join(dir, "kerod.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
+	logf, err := os.OpenFile(filepath.Join(dir, "hylad.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 	if err != nil {
 		return err
 	}
@@ -142,8 +142,8 @@ func Run(opts Options) error {
 	}
 
 	// One daemon at a time: the lock is the daemon's while it runs. One
-	// that takes over from a kerod restarting waits for it to let go.
-	lock, err := os.OpenFile(filepath.Join(dir, "kerod.lock"), os.O_CREATE|os.O_RDWR, 0o600)
+	// that takes over from a hylad restarting waits for it to let go.
+	lock, err := os.OpenFile(filepath.Join(dir, "hylad.lock"), os.O_CREATE|os.O_RDWR, 0o600)
 	if err != nil {
 		return err
 	}
@@ -154,17 +154,17 @@ func Run(opts Options) error {
 			break
 		}
 		if os.Getenv(takeoverEnv) == "" || time.Now().After(wait) {
-			return errors.New("kerod is already running")
+			return errors.New("hylad is already running")
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
 	os.Unsetenv(takeoverEnv)
-	// The lock says whose it is, for kero daemon stop to kill this
-	// kerod when it no longer answers: one that cannot save its
+	// The lock says whose it is, for hyla daemon stop to kill this
+	// hylad when it no longer answers: one that cannot save its
 	// sessions (client.Stop).
 	lock.Truncate(0)
 	lock.WriteAt([]byte(strconv.Itoa(os.Getpid())), 0)
-	// A free lock, a dead kerod's, names no one.
+	// A free lock, a dead hylad's, names no one.
 	defer ClearLock()
 
 	sock := proto.SocketPath()
@@ -190,12 +190,12 @@ func Run(opts Options) error {
 	d.git = newGitFollow(d)
 	empty := ""
 	d.viewed.Store(&empty)
-	lg.Printf("kerod %d started (Kero %s, pid %d, %s)", proto.Version, build.Version(), os.Getpid(), exe)
+	lg.Printf("hylad %d started (Hyla %s, pid %d, %s)", proto.Version, build.Version(), os.Getpid(), exe)
 	d.linkCLI()
 	// The listeners first: Tailscale Serve's socket takes a umask of its
-	// own, which no program kerod starts may get.
+	// own, which no program hylad starts may get.
 	d.net = d.listen()
-	// A program kerod runs by name, as a chat's background command, is
+	// A program hylad runs by name, as a chat's background command, is
 	// found by the PATH this one runs with, which launchd's has none of
 	// the account's places in: an agent's installer is one of them.
 	os.Setenv("PATH", withHomePaths(os.Getenv("PATH")))
@@ -215,7 +215,7 @@ func Run(opts Options) error {
 		d.logStop(lg, s)
 		if s == stopSignal() {
 			// No client asked: the next restore draws no new mark, but
-			// not one that drew its own, as kerod that started as the
+			// not one that drew its own, as hylad that started as the
 			// app connected stops.
 			if !d.markDrawn() {
 				d.markSettled()
@@ -263,11 +263,11 @@ func Run(opts Options) error {
 	return nil
 }
 
-// takeoverEnv tells a kerod that starts as another restarts to wait for
+// takeoverEnv tells a hylad that starts as another restarts to wait for
 // its lock.
-const takeoverEnv = "KERO_TAKEOVER"
+const takeoverEnv = "HYLA_TAKEOVER"
 
-// successor starts the kerod that follows this one, as it restarts: the
+// successor starts the hylad that follows this one, as it restarts: the
 // service's, which its manager starts again, else one of this executable,
 // which waits for this one to let go of the lock, and restores its
 // sessions.
@@ -286,10 +286,10 @@ func (d *Daemon) successor() {
 	}
 }
 
-// ClearLock empties kerod's lock, which names its daemon's pid: as it
+// ClearLock empties hylad's lock, which names its daemon's pid: as it
 // exits, or before the one that takes over from it starts.
 func ClearLock() {
-	f, err := os.OpenFile(filepath.Join(proto.Dir(), "kerod.lock"), os.O_RDWR, 0o600)
+	f, err := os.OpenFile(filepath.Join(proto.Dir(), "hylad.lock"), os.O_RDWR, 0o600)
 	if err != nil {
 		return
 	}
@@ -297,10 +297,10 @@ func ClearLock() {
 	f.Close()
 }
 
-// underService reports whether a service manager runs kerod, which starts
-// it again as it exits: the unit and the agent of kero daemon
+// underService reports whether a service manager runs hylad, which starts
+// it again as it exits: the unit and the agent of hyla daemon
 // install-service say so.
-func underService() bool { return os.Getenv("KERO_SERVICE") == "1" }
+func underService() bool { return os.Getenv("HYLA_SERVICE") == "1" }
 
 // localPeer names the process at the other end of the socket.
 func localPeer(c net.Conn) string {
@@ -310,15 +310,15 @@ func localPeer(c net.Conn) string {
 	return "local"
 }
 
-// logStop logs a signal that ends kerod, and who asked it to: one that
-// did not intend to, as a kill of every process named Kero, is an old
-// kerod's, which the app sees as it runs and stops as kerod is restarted
+// logStop logs a signal that ends hylad, and who asked it to: one that
+// did not intend to, as a kill of every process named Hyla, is an old
+// hylad's, which the app sees as it runs and stops as hylad is restarted
 // (client.Settle).
 func (d *Daemon) logStop(lg *log.Logger, s os.Signal) {
 	if sig, ok := s.(syscall.Signal); ok && (sig == syscall.SIGINT || sig == stopSignal()) {
 		who := "no client asked"
 		if leftover(os.Getppid()) {
-			who += ", another Kero runs"
+			who += ", another Hyla runs"
 		}
 		lg.Printf("%v: saving and exiting (%s)", s, who)
 		d.mu.Lock()
@@ -331,8 +331,8 @@ func (d *Daemon) logStop(lg *log.Logger, s os.Signal) {
 
 func (d *Daemon) stop() { d.quitOnce.Do(func() { close(d.quit) }) }
 
-// linkCLI keeps bin/kero pointing at this executable (package clilink),
-// which sessions have on their PATH: the kero CLI, for agents to drive
+// linkCLI keeps bin/hyla pointing at this executable (package clilink),
+// which sessions have on their PATH: the hyla CLI, for agents to drive
 // other sessions.
 func (d *Daemon) linkCLI() {
 	if d.exe == "" {
@@ -411,7 +411,7 @@ func (d *Daemon) tickLoop() {
 		for _, p := range d.panes {
 			panes = append(panes, p)
 		}
-		// A server, or a kerod others reach over the network, stays.
+		// A server, or a hylad others reach over the network, stays.
 		bot := d.bot != nil
 		idle := len(d.sessions) == 0 && d.conns == 0 && !d.opts.Serve && !d.net.active() && !bot
 		if !idle {
@@ -555,7 +555,8 @@ func (d *Daemon) environment(sid, pid, shell string, extra []string) []string {
 		switch {
 		case k == "CLAUDECODE", k == "TERM_PROGRAM", k == "TERM_PROGRAM_VERSION", k == "TERM_SESSION_ID",
 			k == "ITERM_SESSION_ID", k == "WINDOWID", k == "KITTY_WINDOW_ID", k == "LC_TERMINAL", k == "LC_TERMINAL_VERSION",
-			k == "KERO_SESSION", k == "KERO_PANE", k == "KERO_HOST", k == "KERO_ZDOTDIR", k == takeoverEnv, k == "KERO_SERVICE", k == "INVOCATION_ID", k == "MYGO_GHOSTTY_VT", k == "TMUX", k == "TMUX_PANE",
+			k == "HYLA_SESSION", k == "HYLA_PANE", k == "HYLA_HOST", k == "HYLA_ZDOTDIR", k == takeoverEnv, k == "HYLA_SERVICE", k == "INVOCATION_ID", k == "MYGO_GHOSTTY_VT", k == "TMUX", k == "TMUX_PANE",
+			k == "KERO_SESSION", k == "KERO_PANE", k == "KERO_SOCKET",
 			strings.HasPrefix(k, "CLAUDE_CODE_"), strings.HasPrefix(k, "GHOSTTY_"),
 			strings.HasPrefix(k, "VSCODE_"), strings.HasPrefix(k, "__CF"), k == "XPC_SERVICE_NAME":
 			continue
@@ -575,18 +576,23 @@ func (d *Daemon) environment(sid, pid, shell string, extra []string) []string {
 	}
 	set("TERM=xterm-256color")
 	set("COLORTERM=truecolor")
-	// kero's emulator is Ghostty's: programs that know Ghostty, as coding
+	// hyla's emulator is Ghostty's: programs that know Ghostty, as coding
 	// agents for their notifications and keyboard, take it for one.
-	// LC_TERMINAL names kero, as iTerm2 names itself there.
+	// LC_TERMINAL names hyla, as iTerm2 names itself there.
 	set("TERM_PROGRAM=ghostty")
 	set("TERM_PROGRAM_VERSION=" + ghosttyVersion)
-	set("LC_TERMINAL=kero")
+	set("LC_TERMINAL=hyla")
 	set(fmt.Sprintf("LC_TERMINAL_VERSION=%d", proto.Version))
-	// The shell the pane runs, not the one whoever started kerod had. On
+	// The shell the pane runs, not the one whoever started hylad had. On
 	// Windows, only a POSIX shell's: programs there take $SHELL for one.
 	if runtime.GOOS != "windows" || posixShell(shellName(shell)) {
 		set("SHELL=" + shell)
 	}
+	set("HYLA_SESSION=" + sid)
+	set("HYLA_PANE=" + pid)
+	set("HYLA_SOCKET=" + proto.SocketPath())
+	// The names of 2.x, which called Hyla Kero, for the scripts and
+	// agents written for it. They go in a release or two.
 	set("KERO_SESSION=" + sid)
 	set("KERO_PANE=" + pid)
 	set("KERO_SOCKET=" + proto.SocketPath())
@@ -722,7 +728,7 @@ func (c *controlConn) watchEvent(m proto.Message) {
 	}
 }
 
-// identity is who a connection comes from, as kero clients shows it.
+// identity is who a connection comes from, as hyla clients shows it.
 type identity struct {
 	peer string // "uid 501", "alice@example.com"
 	via  string // "unix", "tailnet", "tailnet-serve"
@@ -761,7 +767,7 @@ func (d *Daemon) serveHello(conn net.Conn, r *bufio.Reader, line []byte, id iden
 		return
 	}
 	// A bridge on this machine passes on a remote client's connection,
-	// saying who it is, which kero clients shows as the bridge claims it:
+	// saying who it is, which hyla clients shows as the bridge claims it:
 	// only a bridge's ways, ssh and wsl. A listener's own say is the only
 	// one of a connection it took.
 	if id.via == "unix" && (hello.Via == "ssh" || hello.Via == "wsl") {
@@ -772,7 +778,7 @@ func (d *Daemon) serveHello(conn net.Conn, r *bufio.Reader, line []byte, id iden
 	}
 	welcome := proto.Welcome{Version: proto.Version, PID: os.Getpid(), Started: d.started.UnixMilli(), App: build.Version(), Build: build.Daemon}
 	if hello.Version != proto.Version {
-		welcome.Error = fmt.Sprintf("kerod speaks protocol %d, the client %d", proto.Version, hello.Version)
+		welcome.Error = fmt.Sprintf("hylad speaks protocol %d, the client %d", proto.Version, hello.Version)
 		json.NewEncoder(conn).Encode(welcome)
 		return
 	}

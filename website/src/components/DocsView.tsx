@@ -9,7 +9,7 @@ import { ArrowLeftIcon, ArrowRightIcon, MenuIcon } from './Icons';
 export function docHead(locale: Locale, slug: string) {
   const doc = docs[locale].get(slug);
   if (!doc) return {};
-  return pageHead(locale, slug ? `/docs/${slug}` : '/docs', `${doc.title} | Kero`, doc.description);
+  return pageHead(locale, slug ? `/docs/${slug}` : '/docs', `${doc.title} | Hyla`, doc.description);
 }
 
 export default function DocsView(props: { slug: string; locale: Locale }) {

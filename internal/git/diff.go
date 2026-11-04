@@ -24,7 +24,7 @@ const maxText = 1 << 20
 // tree and its blobs are loose objects nothing refers to, which git's gc
 // prunes once they are old.
 func (r Repo) Snapshot(ctx context.Context) (string, error) {
-	dir, err := os.MkdirTemp("", "kero-index-")
+	dir, err := os.MkdirTemp("", "hyla-index-")
 	if err != nil {
 		return "", err
 	}
@@ -295,7 +295,7 @@ func (r Repo) Write(path, hash, text string) error {
 	if Hash(b) != hash {
 		return ErrChanged
 	}
-	tmp, err := os.CreateTemp(filepath.Dir(full), ".kero-*")
+	tmp, err := os.CreateTemp(filepath.Dir(full), ".hyla-*")
 	if err != nil {
 		return err
 	}

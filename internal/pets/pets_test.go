@@ -59,7 +59,7 @@ func pack(t *testing.T, path, prefix, manifest string, sheetData []byte) {
 }
 
 func TestParse(t *testing.T) {
-	t.Setenv("KERO_HOME", t.TempDir())
+	t.Setenv("HYLA_HOME", t.TempDir())
 	p, err := parse("dog", "Dog", "", 0, sheet(t, version1Rows))
 	if err != nil {
 		t.Fatal(err)
@@ -134,7 +134,7 @@ func topPaddedSheet(t *testing.T, rows, top int) []byte {
 }
 
 func TestInstall(t *testing.T) {
-	t.Setenv("KERO_HOME", t.TempDir())
+	t.Setenv("HYLA_HOME", t.TempDir())
 	dir := t.TempDir()
 	doge := `{"id":"doge","displayName":"Doge","description":"A Shiba."}`
 	pack(t, filepath.Join(dir, "doge.codex-pet.zip"), "", doge, sheet(t, version1Rows))
@@ -186,7 +186,7 @@ func TestInstall(t *testing.T) {
 
 func TestCodexActive(t *testing.T) {
 	home := t.TempDir()
-	t.Setenv("KERO_HOME", filepath.Join(home, "kero"))
+	t.Setenv("HYLA_HOME", filepath.Join(home, "hyla"))
 	t.Setenv("HOME", home)
 	if got := CodexActive(); got != "" {
 		t.Errorf("no config.toml: active %q", got)
@@ -203,7 +203,7 @@ func TestCodexActive(t *testing.T) {
 
 func TestCodexIDs(t *testing.T) {
 	home := t.TempDir()
-	t.Setenv("KERO_HOME", filepath.Join(home, "kero"))
+	t.Setenv("HYLA_HOME", filepath.Join(home, "hyla"))
 	t.Setenv("HOME", home)
 	if got := CodexIDs(); len(got) != 0 {
 		t.Errorf("no Codex pets: %v", got)
@@ -215,24 +215,24 @@ func TestCodexIDs(t *testing.T) {
 	if got := CodexIDs(); !slices.Equal(got, []string{"deepseek-2", "doge"}) {
 		t.Errorf("CodexIDs: %v", got)
 	}
-	// A pet named as both a Codex pet's and kero's reads kero's.
+	// A pet named as both a Codex pet's and hyla's reads hyla's.
 	for _, root := range []string{codexDir(), Dir()} {
 		dir := filepath.Join(root, "doge")
 		os.MkdirAll(dir, 0o755)
 		name := "Codex Doge"
 		if root == Dir() {
-			name = "Kero Doge"
+			name = "Hyla Doge"
 		}
 		os.WriteFile(filepath.Join(dir, "pet.json"), []byte(`{"id":"doge","displayName":"`+name+`"}`), 0o644)
 		os.WriteFile(filepath.Join(dir, "spritesheet.webp"), sheet(t, version1Rows), 0o644)
 	}
-	if p, err := LoadID("doge"); err != nil || p.Name != "Kero Doge" {
+	if p, err := LoadID("doge"); err != nil || p.Name != "Hyla Doge" {
 		t.Errorf("LoadID: %+v, %v", p, err)
 	}
 }
 
 func TestBuiltins(t *testing.T) {
-	t.Setenv("KERO_HOME", t.TempDir())
+	t.Setenv("HYLA_HOME", t.TempDir())
 	t.Setenv("HOME", t.TempDir())
 	bs := Builtins()
 	if len(bs) != len(packNames) {
@@ -262,7 +262,7 @@ func TestInstallRefusesBadPacks(t *testing.T) {
 	} {
 		t.Run(bad.name, func(t *testing.T) {
 			home := t.TempDir()
-			t.Setenv("KERO_HOME", home)
+			t.Setenv("HYLA_HOME", home)
 			path := filepath.Join(t.TempDir(), "pack.zip")
 			pack(t, path, "", bad.m, sheet(t, version1Rows))
 			if id, err := Install(path); err == nil {

@@ -1,24 +1,24 @@
 ---
 title: 設定
-description: Kero の設定ファイルと、そのキーとデフォルト値。
+description: Hyla の設定ファイルと、そのキーとデフォルト値。
 ---
 
 # 設定
 
-Kero は設定をひとつのプレーンテキストファイルに保存します。設定ウインドウ（<kbd>⌘</kbd> <kbd>,</kbd>）はコメントと順序を保ったままこのファイルを編集し、手で編集したときは Kero が読み込み直します。
+Hyla は設定をひとつのプレーンテキストファイルに保存します。設定ウインドウ（<kbd>⌘</kbd> <kbd>,</kbd>）はコメントと順序を保ったままこのファイルを編集し、手で編集したときは Hyla が読み込み直します。
 
 ## ファイル
 
-Kero は次の順に優先して読み込みます:
+Hyla は次の順に優先して読み込みます:
 
-1. `$KERO_CONFIG`
-2. `$XDG_CONFIG_HOME/kero/config`
-3. `~/.config/kero/config`
+1. `$HYLA_CONFIG`
+2. `$XDG_CONFIG_HOME/hyla/config`
+3. `~/.config/hyla/config`
 
 構文は Ghostty と同じです: 1 行に 1 つの `key = value`、コメントは `#`、リストを持つキーは行を繰り返します。Ghostty と同じ意味のキーには、Ghostty と同じ名前が付いています。
 
 ```ini
-# ~/.config/kero/config
+# ~/.config/hyla/config
 font-size = 14
 theme = light:GitHub Light Default,dark:Catppuccin Mocha
 cursor-style = bar
@@ -32,9 +32,9 @@ keybind = cmd+shift+d=pane.split.down
 ファイルには変更したものだけを書けば十分です。それ以外はデフォルトのままです。
 
 ```sh
-kero config edit              # $EDITOR で開く
-kero config show              # すべてのキーと現在の値
-kero config check             # 不明なキーと不正な値を報告
+hyla config edit              # $EDITOR で開く
+hyla config show              # すべてのキーと現在の値
+hyla config check             # 不明なキーと不正な値を報告
 ```
 
 ## 一般
@@ -46,10 +46,10 @@ kero config check             # 不明なキーと不正な値を報告
 | `sidebar-rows`          | `detailed` | サイドバーのセッションの表示: `detailed` は 2 行目にステータスメッセージ、なければブランチと変更を表示、`compact` は 1 行 |
 | `focus-follows-mouse`   | `false`    | ポインタが入ったペインにフォーカスを移す                      |
 | `confirm-close`         | `true`     | プログラムが実行中のペインを閉じる前に確認する                |
-| `restore-sessions`      | `true`     | 再起動のあとなど kerod が再起動したら、セッションを再び開始する |
+| `restore-sessions`      | `true`     | 再起動のあとなど hylad が再起動したら、セッションを再び開始する |
 | `resume-agents`         | `true`     | セッションの再開時に、各ペインで動いていたエージェントの会話を再開する |
 | `session-history`       | `false`   | 終了したエージェントのセッションをサイドバーに一覧し、再開やアーカイブができるようにする |
-| `macos-show-app-icon`   | `dock-and-menubar` | macOS で Kero のアイコンを表示する場所: `dock-and-menubar`、`dock`、`menubar`。メニューバーに表示している間は、ウインドウを閉じても Kero はそこで動き続ける。Windows と Linux では常に通知領域に表示し、ウインドウを閉じても同じく動き続ける |
+| `macos-show-app-icon`   | `dock-and-menubar` | macOS で Hyla のアイコンを表示する場所: `dock-and-menubar`、`dock`、`menubar`。メニューバーに表示している間は、ウインドウを閉じても Hyla はそこで動き続ける。Windows と Linux では常に通知領域に表示し、ウインドウを閉じても同じく動き続ける |
 
 ## 外観
 
@@ -64,8 +64,8 @@ kero config check             # 不明なキーと不正な値を報告
 
 | キー                  | デフォルト | 説明                                                                     |
 | --------------------- | ---------- | ------------------------------------------------------------------------ |
-| `theme`               | `kero`     | ターミナルの色: `kero`、任意の Ghostty テーマ、または `light:<theme>,dark:<theme>` |
-| `font-family`         |            | 空欄なら Kero に付属の JetBrains Mono Nerd Font、`monospace` ならシステムのもの、またはインストール済みの任意のファミリー |
+| `theme`               | `hyla`     | ターミナルの色: `hyla`、任意の Ghostty テーマ、または `light:<theme>,dark:<theme>` |
+| `font-family`         |            | 空欄なら Hyla に付属の JetBrains Mono Nerd Font、`monospace` ならシステムのもの、またはインストール済みの任意のファミリー |
 | `font-size`           | `13`       | ポイント単位                                                             |
 | `font-weight`         | `400`      | `100` から `900`                                                         |
 | `line-height`         | `1.22`     | フォントの行の高さに対する倍率                                           |
@@ -104,18 +104,18 @@ kero config check             # 不明なキーと不正な値を報告
 
 | キー             | デフォルト | 説明                                                |
 | ---------------- | ---------- | --------------------------------------------------- |
-| `remote-control` | `true`     | `kero do` と `kero focus` によるアプリの操作を許可する |
+| `remote-control` | `true`     | `hyla do` と `hyla focus` によるアプリの操作を許可する |
 
 ## ホスト
 
-アプリにセッションを表示し、`kero -H` で接続する、ほかのマシン。[リモートホスト](./remote.md)を参照してください。
+アプリにセッションを表示し、`hyla -H` で接続する、ほかのマシン。[リモートホスト](./remote.md)を参照してください。
 
 | キー           | デフォルト | 説明 |
 | -------------- | ---------- | ---- |
-| `host`         |            | `name=address` 形式のホスト: SSH なら `me@devbox` や `ssh://…`、WSL なら `wsl://distro`、kerod の tailnet リスナーなら `http(s)://…`。後ろに ` remote-control` を付けるとそのプログラムにアプリの操作を許可し、` color=teal`（red、orange、amber、green、teal、blue、purple、pink）を付けるとそのセッションに色を付けられる。ホストごとに繰り返して指定する |
-| `listen`       |            | ほかのマシンの Kero からこのマシンへの接続を許可する: Tailscale アドレスで待ち受けるなら `tailnet://:7373`、Tailscale Serve なら `tailnet-serve://`。それぞれ繰り返して指定する |
+| `host`         |            | `name=address` 形式のホスト: SSH なら `me@devbox` や `ssh://…`、WSL なら `wsl://distro`、hylad の tailnet リスナーなら `http(s)://…`。後ろに ` remote-control` を付けるとそのプログラムにアプリの操作を許可し、` color=teal`（red、orange、amber、green、teal、blue、purple、pink）を付けるとそのセッションに色を付けられる。ホストごとに繰り返して指定する |
+| `listen`       |            | ほかのマシンの Hyla からこのマシンへの接続を許可する: Tailscale アドレスで待ち受けるなら `tailnet://:7373`、Tailscale Serve なら `tailnet-serve://`。それぞれ繰り返して指定する |
 | `listen-allow` |            | マシンの所有者以外に接続を許可する相手: tailnet のログイン、`tag:name`、または tailnet 上の誰でもなら `*`。それぞれ繰り返して指定する |
-| `remote-updates` | `false`  | ほかのマシンの Kero が、ここの Kero アプリをそのバージョンにアップデートすることを許可する（アプリは再起動する） |
+| `remote-updates` | `false`  | ほかのマシンの Hyla が、ここの Hyla アプリをそのバージョンにアップデートすることを許可する（アプリは再起動する） |
 
 ## Git
 
@@ -124,7 +124,7 @@ kero config check             # 不明なキーと不正な値を報告
 | `git-status`  | `true`     | 各セッションのブランチと[変更](./changes.md)を表示する                                            |
 | `diff-layout` | `auto`     | 変更パネルの差分: `unified`、`split`（左右に並べる）、または広くなると左右に並べる `auto`          |
 | `worktree-base` | `default` | [セッション専用のワークツリー](./changes.md#sessions-in-their-own-worktree)の起点: リポジトリのデフォルトブランチ `default`、または今いるセッションのブランチ `current` |
-| `worktree-dir` |           | セッション専用のワークツリーを置く場所。それぞれリポジトリ名の下に置かれます。空ならリポジトリ内の `.kero/worktrees` |
+| `worktree-dir` |           | セッション専用のワークツリーを置く場所。それぞれリポジトリ名の下に置かれます。空ならリポジトリ内の `.hyla/worktrees` |
 
 <a id="browser"></a>
 
@@ -135,7 +135,7 @@ kero config check             # 不明なキーと不正な値を報告
 | `browser-block-ads`   | `true`                     | ブラウザペインで[広告とトラッカーをブロック](./panes.md#blocking-ads)する           |
 | `browser-filter-list` | `easylist`、`easyprivacy`  | ブロックに使うフィルタリスト。リストごとに繰り返す。空欄ならなし                    |
 
-`browser-filter-list` には、Kero が提供するリストの名前か、Adblock Plus 構文の任意のリストの `https://` URL を指定します:
+`browser-filter-list` には、Hyla が提供するリストの名前か、Adblock Plus 構文の任意のリストの `https://` URL を指定します:
 
 | 名前               | リスト                                                              |
 | ------------------ | ------------------------------------------------------------------- |
@@ -166,4 +166,4 @@ keybind = cmd+k=palette.open
 keybind = cmd+b=unbind
 ```
 
-すべてのアクション ID は `kero actions` で確認できます。デフォルトは[キーボードショートカット](./shortcuts.md)を参照してください。
+すべてのアクション ID は `hyla actions` で確認できます。デフォルトは[キーボードショートカット](./shortcuts.md)を参照してください。

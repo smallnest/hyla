@@ -14,15 +14,15 @@ import (
 	"strings"
 	"time"
 
-	"kero/internal/client"
-	"kero/internal/clilink"
-	"kero/internal/proto"
+	"hyla/internal/client"
+	"hyla/internal/clilink"
+	"hyla/internal/proto"
 )
 
-// hookCmd is what an agent runs as its session starts (the hook `kero
-// skill setup` installs): it tells the agent that it runs in Kero, in
-// which session and pane, and tells kerod the agent's own session, to
-// resume after a restart. It never fails the agent: outside Kero, or on
+// hookCmd is what an agent runs as its session starts (the hook `hyla
+// skill setup` installs): it tells the agent that it runs in Hyla, in
+// which session and pane, and tells hylad the agent's own session, to
+// resume after a restart. It never fails the agent: outside Hyla, or on
 // any trouble, it says nothing.
 func hookCmd(args []string) error {
 	agent := ""
@@ -32,7 +32,7 @@ func hookCmd(args []string) error {
 	if agent == "context" && len(args) >= 3 {
 		return contextCmd(args[1], args[2], len(args) > 3 && args[3] == "wait")
 	}
-	pane := os.Getenv("KERO_PANE")
+	pane := os.Getenv("HYLA_PANE")
 	var in struct {
 		Event   string `json:"hook_event_name"`
 		AgentID string `json:"agent_id"`   // set for Claude Code's subagents
@@ -47,14 +47,14 @@ func hookCmd(args []string) error {
 	if t := os.Getenv("CODEX_THREAD_ID"); t != "" && in.Session != "" && t != in.Session {
 		return nil // a Codex run by another agent in this pane, not the pane's
 	}
-	sid, away := os.Getenv("KERO_SESSION"), false
+	sid, away := os.Getenv("HYLA_SESSION"), false
 	c, err := client.Connect(true)
 	if err != nil {
 		c = nil
 	} else {
 		defer c.Close()
 		if in.Session != "" {
-			// kerod tells the pane: the environment may be that of
+			// hylad tells the pane: the environment may be that of
 			// another, as when Codex's app server, which panes share,
 			// runs the hook.
 			var r proto.AgentSessionResult
@@ -121,18 +121,18 @@ func contextCmd(agent, session string, wait bool) error {
 }
 
 // hookContext is what the hook tells an agent in pane, of session sid;
-// c is kerod, nil when it is unreachable. away tells an agent whose
+// c is hylad, nil when it is unreachable. away tells an agent whose
 // commands don't run in its pane, and don't have its variables.
 func hookContext(c *client.Client, pane, sid string, away bool) string {
 	var b strings.Builder
 	if away {
-		fmt.Fprintf(&b, "You are running in Kero, a terminal for coding agents: session %s, pane %s. "+
-			"The `kero` command (see the kero skill) runs things beside you, such as a dev server, tests or another agent. "+
-			"Your commands don't run in your pane and don't have its $KERO_SESSION and $KERO_PANE: give kero your pane as the target, "+
-			"as in `kero split %s --down -- npm run dev`.", sid, pane, pane)
+		fmt.Fprintf(&b, "You are running in Hyla, a terminal for coding agents: session %s, pane %s. "+
+			"The `hyla` command (see the hyla skill) runs things beside you, such as a dev server, tests or another agent. "+
+			"Your commands don't run in your pane and don't have its $HYLA_SESSION and $HYLA_PANE: give hyla your pane as the target, "+
+			"as in `hyla split %s --down -- npm run dev`.", sid, pane, pane)
 	} else {
-		fmt.Fprintf(&b, "You are running in Kero, a terminal for coding agents: session %s, pane %s ($KERO_SESSION and $KERO_PANE). "+
-			"The `kero` command (see the kero skill) runs things beside you, such as a dev server, tests or another agent, "+
+		fmt.Fprintf(&b, "You are running in Hyla, a terminal for coding agents: session %s, pane %s ($HYLA_SESSION and $HYLA_PANE). "+
+			"The `hyla` command (see the hyla skill) runs things beside you, such as a dev server, tests or another agent, "+
 			"and tells the user what you are doing.", sid, pane)
 	}
 	if c == nil {
@@ -156,47 +156,47 @@ func hookContext(c *client.Client, pane, sid string, away bool) string {
 	return b.String()
 }
 
-// integration is what kero installs in an agent, beside its skill, to
-// hook it into Kero: a hook in its settings, or a plugin of its own.
+// integration is what hyla installs in an agent, beside its skill, to
+// hook it into Hyla: a hook in its settings, or a plugin of its own.
 type integration interface {
-	name() string // the agent, as `kero hook` takes it
+	name() string // the agent, as `hyla hook` takes it
 	path() string // where it goes
 	state() string
 	install() error
 	remove() error
 }
 
-// agentHook is a hook kero installs in an agent's settings: a SessionStart
-// command running `kero hook <agent>`.
+// agentHook is a hook hyla installs in an agent's settings: a SessionStart
+// command running `hyla hook <agent>`.
 type agentHook struct {
-	agent string // as `kero hook` takes it: "claude", "codex"
+	agent string // as `hyla hook` takes it: "claude", "codex"
 	file  string // the JSON file holding the agent's hooks
 }
 
 func (h agentHook) name() string { return h.agent }
 func (h agentHook) path() string { return h.file }
 
-// kero is the kero command of Kero's own directory (package clilink),
-// which stays where it is as Kero updates.
-func kero() string {
-	exe := filepath.Join(proto.Dir(), "bin", "kero")
+// hyla is the hyla command of Hyla's own directory (package clilink),
+// which stays where it is as Hyla updates.
+func hyla() string {
+	exe := filepath.Join(proto.Dir(), "bin", "hyla")
 	if runtime.GOOS == "windows" {
 		exe += ".exe"
 	}
 	return exe
 }
 
-// command is the hook's command line on an event: the kero command of
-// Kero's own directory (package clilink), which stays where it is as
-// Kero updates.
+// command is the hook's command line on an event: the hyla command of
+// Hyla's own directory (package clilink), which stays where it is as
+// Hyla updates.
 func (h agentHook) command(event string) string {
 	if runtime.GOOS == "windows" {
-		return `"` + kero() + `" ` + sub(event) + " " + h.agent
+		return `"` + hyla() + `" ` + sub(event) + " " + h.agent
 	}
-	return "'" + strings.ReplaceAll(kero(), "'", `'\''`) + "' " + sub(event) + " " + h.agent
+	return "'" + strings.ReplaceAll(hyla(), "'", `'\''`) + "' " + sub(event) + " " + h.agent
 }
 
-// events are the hook events kero's hooks run on: the start of an
+// events are the hook events hyla's hooks run on: the start of an
 // agent's session, and the end of each turn, whose answer goes to a
 // Feishu chat that drives the agent.
 var events = []string{"SessionStart", "Stop"}
@@ -209,7 +209,7 @@ func sub(event string) string {
 	return "hook"
 }
 
-// state is "current", "outdated" (kero's hooks, of another command line,
+// state is "current", "outdated" (hyla's hooks, of another command line,
 // or not on every event) or "missing".
 func (h agentHook) state() string {
 	b, err := os.ReadFile(h.file)
@@ -235,7 +235,7 @@ func (h agentHook) state() string {
 	return state
 }
 
-// each calls fn with the command of each of kero's hooks on an event.
+// each calls fn with the command of each of hyla's hooks on an event.
 func (h agentHook) each(settings object, event string, fn func(command string)) {
 	hooks, _ := parseObject(settings.get("hooks"))
 	var groups []object
@@ -251,21 +251,22 @@ func (h agentHook) each(settings object, event string, fn func(command string)) 
 	}
 }
 
-// ours tells kero's hook commands, of this kero or another's: its hook at
-// start, or its answer at a turn's end.
+// ours tells hyla's hook commands, of this hyla or another's: its hook at
+// start, or its answer at a turn's end. A command of a 2.x, which called
+// Hyla Kero, is Hyla's too: install replaces it.
 func (h agentHook) ours(command string) bool {
-	return strings.Contains(command, "kero") &&
+	return (strings.Contains(command, "hyla") || strings.Contains(command, "kero")) &&
 		(strings.HasSuffix(command, " hook "+h.agent) || strings.HasSuffix(command, " answer "+h.agent))
 }
 
-// install puts the hooks in the agent's settings, in place of kero's
+// install puts the hooks in the agent's settings, in place of hyla's
 // others, keeping the rest of the file as it is.
 func (h agentHook) install() error {
 	linkCLI()
 	return h.edit(true)
 }
 
-// linkCLI makes the kero command that hooks and plugins run, should kerod
+// linkCLI makes the hyla command that hooks and plugins run, should hylad
 // not have made it yet.
 func linkCLI() {
 	if exe, err := os.Executable(); err == nil {
@@ -279,7 +280,7 @@ func linkCLI() {
 	}
 }
 
-// remove takes kero's hooks out of the agent's settings.
+// remove takes hyla's hooks out of the agent's settings.
 func (h agentHook) remove() error {
 	if _, err := os.Stat(h.file); errors.Is(err, os.ErrNotExist) {
 		return nil
@@ -287,7 +288,7 @@ func (h agentHook) remove() error {
 	return h.edit(false)
 }
 
-// edit puts kero's hooks on each event, or takes them out.
+// edit puts hyla's hooks on each event, or takes them out.
 func (h agentHook) edit(add bool) error {
 	b, err := os.ReadFile(h.file)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
@@ -340,11 +341,11 @@ func (h agentHook) edit(add bool) error {
 }
 
 // stops tells whether the agent's Stop hook says a turn's end for an
-// answer file: of the agents Kero hooks, Claude Code's says it, and its
+// answer file: of the agents Hyla hooks, Claude Code's says it, and its
 // last message.
 func (h agentHook) stops() bool { return h.agent == "claude" }
 
-// editEvent is an event's groups of hooks of kero's, or nil when they
+// editEvent is an event's groups of hooks of hyla's, or nil when they
 // are as they should be: already there, alone, for add; none, for
 // remove.
 func (h agentHook) editEvent(hooks object, event string, add bool) (json.RawMessage, error) {
@@ -359,7 +360,7 @@ func (h agentHook) editEvent(hooks object, event string, add bool) (json.RawMess
 		// asks its question there, and an answer file is no question's.
 		return nil, nil
 	}
-	// Else drop kero's handlers, and the groups they leave empty.
+	// Else drop hyla's handlers, and the groups they leave empty.
 	kept, mine, exact := []object{}, 0, false
 	for _, g := range groups {
 		var handlers []json.RawMessage
@@ -394,7 +395,7 @@ func (h agentHook) editEvent(hooks object, event string, add bool) (json.RawMess
 	return marshal(groups), nil
 }
 
-// agentPlugin is a plugin kero installs for an agent: files of its own,
+// agentPlugin is a plugin hyla installs for an agent: files of its own,
 // in a directory the agent loads plugins from.
 type agentPlugin struct {
 	agent string
@@ -418,11 +419,11 @@ func (p agentPlugin) path() string {
 	return p.dir
 }
 
-// content is a file as kero writes it: the asset, with the kero command
+// content is a file as hyla writes it: the asset, with the hyla command
 // it runs.
 func (p agentPlugin) content(asset string) []byte {
 	b, _ := agentAssets.ReadFile(asset)
-	return bytes.ReplaceAll(b, []byte("__KERO__"), marshal(kero()))
+	return bytes.ReplaceAll(b, []byte("__HYLA__"), marshal(hyla()))
 }
 
 func (p agentPlugin) state() string {
@@ -446,11 +447,11 @@ func (p agentPlugin) state() string {
 	return "outdated"
 }
 
-// ours tells a plugin written to run this Kero's kero command, of this
-// kero or an older one: not another Kero's, as a development build's.
+// ours tells a plugin written to run this Hyla's hyla command, of this
+// hyla or an older one: not another Hyla's, as a development build's.
 func (p agentPlugin) ours() bool {
 	for name := range p.files {
-		if b, err := os.ReadFile(filepath.Join(p.dir, name)); err == nil && bytes.Contains(b, marshal(kero())) {
+		if b, err := os.ReadFile(filepath.Join(p.dir, name)); err == nil && bytes.Contains(b, marshal(hyla())) {
 			return true
 		}
 	}
@@ -482,7 +483,7 @@ func (p agentPlugin) remove() error {
 	return nil
 }
 
-// agentHooks returns what kero installs to hook agents into Kero: for
+// agentHooks returns what hyla installs to hook agents into Hyla: for
 // Claude Code, and for Codex, Pi and OpenCode when they are installed (or
 // named).
 func agentHooks(agent string) []integration {
@@ -507,8 +508,8 @@ func agentHooks(agent string) []integration {
 	}{
 		{"claude", claude, agentHook{"claude", filepath.Join(claude, "settings.json")}},
 		{"codex", codex, agentHook{"codex", filepath.Join(codex, "hooks.json")}},
-		{"pi", pi, agentPlugin{agent: "pi", dir: filepath.Join(pi, "extensions"), files: map[string]string{"kero.ts": "agents/pi.ts"}}},
-		{"opencode", opencode, agentPlugin{agent: "opencode", dir: filepath.Join(opencode, "plugins", "kero"), own: true, files: map[string]string{
+		{"pi", pi, agentPlugin{agent: "pi", dir: filepath.Join(pi, "extensions"), files: map[string]string{"hyla.ts": "agents/pi.ts"}}},
+		{"opencode", opencode, agentPlugin{agent: "opencode", dir: filepath.Join(opencode, "plugins", "hyla"), own: true, files: map[string]string{
 			"package.json": "agents/opencode/package.json", "index.js": "agents/opencode/index.js", "tui.js": "agents/opencode/tui.js",
 		}}},
 	}

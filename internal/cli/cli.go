@@ -1,4 +1,4 @@
-// Package cli is the kero command: sessions driven from a shell or by an
+// Package cli is the hyla command: sessions driven from a shell or by an
 // agent, through the daemon the app shows.
 package cli
 
@@ -20,24 +20,24 @@ import (
 
 	"golang.org/x/term"
 
-	"kero/internal/actions"
-	"kero/internal/build"
-	"kero/internal/client"
-	"kero/internal/proto"
-	"kero/internal/remote"
-	"kero/internal/service"
-	"kero/internal/settings"
-	"kero/internal/update"
+	"hyla/internal/actions"
+	"hyla/internal/build"
+	"hyla/internal/client"
+	"hyla/internal/proto"
+	"hyla/internal/remote"
+	"hyla/internal/service"
+	"hyla/internal/settings"
+	"hyla/internal/update"
 )
 
-const usage = `kero — terminal sessions that keep running, for you and your agents
+const usage = `hyla — terminal sessions that keep running, for you and your agents
 
 Usage:
-  kero                          open the app
-  kero ls [--json]              list sessions and their panes
-      -a, --all                   on this machine and every host of kero
+  hyla                          open the app
+  hyla ls [--json]              list sessions and their panes
+      -a, --all                   on this machine and every host of hyla
                                   hosts, each under the name -H takes
-  kero new [options] [-- cmd…]  start a session, printing its id
+  hyla new [options] [-- cmd…]  start a session, printing its id
       -p, --project <name|id>     project to put it in (default: by directory)
       -n, --name <name>           name it
       -d, --dir <dir>             start it there (default: here)
@@ -47,7 +47,7 @@ Usage:
       --worktree <branch>         in a git worktree of its own, on a new
                                   branch from the default branch
       --base <ref>                the branch to start it from instead
-  kero split [target] [options] [-- cmd…]
+  hyla split [target] [options] [-- cmd…]
                                 start a pane beside a pane, printing its id
       --right (default), --down, --left, --up
       -r, --ratio <0..1>          the new pane's share (default 0.5)
@@ -55,21 +55,21 @@ Usage:
       -w, --wait                  wait for cmd to end, exit with its status
       -u, --url <url>             a browser showing url, not a shell, as
                                   a dev server's page: localhost:3000
-  kero send <target> <text…>    type text into a pane
+  hyla send <target> <text…>    type text into a pane
       -e                          interpret \n \r \t \e \xHH escapes
       --enter                     press Enter after it
-  kero key <target> <key…>      press keys: enter, tab, escape, up, down,
+  hyla key <target> <key…>      press keys: enter, tab, escape, up, down,
                                 left, right, backspace, ctrl+c, ctrl+d, …
-  kero prompt <target> <text…>  send text and Enter, wait until the pane
+  hyla prompt <target> <text…>  send text and Enter, wait until the pane
                                 stops working, then print its screen
-  kero read [target] [-a] [-n lines]
+  hyla read [target] [-a] [-n lines]
                                 print the screen (-a with the scrollback)
-  kero wait [target] [--for idle,waiting,error,exited] [--timeout 10m]
+  hyla wait [target] [--for idle,waiting,error,exited] [--timeout 10m]
                                 wait until the pane stops working (or
                                 reaches one of the statuses), print it
       -x, --exit                  instead wait for the command it started
                                   with to end, exit with its status
-  kero events [target] [-p project] [--for statuses] [--json]
+  hyla events [target] [-p project] [--for statuses] [--json]
                                 print what happens as it does, a line an
                                 event: panes changing status, sessions
                                 and panes starting and closing, renames,
@@ -80,14 +80,14 @@ Usage:
       --once                      exit after the first event (1 if the
                                   target closes or the timeout comes first)
       -t, --timeout <dur>         stop watching after this long
-  kero status [target] [--json]
-  kero diff [target] [--turn | --branch] [path…]
+  hyla status [target] [--json]
+  hyla diff [target] [--turn | --branch] [path…]
                                 the changes in the pane's git worktree, as
                                 git diff prints them: since HEAD, untracked
                                 files too; --turn since its agent last
                                 started working; --branch since it left
                                 the default branch
-  kero browser [target] <command> [args…]
+  hyla browser [target] <command> [args…]
                                 drive a browser pane's page (needs Remote
                                 Control, in Settings › Agents); the target
                                 is a browser pane, or a session, for its
@@ -112,75 +112,75 @@ Usage:
                                   selector
       --domain <domain>           cookies of a site and its subdomains
       -t, --timeout <dur>         how long to wait (default 10s)
-  kero history [query] [-p project] [-n count] [--json]
+  hyla history [query] [-p project] [-n count] [--json]
                                 the agents' conversations panes ran, the
                                 last to run first, to resume
-  kero resume <conversation> [-f]
+  hyla resume <conversation> [-f]
                                 start a session resuming a conversation
                                 (its id, a prefix of it, or its name), or
                                 show the one running it, printing its id
-  kero rename <session> <name>
-  kero focus <target>           show a session (and pane) in the app
-  kero close <target>           end a session (or, given a pane, the pane)
+  hyla rename <session> <name>
+  hyla focus <target>           show a session (and pane) in the app
+  hyla close <target>           end a session (or, given a pane, the pane)
       --remove-worktree           remove the session's own worktree too,
                                   and its branch once merged
       --force                     even if that loses changes or commits
-  kero restart <target>         start an exited pane's shell again
-  kero notify [target] <message>
+  hyla restart <target>         start an exited pane's shell again
+  hyla notify [target] <message>
                                 flag the pane as needing you
-  kero report <state> [message] [--kind k] [--progress n] [--app a] [--id i]
+  hyla report <state> [message] [--kind k] [--progress n] [--app a] [--id i]
                                 report this program's status (OSC 7501):
                                 idle, working, done, blocked, error, clear
-  kero feishu setup|status     drive the sessions from Feishu (kero feishu help)
-  kero do <action> [key=value…]  run an action of the app, as its menus do
+  hyla feishu setup|status     drive the sessions from Feishu (hyla feishu help)
+  hyla do <action> [key=value…]  run an action of the app, as its menus do
                                 (needs Remote Control, in Settings › Agents)
-  kero actions                  list the actions kero do runs
-  kero config path|show|edit|check
+  hyla actions                  list the actions hyla do runs
+  hyla config path|show|edit|check
                                 the configuration file: where it is, every
-                                key with its value (--defaults: as kero
+                                key with its value (--defaults: as hyla
                                 comes), open it in $EDITOR, check it
-  kero projects [--json]
-  kero skill setup|status|show|remove
-                                teach coding agents to use kero
-  kero clients [--json]         list who is connected to kerod
-  kero hosts [ls]               the other machines Kero reaches
-  kero hosts add <name> <address> [--remote-control]
+  hyla projects [--json]
+  hyla skill setup|status|show|remove
+                                teach coding agents to use hyla
+  hyla clients [--json]         list who is connected to hylad
+  hyla hosts [ls]               the other machines Hyla reaches
+  hyla hosts add <name> <address> [--remote-control]
                                 save one: [user@]host or ssh://… over SSH,
                                 wsl://distro, http(s)://… for a listener
-  kero hosts remove|check <name>
-  kero hosts install <name|address> [--version v]
-                                install Kero there, over SSH
-  kero hosts tailcat enable|disable|port|rotate|code
+  hyla hosts remove|check <name>
+  hyla hosts install <name|address> [--version v]
+                                install Hyla there, over SSH
+  hyla hosts tailcat enable|disable|port|rotate|code
                                 this machine as a host over Tailcat, with
                                 a pair code instead of Tailscale (secret)
-  kero pets [ls]                the pets Kero shows (kero pets install --list)
-  kero pets install <pack>      install a Codex pet pack: a .codex-pet.zip,
+  hyla pets [ls]                the pets Hyla shows (hyla pets install --list)
+  hyla pets install <pack>      install a Codex pet pack: a .codex-pet.zip,
                                 or a pet's directory, as ~/.codex/pets has
-                                them; --builtin installs kero's pets
-  kero pets use <name|kero|codex>
+                                them; --builtin installs hyla's pets
+  hyla pets use <name|hyla|codex>
                                 show it on the window's edge; codex shows
                                 the pet the Codex app has active
-  kero pets rm <name>           remove an installed pet
-  kero daemon status|stop|restart|update [version]
-  kero daemon stop --force         kill a kerod that does not stop
-  kero daemon serve [--listen tailnet://:7373]…
-                                run kerod in the foreground, never idle,
+  hyla pets rm <name>           remove an installed pet
+  hyla daemon status|stop|restart|update [version]
+  hyla daemon stop --force         kill a hylad that does not stop
+  hyla daemon serve [--listen tailnet://:7373]…
+                                run hylad in the foreground, never idle,
                                 as a service does
-  kero daemon install-service|uninstall-service
-                                run kerod with the machine (systemd, launchd)
-  kero daemon update [version]  update the server build of Kero
+  hyla daemon install-service|uninstall-service
+                                run hylad with the machine (systemd, launchd)
+  hyla daemon update [version]  update the server build of Hyla
 
 Global options:
-  -H, --host <name|address>     act on kerod on another machine: a host of
-                                kero hosts, or an address ($KERO_HOST)
+  -H, --host <name|address>     act on hylad on another machine: a host of
+                                hyla hosts, or an address ($HYLA_HOST)
 
 A target is a session or a pane: an id, a prefix of it, or a session's
-name; a session stands for its focused pane. Inside kero, $KERO_PANE and
-$KERO_SESSION name the pane and session a command runs in, the default
+name; a session stands for its focused pane. Inside hyla, $HYLA_PANE and
+$HYLA_SESSION name the pane and session a command runs in, the default
 target.
 
 Exit status: 0 ok, 1 failed, 2 bad usage, 3 no such target (or an
-ambiguous one), 4 kerod unreachable.
+ambiguous one), 4 hylad unreachable.
 `
 
 // Commands lists the subcommands, which main sends here.
@@ -201,7 +201,7 @@ var (
 	errUnreachable = errors.New("unreachable")
 )
 
-// exitStatus is a waited-for program's exit status, which kero exits
+// exitStatus is a waited-for program's exit status, which hyla exits
 // with.
 type exitStatus int
 
@@ -212,12 +212,12 @@ func Run(args []string) int {
 	SyncSkill()
 	host, env, args, err := splitHost(args)
 	if err == nil && host != "" && len(args) > 0 && localOnly[args[0]] {
-		// $KERO_HOST is for what acts on sessions: the rest is of this
+		// $HYLA_HOST is for what acts on sessions: the rest is of this
 		// machine, as an agent's hook in a shell whose profile sets it.
 		if env {
 			host = ""
 		} else {
-			err = usageErr("kero %s is of this machine: run it on the host itself, without -H", args[0])
+			err = usageErr("hyla %s is of this machine: run it on the host itself, without -H", args[0])
 		}
 	}
 	if err == nil {
@@ -231,7 +231,7 @@ func Run(args []string) int {
 	if errors.As(err, &es) {
 		return int(es)
 	}
-	fmt.Fprintln(os.Stderr, "kero:", err)
+	fmt.Fprintln(os.Stderr, "hyla:", err)
 	switch {
 	case errors.Is(err, errUsage):
 		return 2
@@ -300,7 +300,7 @@ func run(args []string, host string) error {
 		u := usage
 		if build.Server {
 			// No app to open.
-			u = strings.Replace(u, "  kero                          open the app\n", "", 1)
+			u = strings.Replace(u, "  hyla                          open the app\n", "", 1)
 		}
 		fmt.Print(u)
 		return nil
@@ -344,7 +344,7 @@ func run(args []string, host string) error {
 	c, done, err := connect(host)
 	if err != nil {
 		if errors.Is(err, client.ErrVersion) {
-			return fmt.Errorf("%w: the running kerod is of another version: run `kero daemon restart` (it restarts sessions)", errUnreachable)
+			return fmt.Errorf("%w: the running hylad is of another version: run `hyla daemon restart` (it restarts sessions)", errUnreachable)
 		}
 		if errors.Is(err, errUnreachable) || errors.Is(err, errNotFound) {
 			return err
@@ -403,16 +403,16 @@ func run(args []string, host string) error {
 		}
 		command := append(f.pos, f.rest...)
 		if f.set["wait"] && len(command) == 0 {
-			return usageErr("kero new --wait needs a command: kero new --wait -- cmd…")
+			return usageErr("hyla new --wait needs a command: hyla new --wait -- cmd…")
 		}
 		if f.vals["url"] != "" && (len(command) > 0 || f.set["wait"]) {
-			return usageErr("kero new --url shows a page, and runs no command")
+			return usageErr("hyla new --url shows a page, and runs no command")
 		}
 		if f.vals["base"] != "" && f.vals["worktree"] == "" {
-			return usageErr("kero new --base starts a --worktree's branch")
+			return usageErr("hyla new --base starts a --worktree's branch")
 		}
 		dir := f.vals["dir"]
-		// Here, unless the session is of another machine, whose kerod
+		// Here, unless the session is of another machine, whose hylad
 		// then starts it in the project's directory, or the home.
 		if dir == "" && f.vals["project"] == "" && host == "" {
 			dir, _ = os.Getwd()
@@ -420,7 +420,7 @@ func run(args []string, host string) error {
 		var s proto.Session
 		if err := c.Call("create", proto.CreateParams{
 			Project: f.vals["project"], Name: f.vals["name"], Dir: dir, Command: command, URL: f.vals["url"],
-			After: os.Getenv("KERO_SESSION"), Worktree: f.vals["worktree"], Base: f.vals["base"],
+			After: os.Getenv("HYLA_SESSION"), Worktree: f.vals["worktree"], Base: f.vals["base"],
 		}, &s); err != nil {
 			return err
 		}
@@ -458,10 +458,10 @@ func run(args []string, host string) error {
 		ratio, _ := strconv.ParseFloat(f.vals["ratio"], 64)
 		command := append(f.pos[min(1, len(f.pos)):], f.rest...)
 		if f.set["wait"] && len(command) == 0 {
-			return usageErr("kero split --wait needs a command: kero split --wait -- cmd…")
+			return usageErr("hyla split --wait needs a command: hyla split --wait -- cmd…")
 		}
 		if f.vals["url"] != "" && (len(command) > 0 || f.set["wait"]) {
-			return usageErr("kero split --url shows a page, and runs no command")
+			return usageErr("hyla split --url shows a page, and runs no command")
 		}
 		var s proto.Session
 		if err := c.Call("split", proto.CreateParams{Split: t.ref(), Direction: dir, Ratio: ratio,
@@ -490,7 +490,7 @@ func run(args []string, host string) error {
 			return err
 		}
 		if len(f.pos) < 1 {
-			return usageErr("kero %s <target> <text…>", cmd)
+			return usageErr("hyla %s <target> <text…>", cmd)
 		}
 		t, err := find(st, f.pos[0])
 		if err != nil {
@@ -540,7 +540,7 @@ func run(args []string, host string) error {
 
 	case "key":
 		if len(args) < 2 {
-			return usageErr("kero key <target> <key…>")
+			return usageErr("hyla key <target> <key…>")
 		}
 		t, err := find(st, args[0])
 		if err != nil {
@@ -584,7 +584,7 @@ func run(args []string, host string) error {
 		}
 		if f.set["exit"] {
 			if f.vals["for"] != "" {
-				return usageErr("kero wait: --exit or --for, not both")
+				return usageErr("hyla wait: --exit or --for, not both")
 			}
 			return waitExit(c, t.ref(), f.vals["timeout"])
 		}
@@ -647,7 +647,7 @@ func run(args []string, host string) error {
 			return err
 		}
 		if f.set["turn"] && f.set["branch"] {
-			return usageErr("kero diff: --turn or --branch, not both")
+			return usageErr("hyla diff: --turn or --branch, not both")
 		}
 		// A target first, unless it names none: then every argument is a
 		// path, of the pane the command runs in.
@@ -704,7 +704,7 @@ func run(args []string, host string) error {
 		n := 20
 		if v := f.vals["count"]; v != "" {
 			if n, err = strconv.Atoi(v); err != nil || n < 0 {
-				return usageErr("kero history -n takes a count")
+				return usageErr("hyla history -n takes a count")
 			}
 		}
 		if n > 0 && len(list) > n && !f.set["json"] {
@@ -722,7 +722,7 @@ func run(args []string, host string) error {
 			return err
 		}
 		if len(f.pos) == 0 {
-			return usageErr("kero resume <conversation> (see kero history)")
+			return usageErr("hyla resume <conversation> (see hyla history)")
 		}
 		list, err := conversations(c, st, "", "")
 		if err != nil {
@@ -733,7 +733,7 @@ func run(args []string, host string) error {
 			return err
 		}
 		var s proto.Session
-		if err := c.Call("conversation.resume", proto.ConversationParams{Agent: conv.Agent, ID: conv.ID, After: os.Getenv("KERO_SESSION")}, &s); err != nil {
+		if err := c.Call("conversation.resume", proto.ConversationParams{Agent: conv.Agent, ID: conv.ID, After: os.Getenv("HYLA_SESSION")}, &s); err != nil {
 			return err
 		}
 		if f.set["focus"] {
@@ -747,17 +747,17 @@ func run(args []string, host string) error {
 
 	case "rename":
 		if len(args) < 2 {
-			return usageErr("kero rename <session> <name>")
+			return usageErr("hyla rename <session> <name>")
 		}
 		t, err := find(st, args[0])
 		if err != nil {
 			return err
 		}
-		return c.Call("rename", proto.RenameParams{ID: t.s.ID, Name: strings.Join(args[1:], " "), By: os.Getenv("KERO_PANE")}, nil)
+		return c.Call("rename", proto.RenameParams{ID: t.s.ID, Name: strings.Join(args[1:], " "), By: os.Getenv("HYLA_PANE")}, nil)
 
 	case "focus":
 		if len(args) < 1 {
-			return usageErr("kero focus <target>")
+			return usageErr("hyla focus <target>")
 		}
 		t, err := find(st, args[0])
 		if err != nil {
@@ -778,7 +778,7 @@ func run(args []string, host string) error {
 			return err
 		}
 		if len(f.pos) < 1 {
-			return usageErr("kero %s <target>", cmd)
+			return usageErr("hyla %s <target>", cmd)
 		}
 		t, err := find(st, f.pos[0])
 		if err != nil {
@@ -798,11 +798,11 @@ func run(args []string, host string) error {
 
 	case "do":
 		if len(args) < 1 {
-			return usageErr("kero do <action> [key=value…] (see kero actions)")
+			return usageErr("hyla do <action> [key=value…] (see hyla actions)")
 		}
 		a, ok := actions.Find(args[0])
 		if !ok || !a.Remote {
-			return fmt.Errorf("%w: no action %q (see kero actions)", errNotFound, args[0])
+			return fmt.Errorf("%w: no action %q (see hyla actions)", errNotFound, args[0])
 		}
 		kv := map[string]string{}
 		for _, arg := range args[1:] {
@@ -834,7 +834,7 @@ func run(args []string, host string) error {
 			ref = current()
 		}
 		if ref == "" {
-			return usageErr("which pane? run it in Kero, or give --session")
+			return usageErr("which pane? run it in Hyla, or give --session")
 		}
 		t, err := find(st, ref)
 		if err != nil {
@@ -842,7 +842,7 @@ func run(args []string, host string) error {
 		}
 		return c.Call("notify", proto.NotifyParams{ID: t.ref(), Title: f.vals["title"], Body: strings.Join(append(f.pos, f.rest...), " ")}, nil)
 	}
-	return usageErr("unknown command %q (see kero help)", cmd)
+	return usageErr("unknown command %q (see hyla help)", cmd)
 }
 
 // target is what a command acts on: a session, or one of its panes.
@@ -895,7 +895,7 @@ func find(st proto.State, ref string) (target, error) {
 	return target{}, fmt.Errorf("%w: %q names several: %s", errNotFound, ref, strings.Join(ids, ", "))
 }
 
-// diffPane is the pane whose worktree kero diff shows: the target's, or
+// diffPane is the pane whose worktree hyla diff shows: the target's, or
 // for a turn, the pane of its session whose agent started one, the
 // target first.
 func diffPane(t target, turn bool) *proto.Pane {
@@ -947,16 +947,16 @@ func repoPath(root, p string, remote bool) (string, error) {
 	return filepath.ToSlash(rel), nil
 }
 
-// current is the pane a command runs in, inside kero.
+// current is the pane a command runs in, inside hyla.
 func current() string {
 	// A pane of this machine names nothing on another.
 	if onHost != "" {
 		return ""
 	}
-	if p := os.Getenv("KERO_PANE"); p != "" {
+	if p := os.Getenv("HYLA_PANE"); p != "" {
 		return p
 	}
-	return os.Getenv("KERO_SESSION")
+	return os.Getenv("HYLA_SESSION")
 }
 
 func findOrCurrent(st proto.State, pos []string) (target, error) {
@@ -966,7 +966,7 @@ func findOrCurrent(st proto.State, pos []string) (target, error) {
 	if ref := current(); ref != "" {
 		return find(st, ref)
 	}
-	return target{}, usageErr("which session? (outside kero, name one)")
+	return target{}, usageErr("which session? (outside hyla, name one)")
 }
 
 func daemonCmd(args []string, host string) error {
@@ -982,7 +982,7 @@ func daemonCmd(args []string, host string) error {
 		svc := service.Get()
 		c, err := client.Connect(true)
 		if err != nil {
-			fmt.Println("kerod is not running")
+			fmt.Println("hylad is not running")
 		} else {
 			defer c.Close()
 			var st proto.State
@@ -991,10 +991,10 @@ func daemonCmd(args []string, host string) error {
 			for _, s := range st.Sessions {
 				panes += len(s.Panes)
 			}
-			fmt.Printf("kerod %d running (Kero %s, pid %d) for %s: %d sessions, %d panes\n", c.Welcome.Version, orDash(c.Welcome.App), c.Welcome.PID,
+			fmt.Printf("hylad %d running (Hyla %s, pid %d) for %s: %d sessions, %d panes\n", c.Welcome.Version, orDash(c.Welcome.App), c.Welcome.PID,
 				time.Since(time.UnixMilli(c.Welcome.Started)).Round(time.Second), len(st.Sessions), panes)
 			if client.Settle(c.Welcome) {
-				fmt.Println("  an older Kero's kerod runs too: the app stops it as it connects, so that the two do not stop each other")
+				fmt.Println("  an older Hyla's hylad runs too: the app stops it as it connects, so that the two do not stop each other")
 			}
 		}
 		fmt.Println("socket:", proto.SocketPath())
@@ -1007,8 +1007,8 @@ func daemonCmd(args []string, host string) error {
 		if l := settings.Load().Listen; len(l) > 0 {
 			fmt.Println("listening:", strings.Join(l, ", "))
 		}
-		// A tailcat listener's address, as kerod's key makes it: a pair
-		// code only it knows, here or on another machine's kerod.
+		// A tailcat listener's address, as hylad's key makes it: a pair
+		// code only it knows, here or on another machine's hylad.
 		if (c.Remote != nil && c.Remote.Addr.Scheme == "tailcat") || slices.ContainsFunc(settings.Load().Listen, func(l string) bool {
 			spec, err := remote.ParseListen(l)
 			return err == nil && spec.Kind == "tailcat"
@@ -1019,7 +1019,7 @@ func daemonCmd(args []string, host string) error {
 			if c.Remote != nil {
 				code, err = c.PairCode(ctx)
 			} else {
-				// Over the socket: the key makes it, as kerod's does.
+				// Over the socket: the key makes it, as hylad's does.
 				code, err = remote.LocalTailcatAddress(ctx)
 			}
 			cancel()
@@ -1035,8 +1035,8 @@ func daemonCmd(args []string, host string) error {
 		if err != nil {
 			return err
 		}
-		// A kerod settles before the next starts: the two stop each other,
-		// and an older Kero too would start the next.
+		// A hylad settles before the next starts: the two stop each other,
+		// and an older Hyla too would start the next.
 		settle := func() {
 			c, err := client.Connect(true)
 			if err != nil {
@@ -1047,14 +1047,14 @@ func daemonCmd(args []string, host string) error {
 			if old {
 				client.SettleStop(pid)
 			} else {
-				// The kerod is this version's: it stays stopped until a
+				// The hylad is this version's: it stays stopped until a
 				// connection starts it.
 				time.Sleep(time.Second)
 			}
 		}
 		settle()
 		// The service's manager stops and restarts it, but Task
-		// Scheduler, whose kerod stops as any, and starts with the task.
+		// Scheduler, whose hylad stops as any, and starts with the task.
 		if service.Installed() && !f.set["force"] {
 			var err error
 			if sub == "stop" {
@@ -1064,7 +1064,7 @@ func daemonCmd(args []string, host string) error {
 			}
 			if !errors.Is(err, service.ErrUnsupported) {
 				if err == nil && sub == "restart" {
-					fmt.Println("kerod restarted")
+					fmt.Println("hylad restarted")
 				}
 				return err
 			}
@@ -1074,7 +1074,7 @@ func daemonCmd(args []string, host string) error {
 		}
 		if sub == "restart" {
 			settle()
-			fmt.Println("kerod restarted")
+			fmt.Println("hylad restarted")
 		}
 		return nil
 	case "serve":
@@ -1092,27 +1092,27 @@ func daemonCmd(args []string, host string) error {
 			exe = real
 		}
 		// A user's services stop as they log out, unless they linger: a
-		// service would then end kerod as an SSH bridge does, which a kerod
+		// service would then end hylad as an SSH bridge does, which a hylad
 		// of its own outlives. --no-linger takes it as it is.
 		if !f.set["no-linger"] {
 			if err := service.EnableLinger(); err != nil {
-				return fmt.Errorf("%v; without it kerod would stop as you log out (kero daemon install-service --no-linger installs it all the same)", err)
+				return fmt.Errorf("%v; without it hylad would stop as you log out (hyla daemon install-service --no-linger installs it all the same)", err)
 			}
 		}
 		if err := service.Install(exe, StopDaemon); err != nil {
 			return err
 		}
-		fmt.Printf("kerod runs as a service: %s\n", service.Get().File)
+		fmt.Printf("hylad runs as a service: %s\n", service.Get().File)
 		return nil
 	case "uninstall-service":
 		if err := service.Uninstall(); err != nil {
 			return err
 		}
-		fmt.Println("kerod no longer runs as a service: the app, or a bridge, starts it")
+		fmt.Println("hylad no longer runs as a service: the app, or a bridge, starts it")
 		return nil
 	case "update":
 		if !build.Server {
-			return errors.New("this is Kero's desktop app, which updates itself: kero daemon update is of the server build")
+			return errors.New("this is Hyla's desktop app, which updates itself: hyla daemon update is of the server build")
 		}
 		version := ""
 		if len(args) > 1 {
@@ -1128,21 +1128,21 @@ func daemonCmd(args []string, host string) error {
 			version = v
 		}
 		if strings.TrimPrefix(version, "v") == build.Version() {
-			fmt.Printf("Kero %s is installed\n", build.Version())
+			fmt.Printf("Hyla %s is installed\n", build.Version())
 			return nil
 		}
 		// A version named is the user's to go back to.
 		if err := update.Install(ctx, version, update.InstallDir(), build.Version(), len(args) > 1); err != nil {
 			return err
 		}
-		fmt.Printf("installed Kero %s: kerod runs it as it restarts (kero daemon restart), its sessions with it\n", strings.TrimPrefix(version, "v"))
+		fmt.Printf("installed Hyla %s: hylad runs it as it restarts (hyla daemon restart), its sessions with it\n", strings.TrimPrefix(version, "v"))
 		return nil
 	}
 	return usageErr("unknown daemon command %q", sub)
 }
 
-// remoteDaemonCmd is kero -H <host> daemon …: how kerod on the host is,
-// and restarting it, or updating Kero there, as the app does.
+// remoteDaemonCmd is hyla -H <host> daemon …: how hylad on the host is,
+// and restarting it, or updating Hyla there, as the app does.
 func remoteDaemonCmd(sub string, args []string, host string) error {
 	rc, err := dialHost(host)
 	if err != nil {
@@ -1154,23 +1154,23 @@ func remoteDaemonCmd(sub string, args []string, host string) error {
 	switch sub {
 	case "status":
 		h := rc.Welcome.Host
-		fmt.Printf("%s: %s (%s/%s), Kero %s (protocol %d)\n", host, h.Hostname, h.OS, h.Arch, orDash(h.Kero), h.Version)
+		fmt.Printf("%s: %s (%s/%s), Hyla %s (protocol %d)\n", host, h.Hostname, h.OS, h.Arch, orDash(h.Hyla), h.Version)
 		c, err := client.ConnectVia(rc)
 		if err != nil {
-			fmt.Println("kerod:", err)
+			fmt.Println("hylad:", err)
 			return nil
 		}
 		defer c.Close()
 		var st proto.State
 		c.Call("state", nil, &st)
-		fmt.Printf("kerod %d running (Kero %s, pid %d) for %s: %d sessions\n", c.Welcome.Version, orDash(c.Welcome.App), c.Welcome.PID,
+		fmt.Printf("hylad %d running (Hyla %s, pid %d) for %s: %d sessions\n", c.Welcome.Version, orDash(c.Welcome.App), c.Welcome.PID,
 			time.Since(time.UnixMilli(c.Welcome.Started)).Round(time.Second), len(st.Sessions))
 		return nil
 	case "restart":
 		if err := rc.Host(ctx, proto.HostRequest{Kind: proto.KindRestart}); err != nil {
 			return err
 		}
-		fmt.Printf("kerod on %s restarted\n", host)
+		fmt.Printf("hylad on %s restarted\n", host)
 		return nil
 	case "update":
 		version := releasedVersion()
@@ -1184,27 +1184,27 @@ func remoteDaemonCmd(sub string, args []string, host string) error {
 			}
 			version = v
 		}
-		fmt.Printf("updating Kero on %s to %s…\n", host, version)
+		fmt.Printf("updating Hyla on %s to %s…\n", host, version)
 		if err := rc.Host(ctx, proto.HostRequest{Kind: proto.KindUpdate, App: version}); err != nil {
 			return err
 		}
-		fmt.Printf("installed: kerod on %s runs it as it restarts (kero -H %s daemon restart), its sessions with it\n", host, host)
+		fmt.Printf("installed: hylad on %s runs it as it restarts (hyla -H %s daemon restart), its sessions with it\n", host, host)
 		return nil
 	}
-	return usageErr("kero -H <host> daemon status|restart|update [version]")
+	return usageErr("hyla -H <host> daemon status|restart|update [version]")
 }
 
 // StopDaemon stops the running daemon, which saves its sessions to start
 // them again, whatever its version: one that does not answer is killed.
 func StopDaemon() error { return client.Stop(false) }
 
-// conversations lists the conversations kerod remembers, of a project
+// conversations lists the conversations hylad remembers, of a project
 // (by id or name) when one is named, matching query when there is one.
 func conversations(c *client.Client, st proto.State, project, query string) ([]proto.Conversation, error) {
 	var list []proto.Conversation
 	if err := c.Call("conversations", nil, &list); err != nil {
 		if strings.Contains(err.Error(), "unknown method") {
-			return nil, errors.New("this kerod remembers no conversations: update it, or run `kero daemon restart`")
+			return nil, errors.New("this hylad remembers no conversations: update it, or run `hyla daemon restart`")
 		}
 		return nil, err
 	}
@@ -1247,16 +1247,16 @@ func findConversation(list []proto.Conversation, ref string) (proto.Conversation
 	}
 	switch len(found) {
 	case 0:
-		return proto.Conversation{}, fmt.Errorf("%w: no conversation %q (see kero history)", errNotFound, ref)
+		return proto.Conversation{}, fmt.Errorf("%w: no conversation %q (see hyla history)", errNotFound, ref)
 	case 1:
 		return found[0], nil
 	}
-	return proto.Conversation{}, fmt.Errorf("%q could be %d conversations: give more of its id (see kero history)", ref, len(found))
+	return proto.Conversation{}, fmt.Errorf("%q could be %d conversations: give more of its id (see hyla history)", ref, len(found))
 }
 
 func listConversations(st proto.State, list []proto.Conversation) {
 	if len(list) == 0 {
-		fmt.Println("no conversations yet (agents' conversations show here once Kero's skill is set up: kero skill setup)")
+		fmt.Println("no conversations yet (agents' conversations show here once Hyla's skill is set up: hyla skill setup)")
 		return
 	}
 	names := map[string]string{}
@@ -1278,7 +1278,7 @@ func listConversations(st proto.State, list []proto.Conversation) {
 
 func listSessions(st proto.State) {
 	if len(st.Sessions) == 0 {
-		fmt.Println("no sessions (start one with kero new)")
+		fmt.Println("no sessions (start one with hyla new)")
 		return
 	}
 	names := map[string]string{}
@@ -1356,7 +1356,7 @@ func printJSON(v any) error {
 	return enc.Encode(v)
 }
 
-// keys are the names kero key takes, as the bytes a terminal sends.
+// keys are the names hyla key takes, as the bytes a terminal sends.
 var keys = map[string]string{
 	"enter": "\r", "return": "\r", "tab": "\t", "escape": "\x1b", "esc": "\x1b", "space": " ",
 	"backspace": "\x7f", "delete": "\x1b[3~", "up": "\x1b[A", "down": "\x1b[B", "right": "\x1b[C",
@@ -1413,7 +1413,7 @@ func waitExit(c *client.Client, pane, timeout string) error {
 }
 
 // report writes an OSC 7501 report of the program's status to the
-// terminal, as a script reports what it does: kero shows it, and so do
+// terminal, as a script reports what it does: hyla shows it, and so do
 // other terminals that read the protocol.
 func report(args []string) error {
 	f, err := parse(args, map[string]string{"kind": "kind", "progress": "progress", "app": "app", "id": "id", "title": "title"}, nil)
@@ -1421,7 +1421,7 @@ func report(args []string) error {
 		return err
 	}
 	if len(f.pos) < 1 {
-		return usageErr("kero report <idle|working|done|blocked|error|clear> [message]")
+		return usageErr("hyla report <idle|working|done|blocked|error|clear> [message]")
 	}
 	state := f.pos[0]
 	if !slices.Contains([]string{"idle", "working", "done", "blocked", "error", "clear"}, state) {
@@ -1448,11 +1448,11 @@ func report(args []string) error {
 		return err
 	}
 	// No terminal, as under an agent's shell tool, which captures the
-	// output: in Kero, kerod takes the report for the pane instead.
+	// output: in Hyla, hylad takes the report for the pane instead.
 	if pane := current(); pane != "" && !term.IsTerminal(int(os.Stdout.Fd())) {
 		c, err := client.Connect(true)
 		if err != nil {
-			return fmt.Errorf("no terminal to report to, and kerod: %w", err)
+			return fmt.Errorf("no terminal to report to, and hylad: %w", err)
 		}
 		defer c.Close()
 		return c.Call("pane.report", proto.ReportParams{ID: pane, Report: body}, nil)

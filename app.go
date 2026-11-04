@@ -22,27 +22,27 @@ import (
 	"github.com/egoist/mygo/transfer"
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/actions"
-	"kero/internal/client"
-	"kero/internal/pets"
-	"kero/internal/proto"
-	"kero/internal/settings"
+	"hyla/internal/actions"
+	"hyla/internal/client"
+	"hyla/internal/pets"
+	"hyla/internal/proto"
+	"hyla/internal/settings"
 
-	"kero/locales"
+	"hyla/locales"
 )
 
-// connState is how the app stands with kerod.
+// connState is how the app stands with hylad.
 type connState int
 
 const (
 	connConnecting connState = iota
 	connReady
-	connVersion // kerod of another version runs
+	connVersion // hylad of another version runs
 	connFailed
 )
 
 // prefs are what the app remembers between runs; the sessions themselves
-// are kerod's.
+// are hylad's.
 type prefs struct {
 	Selected      string          `json:"selected,omitempty"`
 	SidebarWidth  float32         `json:"sidebarWidth,omitempty"`
@@ -83,7 +83,7 @@ const (
 	maxTerms       = 12 // terminals kept attached, most recently shown
 )
 
-// termEntry is a session's terminal in the app: attached to kerod, which
+// termEntry is a session's terminal in the app: attached to hylad, which
 // streams the session to it.
 type termEntry struct {
 	term    *terminal.Terminal
@@ -101,7 +101,7 @@ type App struct {
 	winOpen bool
 	tray    *mygo.Tray // the icon in the menu bar or notification area, while it shows
 
-	// hosts are the kerods the app shows, this machine's first; st is
+	// hosts are the hylads the app shows, this machine's first; st is
 	// what they hold, each host's sessions and projects after the one's
 	// before, and owner the host of each session, pane and project.
 	hosts  []*host
@@ -132,7 +132,7 @@ type App struct {
 	active   bool
 	focused  bool
 	statuses map[string]proto.Status // as last seen, for notifications
-	pet      petState                // Kero the frog, on the window's top edge
+	pet      petState                // Hyla the frog, on the window's top edge
 	petSet   *petSet                 // the Codex pet it shows where it is no frog
 	// petList is the pets the settings may show, read for the pet chosen
 	// in petListFor, as petsGen counted installations.
@@ -156,7 +156,7 @@ type App struct {
 	confirm *confirmation
 	wtAsk   *worktreeAsk
 	// endedAll shows all of the sidebar's Ended; skillMissing tells, as
-	// of skillsAt, that no kind of agent has Kero's skill (ended.go).
+	// of skillsAt, that no kind of agent has Hyla's skill (ended.go).
 	// This fork has no Ended (session history): the fields stay for
 	// ended.go's view, which nothing shows.
 	endedAll     bool
@@ -185,7 +185,7 @@ type App struct {
 	arrived      map[string]bool
 	copyText     string
 	peek         peek // the image a path Command hovers shows
-	// from is the host whose program asked for the action being run (kero
+	// from is the host whose program asked for the action being run (hyla
 	// do), nil for the user's.
 	from   *host
 	picker folderPicker // the folders of a host, to open a project in
@@ -300,7 +300,7 @@ func (a *App) event(h *host, cl *client.Client, m proto.Message) {
 		if !a.remoteControl(h) || a.hostOf(m.Select) != h {
 			return
 		}
-		// In the pane kerod has it focus, as kero focus <pane> asks: the
+		// In the pane hylad has it focus, as hyla focus <pane> asks: the
 		// state with it came just before.
 		if s := a.session(m.Select); s != nil && s.PaneByID(s.Focus) != nil {
 			a.focus[s.ID] = s.Focus
@@ -319,7 +319,7 @@ func (a *App) event(h *host, cl *client.Client, m proto.Message) {
 			a.from = nil
 		}
 	case "browser":
-		// kero browser waits on the answer, which refuses when Remote
+		// hyla browser waits on the answer, which refuses when Remote
 		// Control is off, not as an action does, silently.
 		if r := m.Browser; r != nil {
 			a.browse(h, r, func(res *proto.BrowserResult, err error) {
@@ -481,7 +481,7 @@ func (a *App) updateTitle() {
 	if a.win == nil {
 		return
 	}
-	title := "Kero"
+	title := "Hyla"
 	if s := a.session(a.selected); s != nil {
 		title = a.hostedName(s)
 	}
@@ -808,7 +808,7 @@ func (a *App) watching(id string) bool {
 	return id != "" && id == a.selected && a.active && a.focused
 }
 
-// reportView tells each host's kerod which of its sessions the user looks
+// reportView tells each host's hylad which of its sessions the user looks
 // at, which it then never marks unread.
 func (a *App) reportView() {
 	shown := a.selectedHost()
@@ -890,9 +890,9 @@ func (a *App) ensureTerm(id string) {
 		}
 		g := &gated{Stream: stream, ready: make(chan struct{})}
 		o := a.termOptions(id, g)
-		// The terminal shows kerod's frames: kerod's terminal is the
+		// The terminal shows hylad's frames: hylad's terminal is the
 		// session's, ours shows what it shows, cell for cell, and lays out
-		// nothing of the program's own. It takes the sizes kerod's does,
+		// nothing of the program's own. It takes the sizes hylad's does,
 		// between the frames of one size and the next.
 		o.ResizeByConn = true
 		term, err := terminal.New(o)
@@ -988,10 +988,10 @@ func (a *App) termFont() terminal.Font {
 }
 
 // termThemes returns the terminal's colors in light and dark windows:
-// kero's, on the card's color, or a Ghostty theme of the user's choice.
+// hyla's, on the card's color, or a Ghostty theme of the user's choice.
 func (a *App) termThemes() (light, dark *terminal.Theme) {
 	pick := func(name string, def *terminal.Theme) *terminal.Theme {
-		if name == "" || name == "kero" {
+		if name == "" || name == "hyla" {
 			return def
 		}
 		if t, err := terminal.GhosttyTheme(name); err == nil {
@@ -1033,7 +1033,7 @@ func (a *App) termOptions(id string, conn *gated) terminal.Options {
 		// theme's light grays on a light one, stays legible.
 		MinimumContrast:  a.set.MinContrast,
 		ScrollMultiplier: terminal.ScrollMultiplier{Precision: a.set.ScrollPrecision, Discrete: a.set.ScrollDiscrete},
-		// The scrollback-limit kerod's copy keeps, never the terminal's
+		// The scrollback-limit hylad's copy keeps, never the terminal's
 		// default, 10 MB, which would keep more here than there.
 		Scrollback: a.set.ScrollbackBytes(),
 		// Every terminal zooms together, and the size is remembered.
@@ -1041,8 +1041,8 @@ func (a *App) termOptions(id string, conn *gated) terminal.Options {
 			a.zoom(z.Steps, z.Reset)
 			return true
 		},
-		// ⌘K and the context menu's Clear clear kerod's terminal, the
-		// session's: cleared here alone, kerod's next frames, drawn from a
+		// ⌘K and the context menu's Clear clear hylad's terminal, the
+		// session's: cleared here alone, hylad's next frames, drawn from a
 		// screen still full, would put rows back wrong.
 		OnClear: func(terminal.Clear) bool {
 			conn.Clear(proto.ClearScreen)
@@ -1120,7 +1120,7 @@ func (a *App) applySettings(s settings.Settings) {
 	a.rememberEnv()
 }
 
-// rememberEnv keeps this window's environment, which kerod runs the
+// rememberEnv keeps this window's environment, which hylad runs the
 // bot's commands in: launchd starts it with the system's PATH, and none
 // of the account's variables, the providers' settings among them. The
 // settings' save, as the app starts and as each of them changes, reads
@@ -1419,13 +1419,13 @@ func (a *App) workDir(id string) string {
 
 // --- actions ---
 
-// call calls a method of the kerod that has id: a session's, a pane's or
+// call calls a method of the hylad that has id: a session's, a pane's or
 // a project's, toasting a failure unless done takes it.
 func (a *App) call(id, method string, params any, done func(err error)) {
 	a.callOn(a.hostOf(id), method, params, done)
 }
 
-// callOn calls a method of a host's kerod.
+// callOn calls a method of a host's hylad.
 func (a *App) callOn(h *host, method string, params any, done func(err error)) {
 	if h.cl == nil {
 		// What the app showed at once comes back as the host does: say so.
@@ -1481,7 +1481,7 @@ func (a *App) newSessionOn(h *host, projectID string) {
 	}
 	home := proto.Home()
 	if h.remote() {
-		home = "~" // the host's, as kerod there takes it
+		home = "~" // the host's, as hylad there takes it
 	}
 	if a.set.NewSessionDir == "home" {
 		p.Dir = home
@@ -1852,7 +1852,7 @@ func (a *App) bringToFront() {
 	a.win.Focus()
 }
 
-// quitEndsSession ends this machine's sessions without kerod to ask, as
+// quitEndsSession ends this machine's sessions without hylad to ask, as
 // when the app quits before it connects: the quit-ends-sessions the user
 // chose then takes the sessions' state, so that none starts again.
 func (a *App) quitEndsSession() {
@@ -1875,12 +1875,12 @@ func (a *App) hostsLoaded() bool {
 	return true
 }
 
-// daemonStale reports whether kerod runs another version of Kero than
+// daemonStale reports whether hylad runs another version of Hyla than
 // this one, as after an update: it speaks the protocol, but runs the code
 // of before until it restarts.
 func (a *App) daemonStale() bool { return a.local().stale() }
 
-// offerRestart restarts kerod into this version of Kero, asking first
+// offerRestart restarts hylad into this version of Hyla, asking first
 // while programs run in sessions, as the restart ends them.
 func (a *App) offerRestart() {
 	h := a.local()
@@ -1904,7 +1904,7 @@ func (a *App) offerRestart() {
 }
 
 // busyCount counts a host's sessions whose programs a restart of its
-// kerod would end.
+// hylad would end.
 func (a *App) busyCount(h *host) int {
 	n := 0
 	for _, s := range a.sessionsOf(h) {
@@ -1923,7 +1923,7 @@ func (a *App) restartFeishu() {
 	a.callOn(a.local(), "feishu.restart", p, nil)
 }
 
-// restartDaemon restarts this machine's kerod, as when it is of another
+// restartDaemon restarts this machine's hylad, as when it is of another
 // version: its sessions start again where they were, with their
 // scrollback.
 func (a *App) restartDaemon() {
@@ -1941,7 +1941,7 @@ func (a *App) restartDaemon() {
 	}()
 }
 
-// quitAndEnd ends every session of this machine, and its kerod, then
+// quitAndEnd ends every session of this machine, and its hylad, then
 // quits: other machines' keep running.
 func (a *App) quitAndEnd() {
 	n := len(a.sessionsOf(a.local()))
@@ -1956,7 +1956,7 @@ func (a *App) quitAndEnd() {
 	}
 }
 
-// endSessionsAndQuit ends every session of this machine, and its kerod,
+// endSessionsAndQuit ends every session of this machine, and its hylad,
 // then quits: other machines' keep running. A shutdown that takes a
 // while is the daemon's to finish, as it is for Quit and End All
 // Sessions: the app does not wait on it.
@@ -1967,7 +1967,7 @@ func (a *App) endSessionsAndQuit() {
 		if cl == nil {
 			a.quitEndsSession()
 		} else if cl.Call("shutdown", nil, nil) != nil {
-			// kerod went before it answered, or speaks another version:
+			// hylad went before it answered, or speaks another version:
 			// stop the one this machine runs.
 			stopDaemon()
 		}

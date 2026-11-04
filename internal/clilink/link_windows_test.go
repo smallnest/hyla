@@ -30,7 +30,7 @@ func TestLinkMakesConsoleCopy(t *testing.T) {
 	if err := Link(exe, bin); err != nil {
 		t.Fatal(err)
 	}
-	out, err := os.ReadFile(filepath.Join(bin, "kero.exe"))
+	out, err := os.ReadFile(filepath.Join(bin, "hyla.exe"))
 	if err != nil {
 		t.Fatal(err)
 	}

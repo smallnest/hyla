@@ -25,19 +25,19 @@ func TestWorktree(t *testing.T) {
 			t.Errorf("%q named a branch", bad)
 		}
 	}
-	path := filepath.Join(r.Root, ".kero", "worktrees", "fix-login")
+	path := filepath.Join(r.Root, ".hyla", "worktrees", "fix-login")
 	if err := r.AddWorktree(ctx, path, "fix/login", "main"); err != nil {
 		t.Fatal(err)
 	}
-	if err := r.Exclude("/.kero/"); err != nil {
+	if err := r.Exclude("/.hyla/"); err != nil {
 		t.Fatal(err)
 	}
-	r.Exclude("/.kero/")
-	if b, _ := os.ReadFile(filepath.Join(r.Common, "info", "exclude")); strings.Count(string(b), "/.kero/") != 1 {
+	r.Exclude("/.hyla/")
+	if b, _ := os.ReadFile(filepath.Join(r.Common, "info", "exclude")); strings.Count(string(b), "/.hyla/") != 1 {
 		t.Errorf("exclude:\n%s", b)
 	}
 	if st, _ := r.Status(ctx); st.Files != 0 {
-		t.Errorf("the main checkout shows %d files changed: .kero isn't ignored", st.Files)
+		t.Errorf("the main checkout shows %d files changed: .hyla isn't ignored", st.Files)
 	}
 	wt, err := Open(ctx, path)
 	if err != nil {

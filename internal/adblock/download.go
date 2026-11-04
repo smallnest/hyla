@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-// Source is a filter list kero downloads: one of Catalog, by its ID, or
+// Source is a filter list hyla downloads: one of Catalog, by its ID, or
 // one the user names by its URL.
 type Source struct {
 	ID, Name, URL string

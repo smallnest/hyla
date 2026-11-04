@@ -5,7 +5,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
-	"kero/locales"
+	"hyla/locales"
 )
 
 // A process's time as ps tells it reads in words: days as hours.

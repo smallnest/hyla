@@ -8,16 +8,16 @@ import (
 	"path/filepath"
 	"time"
 
-	"kero/internal/settings"
+	"hyla/internal/settings"
 )
 
-// builtinURL is the pet packs kero offers to install, beside Kero the
-// frog: the ones its README lists. Kero does not carry them, as their
+// builtinURL is the pet packs hyla offers to install, beside Hyla the
+// frog: the ones its README lists. Hyla does not carry them, as their
 // licenses mostly allow no redistribution; and the Codex app's own pet is
 // there too, when it has one.
-const builtinURL = "https://raw.githubusercontent.com/smallnest/kero/dev/artifacts/pets/"
+const builtinURL = "https://raw.githubusercontent.com/smallnest/hyla/dev/artifacts/pets/"
 
-// Builtin is a pet kero offers to install.
+// Builtin is a pet hyla offers to install.
 type Builtin struct {
 	// Name is the pet's, as a pack installs it: "doge".
 	Name string
@@ -29,7 +29,7 @@ type Builtin struct {
 	ID string
 }
 
-// Builtins lists the pets kero offers, beside Kero the frog, which it
+// Builtins lists the pets hyla offers, beside Hyla the frog, which it
 // does not fetch: the Codex app's active pet, if it has one, and the
 // packs of builtinURL, as the README there lists them.
 func Builtins() []Builtin {
@@ -97,7 +97,7 @@ var builtinTitles = map[string]string{
 	"xiaoyu":                                 "小雨",
 }
 
-// InstallBuiltin installs the built-in pet name into kero's pets: from
+// InstallBuiltin installs the built-in pet name into hyla's pets: from
 // builtinURL, or for settings.PetSetCodex, from the Codex app's. It
 // returns the pet's name, as Install returns it.
 func InstallBuiltin(name string) (string, error) {
@@ -109,13 +109,13 @@ func InstallBuiltin(name string) (string, error) {
 		return Install(filepath.Join(codexDir(), id))
 	}
 	if !ValidName(name) {
-		return "", fmt.Errorf("%q names no pet of kero's", name)
+		return "", fmt.Errorf("%q names no pet of hyla's", name)
 	}
 	b, err := fetch(builtinURL + name + ".codex-pet.zip")
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", name, err)
 	}
-	tmp := filepath.Join(os.TempDir(), "kero-"+name+".codex-pet.zip")
+	tmp := filepath.Join(os.TempDir(), "hyla-"+name+".codex-pet.zip")
 	if err := os.WriteFile(tmp, b, 0o600); err != nil {
 		return "", err
 	}

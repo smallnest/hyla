@@ -10,7 +10,7 @@ import (
 const BlankURL = "about:blank"
 
 // BrowserURL makes what the user typed in a browser's address bar, or gave
-// kero split --url, a URL to load: one with a scheme stays; a host, as
+// hyla split --url, a URL to load: one with a scheme stays; a host, as
 // "localhost:3000" or "example.com/docs", gets http for a local one and
 // https for another; anything else is searched for. "" is BlankURL.
 func BrowserURL(text string) string {

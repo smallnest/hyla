@@ -12,7 +12,7 @@ import (
 	"strings"
 	"sync"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
 // background is a command a session runs without a terminal: the agent a

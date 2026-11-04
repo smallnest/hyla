@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"kero/internal/proto"
-	"kero/internal/remote"
-	"kero/internal/settings"
+	"hyla/internal/proto"
+	"hyla/internal/remote"
+	"hyla/internal/settings"
 )
 
 // call runs a control method. Methods taking a pane take a session too,
@@ -38,11 +38,11 @@ func (d *Daemon) call(c *controlConn, method string, raw json.RawMessage) (any, 
 		return d.feishuShared(method, raw)
 
 	case "subscribe", "watch":
-		// A watcher, as kero events, hears what an app does but is no app
+		// A watcher, as hyla events, hears what an app does but is no app
 		// (Daemon.watchers). The first state goes out under the lock the
 		// later ones do, so none of them comes before it.
 		d.mu.Lock()
-		// One that asks to stay is no app either, but keeps kerod at its
+		// One that asks to stay is no app either, but keeps hylad at its
 		// work, as a bot's connection does.
 		var p struct {
 			Stay bool `json:"stay,omitempty"`
@@ -383,7 +383,7 @@ func (d *Daemon) call(c *controlConn, method string, raw json.RawMessage) (any, 
 			return nil, fmt.Errorf("no session %q", p.Session)
 		}
 		// The state goes first: the subscribers hear of a session just
-		// made, as by kero new --focus, only once a burst of changes
+		// made, as by hyla new --focus, only once a burst of changes
 		// settles (broadcastLoop), and the app shows no session it does
 		// not know of.
 		st := d.state()
@@ -808,13 +808,13 @@ func (d *Daemon) call(c *controlConn, method string, raw json.RawMessage) (any, 
 	return nil, fmt.Errorf("unknown method %q", method)
 }
 
-// browseGrace is how long kerod waits for the app's answer to a browser
+// browseGrace is how long hylad waits for the app's answer to a browser
 // call past the call's own timeout: what the page does may take a while,
 // and the app waits on the page.
 const browseGrace = 30 * time.Second
 
 // browse has the app do something on a browser pane's page, which lives
-// in the app, not in kerod, and waits for its answer. Every subscriber
+// in the app, not in hylad, and waits for its answer. Every subscriber
 // is asked: one that shows the pane answers with the page's result, the
 // others why they can't; the first result wins, else the first refusal.
 func (d *Daemon) browse(c *controlConn, s *pane, p proto.BrowserParams) (any, error) {
@@ -866,7 +866,7 @@ func (d *Daemon) browse(c *controlConn, s *pane, p proto.BrowserParams) (any, er
 		case <-c.done:
 			return nil, errors.New("canceled")
 		case <-d.quit:
-			return nil, errors.New("kerod exited")
+			return nil, errors.New("hylad exited")
 		}
 	}
 	return nil, refused
@@ -930,7 +930,7 @@ func (d *Daemon) wait(c *controlConn, s *pane, p proto.WaitParams) (any, error) 
 		case <-c.done:
 			return nil, errors.New("canceled")
 		case <-d.quit:
-			return nil, errors.New("kerod exited")
+			return nil, errors.New("hylad exited")
 		}
 	}
 }

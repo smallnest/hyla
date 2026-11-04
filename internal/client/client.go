@@ -1,4 +1,4 @@
-// Package client connects to kerod, starting it when it is not running.
+// Package client connects to hylad, starting it when it is not running.
 package client
 
 import (
@@ -21,29 +21,29 @@ import (
 	"github.com/egoist/mygo/plugins/terminal"
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/detach"
-	"kero/internal/proto"
-	"kero/internal/remote"
-	"kero/internal/service"
+	"hyla/internal/detach"
+	"hyla/internal/proto"
+	"hyla/internal/remote"
+	"hyla/internal/service"
 )
 
 // ErrVersion is returned when the daemon running speaks another protocol,
-// as after kero was updated: it has to be restarted.
-var ErrVersion = errors.New("kerod is of another version")
+// as after hyla was updated: it has to be restarted.
+var ErrVersion = errors.New("hylad is of another version")
 
-// Dialer opens connections to a kerod: this machine's, through its socket
+// Dialer opens connections to a hylad: this machine's, through its socket
 // (Local), or a host's, as streams of a remote connection (remote.Conn).
 type Dialer interface {
 	Dial() (net.Conn, error)
 }
 
-// Local is this machine's kerod, which a dial starts unless NoStart.
+// Local is this machine's hylad, which a dial starts unless NoStart.
 type Local struct{ NoStart bool }
 
 func (l Local) Dial() (net.Conn, error) { return dial(l.NoStart, false) }
 
 // dial connects to the daemon, starting it unless noStart: as a client of
-// kerod 3 does when v3, which a daemon forces answers as it listens.
+// hylad 3 does when v3, which a daemon forces answers as it listens.
 func dial(noStart, v3 bool) (net.Conn, error) {
 	sock := proto.SocketPath()
 	conn, err := net.Dial("unix", sock)
@@ -51,7 +51,7 @@ func dial(noStart, v3 bool) (net.Conn, error) {
 		return conn, nil
 	}
 	if noStart {
-		return nil, fmt.Errorf("kerod is not running: %w", err)
+		return nil, fmt.Errorf("hylad is not running: %w", err)
 	}
 	if err := StartDaemon(); err != nil {
 		return nil, err
@@ -64,7 +64,7 @@ func dial(noStart, v3 bool) (net.Conn, error) {
 			return conn, nil
 		}
 		if time.Now().After(deadline) {
-			return nil, fmt.Errorf("kerod did not start: %w (see %s)", err, filepath.Join(proto.Dir(), "kerod.log"))
+			return nil, fmt.Errorf("hylad did not start: %w (see %s)", err, filepath.Join(proto.Dir(), "hylad.log"))
 		}
 	}
 }
@@ -74,21 +74,21 @@ func dial(noStart, v3 bool) (net.Conn, error) {
 // from aside, and os.Executable then names the old one.
 var Exe string
 
-// StartDaemon starts kerod in the background: the service, when kerod
-// runs as one (kero daemon install-service), else this executable (Exe),
+// StartDaemon starts hylad in the background: the service, when hylad
+// runs as one (hyla daemon install-service), else this executable (Exe),
 // in a session of its own, so that it outlives whoever started it.
 func StartDaemon() error {
-	// The service's, or none: a kerod beside it would hold the lock its
+	// The service's, or none: a hylad beside it would hold the lock its
 	// manager starts the service's for, again and again. But Task
 	// Scheduler's, which starts none while no one is logged on to the
-	// machine, and never again: a kerod of its own then.
+	// machine, and never again: a hylad of its own then.
 	if service.Installed() {
 		err := service.Start()
 		if err == nil {
 			return nil
 		}
 		if runtime.GOOS != "windows" {
-			return fmt.Errorf("kerod's service did not start: %w", err)
+			return fmt.Errorf("hylad's service did not start: %w", err)
 		}
 	}
 	exe := Exe
@@ -101,12 +101,12 @@ func StartDaemon() error {
 	if err := os.MkdirAll(proto.Dir(), 0o700); err != nil {
 		return err
 	}
-	logf, err := os.OpenFile(filepath.Join(proto.Dir(), "kerod.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
+	logf, err := os.OpenFile(filepath.Join(proto.Dir(), "hylad.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 	if err != nil {
 		return err
 	}
 	defer logf.Close()
-	cmd := exec.Command(exe, "__kerod")
+	cmd := exec.Command(exe, "__hylad")
 	cmd.Dir = proto.Home()
 	cmd.Stdout, cmd.Stderr = logf, logf
 	cmd, err = detach.Start(cmd)
@@ -123,7 +123,7 @@ func handshake(conn net.Conn, hello proto.Hello) (proto.Welcome, *bufio.Reader, 
 		return proto.Welcome{}, nil, err
 	}
 	r := bufio.NewReaderSize(conn, 64<<10)
-	// A kerod that does not answer this soon is not answering.
+	// A hylad that does not answer this soon is not answering.
 	conn.SetReadDeadline(time.Now().Add(2 * time.Second))
 	line, err := proto.ReadLine(r, 64<<10)
 	conn.SetReadDeadline(time.Time{})
@@ -157,29 +157,29 @@ func DaemonPID() int {
 
 // stopTimeout is how long the daemon has to stop before it is killed:
 // time to save its sessions, short enough that a stuck one does not hold
-// up kero daemon stop.
+// up hyla daemon stop.
 const stopTimeout = 2 * time.Second
 
 // StopTimeout is how long the daemon has to stop before it is killed.
 func StopTimeout() time.Duration { return stopTimeout }
 
-// pid is the pid a lock holds: its first word, as a kerod writes it, and
+// pid is the pid a lock holds: its first word, as a hylad writes it, and
 // a shorter pid's leaves those of a longer one after it.
 func pid(lock []byte) int {
 	pid, _ := strconv.Atoi(strings.TrimSpace(string(lock)))
 	return pid
 }
 
-// namedByKerod tells whether the process of pid is kerod, by what ps
+// namedByHylad tells whether the process of pid is hylad, by what ps
 // says of it, as Linux and macOS both answer: one that runs, rather than
-// a zombie whose killer left it, and one kerod's command line runs
-// (kerodCmd).
-func namedByKerod(pid int) bool {
+// a zombie whose killer left it, and one hylad's command line runs
+// (hyladCmd).
+func namedByHylad(pid int) bool {
 	b, err := exec.Command("ps", "-o", "args=", "-p", strconv.Itoa(pid)).Output()
 	if err != nil {
 		return false
 	}
-	return strings.Contains(string(b), kerodCmd)
+	return strings.Contains(string(b), hyladCmd)
 }
 
 // Stop stops this machine's daemon, which saves its sessions to start
@@ -205,16 +205,16 @@ func Stop(force bool) error {
 		return kill(pid)
 	}
 	// One stopped answers none, and its lock names it: whether it is
-	// kerod, its command line tells.
-	if !namedByKerod(pid) {
-		return errors.New("kerod does not answer, and the process holding its lock may not be kerod: kero daemon stop --force kills it")
+	// hylad, its command line tells.
+	if !namedByHylad(pid) {
+		return errors.New("hylad does not answer, and the process holding its lock may not be hylad: hyla daemon stop --force kills it")
 	}
 	return kill(pid)
 }
 
 // daemonWelcome returns the daemon's welcome, and whether it answered: as
 // one that is stuck answers none, and one of another version, an error.
-// It asks as a version of kerod 3 does: one of several, which answers
+// It asks as a version of hylad 3 does: one of several, which answers
 // whatever its protocol.
 func daemonWelcome() (proto.Welcome, bool) {
 	conn, err := dial(true, true)
@@ -240,23 +240,23 @@ func kill(pid int) error {
 		time.Sleep(20 * time.Millisecond)
 	}
 	if Running(pid) {
-		return fmt.Errorf("kerod (pid %d) did not die", pid)
+		return fmt.Errorf("hylad (pid %d) did not die", pid)
 	}
 	ClearDaemon()
 	return nil
 }
 
-// Settle reports a kerod of
-// an older version than this client's, as one of an earlier Kero that runs
+// Settle reports a hylad of
+// an older version than this client's, as one of an earlier Hyla that runs
 // while this one does: the two stop each other, as each sees the other's
-// kerod as one that does not answer, and every session they run comes back
-// as restored. A kerod of this client's version leaves an older one
+// hylad as one that does not answer, and every session they run comes back
+// as restored. A hylad of this client's version leaves an older one
 // alone.
 func Settle(w proto.Welcome) bool {
-	return w.Version < proto.Version && namedByKerod(w.PID)
+	return w.Version < proto.Version && namedByHylad(w.PID)
 }
 
-// SettleStop stops a kerod that Settle reports: it saves its sessions as
+// SettleStop stops a hylad that Settle reports: it saves its sessions as
 // it is restarted, and they come back in this version. Its clients of
 // the version wait for it to go.
 func SettleStop(pid int) error {
@@ -266,16 +266,16 @@ func SettleStop(pid int) error {
 	for end := time.Now().Add(stopTimeout); Running(pid) && time.Now().Before(end); {
 		time.Sleep(20 * time.Millisecond)
 	}
-	// An earlier Kero may start it again as it goes now.
+	// An earlier Hyla may start it again as it goes now.
 	time.Sleep(2 * time.Second)
 	return nil
 }
 
-// LockedPID returns the pid of the daemon whose lock kerod.lock is, or 0:
+// LockedPID returns the pid of the daemon whose lock hylad.lock is, or 0:
 // the daemon writes it as it starts (daemon.Run). A free lock names none,
 // whoever holds it, as one released writes it empty.
 func LockedPID() (int, error) {
-	f, err := os.OpenFile(filepath.Join(proto.Dir(), "kerod.lock"), os.O_RDWR, 0o600)
+	f, err := os.OpenFile(filepath.Join(proto.Dir(), "hylad.lock"), os.O_RDWR, 0o600)
 	if errors.Is(err, os.ErrNotExist) {
 		return 0, nil
 	}
@@ -285,7 +285,7 @@ func LockedPID() (int, error) {
 	defer f.Close()
 	if lockFile(f) == nil {
 		UnlockFile(f)
-		// A free lock names none: one released, or of a kerod that died
+		// A free lock names none: one released, or of a hylad that died
 		// leaving its pid.
 		return 0, nil
 	}
@@ -304,7 +304,7 @@ func LockedPID() (int, error) {
 // its lock.
 func ClearDaemon() {
 	os.Remove(proto.SocketPath())
-	if f, err := os.OpenFile(filepath.Join(proto.Dir(), "kerod.lock"), os.O_RDWR, 0o600); err == nil {
+	if f, err := os.OpenFile(filepath.Join(proto.Dir(), "hylad.lock"), os.O_RDWR, 0o600); err == nil {
 		f.Truncate(0)
 		f.Close()
 	}
@@ -333,7 +333,7 @@ type response struct {
 	err    error
 }
 
-// Connect opens a control connection to this machine's kerod, starting it
+// Connect opens a control connection to this machine's hylad, starting it
 // unless noStart.
 func Connect(noStart bool) (*Client, error) { return ConnectVia(Local{NoStart: noStart}) }
 
@@ -357,7 +357,7 @@ func ConnectVia(d Dialer) (*Client, error) {
 }
 
 // PairCode asks the host for the address of its tailcat listener
-// (remote.Conn.PairCode), for a host Kero reaches over a remote
+// (remote.Conn.PairCode), for a host Hyla reaches over a remote
 // connection.
 func (c *Client) PairCode(ctx context.Context) (string, error) {
 	if c.Remote == nil {
@@ -382,7 +382,7 @@ func (c *Client) read(r *bufio.Reader) {
 	defer func() {
 		c.mu.Lock()
 		for id, ch := range c.pending {
-			ch <- response{err: errors.New("kerod went away")}
+			ch <- response{err: errors.New("hylad went away")}
 			delete(c.pending, id)
 		}
 		c.mu.Unlock()

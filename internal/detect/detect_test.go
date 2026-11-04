@@ -29,7 +29,7 @@ func screen(t *testing.T, name string) string {
 	return string(b)
 }
 
-// Claude Code's screens, as kero read printed them.
+// Claude Code's screens, as hyla read printed them.
 func TestClaude(t *testing.T) {
 	cases := []struct {
 		name  string

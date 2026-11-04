@@ -9,19 +9,19 @@ import (
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 
-	"kero/locales"
+	"hyla/locales"
 )
 
-// webEntry is a browser pane's web view in the app: kerod keeps the pane's
-// place and page, the app the page itself, which it loads where kerod
-// last had it and tells kerod of as the user goes to others.
+// webEntry is a browser pane's web view in the app: hylad keeps the pane's
+// place and page, the app the page itself, which it loads where hylad
+// last had it and tells hylad of as the user goes to others.
 type webEntry struct {
 	view *mygo.WebView
 	err  string
 	// url and title are the page's, as it last committed; told is what
-	// kerod was last told.
+	// hylad was last told.
 	url, title string
 	told       [2]string
 	loading    bool
@@ -40,12 +40,12 @@ type webEntry struct {
 	found    mygo.FindResult
 	findSeq  int
 	findText string
-	// loads are kero browser's calls waiting for the page's load to end.
+	// loads are hyla browser's calls waiting for the page's load to end.
 	loads []chan error
 	// iconURL is the URL of the icon the page told: until it does, its
 	// site's last shows.
 	iconURL string
-	// staged lays the page out unseen, for kero browser screenshot of a
+	// staged lays the page out unseen, for hyla browser screenshot of a
 	// pane never shown, which has no size, and so no picture.
 	staged bool
 }
@@ -59,7 +59,7 @@ func browserUA() string {
 	return ""
 }
 
-// ensureWeb makes the web view of a browser pane, on the page kerod has.
+// ensureWeb makes the web view of a browser pane, on the page hylad has.
 func (a *App) ensureWeb(p *proto.Pane) *webEntry {
 	if e := a.webs[p.ID]; e != nil {
 		return e
@@ -83,7 +83,7 @@ func (a *App) ensureWeb(p *proto.Pane) *webEntry {
 	id := p.ID
 	page := v.Page()
 	// The page's events come on the main thread: they change what the
-	// pane shows, and what kerod keeps.
+	// pane shows, and what hylad keeps.
 	page.OnDidNavigate(func(url string) {
 		a.update(func() {
 			if a.webs[id] != e {
@@ -164,7 +164,7 @@ func (e *webEntry) load(text string) {
 	e.loading = true
 }
 
-// tellPage tells kerod the page a browser pane shows, which it keeps for
+// tellPage tells hylad the page a browser pane shows, which it keeps for
 // a restore, and the title that names the pane.
 func (a *App) tellPage(id string, e *webEntry) {
 	if e.url == "" || e.told == [2]string{e.url, e.title} {

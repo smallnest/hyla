@@ -5,15 +5,15 @@ import (
 	"path/filepath"
 	"testing"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
-// kerod empties a lock it leaves as it exits, or before the kerod that
+// hylad empties a lock it leaves as it exits, or before the hylad that
 // takes over from it starts, and writes its pid in it at that start:
-// kero daemon stop kills the kerod a lock names when it does not answer.
+// hyla daemon stop kills the hylad a lock names when it does not answer.
 func TestClearLock(t *testing.T) {
-	t.Setenv("KERO_HOME", t.TempDir())
-	lock := filepath.Join(proto.Dir(), "kerod.lock")
+	t.Setenv("HYLA_HOME", t.TempDir())
+	lock := filepath.Join(proto.Dir(), "hylad.lock")
 	if err := os.WriteFile(lock, []byte("99999"), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -32,6 +32,6 @@ func TestClearLock(t *testing.T) {
 	}
 	f.WriteAt([]byte("4000000"), 0)
 	if b, _ := os.ReadFile(lock); string(b) != "4000000" {
-		t.Errorf("lock after a kerod's write: %q", b)
+		t.Errorf("lock after a hylad's write: %q", b)
 	}
 }

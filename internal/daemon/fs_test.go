@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
 func TestHostPath(t *testing.T) {
@@ -123,7 +123,7 @@ func TestPasteDirPrivate(t *testing.T) {
 	tmp := t.TempDir()
 	t.Setenv("TMPDIR", tmp)
 	t.Setenv("XDG_RUNTIME_DIR", "")
-	base := filepath.Join(tmp, fmt.Sprintf("kero-%d", os.Getuid()))
+	base := filepath.Join(tmp, fmt.Sprintf("hyla-%d", os.Getuid()))
 	os.Mkdir(base, 0o777)
 	os.Chmod(base, 0o777)
 	if _, err := pasteDir(); err != nil {

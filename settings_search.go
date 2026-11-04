@@ -7,9 +7,9 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/actions"
+	"hyla/internal/actions"
 
-	"kero/locales"
+	"hyla/locales"
 )
 
 // searchEntry is a setting the Settings window's search finds: its page,
@@ -43,7 +43,7 @@ func settingsIndex() []searchEntry {
 		{"appearance", locales.SetTranslucent(), "window-translucent vibrancy blur material transparency"},
 		{"appearance", locales.SetWindowOpacity(), "window-opacity opacity translucent transparency see-through dim 透明度 不透明度"},
 		{"appearance", locales.SetWindowBlur(), "window-blur blur frosted vibrancy material transparency 模糊 毛玻璃"},
-		{"appearance", locales.SetPet(), "pet frog kero mascot sprite companion agent status drag offset position 小精灵 青蛙 宠物"},
+		{"appearance", locales.SetPet(), "pet frog hyla mascot sprite companion agent status drag offset position 小精灵 青蛙 宠物"},
 		{"appearance", locales.SetBackground(), "background wash petal mist meadow dusk plain gradient color"},
 
 		{"terminal", locales.SetFont(), "font-family typeface jetbrains mono nerd"},
@@ -85,24 +85,24 @@ func settingsIndex() []searchEntry {
 
 		{"feishu", locales.SetFeishuYolo(), "feishu-yolo yolo permission prompts sandbox skip dangerously auto approve claude codex unsafe dangerous"},
 		{"feishu", locales.SetFeishu(), "feishu lark bot chat app secret feishu-app feishu-allow feishu-agent feishu-run feishu-dir feishu-cards feishu-markdown feishu-open-button feishu-card-body feishu-host feishu-timeout feishu-stream"},
-		{"agents", locales.SetRemoteControlRow(), "remote-control kero do focus browser automation"},
+		{"agents", locales.SetRemoteControlRow(), "remote-control hyla do focus browser automation"},
 		{"agents", locales.SetCliRow(), "cli command line tool install path"},
 		{"agents", "Claude Code", "skill agents install"},
 		{"agents", "Codex, OpenCode, Pi", "skill agents install"},
 		{"agents", locales.SetProgramStatus(), "osc 7501 report progress"},
 
-		{"hosts", locales.SetHosts(), "host hosts remote server ssh tailscale tailnet wsl machine linux devbox -H kero hosts"},
+		{"hosts", locales.SetHosts(), "host hosts remote server ssh tailscale tailnet wsl machine linux devbox -H hyla hosts"},
 		{"hosts", locales.SetHostAdd(), "add host address ssh wsl https"},
-		{"hosts", locales.SetHostRemoteControl(), "remote-control host kero do focus"},
+		{"hosts", locales.SetHostRemoteControl(), "remote-control host hyla do focus"},
 		// The group's title, above its switch.
 		{"hosts", locales.SetTailcatTitle(), "tailcat pair code relay derp paircode no-tailscale tailcat-relay tailcat-port"},
-		{"hosts", locales.SetTailcatListen(), "tailcat listener provide service host relay tailnet port tailcat:// kero hosts tailcat enable"},
+		{"hosts", locales.SetTailcatListen(), "tailcat listener provide service host relay tailnet port tailcat:// hyla hosts tailcat enable"},
 		{"hosts", locales.SetTailcatCode(), "tailcat pair code paircode copy secret share other machines"},
 		{"hosts", locales.SetListen(), "listen tailnet tailscale share this computer host port 7373 listen-allow"},
 
 		{"advanced", locales.SetConfigFile(), "configuration ghostty edit file dotfiles"},
-		{"advanced", "kerod", "daemon background service restart sessions"},
-		{"advanced", locales.SetLog(), "kerod log debug"},
+		{"advanced", "hylad", "daemon background service restart sessions"},
+		{"advanced", locales.SetLog(), "hylad log debug"},
 		{"advanced", locales.SetFolder(), "data directory finder"},
 		{"advanced", locales.SetReset(), "defaults reset"},
 	}
@@ -128,7 +128,7 @@ func searchEntries(shortcuts map[string]string) []searchEntry {
 // action by when its title doesn't say it.
 var actionWords = map[string]string{
 	"settings.open":       "preferences options config configure",
-	"cli.install":         "kero command line shell path terminal",
+	"cli.install":         "hyla command line shell path terminal",
 	"app.quitAll":         "exit quit kill stop end all sessions",
 	"session.new":         "create add tab terminal shell",
 	"session.newHome":     "create add tab terminal shell home directory ~",
@@ -165,7 +165,7 @@ var actionWords = map[string]string{
 	"text.smaller":        "zoom out font size decrease text",
 	"text.reset":          "zoom reset font size default text",
 	quickAction:           "quake doom drop down dropdown hotkey global visor guake iterm console",
-	"pet.toggle":          "frog kero mascot sprite show hide pet companion 小青蛙 精灵 宠物",
+	"pet.toggle":          "frog hyla mascot sprite show hide pet companion 小青蛙 精灵 宠物",
 }
 
 // pageWords find Settings' pages in the palette besides their titles.
@@ -180,7 +180,7 @@ var pageWords = map[string]string{
 	"feishu":        "lark bot chat message im app secret",
 	"agents":        "claude codex ai skill cli remote control",
 	"hosts":         "remote ssh server machine tailscale wsl",
-	"advanced":      "config file daemon kerod log reset",
+	"advanced":      "config file daemon hylad log reset",
 }
 
 // matches reports whether every word of a query is in a text.

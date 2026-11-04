@@ -10,19 +10,19 @@ import (
 	"github.com/egoist/mygo/plugins/terminal"
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/actions"
-	"kero/internal/client"
-	"kero/internal/proto"
+	"hyla/internal/actions"
+	"hyla/internal/client"
+	"hyla/internal/proto"
 
-	"kero/locales"
+	"hyla/locales"
 )
 
 // The quick terminal drops down from the top of the screen as its global
 // shortcut is pressed, over every app, full-screen ones included, and goes
 // back up as it is pressed again or as the user goes elsewhere, as
 // Ghostty's quick terminal and Quake's console do. It shows a session of
-// this machine's kerod, as the window does, so that it keeps running as it
-// hides, as Kero quits and as it updates; the sidebar lists it with the
+// this machine's hylad, as the window does, so that it keeps running as it
+// hides, as Hyla quits and as it updates; the sidebar lists it with the
 // others.
 
 const (
@@ -68,7 +68,7 @@ func (a *App) applyGlobalShortcuts() {
 		return
 	}
 	if err := mygo.GlobalShortcut.Register(want, a.toggleQuick); err != nil {
-		log.Println("kero: quick terminal:", err)
+		log.Println("hyla: quick terminal:", err)
 		a.toast(locales.ToastGlobalShortcutFailed(actions.Glyphs(want), err.Error()))
 		return
 	}
@@ -84,7 +84,7 @@ func (a *App) toggleQuick() {
 }
 
 // quickSession returns the session the quick terminal shows, nil while it
-// has none: kerod lost it, or the user closed it.
+// has none: hylad lost it, or the user closed it.
 func (a *App) quickSession() *proto.Session {
 	s := a.session(a.prefs.QuickSession)
 	if s == nil || a.hostOf(s.ID) != a.local() {
@@ -196,7 +196,7 @@ func (a *App) attachQuick() {
 	s := a.quickSession()
 	if s == nil {
 		a.dropQuick()
-		// Until kerod tells its sessions, the one of the last run may be
+		// Until hylad tells its sessions, the one of the last run may be
 		// among them: the panel waits, and attaches as they come.
 		if q.creating || h.cl == nil || h.conn != connReady || !h.loaded {
 			return
@@ -302,7 +302,7 @@ func (a *App) dropQuick() {
 	q.e, q.pane = nil, ""
 }
 
-// quickChanged follows a state of kerod: the quick terminal attaches
+// quickChanged follows a state of hylad: the quick terminal attaches
 // again when its pane is gone, as to the session's next one.
 func (a *App) quickChanged() {
 	q := &a.quick

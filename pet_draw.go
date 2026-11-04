@@ -6,14 +6,14 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
 // --- the frog ---
 
 // The frog's colors, which stay the same in either appearance: a frog on
 // a desktop, not a UI. Body, belly and line are the icon's frog
-// (resources/icon.png), so the frog on the edge is the Kero in the Dock.
+// (resources/icon.png), so the frog on the edge is the Hyla in the Dock.
 var (
 	petBody  = ui.Hex("#c6eb72")
 	petBelly = ui.Hex("#fdf4a2")

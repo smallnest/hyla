@@ -5,7 +5,7 @@ import (
 
 	"golang.org/x/sys/windows"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
 // Interrupt asks the daemon of a pid to save and stop, through its event

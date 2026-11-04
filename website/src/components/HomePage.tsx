@@ -12,12 +12,12 @@ const featureLinks = ['/docs/sessions', '/docs/status', '/docs/agents', '/docs/c
 
 const copy = {
   en: {
-    title: 'A terminal for coding agents | Kero',
+    title: 'A terminal for coding agents | Hyla',
     description:
-      'Kero is a terminal for coding agents. Sessions keep running when you quit, on your computer or a remote host, and the sidebar shows which ones need you.',
+      'Hyla is a terminal for coding agents. Sessions keep running when you quit, on your computer or a remote host, and the sidebar shows which ones need you.',
     hero: ['Run your agents.', 'Keep your place.'],
     heroLead:
-      'Kero is a terminal for coding agents. Sessions keep running when you quit, and the sidebar shows which ones are working, which need you, and which are done.',
+      'Hyla is a terminal for coding agents. Sessions keep running when you quit, and the sidebar shows which ones are working, which need you, and which are done.',
     getStarted: 'Get Started',
     download: 'Download',
     appTitle: 'Every Agent, One Window',
@@ -32,7 +32,7 @@ const copy = {
     features: [
       {
         title: 'Sessions That Outlive the Window',
-        body: 'Sessions run in kerod, a daemon of their own. Quit Kero and they keep going; open it again and everything is where you left it.',
+        body: 'Sessions run in hylad, a daemon of their own. Quit Hyla and they keep going; open it again and everything is where you left it.',
         points: ['Scrollback survives quitting', 'Sessions start again after a reboot', 'Grouped by project in the sidebar'],
         label: 'Sessions & projects',
       },
@@ -45,7 +45,7 @@ const copy = {
       {
         title: 'A CLI Your Agents Can Drive',
         body: 'Agents start dev servers beside themselves, hand work to other agents, wait for tests and report their own progress.',
-        points: ['kero split, send, wait and read', 'One command installs the agent skill', 'Works with Claude Code, Codex and more'],
+        points: ['hyla split, send, wait and read', 'One command installs the agent skill', 'Works with Claude Code, Codex and more'],
         label: 'Coding agents',
       },
       {
@@ -59,24 +59,24 @@ const copy = {
         body: 'Run sessions on a Linux box, a cloud VM, a Windows PC or the Mac mini under your desk. They join your sidebar, tagged with the host, and keep running when your laptop sleeps.',
         points: [
           'Reach hosts over SSH, Tailscale or WSL',
-          'The same statuses, notifications and kero command',
+          'The same statuses, notifications and hyla command',
           'One script installs the server build, no root needed',
         ],
         label: 'Remote hosts',
       },
     ],
     ctaTitle: 'Hop In',
-    ctaLead: 'Install Kero, teach your agents to use it, and stop losing track of them.',
+    ctaLead: 'Install Hyla, teach your agents to use it, and stop losing track of them.',
     ctaComment: '# after installing the command line tool',
     cliReference: 'CLI Reference',
   },
   ja: {
-    title: 'コーディングエージェントのためのターミナル | Kero',
+    title: 'コーディングエージェントのためのターミナル | Hyla',
     description:
-      'Kero はコーディングエージェントのためのターミナルです。終了してもセッションは動き続け、手元のコンピュータでもリモートホストでも、対応が必要なセッションをサイドバーが教えてくれます。',
+      'Hyla はコーディングエージェントのためのターミナルです。終了してもセッションは動き続け、手元のコンピュータでもリモートホストでも、対応が必要なセッションをサイドバーが教えてくれます。',
     hero: ['走らせたまま、', '続きはそのまま。'],
     heroLead:
-      'Kero はコーディングエージェントのためのターミナルです。終了してもセッションは動き続け、どれが作業中で、どれが対応待ちで、どれが完了したかをサイドバーが示します。',
+      'Hyla はコーディングエージェントのためのターミナルです。終了してもセッションは動き続け、どれが作業中で、どれが対応待ちで、どれが完了したかをサイドバーが示します。',
     getStarted: 'はじめる',
     download: 'ダウンロード',
     appTitle: 'すべてのエージェントを、ひとつのウインドウに',
@@ -91,7 +91,7 @@ const copy = {
     features: [
       {
         title: 'ウインドウより長生きするセッション',
-        body: 'セッションは専用のデーモン kerod の中で動きます。Kero を終了しても動き続け、再び開けばすべてが元のままです。',
+        body: 'セッションは専用のデーモン hylad の中で動きます。Hyla を終了しても動き続け、再び開けばすべてが元のままです。',
         points: ['終了してもスクロールバックが残る', '再起動後にセッションが再開する', 'サイドバーでプロジェクトごとにまとまる'],
         label: 'セッションとプロジェクト',
       },
@@ -104,7 +104,7 @@ const copy = {
       {
         title: 'エージェントが操作できる CLI',
         body: 'エージェントは自分の横で開発サーバーを起動し、ほかのエージェントに作業を任せ、テストを待ち、自分の進捗を報告できます。',
-        points: ['kero split、send、wait、read', 'コマンドひとつでエージェント用スキルをインストール', 'Claude Code や Codex などに対応'],
+        points: ['hyla split、send、wait、read', 'コマンドひとつでエージェント用スキルをインストール', 'Claude Code や Codex などに対応'],
         label: 'コーディングエージェント',
       },
       {
@@ -118,23 +118,23 @@ const copy = {
         body: 'Linux マシン、クラウドの VM、Windows PC、机の下の Mac mini でセッションを動かせます。ホスト名付きでサイドバーに並び、ノートパソコンがスリープしても動き続けます。',
         points: [
           'SSH、Tailscale、WSL でホストに接続',
-          '同じ状態表示、通知、kero コマンド',
+          '同じ状態表示、通知、hyla コマンド',
           'スクリプトひとつでサーバー版をインストール、root 不要',
         ],
         label: 'リモートホスト',
       },
     ],
     ctaTitle: 'さあ、はじめよう',
-    ctaLead: 'Kero をインストールして、エージェントに使い方を教えれば、もう見失うことはありません。',
+    ctaLead: 'Hyla をインストールして、エージェントに使い方を教えれば、もう見失うことはありません。',
     ctaComment: '# コマンドラインツールをインストールしたあとで',
     cliReference: 'CLI リファレンス',
   },
   zh: {
-    title: '为编程智能体打造的终端 | Kero',
+    title: '为编程智能体打造的终端 | Hyla',
     description:
-      'Kero 是为编程智能体打造的终端。退出后会话照常运行，无论在你的电脑上还是远程主机上；边栏告诉你哪些会话需要你。',
+      'Hyla 是为编程智能体打造的终端。退出后会话照常运行，无论在你的电脑上还是远程主机上；边栏告诉你哪些会话需要你。',
     hero: ['智能体一直跑，', '关闭应用也不停。'],
-    heroLead: 'Kero 是为编程智能体打造的终端。退出后会话照常运行，边栏告诉你哪些在工作、哪些需要你、哪些已完成。',
+    heroLead: 'Hyla 是为编程智能体打造的终端。退出后会话照常运行，边栏告诉你哪些在工作、哪些需要你、哪些已完成。',
     getStarted: '快速上手',
     download: '下载',
     appTitle: '所有智能体，一个窗口',
@@ -146,7 +146,7 @@ const copy = {
     features: [
       {
         title: '会话比窗口活得更久',
-        body: '会话运行在独立的守护进程 kerod 中。退出 Kero，它们继续运行；再次打开，一切都还在原处。',
+        body: '会话运行在独立的守护进程 hylad 中。退出 Hyla，它们继续运行；再次打开，一切都还在原处。',
         points: ['退出后回滚缓冲依然保留', '重启电脑后会话自动恢复', '在边栏中按项目分组'],
         label: '会话与项目',
       },
@@ -159,7 +159,7 @@ const copy = {
       {
         title: '智能体也能驱动的命令行',
         body: '智能体可以在自己旁边启动开发服务器、把工作交给其他智能体、等待测试结果，并报告自己的进度。',
-        points: ['kero split、send、wait 和 read', '一条命令安装智能体技能', '支持 Claude Code、Codex 等'],
+        points: ['hyla split、send、wait 和 read', '一条命令安装智能体技能', '支持 Claude Code、Codex 等'],
         label: '编程智能体',
       },
       {
@@ -171,12 +171,12 @@ const copy = {
       {
         title: '每台机器上的智能体',
         body: '在 Linux 服务器、云虚拟机、Windows 电脑或桌下的 Mac mini 上运行会话。它们出现在你的边栏中，标有所在主机，笔记本合上后依然运行。',
-        points: ['通过 SSH、Tailscale 或 WSL 连接主机', '同样的状态、通知和 kero 命令', '一个脚本安装服务器版，无需 root'],
+        points: ['通过 SSH、Tailscale 或 WSL 连接主机', '同样的状态、通知和 hyla 命令', '一个脚本安装服务器版，无需 root'],
         label: '远程主机',
       },
     ],
     ctaTitle: '上车吧',
-    ctaLead: '安装 Kero，教会你的智能体使用它，从此不再找不到它们。',
+    ctaLead: '安装 Hyla，教会你的智能体使用它，从此不再找不到它们。',
     ctaComment: '# 安装命令行工具之后',
     cliReference: '命令行参考',
   },
@@ -284,8 +284,8 @@ export default function HomePage(props: { locale: Locale }) {
         <pre class="cta__code">
           <span class="t-dim">{c().ctaComment}</span>
           {'\n'}
-          <span class="t-accent">$</span> kero skill setup{'\n'}
-          <span class="t-accent">$</span> kero new -n my-task -- claude
+          <span class="t-accent">$</span> hyla skill setup{'\n'}
+          <span class="t-accent">$</span> hyla new -n my-task -- claude
         </pre>
         <div class="actions actions--center">
           <Link href={to('/docs/quick-start')} class="button button--primary">

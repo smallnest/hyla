@@ -10,7 +10,7 @@ import (
 // streams into the tunnel without waiting, and if the server has not
 // taken it yet, its first of them arrives as a meow ping, and the
 // others as nothing. A client whose first stream is a meow ping is one of
-// tailcat's; kero's own remote connection opens with its Hello, which
+// tailcat's; hyla's own remote connection opens with its Hello, which
 // begins "{\"kind\":\"mux\"".
 
 // peerOf names who connects over c, whose first line is hello: "tailcat

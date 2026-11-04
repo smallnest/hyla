@@ -27,7 +27,7 @@ jobs:
           for os in linux darwin windows; do
             GOOS=$os go build ./...
           done
-          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o /dev/null ./cmd/kero-server
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o /dev/null ./cmd/hyla-server
       - name: Check the install scripts
         run: |
           sh -n scripts/install-server.sh

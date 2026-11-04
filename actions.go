@@ -8,14 +8,14 @@ import (
 	"github.com/egoist/mygo/plugins/updater"
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/actions"
-	"kero/internal/proto"
+	"hyla/internal/actions"
+	"hyla/internal/proto"
 
-	"kero/locales"
+	"hyla/locales"
 )
 
 // run runs one of the app's actions, from a menu, the palette or
-// `kero do`, on the main thread.
+// `hyla do`, on the main thread.
 func (a *App) run(id string, args map[string]string) {
 	if !a.fromMay(id, args) {
 		return
@@ -29,7 +29,7 @@ func (a *App) run(id string, args map[string]string) {
 	case "app.quitAll":
 		a.quitAndEnd()
 	case "session.new":
-		// A directory kero do names is of the host it runs on.
+		// A directory hyla do names is of the host it runs on.
 		switch dir := args["dir"]; {
 		case dir != "":
 			a.newSessionIn(a.actionHost(), dir)
@@ -140,7 +140,7 @@ func (a *App) item(id string) *mygo.MenuItem {
 }
 
 // actionTitles are the actions' titles in the language the app shows;
-// an Action's Title stays English, for `kero actions`.
+// an Action's Title stays English, for `hyla actions`.
 var actionTitles = map[string]func() string{
 	"settings.open":       locales.ActionSettings,
 	"cli.install":         locales.ActionInstallCli,
@@ -225,10 +225,10 @@ func (a *App) menu() *mygo.Menu {
 		{Label: locales.MenuQuitApp(mygo.App.Name()), Accelerator: quitKeys, ToolTip: locales.MenuQuitTip(), Click: func(*mygo.MenuItem, *mygo.Window) { mygo.App.Quit() }},
 		a.item("app.quitAll")}
 	// The app menu is macOS's: MyGo leaves it out elsewhere, with its items'
-	// shortcuts, so they go in a menu of Kero's there, without macOS's own.
-	kero := &mygo.MenuItem{Role: mygo.RoleAppMenu, Submenu: appMenu}
+	// shortcuts, so they go in a menu of Hyla's there, without macOS's own.
+	hyla := &mygo.MenuItem{Role: mygo.RoleAppMenu, Submenu: appMenu}
 	if runtime.GOOS != "darwin" {
-		kero = &mygo.MenuItem{Label: "Kero", Submenu: []*mygo.MenuItem{a.item("settings.open"), a.item("cli.install"), updater.MenuItem(), mygo.Separator(),
+		hyla = &mygo.MenuItem{Label: "Hyla", Submenu: []*mygo.MenuItem{a.item("settings.open"), a.item("cli.install"), updater.MenuItem(), mygo.Separator(),
 			{Label: locales.MenuQuit(), Accelerator: quitKeys, ToolTip: locales.MenuQuitTip(), Click: func(*mygo.MenuItem, *mygo.Window) { mygo.App.Quit() }},
 			a.item("app.quitAll")}}
 	}
@@ -240,7 +240,7 @@ func (a *App) menu() *mygo.Menu {
 		view = append(view, &mygo.MenuItem{Role: mygo.RoleToggleDevTools})
 	}
 	return mygo.NewMenu([]*mygo.MenuItem{
-		kero,
+		hyla,
 		{Label: locales.MenuSession(), Submenu: a.items("Session",
 			[]string{"session.new", "session.newHome", "project.open"},
 			[]string{"palette.open", "session.attention", "session.next", "session.previous"},
@@ -310,7 +310,7 @@ var quitKeys = func() string {
 }()
 
 // fromMay reports whether an action another machine's program asked for
-// (kero do, a.from) may run: one that acts on a session acts on one of
+// (hyla do, a.from) may run: one that acts on a session acts on one of
 // that host's alone, never on this machine's, which a local agent's may;
 // one of the app, as Settings or the sidebar, may.
 func (a *App) fromMay(id string, args map[string]string) bool {

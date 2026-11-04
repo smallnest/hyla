@@ -17,9 +17,9 @@ import (
 	"testing"
 	"time"
 
-	keroclient "kero/internal/client"
-	"kero/internal/proto"
-	"kero/internal/remote"
+	hylaclient "hyla/internal/client"
+	"hyla/internal/proto"
+	"hyla/internal/remote"
 )
 
 // fakeTailscale answers the local API as tailscaled does: alice owns the
@@ -36,7 +36,7 @@ func (f *fakeTailscale) serve(t *testing.T) {
 	if err != nil {
 		t.Skipf("no Unix sockets: %v", err)
 	}
-	t.Setenv("KERO_TAILSCALED_SOCKET", sock)
+	t.Setenv("HYLA_TAILSCALED_SOCKET", sock)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/localapi/v0/status", func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, `{"BackendState":"Running","Self":{"DNSName":"box.tail.ts.net.","TailscaleIPs":["127.0.0.1"],"UserID":1},"User":{"1":{"LoginName":"alice@example.com"}}}`)
@@ -75,8 +75,8 @@ func listenDaemon(t *testing.T) *Daemon {
 	return d
 }
 
-// kerod's tailnet listener lets in the machine's owner, and those
-// listen-allow names, once Tailscale tells who connects, and Kero alone:
+// hylad's tailnet listener lets in the machine's owner, and those
+// listen-allow names, once Tailscale tells who connects, and Hyla alone:
 // no browser's request reaches it.
 func TestTailnetListener(t *testing.T) {
 	ts := &fakeTailscale{who: "alice@example.com"}
@@ -107,7 +107,7 @@ func TestTailnetListener(t *testing.T) {
 		t.Errorf("a browser's request: %d", code)
 	}
 	if code := get(http.Header{}); code != http.StatusForbidden {
-		t.Errorf("a request not Kero's: %d", code)
+		t.Errorf("a request not Hyla's: %d", code)
 	}
 
 	dial := func() (*remote.Conn, error) {
@@ -149,7 +149,7 @@ func TestTailnetListener(t *testing.T) {
 	if rc.Welcome.Host.Peer != "alice@example.com" || rc.Welcome.Host.Version != proto.Version {
 		t.Errorf("welcome %+v", rc.Welcome)
 	}
-	c, err := keroclient.ConnectVia(rc)
+	c, err := hylaclient.ConnectVia(rc)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -221,7 +221,7 @@ func TestServeListener(t *testing.T) {
 
 // The listeners follow the configuration: one turned on listens, and one
 // turned off listens no more; a Tailscale Serve socket waits for the next
-// kerod.
+// hylad.
 func TestListenersSet(t *testing.T) {
 	(&fakeTailscale{}).serve(t)
 	probe, err := net.Listen("tcp", "127.0.0.1:0")
@@ -258,7 +258,7 @@ func TestListenersSet(t *testing.T) {
 		t.Fatalf("active %v, allow %v", l.active(), l.allow)
 	}
 	if _, err := os.Stat(sock); err == nil {
-		t.Fatal("a Tailscale Serve socket started after kerod did")
+		t.Fatal("a Tailscale Serve socket started after hylad did")
 	}
 	l.set(nil, nil, false)
 	waitFor(false)

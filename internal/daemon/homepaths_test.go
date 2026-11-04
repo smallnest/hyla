@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"kero/internal/settings"
+	"hyla/internal/settings"
 )
 
 // A launchd job's PATH keeps its own places first, and gets the
@@ -42,7 +42,7 @@ func TestShellOutputOfAProgramThatOutlivesIt(t *testing.T) {
 	}
 }
 
-// The places the agents install to are on the PATH kerod runs its
+// The places the agents install to are on the PATH hylad runs its
 // commands with, as a chat's background prompt runs an agent by name.
 func TestHomePathsCoverTheAgents(t *testing.T) {
 	places := homePaths()

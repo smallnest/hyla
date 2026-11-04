@@ -1,11 +1,11 @@
 ---
 title: Command Line
-description: Drive Kero sessions and panes from a shell or a script with the kero CLI.
+description: Drive Hyla sessions and panes from a shell or a script with the hyla CLI.
 ---
 
 # Command Line
 
-The `kero` command drives sessions from any shell: yours, a script's or an agent's. Install it with **Kero › Install Command Line Tool…**.
+The `hyla` command drives sessions from any shell: yours, a script's or an agent's. Install it with **Hyla › Install Command Line Tool…**.
 
 ## Targets
 
@@ -15,24 +15,24 @@ Most commands take a **target**: a session or a pane. A target can be:
 - a session's name
 - a session, which stands for its focused pane
 
-Inside Kero, `$KERO_SESSION` and `$KERO_PANE` name the session and pane a command runs in, and they're the default target.
+Inside Hyla, `$HYLA_SESSION` and `$HYLA_PANE` name the session and pane a command runs in, and they're the default target.
 
 ## Sessions and panes
 
 ```sh
-kero ls                          # every session and its panes
-kero new -n api -d ~/code/api    # start a session, print its id
-kero new -- npm run dev          # start one running a command
-kero split --down -- npm test    # a pane beside this one
-kero split --url localhost:3000  # a browser pane showing a page
-kero rename api backend          # rename a session
-kero focus backend               # show it in the app
-kero close backend               # end a session (or, given a pane, the pane)
-kero close fix-login --remove-worktree   # and remove its own worktree
-kero restart <pane>              # start an exited pane's shell again
+hyla ls                          # every session and its panes
+hyla new -n api -d ~/code/api    # start a session, print its id
+hyla new -- npm run dev          # start one running a command
+hyla split --down -- npm test    # a pane beside this one
+hyla split --url localhost:3000  # a browser pane showing a page
+hyla rename api backend          # rename a session
+hyla focus backend               # show it in the app
+hyla close backend               # end a session (or, given a pane, the pane)
+hyla close fix-login --remove-worktree   # and remove its own worktree
+hyla restart <pane>              # start an exited pane's shell again
 ```
 
-`kero new` options:
+`hyla new` options:
 
 | Flag                        | Meaning                                         |
 | --------------------------- | ----------------------------------------------- |
@@ -48,57 +48,57 @@ kero restart <pane>              # start an exited pane's shell again
 ## Typing and reading
 
 ```sh
-kero send api "npm run migrate" --enter   # type text, then press Enter
-kero send api -e 'y\n'                    # interpret \n \r \t \e \xHH escapes
-kero key api ctrl+c                       # press keys
-kero read api -n 40                       # the last 40 lines on screen
-kero read api -a                          # the screen with its scrollback
+hyla send api "npm run migrate" --enter   # type text, then press Enter
+hyla send api -e 'y\n'                    # interpret \n \r \t \e \xHH escapes
+hyla key api ctrl+c                       # press keys
+hyla read api -n 40                       # the last 40 lines on screen
+hyla read api -a                          # the screen with its scrollback
 ```
 
-`kero key` understands `enter`, `tab`, `escape`, `up`, `down`, `left`, `right`, `backspace`, and modifiers such as `ctrl+c` or `ctrl+d`.
+`hyla key` understands `enter`, `tab`, `escape`, `up`, `down`, `left`, `right`, `backspace`, and modifiers such as `ctrl+c` or `ctrl+d`.
 
 ## Waiting
 
 ```sh
-kero wait api                             # until it stops working
-kero wait api --for waiting,error --timeout 10m
-kero prompt review "summarize the diff"   # send + Enter, wait, print the screen
+hyla wait api                             # until it stops working
+hyla wait api --for waiting,error --timeout 10m
+hyla prompt review "summarize the diff"   # send + Enter, wait, print the screen
 ```
 
-`kero wait` prints the pane's status when it returns. `kero prompt` sends text and Enter, waits until the pane stops working, then prints its screen. It's the quickest way to ask another agent something.
+`hyla wait` prints the pane's status when it returns. `hyla prompt` sends text and Enter, waits until the pane stops working, then prints its screen. It's the quickest way to ask another agent something.
 
 ### Waiting for a command
 
-A command such as `make test` doesn't show as *working*, so to wait for one to finish, start it with `--wait`. `kero` then exits with the command's own status:
+A command such as `make test` doesn't show as *working*, so to wait for one to finish, start it with `--wait`. `hyla` then exits with the command's own status:
 
 ```sh
-if kero split --down --wait -- make test; then
+if hyla split --down --wait -- make test; then
   echo "tests passed"
 fi
 ```
 
-`kero wait --exit` does the same for a pane that is already running a command it started with:
+`hyla wait --exit` does the same for a pane that is already running a command it started with:
 
 ```sh
-pane=$(kero split --down -- go test ./...)
+pane=$(hyla split --down -- go test ./...)
 # … do other things …
-kero wait "$pane" --exit --timeout 10m
+hyla wait "$pane" --exit --timeout 10m
 echo "go test exited with $?"
 ```
 
-The pane stays open after the command, with its output, so you can `kero read` it. Waiting for a command doesn't work with `cmd` as the shell, which can't tell when one ends.
+The pane stays open after the command, with its output, so you can `hyla read` it. Waiting for a command doesn't work with `cmd` as the shell, which can't tell when one ends.
 
 ## Watching
 
-`kero events` prints what happens to sessions and panes as it happens, one line per event, until you stop it. A script can follow every agent at once this way, without polling `kero status`.
+`hyla events` prints what happens to sessions and panes as it happens, one line per event, until you stop it. A script can follow every agent at once this way, without polling `hyla status`.
 
 ```sh
-kero events                               # every session
-kero events api                           # one session, or one pane
-kero events -p kero                       # one project's sessions
-kero events --for waiting,error           # only panes going to these statuses
-kero events --json | jq -r .name          # one JSON object per line
-kero events --for waiting --once          # exit after the first one
+hyla events                               # every session
+hyla events api                           # one session, or one pane
+hyla events -p hyla                       # one project's sessions
+hyla events --for waiting,error           # only panes going to these statuses
+hyla events --json | jq -r .name          # one JSON object per line
+hyla events --for waiting --once          # exit after the first one
 ```
 
 ```
@@ -118,25 +118,25 @@ kero events --for waiting --once          # exit after the first one
 
 With `--json`, every event also has `event`, `time` (unix ms), `session`, `project` and `name`, the session's name as the sidebar shows it.
 
-`kero events` reports what changes from now on: for what is there already, use `kero ls --json`. Given a target, it stops when the target closes. `--once` exits after the first event that matches, with `1` if the target closes first or `--timeout` passes. kerod sends its state when it settles, so a status that lasts only a moment, such as a blip of working, may not show.
+`hyla events` reports what changes from now on: for what is there already, use `hyla ls --json`. Given a target, it stops when the target closes. `--once` exits after the first event that matches, with `1` if the target closes first or `--timeout` passes. hylad sends its state when it settles, so a status that lasts only a moment, such as a blip of working, may not show.
 
 ## Browsing
 
-`kero browser` drives a browser pane's page the way `kero send` and `kero read` drive a terminal: it clicks, types, reads the page and takes pictures of it. Its target is a browser pane, or a session, for its browser. With no target, it drives the browser of the session it runs in.
+`hyla browser` drives a browser pane's page the way `hyla send` and `hyla read` drive a terminal: it clicks, types, reads the page and takes pictures of it. Its target is a browser pane, or a session, for its browser. With no target, it drives the browser of the session it runs in.
 
 ```sh
-kero split --url localhost:3000            # open the page, print the pane's id
-kero browser open localhost:3000/todos     # go to a page, and wait for it to load
-kero browser snapshot                      # what's on the page, each element with a ref
-kero browser type --ref e3 "Buy milk" --enter
-kero browser click --ref e5
-kero browser wait '.todo-list li'          # until an element shows
-kero browser wait --text "1 item left"     # until the text shows
-kero browser text                          # the page's text
-kero browser text h1                       # an element's
-kero browser click 'button[type=submit]'
-kero browser screenshot -o page.png
-kero browser eval 'document.title'
+hyla split --url localhost:3000            # open the page, print the pane's id
+hyla browser open localhost:3000/todos     # go to a page, and wait for it to load
+hyla browser snapshot                      # what's on the page, each element with a ref
+hyla browser type --ref e3 "Buy milk" --enter
+hyla browser click --ref e5
+hyla browser wait '.todo-list li'          # until an element shows
+hyla browser wait --text "1 item left"     # until the text shows
+hyla browser text                          # the page's text
+hyla browser text h1                       # an element's
+hyla browser click 'button[type=submit]'
+hyla browser screenshot -o page.png
+hyla browser eval 'document.title'
 ```
 
 | Command                         | What it does |
@@ -154,32 +154,32 @@ kero browser eval 'document.title'
 | `cookies save [file]`           | Save the browser's cookies to a file, or print them; `--domain` keeps a site's |
 | `cookies load <file>`           | Load cookies from a file; `--domain` loads a site's |
 
-Selectors are CSS selectors; quote them in the shell. Anywhere a command takes a selector, `--ref` takes a ref from `snapshot` in its place: `kero browser click --ref e5`. An element keeps its ref until the page goes to another, and a ref whose element is gone fails rather than guess another. Commands that need an element wait for it to appear, and `--timeout` (default `10s`) sets how long they, and the page loads, may take. `type` and `eval` take `-` for text from stdin.
+Selectors are CSS selectors; quote them in the shell. Anywhere a command takes a selector, `--ref` takes a ref from `snapshot` in its place: `hyla browser click --ref e5`. An element keeps its ref until the page goes to another, and a ref whose element is gone fails rather than guess another. Commands that need an element wait for it to appear, and `--timeout` (default `10s`) sets how long they, and the page loads, may take. `type` and `eval` take `-` for text from stdin.
 
 Clicking and typing send the events a real mouse and keyboard would, so pages built with React and other frameworks see them. Every command works on any browser pane, shown or not: a screenshot of a pane not on screen takes no focus from what you are doing.
 
-Browser panes share their cookies, and keep them when Kero restarts. `cookies` saves them in Playwright's storage state, as JSON, or for a file named `.txt`, as a Netscape `cookies.txt`, which curl and browser extensions write; `load` reads either. Cookies sign you in to sites: share their file only with what you'd trust with your logins. They stay on this Mac, so programs on a host can't save or load them.
+Browser panes share their cookies, and keep them when Hyla restarts. `cookies` saves them in Playwright's storage state, as JSON, or for a file named `.txt`, as a Netscape `cookies.txt`, which curl and browser extensions write; `load` reads either. Cookies sign you in to sites: share their file only with what you'd trust with your logins. They stay on this Mac, so programs on a host can't save or load them.
 
-Like `kero do`, `kero browser` needs Remote Control, in **Settings › Agents**, and the app to be open.
+Like `hyla do`, `hyla browser` needs Remote Control, in **Settings › Agents**, and the app to be open.
 
 ## Past conversations
 
 ```sh
-kero history                     # agents' conversations panes ran, the last to run first
-kero history -p kero -n 50       # one project's, up to 50
-kero history login --json        # those matching "login", as JSON
-kero resume 13b9                 # resume one: its id, a prefix of it, or its name
-kero resume fix-login -f         # and show it in the app
+hyla history                     # agents' conversations panes ran, the last to run first
+hyla history -p hyla -n 50       # one project's, up to 50
+hyla history login --json        # those matching "login", as JSON
+hyla resume 13b9                 # resume one: its id, a prefix of it, or its name
+hyla resume fix-login -f         # and show it in the app
 ```
 
-`kero resume` starts a session that resumes the conversation, in its directory and project, and prints the session's id. A conversation a pane still runs gives that session instead. See [Past conversations](./sessions.md#past-conversations).
+`hyla resume` starts a session that resumes the conversation, in its directory and project, and prints the session's id. A conversation a pane still runs gives that session instead. See [Past conversations](./sessions.md#past-conversations).
 
 ## Status
 
 ```sh
-kero status api --json                    # status, program, directory
-kero report working "Running migrations"  # report your own status
-kero notify "Need your input"             # flag this pane as needing you
+hyla status api --json                    # status, program, directory
+hyla report working "Running migrations"  # report your own status
+hyla notify "Need your input"             # flag this pane as needing you
 ```
 
 See [Status & Notifications](./status.md) for the states.
@@ -187,9 +187,9 @@ See [Status & Notifications](./status.md) for the states.
 ## Changes
 
 ```sh
-kero diff                                 # the pane's uncommitted changes, as git diff prints them
-kero diff --turn                          # what its agent changed in its last turn
-kero diff review --branch                 # since the default branch
+hyla diff                                 # the pane's uncommitted changes, as git diff prints them
+hyla diff --turn                          # what its agent changed in its last turn
+hyla diff review --branch                 # since the default branch
 ```
 
 See [Changes](./changes.md).
@@ -197,62 +197,62 @@ See [Changes](./changes.md).
 ## Configuration and setup
 
 ```sh
-kero config path                 # where the configuration file is
-kero config show                 # every key with its value
-kero config show --defaults      # every key as kero comes
-kero config edit                 # open it in $EDITOR
-kero config check                # report unknown keys and bad values
-kero projects                    # list projects
-kero skill setup                 # teach coding agents to use kero
-kero daemon status|stop|restart  # manage kerod
-kero daemon install-service      # run kerod with the machine (systemd, launchd)
-kero daemon serve                # run kerod in the foreground, for a service manager
-kero clients                     # who is connected to kerod
-kero pets                        # the pets on the window's edge, the one shown first
-kero pets use <name|kero|codex>  # show a pet: one in ~/.codex/pets, or kero's
-kero pets install <pack.zip>     # install a Codex pet pack, a .codex-pet.zip
-kero pets rm <name>              # remove a pet kero installed
+hyla config path                 # where the configuration file is
+hyla config show                 # every key with its value
+hyla config show --defaults      # every key as hyla comes
+hyla config edit                 # open it in $EDITOR
+hyla config check                # report unknown keys and bad values
+hyla projects                    # list projects
+hyla skill setup                 # teach coding agents to use hyla
+hyla daemon status|stop|restart  # manage hylad
+hyla daemon install-service      # run hylad with the machine (systemd, launchd)
+hyla daemon serve                # run hylad in the foreground, for a service manager
+hyla clients                     # who is connected to hylad
+hyla pets                        # the pets on the window's edge, the one shown first
+hyla pets use <name|hyla|codex>  # show a pet: one in ~/.codex/pets, or hyla's
+hyla pets install <pack.zip>     # install a Codex pet pack, a .codex-pet.zip
+hyla pets rm <name>              # remove a pet hyla installed
 ```
 
 ## Feishu
 
 ```sh
-kero feishu setup                # ask for the app's ID and secret, keep them, connect, and say what's next
-kero feishu status               # whether the bot is connected
-kero feishu test                 # check that Feishu knows the app
-kero feishu send <chat> <text…>  # send a message to a chat, by its ID
+hyla feishu setup                # ask for the app's ID and secret, keep them, connect, and say what's next
+hyla feishu status               # whether the bot is connected
+hyla feishu test                 # check that Feishu knows the app
+hyla feishu send <chat> <text…>  # send a message to a chat, by its ID
 ```
 
 A Feishu chat drives the coding agent in the session it's bound to: `/new` starts one, `/use` binds an open one, and other text is a prompt. See [Feishu](./feishu.md).
 
 ## Other machines
 
-`-H <host>` before the command, or `$KERO_HOST`, points a command that acts on sessions at kerod on another machine: a host you added, or an address such as `me@devbox` or `wsl://Ubuntu`. See [Remote Hosts](./remote.md).
+`-H <host>` before the command, or `$HYLA_HOST`, points a command that acts on sessions at hylad on another machine: a host you added, or an address such as `me@devbox` or `wsl://Ubuntu`. See [Remote Hosts](./remote.md).
 
 ```sh
-kero hosts                       # the hosts you added
-kero hosts add devbox me@devbox  # add one, which the app shows too
-kero hosts check devbox          # connect, and say how it went
-kero hosts install devbox        # install Kero there, over SSH
-kero ls --all                    # the sessions here and on every host
-kero -H devbox ls
-kero -H devbox new -n review -- claude
-kero -H devbox daemon update     # update Kero there to this one's version
+hyla hosts                       # the hosts you added
+hyla hosts add devbox me@devbox  # add one, which the app shows too
+hyla hosts check devbox          # connect, and say how it went
+hyla hosts install devbox        # install Hyla there, over SSH
+hyla ls --all                    # the sessions here and on every host
+hyla -H devbox ls
+hyla -H devbox new -n review -- claude
+hyla -H devbox daemon update     # update Hyla there to this one's version
 ```
 
-Inside a pane, `kero` talks to the kerod of the machine the pane runs on, wherever the app is.
+Inside a pane, `hyla` talks to the hylad of the machine the pane runs on, wherever the app is.
 
-`kero ls --all` asks every host at once and lists each one's sessions under the name `-H` takes, `local` for this machine. A host out of reach says why in place of its sessions. With `--json`, it prints a list of `{host, addr, error, sessions}`.
+`hyla ls --all` asks every host at once and lists each one's sessions under the name `-H` takes, `local` for this machine. A host out of reach says why in place of its sessions. With `--json`, it prints a list of `{host, addr, error, sessions}`.
 
 ## Running app actions
 
-`kero do` runs any of the app's actions, the same ones as its menus. It needs Remote Control, which is on by default in **Settings › Agents**.
+`hyla do` runs any of the app's actions, the same ones as its menus. It needs Remote Control, which is on by default in **Settings › Agents**.
 
 ```sh
-kero actions                     # list them
-kero do pane.split.right
-kero do pane.browser url=localhost:3000
-kero do sidebar.toggle
+hyla actions                     # list them
+hyla do pane.split.right
+hyla do pane.browser url=localhost:3000
+hyla do sidebar.toggle
 ```
 
 ## Exit status
@@ -263,8 +263,8 @@ kero do sidebar.toggle
 | `1`  | Failed                               |
 | `2`  | Bad usage                            |
 | `3`  | No such target, or an ambiguous one  |
-| `4`  | kerod is unreachable                 |
+| `4`  | hylad is unreachable                 |
 
-Commands that wait for a program, `kero wait --exit` and `--wait`, exit with the program's status instead, as does `kero wait` when the pane's shell exits with an error. A wait that times out exits with `1`.
+Commands that wait for a program, `hyla wait --exit` and `--wait`, exit with the program's status instead, as does `hyla wait` when the pane's shell exits with an error. A wait that times out exits with `1`.
 
 Add `--json` to `ls`, `status` and `projects` for machine-readable output.

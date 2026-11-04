@@ -10,7 +10,7 @@ import splitDownSvg from '../../../icons/f7-square-split-1x2.svg?raw';
 import zoomSvg from '../../../icons/f7-arrow-up-left-arrow-down-right.svg?raw';
 import closeSvg from '../../../icons/f7-xmark.svg?raw';
 
-// Kero's window, drawn in HTML so it stays sharp at any size: a project's
+// Hyla's window, drawn in HTML so it stays sharp at any size: a project's
 // sessions in the sidebar, and a session split into Claude Code reviewing
 // a change, lazygit showing it, and the program running, with a project
 // whose sessions run on a remote host. The snake plays
@@ -44,7 +44,7 @@ const projects: { name: string; host?: string; note?: string; sessions: { name: 
 
 export default function AppWindow() {
   return (
-    <div class="kw" role="img" aria-label="Kero's window: Claude Code reviewing a change, lazygit showing its diff and a snake game running in split panes, beside a sidebar of sessions grouped by project, one of them on a remote host">
+    <div class="kw" role="img" aria-label="Hyla's window: Claude Code reviewing a change, lazygit showing its diff and a snake game running in split panes, beside a sidebar of sessions grouped by project, one of them on a remote host">
       <aside class="kw-side">
         <div class="kw-side__top">
           <span class="kw-lights">
@@ -101,14 +101,14 @@ export default function AppWindow() {
 
       <div class="kw-main">
         <div class="kw-col">
-          <Pane title="Snake demo uncommitted changes" dir="~/kero-demo/snake" program="claude" focused class="kw-pane--claude">
+          <Pane title="Snake demo uncommitted changes" dir="~/hyla-demo/snake" program="claude" focused class="kw-pane--claude">
             <ClaudeScreen />
           </Pane>
-          <Pane title="lazygit" dir="~/kero-demo/snake" program="lazygit" class="kw-pane--git">
+          <Pane title="lazygit" dir="~/hyla-demo/snake" program="lazygit" class="kw-pane--git">
             <LazygitScreen />
           </Pane>
         </div>
-        <Pane title="snake" dir="~/kero-demo/snake" program="snake" class="kw-pane--snake">
+        <Pane title="snake" dir="~/hyla-demo/snake" program="snake" class="kw-pane--snake">
           <SnakeScreen />
         </Pane>
       </div>
@@ -434,7 +434,7 @@ const SplitDownIcon = glyph(splitDownSvg, 14);
 const ZoomIcon = glyph(zoomSvg, 13);
 const CloseIcon = glyph(closeSvg, 11);
 
-// The status glyphs kero draws in code (statusIconP in view.go), with its
+// The status glyphs hyla draws in code (statusIconP in view.go), with its
 // light palette: a faint check once seen, a disc with a check when done
 // unseen, a turning arc while working, a pulsing ring when it needs you.
 function StatusIcon(props: { status: Status; size?: number }) {

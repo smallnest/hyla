@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-// The task is XML Task Scheduler reads, that runs kerod without a window,
+// The task is XML Task Scheduler reads, that runs hylad without a window,
 // a path of spaces and ampersands too.
 func TestDefinition(t *testing.T) {
 	var task struct {
@@ -20,7 +20,7 @@ func TestDefinition(t *testing.T) {
 			Arguments string
 		} `xml:"Actions>Exec"`
 	}
-	d := xml.NewDecoder(strings.NewReader(definition(`C:\Users\A & B\kero.exe`, `PC\A & B`)))
+	d := xml.NewDecoder(strings.NewReader(definition(`C:\Users\A & B\hyla.exe`, `PC\A & B`)))
 	d.CharsetReader = func(_ string, r io.Reader) (io.Reader, error) { return r, nil }
 	if err := d.Decode(&task); err != nil {
 		t.Fatal(err)
@@ -28,7 +28,7 @@ func TestDefinition(t *testing.T) {
 	if task.Principal.UserID != `PC\A & B` || task.Principal.LogonType != "InteractiveToken" {
 		t.Errorf("principal %+v", task.Principal)
 	}
-	if !strings.HasSuffix(task.Exec.Command, `\conhost.exe`) || task.Exec.Arguments != `--headless "C:\Users\A & B\kero.exe" daemon serve` {
+	if !strings.HasSuffix(task.Exec.Command, `\conhost.exe`) || task.Exec.Arguments != `--headless "C:\Users\A & B\hyla.exe" daemon serve` {
 		t.Errorf("runs %+v", task.Exec)
 	}
 	if b := utf16File("<a/>"); b[0] != 0xff || b[1] != 0xfe || b[2] != '<' || b[3] != 0 {

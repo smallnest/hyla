@@ -10,9 +10,9 @@ import (
 
 // TestMain is also the program WMI starts: it writes what it was given.
 func TestMain(m *testing.M) {
-	if out := os.Getenv("KERO_WMI_OUT"); out != "" {
+	if out := os.Getenv("HYLA_WMI_OUT"); out != "" {
 		wd, _ := os.Getwd()
-		os.WriteFile(out, []byte(os.Getenv("KERO_PROBE")+"|"+wd+"|"+os.Args[1]), 0o600)
+		os.WriteFile(out, []byte(os.Getenv("HYLA_PROBE")+"|"+wd+"|"+os.Args[1]), 0o600)
 		return
 	}
 	os.Exit(m.Run())
@@ -31,7 +31,7 @@ func TestWMIStart(t *testing.T) {
 	const probe = "it’s \"here\"\nand ‘there’ $(calc)"
 	cmd := exec.Command(exe, "an arg’s")
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), "KERO_PROBE="+probe, "KERO_WMI_OUT="+out)
+	cmd.Env = append(os.Environ(), "HYLA_PROBE="+probe, "HYLA_WMI_OUT="+out)
 	if _, err := wmiStart(cmd); err != nil {
 		t.Fatal(err)
 	}

@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"kero/internal/proto"
-	"kero/internal/settings"
+	"hyla/internal/proto"
+	"hyla/internal/settings"
 )
 
 // background runs the prompt with the agent's own command, in the
@@ -67,7 +67,7 @@ func (b *Bot) background(key, chatID, response, text string, t turnInfo) {
 	if agent == "claude" {
 		out, _, _ = proto.AnswerPair(out)
 	}
-	// The app's run has its environment, while kerod's, which runs the
+	// The app's run has its environment, while hylad's, which runs the
 	// command, may have none of the agent's provider's.
 	params := proto.BackgroundParams{ID: session, Command: cmd, Dir: dir, Out: out}
 	for _, kv := range b.env {
@@ -211,7 +211,7 @@ func (b *Bot) backgroundSession(chatID, id, agent, dir string) (string, bool, er
 	}
 	var s proto.Session
 	if err := b.api.Call("create", proto.CreateParams{Project: project, Dir: dir, Name: name}, &s); err != nil {
-		return "", false, fmt.Errorf("Kero could not start a session: %w", err)
+		return "", false, fmt.Errorf("Hyla could not start a session: %w", err)
 	}
 	if err := b.api.Call("session.setBackground", proto.SessionParams{ID: s.ID}, nil); err != nil {
 		return "", false, err

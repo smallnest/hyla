@@ -1,7 +1,7 @@
-// Package update updates the server build of Kero (cmd/kero-server) in
-// place: it downloads the archive of a version from Kero's releases,
+// Package update updates the server build of Hyla (cmd/hyla-server) in
+// place: it downloads the archive of a version from Hyla's releases,
 // checks it against the key the app's own updates are signed with, and
-// puts it where the running one is, which a restart of kerod then runs.
+// puts it where the running one is, which a restart of hylad then runs.
 package update
 
 import (
@@ -29,12 +29,12 @@ import (
 	"time"
 )
 
-// PublicKey checks Kero's releases: mygo.json's updates.publicKey, whose
+// PublicKey checks Hyla's releases: mygo.json's updates.publicKey, whose
 // private key signs the app's updates and the server build's archives.
 const PublicKey = "CJGqv/HGMyORlUKh5NCvwLOb3p9Fblp1d3oj8qDMQ30="
 
-// Repo is the GitHub repository of Kero's releases.
-const Repo = "smallnest/kero"
+// Repo is the GitHub repository of Hyla's releases.
+const Repo = "smallnest/hyla"
 
 // maxArchive bounds an archive's download.
 const maxArchive = 256 << 20
@@ -47,24 +47,24 @@ func Asset(version, goos, goarch string) string {
 	if goos == "windows" {
 		ext = ".zip"
 	}
-	return fmt.Sprintf("kero-server-%s-%s-%s%s", version, goos, goarch, ext)
+	return fmt.Sprintf("hyla-server-%s-%s-%s%s", version, goos, goarch, ext)
 }
 
 // Platforms are those the server build is made for.
 var Platforms = []string{"linux/amd64", "linux/arm64", "darwin/amd64", "darwin/arm64", "windows/amd64", "windows/arm64"}
 
-// exe is the name of kero in an archive for goos.
+// exe is the name of hyla in an archive for goos.
 func exe(goos string) string {
 	if goos == "windows" {
-		return "kero.exe"
+		return "hyla.exe"
 	}
-	return "kero"
+	return "hyla"
 }
 
-// releases is where the releases are: $KERO_RELEASES, for tests and
+// releases is where the releases are: $HYLA_RELEASES, for tests and
 // mirrors, else GitHub's.
 func releases() string {
-	if r := os.Getenv("KERO_RELEASES"); r != "" {
+	if r := os.Getenv("HYLA_RELEASES"); r != "" {
 		return strings.TrimSuffix(r, "/")
 	}
 	return "https://github.com/" + Repo + "/releases/download"
@@ -115,7 +115,7 @@ func get(ctx context.Context, url string, max int64) ([]byte, error) {
 	return b, nil
 }
 
-// Latest is the version of Kero's latest release.
+// Latest is the version of Hyla's latest release.
 func Latest(ctx context.Context) (string, error) {
 	b, err := get(ctx, "https://api.github.com/repos/"+Repo+"/releases/latest", 1<<20)
 	if err != nil {
@@ -128,16 +128,16 @@ func Latest(ctx context.Context) (string, error) {
 		return "", err
 	}
 	if r.Tag == "" {
-		return "", errors.New("no release of Kero is published")
+		return "", errors.New("no release of Hyla is published")
 	}
 	return strings.TrimPrefix(r.Tag, "v"), nil
 }
 
 // Marker is the file of an install of the server build that updates
-// itself: install-server.sh's, in ~/.local/lib/kero, which the archives
+// itself: install-server.sh's, in ~/.local/lib/hyla, which the archives
 // carry. A directory without it is never replaced, as one the user put
-// kero in by hand may hold other files.
-const Marker = ".kero-server"
+// hyla in by hand may hold other files.
+const Marker = ".hyla-server"
 
 // Managed reports whether dir is an install of the server build that
 // updates itself.
@@ -146,7 +146,7 @@ func Managed(dir string) bool {
 	return err == nil
 }
 
-// InstallDir is the directory of the running kero, links resolved: the
+// InstallDir is the directory of the running hyla, links resolved: the
 // install a self-update replaces.
 func InstallDir() string {
 	exe, err := os.Executable()
@@ -161,7 +161,7 @@ func InstallDir() string {
 
 var versionRe = regexp.MustCompile(`^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$`)
 
-// ValidVersion reports whether v is a version of Kero, as 2.1.0 or
+// ValidVersion reports whether v is a version of Hyla, as 2.1.0 or
 // 2.1.0-beta.1.
 func ValidVersion(v string) bool { return versionRe.MatchString(v) }
 
@@ -203,11 +203,11 @@ func Compare(a, b string) int {
 // other version, platform or file signed with the key.
 func message(archive []byte, version, goos, goarch string) []byte {
 	sum := sha256.Sum256(archive)
-	return []byte("kero-server " + version + " " + goos + "/" + goarch + " " + hex.EncodeToString(sum[:]))
+	return []byte("hyla-server " + version + " " + goos + "/" + goarch + " " + hex.EncodeToString(sum[:]))
 }
 
 // Verify checks an archive of a version for a platform against its
-// signature: Ed25519, base64, with the key of Kero's releases.
+// signature: Ed25519, base64, with the key of Hyla's releases.
 func Verify(archive []byte, version, goos, goarch, sig string) error {
 	key, err := base64.StdEncoding.DecodeString(PublicKey)
 	if err != nil || len(key) != ed25519.PublicKeySize {
@@ -215,7 +215,7 @@ func Verify(archive []byte, version, goos, goarch, sig string) error {
 	}
 	s, err := base64.StdEncoding.DecodeString(strings.TrimSpace(sig))
 	if err != nil || !ed25519.Verify(ed25519.PublicKey(key), message(archive, version, goos, goarch), s) {
-		return errors.New("update: the archive's signature is not Kero's for this version")
+		return errors.New("update: the archive's signature is not Hyla's for this version")
 	}
 	return nil
 }
@@ -232,15 +232,15 @@ func Sign(archive []byte, version, goos, goarch, privateKey string) (string, err
 
 // Install puts the server build of version ("" the latest), for this
 // platform, in dir, in place of what it holds: the install of the running
-// kero (InstallDir), which keeps running the old one until it restarts.
+// hyla (InstallDir), which keeps running the old one until it restarts.
 // It goes back from current, the version installed, only with downgrade.
 func Install(ctx context.Context, version, dir, current string, downgrade bool) error {
 	platform := runtime.GOOS + "/" + runtime.GOARCH
 	if !slices.Contains(Platforms, platform) {
-		return fmt.Errorf("the server build of Kero is not made for %s", platform)
+		return fmt.Errorf("the server build of Hyla is not made for %s", platform)
 	}
 	if !Managed(dir) {
-		return fmt.Errorf("Kero in %s was not installed with Kero's install script: update it as you installed it", dir)
+		return fmt.Errorf("Hyla in %s was not installed with Hyla's install script: update it as you installed it", dir)
 	}
 	version = strings.TrimPrefix(version, "v")
 	if version == "" {
@@ -251,24 +251,24 @@ func Install(ctx context.Context, version, dir, current string, downgrade bool) 
 		version = v
 	}
 	if !ValidVersion(version) {
-		return fmt.Errorf("%q is not a version of Kero", version)
+		return fmt.Errorf("%q is not a version of Hyla", version)
 	}
 	if current != "" && ValidVersion(current) {
 		switch c := Compare(version, current); {
 		case c == 0:
 			return nil
 		case c < 0 && !downgrade:
-			return fmt.Errorf("Kero %s is installed, newer than %s: update the app instead", current, version)
+			return fmt.Errorf("Hyla %s is installed, newer than %s: update the app instead", current, version)
 		}
 	}
 	name := Asset(version, runtime.GOOS, runtime.GOARCH)
 	archive, err := get(ctx, URL(version, name), maxArchive)
 	if err != nil {
-		return fmt.Errorf("downloading Kero %s: %w", version, err)
+		return fmt.Errorf("downloading Hyla %s: %w", version, err)
 	}
 	sig, err := get(ctx, URL(version, name+".sig"), 4096)
 	if err != nil {
-		return fmt.Errorf("downloading the signature of Kero %s: %w", version, err)
+		return fmt.Errorf("downloading the signature of Hyla %s: %w", version, err)
 	}
 	if err := Verify(archive, version, runtime.GOOS, runtime.GOARCH, string(sig)); err != nil {
 		return err
@@ -279,7 +279,7 @@ func Install(ctx context.Context, version, dir, current string, downgrade bool) 
 // Replace puts what the archive holds in place of dir, as a whole, so
 // that no file of the old version stays: into a directory beside it
 // first, then by renames. The archive is the server build's, for this
-// platform: it holds kero and the Marker.
+// platform: it holds hyla and the Marker.
 func Replace(archive []byte, dir string) error {
 	dir = filepath.Clean(dir)
 	staging := dir + ".new"
@@ -292,7 +292,7 @@ func Replace(archive []byte, dir string) error {
 	}
 	if st, err := os.Stat(filepath.Join(staging, exe(runtime.GOOS))); err != nil || runtime.GOOS != "windows" && st.Mode()&0o111 == 0 || !Managed(staging) {
 		os.RemoveAll(staging)
-		return errors.New("update: the archive is not the server build of Kero")
+		return errors.New("update: the archive is not the server build of Hyla")
 	}
 	if runtime.GOOS == "windows" {
 		return replaceFiles(staging, dir)
@@ -310,11 +310,11 @@ func Replace(archive []byte, dir string) error {
 }
 
 // oldSuffix ends the files a Windows update moved aside, as
-// kero.exe.<stamp>.kero-old: its own, which no file of the user's ends with.
-const oldSuffix = ".kero-old"
+// hyla.exe.<stamp>.hyla-old: its own, which no file of the user's ends with.
+const oldSuffix = ".hyla-old"
 
 // replaceFiles puts staging's files in place of dir's, one by one, as
-// Windows takes it: the files kerod runs, kero.exe and its library, and
+// Windows takes it: the files hylad runs, hyla.exe and its library, and
 // the directory that holds them, can be neither removed nor replaced, but
 // those files can be moved. So dir's go aside first (oldSuffix),
 // removed once nothing runs them (RemoveOld).

@@ -5,9 +5,9 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 
-	"kero/locales"
+	"hyla/locales"
 )
 
 // worktreeAsk asks the name of the branch a new session checks out in a
@@ -83,7 +83,7 @@ func (a *App) worktreeView(c *ui.Context, pal *palette) {
 }
 
 // askCloseWorktree closes a session in a worktree of its own once the
-// user says whether its worktree goes with it, as what kerod finds the
+// user says whether its worktree goes with it, as what hylad finds the
 // removal would lose decides: Remove at hand when nothing, Keep when
 // changes. A worktree another session works in stays, unasked.
 func (a *App) askCloseWorktree(id string) {

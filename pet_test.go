@@ -8,11 +8,11 @@ import (
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/actions"
-	"kero/internal/pets"
-	"kero/internal/proto"
-	"kero/internal/settings"
-	"kero/locales"
+	"hyla/internal/actions"
+	"hyla/internal/pets"
+	"hyla/internal/proto"
+	"hyla/internal/settings"
+	"hyla/locales"
 )
 
 // The pet follows the most urgent session: one waiting beats any number
@@ -229,7 +229,7 @@ func TestPetShortWindow(t *testing.T) {
 	}
 }
 
-// The frog's faces, for a look: KERO_SHOTS=dir writes them.
+// The frog's faces, for a look: HYLA_SHOTS=dir writes them.
 func TestPetLooks(t *testing.T) {
 	for _, c := range []struct {
 		name   string
@@ -262,7 +262,7 @@ func TestPetLooks(t *testing.T) {
 	}
 }
 
-// The Appearance page's switch, for a look: KERO_SHOTS=dir writes it.
+// The Appearance page's switch, for a look: HYLA_SHOTS=dir writes it.
 func TestPetSettingRow(t *testing.T) {
 	a := testApp(t)
 	a.ss.draft = map[string]string{}

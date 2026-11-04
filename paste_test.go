@@ -377,8 +377,8 @@ func TestQuotePath(t *testing.T) {
 	cases := []struct {
 		goos, shell, path, want string
 	}{
-		{"darwin", "zsh", "/tmp/kero-paste/paste-123.png", "/tmp/kero-paste/paste-123.png"},
-		{"darwin", "", "/var/folders/ab/T/kero-paste/paste-1.png", "/var/folders/ab/T/kero-paste/paste-1.png"},
+		{"darwin", "zsh", "/tmp/hyla-paste/paste-123.png", "/tmp/hyla-paste/paste-123.png"},
+		{"darwin", "", "/var/folders/ab/T/hyla-paste/paste-1.png", "/var/folders/ab/T/hyla-paste/paste-1.png"},
 		{"linux", "bash", "/tmp/a b.png", "'/tmp/a b.png'"},
 		{"darwin", "fish", "/tmp/it's.png", `'/tmp/it'\''s.png'`},
 		{"darwin", "zsh", "/tmp/$(id)`id`;x|y*.png", "'/tmp/$(id)`id`;x|y*.png'"},
@@ -387,7 +387,7 @@ func TestQuotePath(t *testing.T) {
 		// A backslash is an escape to POSIX shells.
 		{"darwin", "zsh", `/tmp/a\b.png`, `'/tmp/a\b.png'`},
 		{"darwin", "zsh", "", "''"},
-		{"windows", "pwsh.exe", `C:\Users\me\AppData\Local\Temp\kero-paste\paste-1.png`, `C:\Users\me\AppData\Local\Temp\kero-paste\paste-1.png`},
+		{"windows", "pwsh.exe", `C:\Users\me\AppData\Local\Temp\hyla-paste\paste-1.png`, `C:\Users\me\AppData\Local\Temp\hyla-paste\paste-1.png`},
 		{"windows", "pwsh.exe", `C:\Users\my name\paste-1.png`, `'C:\Users\my name\paste-1.png'`},
 		{"windows", "powershell", `C:\Users\it's\paste.png`, `'C:\Users\it''s\paste.png'`},
 		{"windows", "", `C:\Users\it’s me\paste.png`, `'C:\Users\it’’s me\paste.png'`},
@@ -431,7 +431,7 @@ func TestPaneShell(t *testing.T) {
 // What the toast says depends on why the image could not be saved, and
 // each cause the user can mend says how.
 func TestPasteImageError(t *testing.T) {
-	const dir = "/tmp/kero-paste"
+	const dir = "/tmp/hyla-paste"
 	cases := []struct {
 		name string
 		err  error

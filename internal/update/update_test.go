@@ -16,7 +16,7 @@ import (
 	"testing"
 )
 
-// The key Kero checks is the one mygo.json signs the app's updates with.
+// The key Hyla checks is the one mygo.json signs the app's updates with.
 func TestPublicKeyIsTheApps(t *testing.T) {
 	b, err := os.ReadFile("../../mygo.json")
 	if err != nil {
@@ -42,7 +42,7 @@ func TestVerify(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Signed, but not with Kero's key.
+	// Signed, but not with Hyla's key.
 	if err := Verify(archive, "2.1.0", "linux", "amd64", sig); err == nil {
 		t.Error("an archive another key signed passes")
 	}
@@ -85,7 +85,7 @@ func TestVersions(t *testing.T) {
 }
 
 // Only an install of install-server.sh updates itself, and never back to
-// an older Kero unless asked.
+// an older Hyla unless asked.
 func TestInstallRefuses(t *testing.T) {
 	dir := t.TempDir()
 	if err := Install(t.Context(), "2.1.0", dir, "2.0.0", false); err == nil {
@@ -93,7 +93,7 @@ func TestInstallRefuses(t *testing.T) {
 	}
 	os.WriteFile(filepath.Join(dir, Marker), nil, 0o644)
 	if err := Install(t.Context(), "2.0.0", dir, "2.1.0", false); err == nil || !strings.Contains(err.Error(), "newer") {
-		t.Errorf("went back to an older Kero: %v", err)
+		t.Errorf("went back to an older Hyla: %v", err)
 	}
 	if err := Install(t.Context(), "../../x", dir, "2.1.0", true); err == nil {
 		t.Error("took a version that is none")
@@ -130,28 +130,28 @@ func zipball(t *testing.T, files map[string]string) []byte {
 }
 
 func TestReplace(t *testing.T) {
-	kero := exe(runtime.GOOS)
-	dir := filepath.Join(t.TempDir(), "kero")
+	hyla := exe(runtime.GOOS)
+	dir := filepath.Join(t.TempDir(), "hyla")
 	os.MkdirAll(dir, 0o755)
-	os.WriteFile(filepath.Join(dir, kero), []byte("old"), 0o755)
+	os.WriteFile(filepath.Join(dir, hyla), []byte("old"), 0o755)
 	os.WriteFile(filepath.Join(dir, "stale.so"), []byte("old"), 0o644)
-	if err := Replace(tarball(t, map[string]string{kero: "new", "libghostty-vt.so": "lib", Marker: ""}), dir); err != nil {
+	if err := Replace(tarball(t, map[string]string{hyla: "new", "libghostty-vt.so": "lib", Marker: ""}), dir); err != nil {
 		t.Fatal(err)
 	}
-	if b, _ := os.ReadFile(filepath.Join(dir, kero)); string(b) != "new" {
-		t.Errorf("kero is %q", b)
+	if b, _ := os.ReadFile(filepath.Join(dir, hyla)); string(b) != "new" {
+		t.Errorf("hyla is %q", b)
 	}
 	// Windows' archives are zips.
-	if err := Replace(zipball(t, map[string]string{kero: "zipped", Marker: ""}), dir); err != nil {
+	if err := Replace(zipball(t, map[string]string{hyla: "zipped", Marker: ""}), dir); err != nil {
 		t.Fatal(err)
 	}
-	if b, _ := os.ReadFile(filepath.Join(dir, kero)); string(b) != "zipped" {
-		t.Errorf("kero is %q", b)
+	if b, _ := os.ReadFile(filepath.Join(dir, hyla)); string(b) != "zipped" {
+		t.Errorf("hyla is %q", b)
 	}
 	if olds, _ := filepath.Glob(filepath.Join(dir, "*"+oldSuffix)); len(olds) > 0 {
 		t.Errorf("%v stayed", olds)
 	}
-	if err := Replace(tarball(t, map[string]string{kero: "new", "libghostty-vt.so": "lib", Marker: ""}), dir); err != nil {
+	if err := Replace(tarball(t, map[string]string{hyla: "new", "libghostty-vt.so": "lib", Marker: ""}), dir); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(filepath.Join(dir, "stale.so")); err == nil {
@@ -162,16 +162,16 @@ func TestReplace(t *testing.T) {
 			t.Errorf("%s stayed", leftover)
 		}
 	}
-	// An archive without kero, or with a path out of it, changes nothing.
-	for _, bad := range []map[string]string{{"other": "x"}, {kero: "x"}, {kero: "x", Marker: "", "../escape": "x"}} {
+	// An archive without hyla, or with a path out of it, changes nothing.
+	for _, bad := range []map[string]string{{"other": "x"}, {hyla: "x"}, {hyla: "x", Marker: "", "../escape": "x"}} {
 		if err := Replace(tarball(t, bad), dir); err == nil {
 			t.Errorf("replaced with %v", bad)
 		}
 		if err := Replace(zipball(t, bad), dir); err == nil {
 			t.Errorf("replaced with a zip of %v", bad)
 		}
-		if b, _ := os.ReadFile(filepath.Join(dir, kero)); string(b) != "new" {
-			t.Errorf("a bad archive changed kero to %q", b)
+		if b, _ := os.ReadFile(filepath.Join(dir, hyla)); string(b) != "new" {
+			t.Errorf("a bad archive changed hyla to %q", b)
 		}
 	}
 	if _, err := os.Stat(filepath.Join(filepath.Dir(dir), "escape")); err == nil {

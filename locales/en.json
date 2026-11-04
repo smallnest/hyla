@@ -71,7 +71,7 @@
   "toastCopiedToClipboard": "Copied to clipboard",
   "toastSaveSettingsFailed": "Couldn’t save the settings: {error}",
   "toastPasteImageFailed": "Couldn’t paste the image: {error}. Try again, or drop the image file on the pane.",
-  "toastPasteImageDenied": "Couldn’t paste the image: Kero can’t write to {dir}. Make it writable, or drop the image file on the pane.",
+  "toastPasteImageDenied": "Couldn’t paste the image: Hyla can’t write to {dir}. Make it writable, or drop the image file on the pane.",
   "toastPasteImageDiskFull": "Couldn’t paste the image: the disk is full. Free some space and try again.",
   "toastPasteClipboardUnreadable": "Couldn’t read the clipboard. Copy it again and paste.",
   "toastPasteImageUnsupported": "Couldn’t paste the image: {format} isn’t supported. Copy it as PNG or JPEG, or drop the image file on the pane.",
@@ -85,8 +85,8 @@
   },
   "toastNothingNeedsYou": "Nothing needs you",
   "cliInstallFailed": "Couldn’t install the command line tool",
-  "cliInstalledIn": "Installed the kero command in {dir}",
-  "cliAddedToPath": "Added the kero command to your PATH: new terminals have it",
+  "cliInstalledIn": "Installed the hyla command in {dir}",
+  "cliAddedToPath": "Added the hyla command to your PATH: new terminals have it",
   "notifyNeedsYouTitle": "{name} needs you",
   "notifyWaitingBody": "Waiting for your answer",
   "notifyFailedTitle": "{name} failed",
@@ -117,7 +117,7 @@
   "confirmClosePaneTitle": "Close this pane?",
   "confirmClosePaneDetail": "{process} is still running in it. Closing the pane ends it.",
   "confirmQuitAllTitle": "Quit and end all sessions?",
-  "confirmQuitAllDetail": "{count, plural, one {Kero keeps sessions running when it quits. This ends the # session, with what runs in it.} other {Kero keeps sessions running when it quits. This ends all # of them, with what runs in them.}}",
+  "confirmQuitAllDetail": "{count, plural, one {Hyla keeps sessions running when it quits. This ends the # session, with what runs in it.} other {Hyla keeps sessions running when it quits. This ends all # of them, with what runs in them.}}",
   "@confirmQuitAllDetail": {
     "placeholders": {
       "count": {
@@ -136,7 +136,7 @@
       }
     }
   },
-  "restartStaleDetail": "The service that runs your sessions is still Kero {was}, and this is Kero {version}. {running}: restarting ends them, and sessions start again where they were, with their history.",
+  "restartStaleDetail": "The service that runs your sessions is still Hyla {was}, and this is Hyla {version}. {running}: restarting ends them, and sessions start again where they were, with their history.",
   "@restartStaleDetail": {
     "placeholders": {
       "was": {
@@ -190,7 +190,7 @@
   "chatOutput": "Output",
   "chatReadingNow": "Reading…",
   "chatSessionNone": "This session is with no Feishu chat. Choose one, or send /new to one.",
-  "chatHostOffline": "Kero on this session’s host is not connected.",
+  "chatHostOffline": "Hyla on this session’s host is not connected.",
   "chatNoChats": "The bot is in no chat yet.",
   "sessionMoveToProject": "Move to Project",
   "sessionCopyId": "Copy Session ID",
@@ -222,7 +222,7 @@
     }
   },
   "footerGoToIt": "Go to it",
-  "footerServiceTip": "Sessions run in kerod, in the background: they keep running when you quit kero.",
+  "footerServiceTip": "Sessions run in hylad, in the background: they keep running when you quit hyla.",
   "statusConnecting": "Connecting…",
   "statusConnectingLabel": "Connecting",
   "statusDisconnected": "Disconnected",
@@ -231,12 +231,12 @@
   "statusExited": "Exited",
   "statusFailed": "Failed",
   "statusDone": "Done",
-  "updateRestartTip": "Kero was updated: restart the background service to run the new version",
-  "updatedTitle": "Kero was updated",
+  "updateRestartTip": "Hyla was updated: restart the background service to run the new version",
+  "updatedTitle": "Hyla was updated",
   "updatedDetail": "The background service that runs your sessions is from another version. Restart it: your sessions start again where they were, with their history.",
-  "connCantReach": "Can’t reach kerod",
+  "connCantReach": "Can’t reach hylad",
   "emptyTitle": "Start a session",
-  "emptyDetail": "Sessions keep running in the background — quit Kero and come back to everything just as you left it.",
+  "emptyDetail": "Sessions keep running in the background — quit Hyla and come back to everything just as you left it.",
   "emptyForAgents": "For agents",
   "paletteSettingsPage": "Settings: {page}",
   "paletteRestartService": "Restart Background Service",
@@ -249,7 +249,7 @@
   "paletteConversations": "Recent Conversations",
   "paletteConversationsLabel": "Resume Conversation",
   "paletteConversationsPlaceholder": "Find a conversation to resume…",
-  "paletteNoConversations": "No conversations yet. Coding agents’ conversations show here once Kero’s skill is set up for them.",
+  "paletteNoConversations": "No conversations yet. Coding agents’ conversations show here once Hyla’s skill is set up for them.",
   "paletteConversationRunning": "running",
   "agoNow": "now",
   "agoMinutes": "{n}m",
@@ -337,7 +337,7 @@
       }
     }
   },
-  "svcStale": " · still an earlier Kero: restart it to update",
+  "svcStale": " · still an earlier Hyla: restart it to update",
   "durUnderMinute": "under a minute",
   "durMinutes": "{n} min",
   "@durMinutes": {
@@ -368,7 +368,7 @@
   "settingsSearchLabel": "Search settings",
   "settingsClearSearch": "Clear the search",
   "setSessions": "Sessions",
-  "setSessionsDetail": "Sessions keep running in the background when Kero quits; {action} ends them.",
+  "setSessionsDetail": "Sessions keep running in the background when Hyla quits; {action} ends them.",
   "setNewSessionsStartIn": "New sessions start in",
   "setDirCurrent": "Current Folder",
   "setDirProject": "Project",
@@ -387,19 +387,19 @@
   "setAskBeforeClosing": "Ask before closing a running program",
   "setAskBeforeClosingDetail": "When a pane or session you close has a program other than the shell running.",
   "setQuitEndsSessionsDetail": "Quitting, as with the close button, ⌘Q or the menu, ends this machine’s sessions and their programs, and stops the background service, as Quit and End All Sessions does. With Ask before closing a running program, it asks first. Other machines’ sessions keep running.",
-  "setQuitEndsSessions": "End sessions when Kero quits",
+  "setQuitEndsSessions": "End sessions when Hyla quits",
   "setRestoreSessions": "Restore sessions after a restart",
   "setRestoreSessionsDetail": "If the background service stops, as when the Mac restarts, sessions start again in their folders, under their history.",
   "setResumeAgents": "Resume agents",
-  "setResumeAgentsDetail": "Claude Code, Codex, Pi and OpenCode pick up their conversation where it was, once Kero’s skill is set up for them in Agents.",
+  "setResumeAgentsDetail": "Claude Code, Codex, Pi and OpenCode pick up their conversation where it was, once Hyla’s skill is set up for them in Agents.",
   "setStartup": "Startup",
-  "setOpenAtLogin": "Open Kero at login",
+  "setOpenAtLogin": "Open Hyla at login",
   "setLoginFailed": "Couldn’t change it: {error}",
   "setAppIcon": "Show app icon",
   "setAppIconBoth": "Dock and menu bar",
   "setAppIconDock": "Dock only",
   "setAppIconMenuBar": "Menu bar only",
-  "setAppIconDetail": "Closing the window keeps Kero running in the menu bar.",
+  "setAppIconDetail": "Closing the window keeps Hyla running in the menu bar.",
   "trayOpen": "Open {app}",
   "setVersionNoUpdate": " · this copy can’t update itself",
   "setVersionNotChecked": " · not checked yet",
@@ -408,9 +408,9 @@
   "setVersion": "Version",
   "setCheckForUpdates": "Check for Updates",
   "setAutoCheck": "Check for updates automatically",
-  "setAutoCheckDetail": "Once a day, while Kero is open.",
+  "setAutoCheckDetail": "Once a day, while Hyla is open.",
   "setAutoInstall": "Download and install updates automatically",
-  "setAutoInstallDetail": "They take effect the next time Kero opens.",
+  "setAutoInstallDetail": "They take effect the next time Hyla opens.",
   "setAppearance": "Appearance",
   "setThemeSystem": "System",
   "setThemeLight": "Light",
@@ -419,9 +419,9 @@
   "setLanguageSystem": "System",
   "setTranslucent": "Translucent window",
   "setTranslucentDetail": "Let the desktop show through the window’s background.",
-  "petName": "Kero, the frog",
-  "setPetDetail": "Who shows on the window’s edge: Kero the frog, or any Codex pet in ~/.codex/pets, such as those from sites like codex-pets.net and codexpet.top. Install a pet as that site says, then pick it in Pet.",
-  "setPet": "Kero the frog",
+  "petName": "Hyla, the frog",
+  "setPetDetail": "Who shows on the window’s edge: Hyla the frog, or any Codex pet in ~/.codex/pets, such as those from sites like codex-pets.net and codexpet.top. Install a pet as that site says, then pick it in Pet.",
+  "setPet": "Hyla the frog",
   "setWindowBlurDetail": "Blur the desktop behind the translucent background. Off, the window is plain transparency, and 0% opacity shows the desktop alone.",
   "setWindowBlur": "Background blur",
   "setPaneGlass": "Terminal transparency",
@@ -441,7 +441,7 @@
   "bgPlain": "Plain",
   "setText": "Text",
   "setFont": "Font",
-  "setFontDetail": "JetBrains Mono with Nerd Fonts’ icons comes with Kero. Any installed monospaced font works; names separated by commas are tried in order.",
+  "setFontDetail": "JetBrains Mono with Nerd Fonts’ icons comes with Hyla. Any installed monospaced font works; names separated by commas are tried in order.",
   "setFontSystem": "System",
   "setUseFont": "Use “{name}”",
   "setSize": "Size",
@@ -501,7 +501,7 @@
   "setScrollback": "Scrollback",
   "setScrollbackDetail": "How much output each pane keeps, also while no window shows it.",
   "setEnvironment": "Environment",
-  "setEnvironmentDetail": "Added to every pane’s, over what kero sets (TERM, KERO_SESSION…).",
+  "setEnvironmentDetail": "Added to every pane’s, over what hyla sets (TERM, HYLA_SESSION…).",
   "setNotifyUnpackaged": "This build can’t post notifications: macOS shows those of packaged apps only.",
   "setNotifyWhen": "Notify me when",
   "setNotifyWaiting": "A session needs me",
@@ -521,20 +521,20 @@
   "setNotifyError": "Couldn’t notify: {error}",
   "setRemoteControl": "Remote Control",
   "setRemoteControlRow": "Let commands drive this window",
-  "setRemoteControlDetail": "kero do and kero focus run the app’s actions, as its menus do: splitting, switching sessions, opening the palette. kero browser clicks, types and reads in browser panes.",
+  "setRemoteControlDetail": "hyla do and hyla focus run the app’s actions, as its menus do: splitting, switching sessions, opening the palette. hyla browser clicks, types and reads in browser panes.",
   "setCli": "Command line tool",
-  "setCliDetail": "Inside Kero, every pane has the kero command on its PATH already.",
-  "setCliNotInstalled": "Not installed: other terminals don’t know the kero command.",
-  "setCliRow": "kero in your terminal",
+  "setCliDetail": "Inside Hyla, every pane has the hyla command on its PATH already.",
+  "setCliNotInstalled": "Not installed: other terminals don’t know the hyla command.",
+  "setCliRow": "hyla in your terminal",
   "setFeishuRow": "Drive this window from Feishu",
   "setFeishuTitle": "Feishu",
   "setFeishuConnectedState": "Connected",
   "setFeishuOffState": "Off",
-  "setFeishuSetupAction": "kero feishu setup",
-  "setFeishuDetail": "A chat with your Feishu app runs the coding agents in this machine’s sessions: /new starts one, and other text is a prompt. The app’s secret is kept in kero’s directory, not in this file.",
+  "setFeishuSetupAction": "hyla feishu setup",
+  "setFeishuDetail": "A chat with your Feishu app runs the coding agents in this machine’s sessions: /new starts one, and other text is a prompt. The app’s secret is kept in hyla’s directory, not in this file.",
   "setFeishuAppId": "App ID",
   "setFeishuSecret": "App Secret",
-  "setFeishuSecretDetail": "Kept in kero’s directory, readable by you only. Kero checks it with Feishu, then connects the bot.",
+  "setFeishuSecretDetail": "Kept in hyla’s directory, readable by you only. Hyla checks it with Feishu, then connects the bot.",
   "setFeishuSecretPlaceholder": "App Secret",
   "setFeishuSecretNeeded": "The App ID and the App Secret are both needed.",
   "setFeishuCheck": "Check and Connect",
@@ -561,11 +561,11 @@
   "setFeishuMarkdown": "Markdown in cards",
   "setFeishuMarkdownDetail": "The cards’ text as Markdown",
   "setFeishuOpenButton": "Open Session button",
-  "setFeishuOpenButtonDetail": "A card’s button opens its session in Kero",
+  "setFeishuOpenButtonDetail": "A card’s button opens its session in Hyla",
   "setFeishuCardBody": "Send cards as their body",
   "setFeishuCardBodyDetail": "Try it if Feishu shows no card or does not update one",
   "setFeishuHost": "Machines that share the app",
-  "setFeishuHostDetail": "Hostnames of other Kero machines on this app, comma separated: one answers each message, the others leave it",
+  "setFeishuHostDetail": "Hostnames of other Hyla machines on this app, comma separated: one answers each message, the others leave it",
   "setFeishuHostPlaceholder": "host1, host2",
   "setFeishuTimeout": "Time limit of a turn",
   "setFeishuTimeoutDetail": "The longest a turn waits before its reply says it timed out",
@@ -574,21 +574,21 @@
   "setSkills": "Skills for agents",
   "setSkillsDetail": "Teaches agents to start sessions and panes, drive them, wait for them and report their status, and tells them, as they start, which session they’re in.",
   "setSkillInstalled": "Installed",
-  "setSkillOutdated": "Installed, from an older Kero",
+  "setSkillOutdated": "Installed, from an older Hyla",
   "setSkillMissing": "Not installed",
   "setProgramStatus": "Program status",
   "setProgramStatusDetail": "Programs report what they do with OSC 7501, Superlogical’s program status protocol: the sidebar shows it, and notifies you.",
   "setConfiguration": "Configuration",
-  "setConfigurationDetail": "Every setting here is a line of this file, as Ghostty’s: edit it in any editor, and what you save applies at once. kero config show lists every key.",
+  "setConfigurationDetail": "Every setting here is a line of this file, as Ghostty’s: edit it in any editor, and what you save applies at once. hyla config show lists every key.",
   "setConfigFile": "Config file",
   "setBackgroundService": "Background service",
-  "setBackgroundServiceDetail": "kerod runs your sessions: quitting kero leaves it running.",
+  "setBackgroundServiceDetail": "hylad runs your sessions: quitting hyla leaves it running.",
   "setLog": "Log",
   "setData": "Data",
   "setDataDetail": "Settings, sessions and their scrollback.",
   "setFolder": "Folder",
   "setReset": "Reset all settings",
-  "setResetDetail": "Back to how Kero comes, shortcuts included.",
+  "setResetDetail": "Back to how Hyla comes, shortcuts included.",
   "setResetButton": "Reset…",
   "setResetTitle": "Reset all settings?",
   "setResetConfirmDetail": "Your sessions stay.",
@@ -609,7 +609,7 @@
   "findNoMatches": "No matches",
   "findClose": "Close Find Bar",
   "actionToggleChanges": "Toggle Changes",
-  "actionTogglePet": "Toggle Kero",
+  "actionTogglePet": "Toggle Hyla",
   "actionToggleFiles": "Toggle Files",
   "actionTogglePanel": "Toggle Side Panel",
   "sideChanges": "Changes",
@@ -644,7 +644,7 @@
   "changesSplit": "Side by Side",
   "changesBinary": "Binary file",
   "changesTooLarge": "Too large to show",
-  "filesUpdateHost": "The kerod on this host is older than this version of Kero. Update it on the host to browse its files.",
+  "filesUpdateHost": "The hylad on this host is older than this version of Hyla. Update it on the host to browse its files.",
   "filesOpenEditor": "Editor",
   "filesOpenPane": "File Pane",
   "filesOpenPreview": "Preview",
@@ -698,7 +698,7 @@
   "pageBrowser": "Browser",
   "setAdBlocking": "Ad blocking",
   "setBlockAds": "Block ads",
-  "setBlockAdsDetail": "Blocks ads and trackers with filter lists, which Kero downloads and keeps up to date.",
+  "setBlockAdsDetail": "Blocks ads and trackers with filter lists, which Hyla downloads and keeps up to date.",
   "setAdListEasylist": "Ads, the list most blockers start from.",
   "setAdListEasyprivacy": "Trackers and analytics.",
   "setAdListPeterLowe": "Ad and tracker servers, by their domains.",
@@ -765,7 +765,7 @@
       }
     }
   },
-  "hostNotInstalled": "Kero isn't installed on {host}",
+  "hostNotInstalled": "Hyla isn't installed on {host}",
   "@hostNotInstalled": {
     "placeholders": {
       "host": {
@@ -781,7 +781,7 @@
       }
     }
   },
-  "hostAuthHint": "Kero signs in with your SSH keys and agent, and never asks for a password. To trust a host's key, run ssh {address} once in a terminal.",
+  "hostAuthHint": "Hyla signs in with your SSH keys and agent, and never asks for a password. To trust a host's key, run ssh {address} once in a terminal.",
   "@hostAuthHint": {
     "placeholders": {
       "address": {
@@ -789,7 +789,7 @@
       }
     }
   },
-  "hostAbout": "Kero {version} on {platform} · {hostname}, as {user}",
+  "hostAbout": "Hyla {version} on {platform} · {hostname}, as {user}",
   "@hostAbout": {
     "placeholders": {
       "version": {
@@ -806,7 +806,7 @@
       }
     }
   },
-  "hostConnected": "Connected: Kero {version} on {platform} · {hostname}, as {user}",
+  "hostConnected": "Connected: Hyla {version} on {platform} · {hostname}, as {user}",
   "@hostConnected": {
     "placeholders": {
       "version": {
@@ -851,8 +851,8 @@
       }
     }
   },
-  "hostInstall": "Install Kero…",
-  "hostInstalling": "Installing Kero on {host}…",
+  "hostInstall": "Install Hyla…",
+  "hostInstalling": "Installing Hyla on {host}…",
   "@hostInstalling": {
     "placeholders": {
       "host": {
@@ -860,7 +860,7 @@
       }
     }
   },
-  "hostInstalled": "Installed Kero on {host}",
+  "hostInstalled": "Installed Hyla on {host}",
   "@hostInstalled": {
     "placeholders": {
       "host": {
@@ -868,7 +868,7 @@
       }
     }
   },
-  "hostInstallFailed": "Couldn't install Kero on {host}: {error}",
+  "hostInstallFailed": "Couldn't install Hyla on {host}: {error}",
   "@hostInstallFailed": {
     "placeholders": {
       "host": {
@@ -879,7 +879,7 @@
       }
     }
   },
-  "hostUpdateAction": "Update Kero on {host}…",
+  "hostUpdateAction": "Update Hyla on {host}…",
   "@hostUpdateAction": {
     "placeholders": {
       "host": {
@@ -887,7 +887,7 @@
       }
     }
   },
-  "hostUpdateTitle": "Update Kero on {host} to {version}?",
+  "hostUpdateTitle": "Update Hyla on {host} to {version}?",
   "@hostUpdateTitle": {
     "placeholders": {
       "host": {
@@ -898,7 +898,7 @@
       }
     }
   },
-  "hostUpdateDetail": "Kero then restarts its service on {host}. Sessions there start again where they were, with their history, and the programs running in them end.",
+  "hostUpdateDetail": "Hyla then restarts its service on {host}. Sessions there start again where they were, with their history, and the programs running in them end.",
   "@hostUpdateDetail": {
     "placeholders": {
       "host": {
@@ -906,7 +906,7 @@
       }
     }
   },
-  "hostUpdateAppDetail": "The Kero app on {host} updates and relaunches, then restarts its service. Sessions there start again where they were, with their history, and the programs running in them end.",
+  "hostUpdateAppDetail": "The Hyla app on {host} updates and relaunches, then restarts its service. Sessions there start again where they were, with their history, and the programs running in them end.",
   "@hostUpdateAppDetail": {
     "placeholders": {
       "host": {
@@ -914,7 +914,7 @@
       }
     }
   },
-  "hostUpdating": "Updating Kero on {host}…",
+  "hostUpdating": "Updating Hyla on {host}…",
   "@hostUpdating": {
     "placeholders": {
       "host": {
@@ -922,7 +922,7 @@
       }
     }
   },
-  "hostUpdated": "{host} runs Kero {version}",
+  "hostUpdated": "{host} runs Hyla {version}",
   "@hostUpdated": {
     "placeholders": {
       "host": {
@@ -933,8 +933,8 @@
       }
     }
   },
-  "hostUpdateDev": "A development build of Kero can't update a host. Run a released Kero, or update the host with kero daemon update there.",
-  "hostVersionTitle": "Kero on {host} is another version",
+  "hostUpdateDev": "A development build of Hyla can't update a host. Run a released Hyla, or update the host with hyla daemon update there.",
+  "hostVersionTitle": "Hyla on {host} is another version",
   "@hostVersionTitle": {
     "placeholders": {
       "host": {
@@ -942,7 +942,7 @@
       }
     }
   },
-  "hostVersionDetail": "{host} runs Kero {version}, and this app is Kero {app}. Update Kero there to see and start its sessions here.",
+  "hostVersionDetail": "{host} runs Hyla {version}, and this app is Hyla {app}. Update Hyla there to see and start its sessions here.",
   "@hostVersionDetail": {
     "placeholders": {
       "host": {
@@ -956,7 +956,7 @@
       }
     }
   },
-  "hostDesktopDetail": "{host} runs the Kero app, version {version}, and this is Kero {app}. Update Kero on {host}, or turn on Let them update Kero there (Settings › Hosts) to update it from here.",
+  "hostDesktopDetail": "{host} runs the Hyla app, version {version}, and this is Hyla {app}. Update Hyla on {host}, or turn on Let them update Hyla there (Settings › Hosts) to update it from here.",
   "@hostDesktopDetail": {
     "placeholders": {
       "host": {
@@ -1002,7 +1002,7 @@
       }
     }
   },
-  "hostStaleTip": "The service on {host} still runs Kero {was}, and Kero {version} is installed there: restart it to run the new version.",
+  "hostStaleTip": "The service on {host} still runs Hyla {was}, and Hyla {version} is installed there: restart it to run the new version.",
   "@hostStaleTip": {
     "placeholders": {
       "host": {
@@ -1027,7 +1027,7 @@
       }
     }
   },
-  "pasteNotAFile": "Kero pastes files into a pane on another machine, not folders: {name}",
+  "pasteNotAFile": "Hyla pastes files into a pane on another machine, not folders: {name}",
   "@pasteNotAFile": {
     "placeholders": {
       "name": {
@@ -1035,7 +1035,7 @@
       }
     }
   },
-  "pasteTooLarge": "Kero pastes at most {size} MB into a pane on another machine",
+  "pasteTooLarge": "Hyla pastes at most {size} MB into a pane on another machine",
   "@pasteTooLarge": {
     "placeholders": {
       "size": {
@@ -1072,12 +1072,12 @@
     }
   },
   "setHosts": "Hosts",
-  "setHostsDetail": "Other machines whose sessions show in the sidebar after this computer's. Kero reaches them over SSH with your keys and agent, through WSL, or through kerod's listener on your tailnet, and kero -H <name> drives them from the command line.",
+  "setHostsDetail": "Other machines whose sessions show in the sidebar after this computer's. Hyla reaches them over SSH with your keys and agent, through WSL, or through hylad's listener on your tailnet, and hyla -H <name> drives them from the command line.",
   "setHostsNone": "No hosts",
-  "setHostsNoneDetail": "Add a machine you reach with ssh. If Kero isn't installed there, Kero offers to install it.",
+  "setHostsNoneDetail": "Add a machine you reach with ssh. If Hyla isn't installed there, Hyla offers to install it.",
   "setHostsDocs": "Setting up hosts",
   "setHostAdd": "Add a Host",
-  "setHostAddDetail": "me@devbox or ssh://me@devbox:2222 over SSH, as ssh takes it with your ~/.ssh/config; wsl://Ubuntu for a WSL distribution; http://devbox:7373 or https://devbox.tail1234.ts.net for kerod's tailnet listener.",
+  "setHostAddDetail": "me@devbox or ssh://me@devbox:2222 over SSH, as ssh takes it with your ~/.ssh/config; wsl://Ubuntu for a WSL distribution; http://devbox:7373 or https://devbox.tail1234.ts.net for hylad's tailnet listener.",
   "setHostAddressPlaceholder": "me@devbox",
   "setHostNamePlaceholder": "Name: {name}",
   "@setHostNamePlaceholder": {
@@ -1097,7 +1097,7 @@
   },
   "setHostNeedsAddress": "Type the host's address",
   "setHostRemoteControl": "Remote Control",
-  "setHostRemoteControlDetail": "Let programs on {host} show sessions and run the app's actions (kero focus, kero do)",
+  "setHostRemoteControlDetail": "Let programs on {host} show sessions and run the app's actions (hyla focus, hyla do)",
   "@setHostRemoteControlDetail": {
     "placeholders": {
       "host": {
@@ -1107,16 +1107,16 @@
   },
   "setListenTitle": "Tailscale",
   "setListen": "Let other machines connect",
-  "setListenDetail": "kerod listens at this computer's Tailscale addresses, for Kero on your other machines. Only your Tailscale account may connect.",
+  "setListenDetail": "hylad listens at this computer's Tailscale addresses, for Hyla on your other machines. Only your Tailscale account may connect.",
   "setListenOn": "Add this computer as a host on your other machines at this address. Only your Tailscale account may connect.",
-  "setListenNoTailscale": "Tailscale isn't running here: kerod listens once it is.",
-  "setRemoteUpdates": "Let them update Kero here",
-  "setRemoteUpdatesDetail": "Kero on your other machines can update this app to its version. The app relaunches, and the programs running in its sessions end.",
+  "setListenNoTailscale": "Tailscale isn't running here: hylad listens once it is.",
+  "setRemoteUpdates": "Let them update Hyla here",
+  "setRemoteUpdatesDetail": "Hyla on your other machines can update this app to its version. The app relaunches, and the programs running in its sessions end.",
   "setHostSettingsSplit": "A host's own settings",
-  "setHostSettingsSplitDetail": "The shell, environment, scrollback and session restore of a host's sessions come from its own configuration: run kero config edit on the host. Appearance, keyboard and notifications are this app's.",
+  "setHostSettingsSplitDetail": "The shell, environment, scrollback and session restore of a host's sessions come from its own configuration: run hyla config edit on the host. Appearance, keyboard and notifications are this app's.",
   "setShellThisComputer": "These apply to this computer's sessions. Each host's come from its own configuration (Settings › Hosts).",
   "confirmQuitAllHosts": "Sessions on other machines keep running.",
-  "hostInstallTitle": "Install Kero on {host}?",
+  "hostInstallTitle": "Install Hyla on {host}?",
   "@hostInstallTitle": {
     "placeholders": {
       "host": {
@@ -1124,7 +1124,7 @@
       }
     }
   },
-  "hostInstallDetail": "Kero runs its install script on {host}: the server build of Kero goes in your home folder there (~/.local, or %LOCALAPPDATA% on Windows), and kerod runs as a service of yours.",
+  "hostInstallDetail": "Hyla runs its install script on {host}: the server build of Hyla goes in your home folder there (~/.local, or %LOCALAPPDATA% on Windows), and hylad runs as a service of yours.",
   "@hostInstallDetail": {
     "placeholders": {
       "host": {
@@ -1132,7 +1132,7 @@
       }
     }
   },
-  "hostLinkRefused": "Kero opens only web links of {host}, not {scheme} ones",
+  "hostLinkRefused": "Hyla opens only web links of {host}, not {scheme} ones",
   "@hostLinkRefused": {
     "placeholders": {
       "host": {
@@ -1143,7 +1143,7 @@
       }
     }
   },
-  "hostManualDetail": "{host} runs Kero {version}, and this app is Kero {app}. Update Kero on {host} as you installed it, then restart its service.",
+  "hostManualDetail": "{host} runs Hyla {version}, and this app is Hyla {app}. Update Hyla on {host} as you installed it, then restart its service.",
   "@hostManualDetail": {
     "placeholders": {
       "host": {
@@ -1157,7 +1157,7 @@
       }
     }
   },
-  "hostNewerDetail": "{host} runs Kero {version}, newer than this app's {app}. Update this app to see and start the host's sessions.",
+  "hostNewerDetail": "{host} runs Hyla {version}, newer than this app's {app}. Update this app to see and start the host's sessions.",
   "@hostNewerDetail": {
     "placeholders": {
       "host": {
@@ -1171,7 +1171,7 @@
       }
     }
   },
-  "hostSameAs": "This host's kerod is {other}'s, which the app shows already",
+  "hostSameAs": "This host's hylad is {other}'s, which the app shows already",
   "@hostSameAs": {
     "placeholders": {
       "other": {
@@ -1187,8 +1187,8 @@
   "browserStop": "Stop",
   "browserAddress": "Address or search",
   "worktreeTitle": "New Session in Worktree",
-  "worktreeDetailDefault": "Kero checks out a new branch from the default branch in a folder of its own, so the session’s agent works apart from the others.",
-  "worktreeDetailCurrent": "Kero checks out a new branch from the current branch in a folder of its own, so the session’s agent works apart from the others.",
+  "worktreeDetailDefault": "Hyla checks out a new branch from the default branch in a folder of its own, so the session’s agent works apart from the others.",
+  "worktreeDetailCurrent": "Hyla checks out a new branch from the current branch in a folder of its own, so the session’s agent works apart from the others.",
   "worktreeBranch": "Branch name",
   "worktreeCreate": "Create",
   "worktreeRemoveTitle": "Remove the worktree of “{name}” too?",
@@ -1231,29 +1231,29 @@
       }
     }
   },
-  "endedDeleteAllDetail": "Kero forgets them; each agent keeps its own history of the conversation.",
-  "endedSetUpSkill": "Set up Kero's skill for your agents to list their ended conversations here",
+  "endedDeleteAllDetail": "Hyla forgets them; each agent keeps its own history of the conversation.",
+  "endedSetUpSkill": "Set up Hyla's skill for your agents to list their ended conversations here",
   "actionQuickTerminal": "Quick Terminal",
   "toastGlobalShortcutFailed": "Couldn’t use {keys} for the quick terminal: {error}",
   "setShortcutGlobal": "Works in every app",
   "setPetInstall": "Install a Pet Pack…",
   "setPetInstallDetail": "A .codex-pet.zip, or any zip of pet.json and a spritesheet, as the Codex app’s ~/.codex/pets holds them. Packs from codex-pets.net and codexpet.top work.",
   "setPetInstalled": "Installed {name}.",
-  "setPetMissing": "Kero shows Kero the frog: it found no pet {name} ({error}).",
+  "setPetMissing": "Hyla shows Hyla the frog: it found no pet {name} ({error}).",
   "setPetBuiltin": "Other pets",
-  "setPetBuiltinDetail": "Install these Codex pets to show them beside Kero the frog. Kero downloads each from its own repository.",
+  "setPetBuiltinDetail": "Install these Codex pets to show them beside Hyla the frog. Hyla downloads each from its own repository.",
   "setPetInstalling": "Installing…",
   "setPetBuiltinInstalled": "Showing",
   "commonUse": "Use",
   "setPetInstallFailed": "Couldn’t install the pet: {error}",
   "setPetWhich": "Pet",
-  "setPetKeroCopy": "Kero’s copy",
+  "setPetHylaCopy": "Hyla’s copy",
   "setPetSize": "Codex pet size",
   "setPetSizeDetail": "How tall a Codex pet shows, against the Codex app’s: 1 is the same, and 1.5 is the default.",
   "setPetGroup": "Pet",
   "setTailcatTitle": "Tailcat",
   "setTailcat": "Use Tailcat to Reach Other Hosts",
-  "setTailcatDetail": "Reach hosts with a pair code through a relay, instead of Tailscale. Off, Kero lists none of these hosts and connects to none of them, and kerod starts no tailcat listener.",
+  "setTailcatDetail": "Reach hosts with a pair code through a relay, instead of Tailscale. Off, Hyla lists none of these hosts and connects to none of them, and hylad starts no tailcat listener.",
   "setTailcatAdd": "Add a Host",
   "setTailcatAddDetail": "Copy the pair code of the host's tailcat listener, in Settings › Hosts on that machine. The pair code is the host's secret: anyone with it can connect.",
   "setTailcatPlaceholder": "tailcat://tc… or the pair code",
@@ -1262,14 +1262,14 @@
   "setTailcatPortDetail": "The port of the tailcat listener of the hosts you add: 7373 unless one names another.",
   "setTailcatRelay": "Relay",
   "setTailcatRelayDetail": "The DERP map where the machines find their relay, https://tailcat.dev/derpmap.json unless you run your own, as derper does. This computer's listener takes its relay from it too.",
-  "setTailcatOn": "Kero on your other machines adds this computer as a host with this pair code. Anyone who has it can connect.",
+  "setTailcatOn": "Hyla on your other machines adds this computer as a host with this pair code. Anyone who has it can connect.",
   "setTailcatStarting": "The pair code comes in a moment.",
   "setTailcatOff": "Tailcat is off.",
-  "setTailcatOffNote": "Skip Tailcat if you don't trust a relay: it stays off, and Kero starts nothing for it.",
+  "setTailcatOffNote": "Skip Tailcat if you don't trust a relay: it stays off, and Hyla starts nothing for it.",
   "setTailcatListen": "Provide Tailcat Service",
-  "setTailcatListenDetail": "kerod listens through a tailcat relay, so your other machines add this one as a host with its pair code. It needs no Tailscale, and opens nothing but its own listener.",
+  "setTailcatListenDetail": "hylad listens through a tailcat relay, so your other machines add this one as a host with its pair code. It needs no Tailscale, and opens nothing but its own listener.",
   "setTailcatListenPort": "This Computer's Tailcat Listener Port",
-  "setTailcatListenPortDetail": "The port kerod's tailcat listener takes here. The other machines' Remote Tailcat Port connects to it.",
+  "setTailcatListenPortDetail": "The port hylad's tailcat listener takes here. The other machines' Remote Tailcat Port connects to it.",
   "setTailcatCode": "This computer's pair code",
   "setTailcatCodeDetail": "The pair code of this computer: copy it to your other machines, which add this one as a host with it.",
   "setTailcatChange": "Change the pair code",

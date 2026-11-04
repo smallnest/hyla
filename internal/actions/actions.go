@@ -1,5 +1,5 @@
-// Package actions names what kero's app does, for its menus, its command
-// palette, the shortcuts the user rebinds in Settings, and `kero do`,
+// Package actions names what hyla's app does, for its menus, its command
+// palette, the shortcuts the user rebinds in Settings, and `hyla do`,
 // which runs them from a shell or an agent (Remote Control).
 package actions
 
@@ -14,7 +14,7 @@ type Action struct {
 	Title string
 	Menu  string // the menu it shows in
 	Keys  string // the default accelerator, as "CmdOrCtrl+Shift+D"; "" none
-	// Remote tells that `kero do` may run it: what needs no dialog or
+	// Remote tells that `hyla do` may run it: what needs no dialog or
 	// focus of the user's.
 	Remote bool
 	// Global tells that its shortcut works in every app, as the system's
@@ -24,9 +24,9 @@ type Action struct {
 
 // All are the app's actions, in their menus' order.
 var All = []Action{
-	{ID: "settings.open", Title: "Settings…", Menu: "Kero", Keys: "CmdOrCtrl+,", Remote: true},
-	{ID: "cli.install", Title: "Install Command Line Tool…", Menu: "Kero"},
-	{ID: "app.quitAll", Title: "Quit and End All Sessions…", Menu: "Kero", Keys: "CmdOrCtrl+Alt+Q"},
+	{ID: "settings.open", Title: "Settings…", Menu: "Hyla", Keys: "CmdOrCtrl+,", Remote: true},
+	{ID: "cli.install", Title: "Install Command Line Tool…", Menu: "Hyla"},
+	{ID: "app.quitAll", Title: "Quit and End All Sessions…", Menu: "Hyla", Keys: "CmdOrCtrl+Alt+Q"},
 
 	{ID: "session.new", Title: "New Session", Menu: "Session", Keys: "CmdOrCtrl+T", Remote: true},
 	{ID: "session.newHome", Title: "New Session in Home", Menu: "Session", Keys: "CmdOrCtrl+Shift+T", Remote: true},
@@ -61,7 +61,7 @@ var All = []Action{
 	{ID: "changes.toggle", Title: "Toggle Changes", Menu: "View", Keys: "CmdOrCtrl+Alt+G", Remote: true},
 	{ID: "files.toggle", Title: "Toggle Files", Menu: "View", Keys: "CmdOrCtrl+Alt+F", Remote: true},
 	{ID: "info.toggle", Title: "Toggle Info", Menu: "View", Keys: "CmdOrCtrl+Alt+I", Remote: true},
-	{ID: "pet.toggle", Title: "Toggle Kero", Menu: "View", Keys: "CmdOrCtrl+Shift+K"},
+	{ID: "pet.toggle", Title: "Toggle Hyla", Menu: "View", Keys: "CmdOrCtrl+Shift+K"},
 	{ID: "text.bigger", Title: "Bigger", Menu: "View", Keys: "CmdOrCtrl+=", Remote: true},
 	{ID: "text.smaller", Title: "Smaller", Menu: "View", Keys: "CmdOrCtrl+-", Remote: true},
 	{ID: "text.reset", Title: "Actual Size", Menu: "View", Keys: "CmdOrCtrl+0", Remote: true},

@@ -9,22 +9,22 @@ import (
 	"path/filepath"
 	"strings"
 
-	"kero/internal/client"
-	"kero/internal/proto"
+	"hyla/internal/client"
+	"hyla/internal/proto"
 )
 
 // answerCmd is what an agent runs as each turn ends, by the Stop hook
-// `kero skill setup` installs: it tells the Feishu bot the turn's answer,
+// `hyla skill setup` installs: it tells the Feishu bot the turn's answer,
 // for a chat that drives the agent, where the terminal's text hides it.
 // The bot gives it a file for the answer with the prompt; without one, it
-// does nothing, as it does outside Kero, and on any trouble: it never
+// does nothing, as it does outside Hyla, and on any trouble: it never
 // fails the agent.
 func answerCmd(args []string) error {
 	agent := ""
 	if len(args) > 0 {
 		agent = args[0]
 	}
-	pane, sid := os.Getenv("KERO_PANE"), os.Getenv("KERO_SESSION")
+	pane, sid := os.Getenv("HYLA_PANE"), os.Getenv("HYLA_SESSION")
 	var in struct {
 		Event   string `json:"hook_event_name"`
 		AgentID string `json:"agent_id"`   // set for Claude Code's subagents
@@ -45,7 +45,7 @@ func answerCmd(args []string) error {
 	}
 	defer c.Close()
 	if in.Session != "" {
-		// The pane may be another's, as for the hook at start: kerod tells
+		// The pane may be another's, as for the hook at start: hylad tells
 		// the pane that runs the agent's session, while one does.
 		var r proto.AgentSessionResult
 		if c.Call("pane.agentSession", proto.AgentSessionParams{PID: os.Getpid(), Agent: agent, Session: in.Session}, &r) != nil {
@@ -86,17 +86,17 @@ func answerCmd(args []string) error {
 		return nil
 	}
 	if err := writeFileAtomic(file, []byte(strings.TrimSpace(text)+"\n")); err != nil {
-		fmt.Fprintln(os.Stderr, "kero hook answer:", err)
+		fmt.Fprintln(os.Stderr, "hyla hook answer:", err)
 	}
 	return nil
 }
 
-// answers is where the bot keeps the panes' answer directories, kerod's
+// answers is where the bot keeps the panes' answer directories, hylad's
 // feishu-answers.
 var answers = filepath.Join(proto.Dir(), "feishu-answers")
 
 // answerPath is the answer file the bot gives: a file of its own, in
-// kerod's directory, and not one the bot gives another agent.
+// hylad's directory, and not one the bot gives another agent.
 func answerPath(file string) (string, error) {
 	abs, err := filepath.Abs(file)
 	if err != nil {

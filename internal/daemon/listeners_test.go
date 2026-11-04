@@ -7,7 +7,7 @@ import (
 )
 
 // listeningPorts tells the ports of the pids it asks of alone, a service
-// Kero shares excluded, and each port once.
+// Hyla shares excluded, and each port once.
 func TestListeningPorts(t *testing.T) {
 	dir := t.TempDir()
 	fake := filepath.Join(dir, "lsof")

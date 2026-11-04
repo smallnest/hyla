@@ -7,16 +7,16 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/remote"
-	"kero/internal/settings"
+	"hyla/internal/remote"
+	"hyla/internal/settings"
 
-	"kero/locales"
+	"hyla/locales"
 )
 
-// Tailcat is the third way Kero reaches a host, beside the listener on a
+// Tailcat is the third way Hyla reaches a host, beside the listener on a
 // tailnet and SSH: a relay with a pair code, which needs no Tailscale
 // (internal/remote/tailcat.go). The tailcat switch in Settings › Hosts
-// turns it on and off: off, the app lists no host of it, and kerod
+// turns it on and off: off, the app lists no host of it, and hylad
 // starts no listener of it.
 //
 // The settings are one group, after the switch: the hosts it adds, which
@@ -36,7 +36,7 @@ type tailcatDraft struct {
 	listenPort  string // this machine's listener's, while a host
 	port, relay string
 	err         tailcatField
-	code        string    // this machine's pair code, as kerod's key makes it
+	code        string    // this machine's pair code, as hylad's key makes it
 	codeErr     string    // why there is none, as a failure
 	at          time.Time // when the key was last read, or rotated
 	copied      time.Time
@@ -44,7 +44,7 @@ type tailcatDraft struct {
 }
 
 // tailcatGroup is Settings › Hosts › Tailcat: the switch, and with it on,
-// the hosts Kero adds and this machine as a host.
+// the hosts Hyla adds and this machine as a host.
 func (a *App) tailcatGroup(c *ui.Context, pal *palette) {
 	on := a.set.Tailcat
 	settingsGroup(c, pal, "", "", func() {
@@ -99,7 +99,7 @@ func (a *App) resetTailcat() {
 	}
 }
 
-// tailcatHosts is the hosts Kero adds over Tailcat, and how it reaches
+// tailcatHosts is the hosts Hyla adds over Tailcat, and how it reaches
 // them: the head of the Tailcat group.
 func (a *App) tailcatHosts(c *ui.Context, pal *palette, d *tailcatDraft) {
 	ui.Column(c).Padding(11, 0).Gap(10).Children(func() {
@@ -144,7 +144,7 @@ func tailcatSettingRow(c *ui.Context, pal *palette, label, detail string, contro
 }
 
 // tailcatListen is this machine as a host over Tailcat: the switch of
-// kerod's tailcat listener here, its port, and the pair code Kero on
+// hylad's tailcat listener here, its port, and the pair code Hyla on
 // other machines adds with.
 func (a *App) tailcatListen(c *ui.Context, pal *palette, d *tailcatDraft) {
 	on := hasTailcatListener(&a.set)
@@ -320,8 +320,8 @@ func addTailcatHost(s *settings.Settings, name, addr string) error {
 	return nil
 }
 
-// tailcatCode asks kerod's key for this machine's pair code, in the
-// background: its key makes the code, whether kerod runs or not.
+// tailcatCode asks hylad's key for this machine's pair code, in the
+// background: its key makes the code, whether hylad runs or not.
 func (a *App) tailcatCode() {
 	d := &a.ss.tailcat
 	if d.looking || !d.at.IsZero() {
@@ -360,7 +360,7 @@ func (a *App) rotateTailcatCode() {
 		})
 	}()
 	a.toast(locales.SetTailcatChanged())
-	// kerod starts its listener with the key again, which follow finds.
+	// hylad starts its listener with the key again, which follow finds.
 	s := a.set.Clone()
 	s.TailcatRotate = !s.TailcatRotate
 	a.set = s
@@ -368,7 +368,7 @@ func (a *App) rotateTailcatCode() {
 
 var (
 	errNotTailcat        = errString("the address is no tailcat pair code")
-	errTailcatNotRunning = errString("kerod is not running here")
+	errTailcatNotRunning = errString("hylad is not running here")
 )
 
 type errString string

@@ -1,5 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
+  // The worker keeps the name it had as Kero: kero.sh, the site's domain,
+  // is attached to it, and a new name would need the domain moved first.
   "name": "kero",
   "account_id": "87bf36939a17a592421d0baec04a7a53",
   "compatibility_date": "2026-02-24",

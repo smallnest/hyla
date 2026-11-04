@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"time"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
-// downloads is where the messages' files go: kerod's directory, so that a
+// downloads is where the messages' files go: hylad's directory, so that a
 // chat's session finds them after it restarts.
 func downloads() string { return filepath.Join(proto.Dir(), "feishu-files") }
 

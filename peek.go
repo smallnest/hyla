@@ -11,7 +11,7 @@ import (
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
 // peek is the image a path printed in a pane shows while Command hovers
@@ -50,7 +50,7 @@ const (
 // terminal at at, in the terminal's coordinates, in a flyout below the
 // path, or above it where the screen has no room below. term is the
 // terminal's box in the window. A remote pane's image is its host's,
-// which kerod there reads.
+// which hylad there reads.
 func (a *App) imagePeek(paneID, link string, at, term ui.Rect) {
 	if !peekable[strings.ToLower(filepath.Ext(lineSuffix.ReplaceAllString(link, "")))] {
 		return
@@ -106,7 +106,7 @@ func (a *App) localPeek(paneID, link string) bool {
 	return true
 }
 
-// remotePeek decodes the image of a path of a host, which its kerod
+// remotePeek decodes the image of a path of a host, which its hylad
 // finds (fs.stat) and reads (fs.read), once as long as it is hovered.
 func (a *App) remotePeek(h *host, paneID, link string) {
 	path, base := lineSuffix.ReplaceAllString(link, ""), a.workDir(paneID)

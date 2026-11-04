@@ -9,7 +9,7 @@ import (
 
 // deflate is the compression both sides of a remote connection take:
 // DEFLATE across everything it carries, flushed with every write so that
-// nothing waits. A terminal's frames and kerod's state, sent whole on
+// nothing waits. A terminal's frames and hylad's state, sent whole on
 // every change, are text that repeats itself, which it makes several
 // times smaller.
 const deflate = "deflate"

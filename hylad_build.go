@@ -15,18 +15,18 @@ import (
 
 	"github.com/egoist/mygo"
 
-	"kero/internal/build"
+	"hyla/internal/build"
 )
 
-// kerodSource is the code of Kero's packages that kerod runs (go list
-// -deps ./internal/daemon), which TestKerodSource keeps whole.
+// hyladSource is the code of Hyla's packages that hylad runs (go list
+// -deps ./internal/daemon), which TestHyladSource keeps whole.
 //
 //go:embed internal/actions internal/adblock internal/build internal/clilink internal/daemon internal/detach internal/detect internal/feishu internal/git internal/proto internal/remote internal/settings internal/shell internal/tailscale internal/update
-var kerodSource embed.FS
+var hyladSource embed.FS
 
-// kerodModules are the other modules whose code kerod runs, which
-// TestKerodSource keeps whole too.
-var kerodModules = []string{
+// hyladModules are the other modules whose code hylad runs, which
+// TestHyladSource keeps whole too.
+var hyladModules = []string{
 	"filippo.io/edwards25519",
 	"github.com/BurntSushi/toml",
 	"github.com/anmitsu/go-shlex",
@@ -84,15 +84,15 @@ var kerodModules = []string{
 	"tailscale.com",
 }
 
-func init() { build.Daemon = kerodBuild() }
+func init() { build.Daemon = hyladBuild() }
 
-// kerodBuild fingerprints the code kerod runs on this platform: its
+// hyladBuild fingerprints the code hylad runs on this platform: its
 // packages' files, less tests and files of other platforms, the versions
 // of its modules, and Go's.
-func kerodBuild() string {
+func hyladBuild() string {
 	h := sha256.New()
 	fmt.Fprintln(h, runtime.Version())
-	fs.WalkDir(kerodSource, ".", func(p string, d fs.DirEntry, err error) error {
+	fs.WalkDir(hyladSource, ".", func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -102,7 +102,7 @@ func kerodBuild() string {
 			}
 			return nil
 		}
-		b, err := kerodSource.ReadFile(p)
+		b, err := hyladSource.ReadFile(p)
 		if err != nil || !builds(p, b) {
 			return err
 		}
@@ -112,7 +112,7 @@ func kerodBuild() string {
 	})
 	if bi, ok := debug.ReadBuildInfo(); ok {
 		for _, m := range bi.Deps {
-			if slices.Contains(kerodModules, m.Path) {
+			if slices.Contains(hyladModules, m.Path) {
 				if m.Replace != nil {
 					m = m.Replace
 				}
@@ -130,7 +130,7 @@ var (
 	unixGoos = []string{"aix", "android", "darwin", "dragonfly", "freebsd", "illumos", "ios", "linux", "netbsd", "openbsd", "solaris"}
 )
 
-// builds reports whether a file of kerodSource is code built on this
+// builds reports whether a file of hyladSource is code built on this
 // platform: no test, and of no other platform by its name or its
 // constraint. Files that are no Go count, as code may embed them.
 func builds(p string, b []byte) bool {
@@ -164,11 +164,11 @@ func builds(p string, b []byte) bool {
 	return true
 }
 
-// kerodStale reports whether kerod, of the version and fingerprint its
+// hyladStale reports whether hylad, of the version and fingerprint its
 // Welcome tells, runs other code than this app's, as after an update that
-// changed it: an earlier kerod, which tells no fingerprint, of another
+// changed it: an earlier hylad, which tells no fingerprint, of another
 // version.
-func kerodStale(app, fp string) bool {
+func hyladStale(app, fp string) bool {
 	if fp != "" {
 		return fp != build.Daemon
 	}

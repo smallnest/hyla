@@ -15,10 +15,10 @@ import (
 	"testing"
 	"time"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
-// daemon is a kerod of a test's: it listens on kerod's socket, holds its
+// daemon is a hylad of a test's: it listens on hylad's socket, holds its
 // lock, and names a process in it, which it runs.
 type daemon struct {
 	cmd  *exec.Cmd
@@ -31,21 +31,21 @@ type daemon struct {
 	interrupted bool
 }
 
-// fakeDaemon starts command as a process named in kerod's lock, as
-// kerod's sessions are, and listens on kerod's socket: it answers as the
+// fakeDaemon starts command as a process named in hylad's lock, as
+// hylad's sessions are, and listens on hylad's socket: it answers as the
 // test has it, or not at all.
 func fakeDaemon(t *testing.T, command string) *daemon {
 	t.Helper()
-	t.Setenv("KERO_HOME", t.TempDir())
-	t.Setenv("KERO_SOCKET", filepath.Join(t.TempDir(), "s"))
+	t.Setenv("HYLA_HOME", t.TempDir())
+	t.Setenv("HYLA_SOCKET", filepath.Join(t.TempDir(), "s"))
 	quiet, err := os.Open(os.DevNull)
 	if err != nil {
 		t.Fatal(err)
 	}
-	d := &daemon{path: filepath.Join(proto.Dir(), "kerod.lock")}
-	// A process named as kerod is, so that a stop that does not get an
+	d := &daemon{path: filepath.Join(proto.Dir(), "hylad.lock")}
+	// A process named as hylad is, so that a stop that does not get an
 	// answer kills it.
-	d.cmd = exec.Command("/bin/bash", "-c", "exec -a 'kero "+kerodCmd+"' /bin/sh -c '"+command+"'")
+	d.cmd = exec.Command("/bin/bash", "-c", "exec -a 'hyla "+hyladCmd+"' /bin/sh -c '"+command+"'")
 	d.cmd.Stdin, d.cmd.Stdout, d.cmd.Stderr = quiet, quiet, quiet
 	if err := d.cmd.Start(); err != nil {
 		t.Fatal(err)
@@ -89,7 +89,7 @@ func (d *daemon) accept() {
 	}
 }
 
-// interrupt answers as kerod does as it stops: to the connections after
+// interrupt answers as hylad does as it stops: to the connections after
 // it, not at all. The process goes, as it saves its sessions.
 func (d *daemon) interrupt(t *testing.T) {
 	d.mu.Lock()
@@ -191,34 +191,34 @@ func TestStopForce(t *testing.T) {
 	}
 }
 
-// TestSettle checks that a kerod of an earlier version than the client's is
-// one of an earlier Kero, and that one of this version is not, or one that
+// TestSettle checks that a hylad of an earlier version than the client's is
+// one of an earlier Hyla, and that one of this version is not, or one that
 // another program runs.
 func TestSettle(t *testing.T) {
 	if runtime.GOOS == "windows" {
-		t.Skip("kerod is named by exec -a")
+		t.Skip("hylad is named by exec -a")
 	}
 	d := fakeDaemon(t, "sleep 60")
 	defer d.stop()
 	w := proto.Welcome{Version: proto.Version - 1, PID: d.cmd.Process.Pid}
 	if !Settle(w) {
-		t.Error("an earlier kerod is not settled")
+		t.Error("an earlier hylad is not settled")
 	}
 	w.Version = proto.Version
 	if Settle(w) {
-		t.Error("a kerod of this version is settled")
+		t.Error("a hylad of this version is settled")
 	}
 	w = proto.Welcome{Version: proto.Version - 1, PID: os.Getpid()}
 	if Settle(w) {
-		t.Error("a process that is not kerod is settled")
+		t.Error("a process that is not hylad is settled")
 	}
 }
 
-// TestSettleStop checks that a settle waits for the kerod to go: its
+// TestSettleStop checks that a settle waits for the hylad to go: its
 // sessions are saved as it stops.
 func TestSettleStop(t *testing.T) {
 	if runtime.GOOS == "windows" {
-		t.Skip("kerod is named by exec -a")
+		t.Skip("hylad is named by exec -a")
 	}
 	d := fakeDaemon(t, "trap 'exit 0' TERM; while :; do sleep 1; done")
 	defer d.stop()
@@ -227,6 +227,6 @@ func TestSettleStop(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !d.gone() {
-		t.Error("the fake kerod does not go as it is settled")
+		t.Error("the fake hylad does not go as it is settled")
 	}
 }

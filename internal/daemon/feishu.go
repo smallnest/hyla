@@ -11,14 +11,14 @@ import (
 	"sync"
 	"time"
 
-	"kero/internal/feishu"
-	"kero/internal/proto"
-	"kero/internal/settings"
+	"hyla/internal/feishu"
+	"hyla/internal/proto"
+	"hyla/internal/settings"
 )
 
-// bot is kerod's connection to its Feishu app, while feishu-app names
-// one and its secret is kept (kero feishu setup): from then on its turns
-// keep kerod running, as a server's do.
+// bot is hylad's connection to its Feishu app, while feishu-app names
+// one and its secret is kept (hyla feishu setup): from then on its turns
+// keep hylad running, as a server's do.
 type bot struct {
 	d      *Daemon
 	cancel context.CancelFunc
@@ -166,7 +166,7 @@ func (d *Daemon) chatBot() (*feishu.Bot, error) {
 	return b, nil
 }
 
-// botLuna is kerod's API to the bot: what a client's connection gives it.
+// botLuna is hylad's API to the bot: what a client's connection gives it.
 type botLuna struct{ d *Daemon }
 
 // Kept is a message as Feishu has it: an error for a message Feishu
@@ -278,7 +278,7 @@ func (s *sharedFeishu) get(id string) (proto.FeishuMessage, bool) {
 }
 
 // add keeps an answer a host gives: Feishu gives the other hosts its ID
-// and chat alone, and kerod gives its lines.
+// and chat alone, and hylad gives its lines.
 func (s *sharedFeishu) add(k proto.FeishuKeep) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -360,7 +360,7 @@ func conversationOf(cmd []string) (proto.AgentSession, bool) {
 
 // botEnv is the bot's environment, which its commands take: the app's,
 // which its settings keep, as the window read it, with the account's
-// places on its path; else the app's that connected; else kerod's own.
+// places on its path; else the app's that connected; else hylad's own.
 func (d *Daemon) botEnv() []string {
 	var app []string
 	host, _ := os.Hostname()

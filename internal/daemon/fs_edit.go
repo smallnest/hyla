@@ -8,12 +8,12 @@ import (
 	"path/filepath"
 	"time"
 
-	"kero/internal/git"
-	"kero/internal/proto"
+	"hyla/internal/git"
+	"hyla/internal/proto"
 )
 
 // The Files tab makes, moves and deletes files on a host through these:
-// they change what the user kerod runs as can, as the panes' programs do.
+// they change what the user hylad runs as can, as the panes' programs do.
 
 // pokeAt has the panes where a file is, its worktree else its directory,
 // show their changes anew, as the user changed it.

@@ -9,27 +9,27 @@ import (
 	"github.com/egoist/mygo"
 )
 
-// Listen is one of kerod's network listeners, as the configuration's
-// listen key and `kero daemon serve --listen` name it:
+// Listen is one of hylad's network listeners, as the configuration's
+// listen key and `hyla daemon serve --listen` name it:
 //
 //   - tailnet://:7373, or tailnet:// for ListenPort: plain HTTP on this
 //     machine's Tailscale addresses, which WireGuard encrypts; tailscaled
 //     tells who connects.
 //   - tailnet-serve:///path/to/serve.sock, or tailnet-serve:// for
-//     serve.sock in kero's directory: a socket for Tailscale Serve to pass
+//     serve.sock in hyla's directory: a socket for Tailscale Serve to pass
 //     HTTPS connections to (`tailscale serve --bg unix:/path/to/serve.sock`),
 //     which tells who connects in its headers.
-//   - tailcat://:7373, or tailcat://: a relay for Kero anywhere, over
+//   - tailcat://:7373, or tailcat://: a relay for Hyla anywhere, over
 //     the tailcat library (tailcat.go): WireGuard end to end,
 //     with a public DERP relay only to reach the peer. There is no
-//     Tailscale account: the pair code kerod shows is the secret to
+//     Tailscale account: the pair code hylad shows is the secret to
 //     connect, and the address of the host.
 type Listen struct {
 	Kind string // "tailnet", "tailnet-serve" or "tailcat"
 	Port string // tailnet's or tailcat's
 	Path string // tailnet-serve's socket, "" for the default
-	// Tailcat is the pair code of a tailcat listener, as kerod makes
-	// it: "" of a setting's, which kerod's key's is.
+	// Tailcat is the pair code of a tailcat listener, as hylad makes
+	// it: "" of a setting's, which hylad's key's is.
 	Tailcat string
 }
 
@@ -74,12 +74,12 @@ func ParseListen(s string) (Listen, error) {
 		}
 		return l, nil
 	}
-	return Listen{}, fmt.Errorf("%q: kerod listens on tailnet://:port, tailnet-serve:///socket or tailcat://:port", s)
+	return Listen{}, fmt.Errorf("%q: hylad listens on tailnet://:port, tailnet-serve:///socket or tailcat://:port", s)
 }
 
 // ListenPort is the port a tailnet listener takes when it names none:
-// DefaultPort, or the next for a development build, whose kerod then
-// listens beside the installed Kero's on the same machine.
+// DefaultPort, or the next for a development build, whose hylad then
+// listens beside the installed Hyla's on the same machine.
 func ListenPort() string {
 	if mygo.IsDev() {
 		return "7374"

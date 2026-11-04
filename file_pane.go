@@ -7,9 +7,9 @@ import (
 	"github.com/egoist/mygo/ui"
 	"github.com/egoist/mygo/ui/editor"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 
-	"kero/locales"
+	"hyla/locales"
 )
 
 // A file pane shows a file of its host in MyGo's editor, colored by its
@@ -113,7 +113,7 @@ func (a *App) readFilePane(p *proto.Pane, f *filePane) {
 			bm, err = ui.DecodeBitmap(r.Data)
 		}
 		if err == nil && !large && image && bm == nil {
-			// The host's kerod cannot draw it: its bytes are as good a
+			// The host's hylad cannot draw it: its bytes are as good a
 			// view as a text of them.
 			image = false
 		}

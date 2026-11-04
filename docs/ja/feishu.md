@@ -1,14 +1,14 @@
 ---
 title: Feishu
-description: Feishu または Lark のプライベートチャットやグループから、Kero のセッションで動くコーディングエージェントを操作します。
+description: Feishu または Lark のプライベートチャットやグループから、Hyla のセッションで動くコーディングエージェントを操作します。
 status: draft
 ---
 
 # Feishu
 
-Feishu 対応は、1 台のマシンの kerod に 1 つの Feishu アプリを接続します。ボットにメッセージを送るか、グループで @ メンションすると、Kero セッションのコーディングエージェントがそれを受け取ります。回答はカードとしてチャットに返ります。セッションは Kero のサイドバーに残るので、Feishu で会話を続けながら、見ることもターミナルから引き継ぐこともできます。
+Feishu 対応は、1 台のマシンの hylad に 1 つの Feishu アプリを接続します。ボットにメッセージを送るか、グループで @ メンションすると、Hyla セッションのコーディングエージェントがそれを受け取ります。回答はカードとしてチャットに返ります。セッションは Hyla のサイドバーに残るので、Feishu で会話を続けながら、見ることもターミナルから引き継ぐこともできます。
 
-この考えは [MetaBot](https://github.com/xvirobotics/metabot) から来ています。MetaBot は Feishu などのチャットチャネルをコーディングエージェントにつなぎます。Kero は別のやり方をします。MetaBot は自身のエンジンを動かします。Kero は **すでにあるセッションを使います**: そのプロセス、エージェント検出、会話履歴、状態、ほかのホストへのアクセスです。
+この考えは [MetaBot](https://github.com/xvirobotics/metabot) から来ています。MetaBot は Feishu などのチャットチャネルをコーディングエージェントにつなぎます。Hyla は別のやり方をします。MetaBot は自身のエンジンを動かします。Hyla は **すでにあるセッションを使います**: そのプロセス、エージェント検出、会話履歴、状態、ほかのホストへのアクセスです。
 
 ## アーキテクチャ
 
@@ -16,29 +16,29 @@ Feishu 対応は、1 台のマシンの kerod に 1 つの Feishu アプリを�
 Feishu Open Platform
    |  a long-lived WebSocket (im.message.receive_v1 events)
    v
-kerod -- internal/feishu
+hylad -- internal/feishu
    |-- IM adapter      messages  <->  commands, reply cards
    |-- Bridge          the binding of a chat to a session, the replies to Feishu
    |-- Prompt host     the prompts in the session's pane
    +-- existing code   detect / resume / pane.report / notify
    ^
    |  the same RPC
-Kero app (the session is visible, and can be taken over)
-kero CLI
+Hyla app (the session is visible, and can be taken over)
+hyla CLI
 other hosts
 ```
 
 ボットは Feishu への長寿命の WebSocket を保ちます。Feishu はこれを「長接続」と呼びます。短い接続には webhook 用の公開 HTTPS エンドポイントが必要です。長接続はポートを開けません。
 
-### kerod で動かす理由
+### hylad で動かす理由
 
 | 選択 | 得られるもの | 失うもの |
 | --- | --- | --- |
-| MetaBot のように別プログラム | 機能がそろっている | 2 つ目のランタイムと 2 つ目のセッション一式。Kero のペインを操作も引き継ぎもできない |
-| ここで設計したように kerod 内 | エージェント検出、会話の再開、状態、ホスト、1 つのバイナリ。チャットの作業がアプリに見える | kerod にコードが増える |
-| アプリ内 | ボットはアプリが終了すると止まる | アプリが App Secret をバックグラウンドで持ち、アプリが閉じていると kerod の助けがない |
+| MetaBot のように別プログラム | 機能がそろっている | 2 つ目のランタイムと 2 つ目のセッション一式。Hyla のペインを操作も引き継ぎもできない |
+| ここで設計したように hylad 内 | エージェント検出、会話の再開、状態、ホスト、1 つのバイナリ。チャットの作業がアプリに見える | hylad にコードが増える |
+| アプリ内 | ボットはアプリが終了すると止まる | アプリが App Secret をバックグラウンドで持ち、アプリが閉じていると hylad の助けがない |
 
-どの場合もプロンプトは kerod を通ってペインに入ります。後の段階で IM アダプターをアプリに移し、アプリがすでに持つ kerod への接続からペインに入れられます。kerod は変わりません。
+どの場合もプロンプトは hylad を通ってペインに入ります。後の段階で IM アダプターをアプリに移し、アプリがすでに持つ hylad への接続からペインに入れられます。hylad は変わりません。
 
 ## Feishu のコマンド
 
@@ -56,7 +56,7 @@ other hosts
 
 ### コマンドモード
 
-`feishu-run = command` では、kerod がプロンプトごとにエージェント自身のコマンドをターミナルなしで動かします:
+`feishu-run = command` では、hylad がプロンプトごとにエージェント自身のコマンドをターミナルなしで動かします:
 
 ```text
 claude -p --output-format text --session-id <id> "<prompt>"    # Claude Code
@@ -66,7 +66,7 @@ opencode run "<prompt>"
 codex exec "<prompt>"
 ```
 
-各コマンドはチャットのセッションで動きます。そのセッションにはターミナルもシェルもありません。動いているあいだサイドバーは working を、終わると idle を表示します。`feishu-dir` のディレクトリで、ペインと同じ環境で動きます。出力は kero のディレクトリの `feishu-run` 下のファイルに書き込まれ、そのテキストが返信になります。チャットは会話を続けます。最初のターンは kerod が作った ID でセッションを始め、次のターンがそれを続けます:
+各コマンドはチャットのセッションで動きます。そのセッションにはターミナルもシェルもありません。動いているあいだサイドバーは working を、終わると idle を表示します。`feishu-dir` のディレクトリで、ペインと同じ環境で動きます。出力は hyla のディレクトリの `feishu-run` 下のファイルに書き込まれ、そのテキストが返信になります。チャットは会話を続けます。最初のターンは hylad が作った ID でセッションを始め、次のターンがそれを続けます:
 
 | エージェント | 最初のターン | 次のターン |
 | --- | --- | --- |
@@ -84,7 +84,7 @@ codex exec "<prompt>"
 
 ### ターンの権限
 
-コマンドモードでは Claude Code のターンはメッセージのストリームで動きます。ターンがツールの権限を必要とすると、Claude Code はそのストリームで要求し、kerod はその要求をターンの出力の隣のファイルに書きます。ボットはチャットにカードを送り、ツールと、使うコマンド、ファイル、またはアドレスを書きます。カードには三つのボタンがあります。
+コマンドモードでは Claude Code のターンはメッセージのストリームで動きます。ターンがツールの権限を必要とすると、Claude Code はそのストリームで要求し、hylad はその要求をターンの出力の隣のファイルに書きます。ボットはチャットにカードを送り、ツールと、使うコマンド、ファイル、またはアドレスを書きます。カードには三つのボタンがあります。
 
 | ボタン | 動作 |
 | --- | --- |
@@ -100,16 +100,16 @@ codex exec "<prompt>"
 
 ボットはプロンプトをペインに入力して Enter を押し、ターンが終わるまでペインを追います: エージェントがユーザーを待つ、または働いたあと画面と状態が静かになるまでです。状態がずっと「working」と言わないターンも、画面が止まれば終えます:
 
-- 画面がプロンプトの前と同じで、回答も出ない場合、ボットは「Kero はターンのテキストを以前のものと区別できません」と返信します。
+- 画面がプロンプトの前と同じで、回答も出ない場合、ボットは「Hyla はターンのテキストを以前のものと区別できません」と返信します。
 - ペインが 5 秒を超えて「working」のままで、作業の兆しがない場合、ボットはターンが終わったものとします。
 
 `feishu-timeout` のあともエージェントが働いている場合、返信はそう伝えます。
 
 ### ターンの回答
 
-ターミナルの画面はきれいな回答ではありません。TUI の枠やステータスバーを含みます。Claude Code では、`kero skill setup` が入れる `Stop` フック（`kero answer claude`）が、ターンが終わるたびにエージェントの最後のメッセージを、ボットがペインに渡したファイル（kerod のディレクトリの `feishu-answers`）に書き込みます。ボットは画面のテキストではなく、そのメッセージで返信します。ほかのエージェントに使える Stop フックはなく、ボットはターミナルのテキストを使います。
+ターミナルの画面はきれいな回答ではありません。TUI の枠やステータスバーを含みます。Claude Code では、`hyla skill setup` が入れる `Stop` フック（`hyla answer claude`）が、ターンが終わるたびにエージェントの最後のメッセージを、ボットがペインに渡したファイル（hylad のディレクトリの `feishu-answers`）に書き込みます。ボットは画面のテキストではなく、そのメッセージで返信します。ほかのエージェントに使える Stop フックはなく、ボットはターミナルのテキストを使います。
 
-ボットがペインにファイルを渡していなければ、`kero answer` は何もしません。Kero の外でも、どんなエラーでも何もしません: エージェントを失敗させることはありません。
+ボットがペインにファイルを渡していなければ、`hyla answer` は何もしません。Hyla の外でも、どんなエラーでも何もしません: エージェントを失敗させることはありません。
 
 ## チャットビュー
 
@@ -139,7 +139,7 @@ Feishu では、1 ターンは 2 枚のカードで表示されます（`feishu-
 ## 設定
 
 ```ini
-# ~/.config/kero/config
+# ~/.config/hyla/config
 
 # The same Feishu app may connect from more than one machine. By
 # default, only the machine the chat is bound to receives its events.
@@ -151,8 +151,8 @@ feishu-allow = *                # who may use it: open_id, user_id or email; rep
 feishu-timeout = 30m            # the longest a turn waits
 feishu-stream = 2s              # how often a card updates
 
-# While the bot is connected, kerod stays even with no session open:
-# sessions started from Feishu restore after a kerod restart.
+# While the bot is connected, hylad stays even with no session open:
+# sessions started from Feishu restore after a hylad restart.
 
 # This machine
 feishu-run = command            # how a prompt runs its agent: command, in the background; or session, in a pane
@@ -168,7 +168,7 @@ feishu-agent-command = pi=pi
 | キー | 既定値 | 説明 |
 | --- | --- | --- |
 | `feishu-app` | 空 | Feishu アプリの App ID。空なら Feishu は無効です。 |
-| `feishu-allow` | 空 | プロンプトを送れる人: `open_id`、`user_id`、`email`。空なら `kero feishu setup` を実行したユーザーだけです。 |
+| `feishu-allow` | 空 | プロンプトを送れる人: `open_id`、`user_id`、`email`。空なら `hyla feishu setup` を実行したユーザーだけです。 |
 | `feishu-timeout` | `30m` | ターンが待つ最長時間。超えるとカードがタイムアウトを示します。 |
 | `feishu-stream` | `2s` | 作業中のカードが新しいテキストを取り込む間隔です。 |
 | `feishu-cards` | `true` | すべての返答をカードで返します。まずターンのカード、次に回答のカードで、本文は Markdown で表示します。`false` にすると返答は通常のメッセージになります。 |
@@ -179,25 +179,25 @@ feishu-agent-command = pi=pi
 
 ### エージェントの環境
 
-kerod は自分自身の環境でタスクを起動します。その環境は launchd のジョブのものです。PATH はユーザーのログインシェルの PATH に、エージェントの導入先（`~/.local/bin`、`~/.bun/bin`、`~/.cargo/bin`、nvm と fnm の Node、`/opt/homebrew/bin`、`/usr/local/bin`）を続けたものです。ログインシェルの PATH は 1 分に 1 回まで読み直します。エージェントが見つからないときは、`feishu-agent-command` でそのコマンドを指定します。
+hylad は自分自身の環境でタスクを起動します。その環境は launchd のジョブのものです。PATH はユーザーのログインシェルの PATH に、エージェントの導入先（`~/.local/bin`、`~/.bun/bin`、`~/.cargo/bin`、nvm と fnm の Node、`/opt/homebrew/bin`、`/usr/local/bin`）を続けたものです。ログインシェルの PATH は 1 分に 1 回まで読み直します。エージェントが見つからないときは、`feishu-agent-command` でそのコマンドを指定します。
 
 ### App Secret
 
-App Secret は設定ファイルにありません。設定ファイルはよくコピーされ、バックアップされ、dotfiles に同期されますが、App Secret は長寿命の資格情報です。kerod は `kerod.lock` の隣のファイルに、あなたのアカウントだけが読めるように保存し、`kero feishu setup` が書き込みます:
+App Secret は設定ファイルにありません。設定ファイルはよくコピーされ、バックアップされ、dotfiles に同期されますが、App Secret は長寿命の資格情報です。hylad は `hylad.lock` の隣のファイルに、あなたのアカウントだけが読めるように保存し、`hyla feishu setup` が書き込みます:
 
 ```sh
-kero feishu setup     # asks for the App ID and App Secret, connects, and checks the app's settings
-kero feishu status    # whether the bot is connected
+hyla feishu setup     # asks for the App ID and App Secret, connects, and checks the app's settings
+hyla feishu status    # whether the bot is connected
 ```
 
-`kero feishu setup` は Feishu アプリを段階ごとに確認します: ボット機能、`im:message` と `im:resource` の権限、`im.message.receive` イベント、公開済みのバージョン。ある段階が失敗すると、その段階と、[Feishu 開放平台のコンソール](https://open.feishu.cn/app)で何を変えるかを示します。
+`hyla feishu setup` は Feishu アプリを段階ごとに確認します: ボット機能、`im:message` と `im:resource` の権限、`im.message.receive` イベント、公開済みのバージョン。ある段階が失敗すると、その段階と、[Feishu 開放平台のコンソール](https://open.feishu.cn/app)で何を変えるかを示します。
 
 設定ウィンドウはアプリ名、接続状態、使える人を表示します。App Secret は決して表示しません。情報ビュー（⌥⌘I）も、`feishu-app` にアプリがあるあいだ Feishu カードを表示します: App ID、ボットが接続しているか、使える人。
 
-## Kero との組み合わせ
+## Hyla との組み合わせ
 
 - **エージェント検出**が、エージェントが作業中か、回答を待つか、アイドルかをブリッジに伝えます。
-- **会話の再開**により、kerod が再起動しても何も失いません: セッションとエージェントの会話はほかのセッションと同じように戻ります。
+- **会話の再開**により、hylad が再起動しても何も失いません: セッションとエージェントの会話はほかのセッションと同じように戻ります。
 - **ファイルペイン**は、どのセッションでも同じように、エージェントが変えたファイルを開きます。
 - **ホスト**は `-H` とともに働きます: Feishu のコマンドは結び付いたセッションのホストで動きます。
 
@@ -209,10 +209,10 @@ kero feishu status    # whether the bot is connected
 
 ## セキュリティ
 
-- **Feishu のメッセージはあなたのシェルへの入力です。** エージェントはペインで入力したときと同じく、あなたのアカウントの権限で動きます。`feishu-allow` が送れる人を制限します。あなたが加えない限り、`kero feishu setup` を実行したアカウントだけが許されます。`*` はボットに届く誰でも許します。
+- **Feishu のメッセージはあなたのシェルへの入力です。** エージェントはペインで入力したときと同じく、あなたのアカウントの権限で動きます。`feishu-allow` が送れる人を制限します。あなたが加えない限り、`hyla feishu setup` を実行したアカウントだけが許されます。`*` はボットに届く誰でも許します。
 - ブリッジは、ボット自身が送るメッセージ、ほかのアプリのメッセージ（`app_id` が一致する必要があります）、`event_id` で見た重複イベントを無視します。
 - カードのボタンは、チャットの持ち主か `feishu-allow` に載った人だけに作用します。
-- ログと `kero clients` は App Secret を決して表示しません。
+- ログと `hyla clients` は App Secret を決して表示しません。
 
 ## 依存関係
 
@@ -226,10 +226,10 @@ kero feishu status    # whether the bot is connected
 
 | 段階 | 内容 |
 | --- | --- |
-| **M1: 接続** | `feishu-*` キー、`kero feishu setup`、`status`、`test`、`send`、長接続、`feishu-allow`、`/new`、`/use`、`/ls`、`/status`、`/stop`、`/answer`、`/close`、@ メンションのグループ、結び付いたセッションへのテキスト、ターンが表示したもののテキスト返信 |
+| **M1: 接続** | `feishu-*` キー、`hyla feishu setup`、`status`、`test`、`send`、長接続、`feishu-allow`、`/new`、`/use`、`/ls`、`/status`、`/stop`、`/answer`、`/close`、@ メンションのグループ、結び付いたセッションへのテキスト、ターンが表示したもののテキスト返信 |
 | **M2: プロトコル** | アイドル、待ち、タイムアウトの待機。更新するカード。working、waiting、error の色 |
-| **M3: 体験** | @ メンションとスレッドのグループ。セッションにコピーされる画像とファイル。ボタンと「Kero で開く」 |
-| **M4: すべてのエージェント** | 各ターンの回答をファイルに書く: Claude Code の `Stop` フック（`kero answer`）。ファイルがなければターミナルのテキスト |
+| **M3: 体験** | @ メンションとスレッドのグループ。セッションにコピーされる画像とファイル。ボタンと「Hyla で開く」 |
+| **M4: すべてのエージェント** | 各ターンの回答をファイルに書く: Claude Code の `Stop` フック（`hyla answer`）。ファイルがなければターミナルのテキスト |
 | **M5: 複数のマシン** | 1 つのアプリのイベントが複数のマシンに届く方法。`/host` |
 | **M6: 仕上げ** | ストリーミングカード、Markdown、設定 › エージェント › Feishu、このページの日本語と中国語版 |
 

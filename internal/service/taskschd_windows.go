@@ -17,22 +17,22 @@ import (
 
 	"golang.org/x/sys/windows"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
-// On Windows kerod runs as a task of the user's in Task Scheduler,
-// \Kero\kerod, which needs no administrator: it starts as the user logs
+// On Windows hylad runs as a task of the user's in Task Scheduler,
+// \Hyla\hylad, which needs no administrator: it starts as the user logs
 // on, in their session, with their credentials, and runs while they are
 // logged on, as launchd's agent does on macOS. conhost --headless runs it
-// without a window, which kero.exe, a console program, would have.
+// without a window, which hyla.exe, a console program, would have.
 
-func task() string { return `\Kero\` + Name() }
+func task() string { return `\Hyla\` + Name() }
 
 // file is the task as Install registered it, which tells it is installed
 // without asking Task Scheduler.
 func file() string { return filepath.Join(proto.Dir(), Name()+".task.xml") }
 
-// definition is the task that runs exe's kerod. Task Scheduler starts it
+// definition is the task that runs exe's hylad. Task Scheduler starts it
 // again should it fail, never more than one.
 func definition(exe, account string) string {
 	conhost := filepath.Join(os.Getenv("SystemRoot"), "System32", "conhost.exe")
@@ -42,7 +42,7 @@ func definition(exe, account string) string {
 	return fmt.Sprintf(`<?xml version="1.0" encoding="UTF-16"?>
 <Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
   <RegistrationInfo>
-    <Description>Kero's daemon, which runs the sessions: written by kero daemon install-service.</Description>
+    <Description>Hyla's daemon, which runs the sessions: written by hyla daemon install-service.</Description>
   </RegistrationInfo>
   <Triggers>
     <LogonTrigger>
@@ -108,9 +108,16 @@ func schtasks(args ...string) error {
 	return nil
 }
 
-// Install registers the task for exe and starts it. A kerod already
+// Install registers the task for exe and starts it. A hylad already
 // running, which the app or a bridge started, is stopped first (stop):
 // the task's starts its sessions again.
+// removeLegacy takes away the task 2.x installed, when Hyla was Kero: it
+// runs no more, its executable gone.
+func removeLegacy() {
+	schtasks("/Delete", "/TN", `\Kero\kerod`, "/F")
+	os.Remove(filepath.Join(proto.Dir(), "kerod.task.xml"))
+}
+
 func Install(exe string, stop func() error) error {
 	u, err := user.Current()
 	if err != nil {
@@ -119,6 +126,7 @@ func Install(exe string, stop func() error) error {
 	if err := os.MkdirAll(filepath.Dir(file()), 0o700); err != nil {
 		return err
 	}
+	removeLegacy()
 	if err := os.WriteFile(file(), utf16File(definition(exe, u.Username)), 0o600); err != nil {
 		return err
 	}
@@ -130,7 +138,7 @@ func Install(exe string, stop func() error) error {
 		stop()
 	}
 	// Not waited for, nor needed: the task runs only while the user is
-	// logged on, and kerod else starts as Kero connects.
+	// logged on, and hylad else starts as Hyla connects.
 	schtasks("/Run", "/TN", task())
 	return nil
 }
@@ -139,7 +147,7 @@ func Install(exe string, stop func() error) error {
 // logged on.
 func EnableLinger() error { return nil }
 
-// Uninstall removes the task. Its kerod runs on, as any.
+// Uninstall removes the task. Its hylad runs on, as any.
 func Uninstall() error {
 	if !Installed() {
 		return nil
@@ -148,9 +156,9 @@ func Uninstall() error {
 	return os.Remove(file())
 }
 
-// Start runs the task, and waits for its kerod: none starts while no one
+// Start runs the task, and waits for its hylad: none starts while no one
 // is logged on to the machine, as over SSH only. The task runs again each
-// second, as Task Scheduler ignores a run while the task's last kerod,
+// second, as Task Scheduler ignores a run while the task's last hylad,
 // which just stopped as it restarts, has not ended.
 func Start() error {
 	if err := schtasks("/Run", "/TN", task()); err != nil {
@@ -165,7 +173,7 @@ func Start() error {
 			schtasks("/Run", "/TN", task())
 		}
 	}
-	return errors.New("the task did not start kerod: it runs only while you are logged on to the machine")
+	return errors.New("the task did not start hylad: it runs only while you are logged on to the machine")
 }
 
 func running() bool {
@@ -177,7 +185,7 @@ func running() bool {
 	return true
 }
 
-// Restart and Stop are kero's: it stops kerod as it stops any, which then
+// Restart and Stop are hyla's: it stops hylad as it stops any, which then
 // saves its sessions, and starts the task again.
 func Restart() error { return ErrUnsupported }
 func Stop() error    { return ErrUnsupported }

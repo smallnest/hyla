@@ -72,7 +72,7 @@ func fileIconSVG(icon string, dark bool) *ui.SVG {
 	if err != nil {
 		b, err = fileIconFiles.ReadFile("icons/files/" + fileIconTheme.file + ".svg")
 		if err != nil {
-			panic("kero: no file icon " + key)
+			panic("hyla: no file icon " + key)
 		}
 	}
 	svg := ui.MustParseSVG(b)

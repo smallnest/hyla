@@ -11,13 +11,13 @@ import (
 	"testing"
 	"time"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
 // testPane is a pane with no program, whose output the test writes.
 func testPane(t *testing.T) *pane {
 	t.Helper()
-	t.Setenv("KERO_CONFIG", filepath.Join(t.TempDir(), "config"))
+	t.Setenv("HYLA_CONFIG", filepath.Join(t.TempDir(), "config"))
 	d := &Daemon{changeCh: make(chan struct{}, 1), saveCh: make(chan struct{}, 1)}
 	d.viewed.Store(new(string))
 	s, err := newPane(d, "s", proto.Pane{ID: "p", Status: proto.Idle, Cols: 96, Rows: 28})
@@ -103,7 +103,7 @@ func TestClaudeRedrawIsNoWork(t *testing.T) {
 
 // Claude Code at its prompt for a while notifies "waiting for your
 // input": its screen, at the prompt, tells it is idle, not waiting. Its
-// notification at a permission dialog words the wait. "kero notify" from
+// notification at a permission dialog words the wait. "hyla notify" from
 // it needs the user all the same.
 func TestAgentNotifyFollowsScreen(t *testing.T) {
 	s := testPane(t)
@@ -137,7 +137,7 @@ func TestAgentNotifyFollowsScreen(t *testing.T) {
 	s.flag("", "Need your API key to continue")
 	s.mu.Unlock()
 	if st := s.status(now); st != proto.Waiting || s.info.Message != "Need your API key to continue" {
-		t.Fatalf("kero notify: %s %q", st, s.info.Message)
+		t.Fatalf("hyla notify: %s %q", st, s.info.Message)
 	}
 }
 
@@ -222,7 +222,7 @@ func TestResumeCommand(t *testing.T) {
 // under none, as in Codex's app server that panes share, tells of the
 // pane that can only be the agent's, and of none when several could be.
 func TestAgentPane(t *testing.T) {
-	t.Setenv("KERO_CONFIG", filepath.Join(t.TempDir(), "config"))
+	t.Setenv("HYLA_CONFIG", filepath.Join(t.TempDir(), "config"))
 	d := &Daemon{changeCh: make(chan struct{}, 1), saveCh: make(chan struct{}, 1), panes: map[string]*pane{}}
 	d.viewed.Store(new(string))
 	add := func(id, agent, dir string, session bool) *pane {
@@ -268,7 +268,7 @@ func TestAgentPane(t *testing.T) {
 
 	// Under Codex's app server that panes share, which a's Codex started
 	// under a's shell: not a, which has its session, but the one pane yet
-	// to tell its own (kero#237).
+	// to tell its own (hyla#237).
 	if runtime.GOOS == "windows" {
 		return
 	}
@@ -295,7 +295,7 @@ func TestAgentPane(t *testing.T) {
 // TestAgentSessionAsk checks the question of which session a pane's agent
 // runs: its own, as its hooks told, or none.
 func TestAgentSessionAsk(t *testing.T) {
-	t.Setenv("KERO_CONFIG", filepath.Join(t.TempDir(), "config"))
+	t.Setenv("HYLA_CONFIG", filepath.Join(t.TempDir(), "config"))
 	d := &Daemon{changeCh: make(chan struct{}, 1), saveCh: make(chan struct{}, 1), panes: map[string]*pane{}}
 	d.viewed.Store(new(string))
 	ask := func(id string) (proto.AgentSessionResult, error) {
@@ -330,7 +330,7 @@ func TestAgentSessionAsk(t *testing.T) {
 
 func TestEnded(t *testing.T) {
 	cfg := filepath.Join(t.TempDir(), "config")
-	t.Setenv("KERO_CONFIG", cfg)
+	t.Setenv("HYLA_CONFIG", cfg)
 	d := &Daemon{}
 	a := &proto.AgentSession{Agent: "claude", ID: "a"}
 	d.endedLocked(a, "/repo", "off", "", 1)

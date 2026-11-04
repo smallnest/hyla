@@ -1,9 +1,9 @@
 import { onCleanup, onMount } from 'solid-js';
 
-// A cloud of glowing points that gathers into Kero's frog, then morphs, in
+// A cloud of glowing points that gathers into Hyla's frog, then morphs, in
 // 3D, into a prompt and back, over and over. Each morph bursts outward and
 // spins the whole cloud once; the cursor scatters points, and a click skips
-// to the other shape. A few points wear Kero's status colors, and the frog
+// to the other shape. A few points wear Hyla's status colors, and the frog
 // wears its own.
 
 const SHAPES = ['frog', 'prompt'] as const;
@@ -356,7 +356,7 @@ function buildPrompt(n: number, rand: () => number) {
   return out;
 }
 
-// The frog of Kero's icon, as a line drawing in light: the outline of its
+// The frog of Hyla's icon, as a line drawing in light: the outline of its
 // silhouette, its eyes and its mouth in bright lime, where most points go;
 // its body dim, its belly and cheeks in their colors. The eyes stay dark
 // inside their rims, as in the icon.

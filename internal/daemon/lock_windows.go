@@ -5,7 +5,7 @@ import (
 
 	"golang.org/x/sys/windows"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
 // lockFile takes an exclusive lock of f, failing when another process has

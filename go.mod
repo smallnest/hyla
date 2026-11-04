@@ -1,4 +1,4 @@
-module kero
+module hyla
 
 go 1.27.3
 

@@ -8,11 +8,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
-// label is the agent's: sh.kero.kerod, after the app's identifier.
-func label() string { return "sh.kero." + Name() }
+// label is the agent's: sh.hyla.hylad, after the app's identifier.
+func label() string { return "sh.hyla." + Name() }
 
 func file() string {
 	home, _ := os.UserHomeDir()
@@ -21,12 +21,12 @@ func file() string {
 
 func domain() string { return fmt.Sprintf("gui/%d", os.Getuid()) }
 
-// plist is the agent that runs exe's kerod, at login and whenever it
-// ends. kerod logs to kerod.log itself.
+// plist is the agent that runs exe's hylad, at login and whenever it
+// ends. hylad logs to hylad.log itself.
 func plist(exe string) string {
 	return fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<!-- Kero's daemon, which runs the sessions: written by kero daemon install-service. -->
+<!-- Hyla's daemon, which runs the sessions: written by hyla daemon install-service. -->
 <plist version="1.0">
 <dict>
 	<key>Label</key>
@@ -47,7 +47,7 @@ func plist(exe string) string {
 	<string>%s</string>
 	<key>EnvironmentVariables</key>
 	<dict>
-		<key>KERO_SERVICE</key>
+		<key>HYLA_SERVICE</key>
 		<string>1</string>
 	</dict>
 </dict>
@@ -63,13 +63,14 @@ func launchctl(args ...string) error {
 	return nil
 }
 
-// Install writes the agent for exe and loads it. A kerod already running,
+// Install writes the agent for exe and loads it. A hylad already running,
 // which the app or a bridge started, is stopped first (stop): the
 // agent's starts its sessions again.
 func Install(exe string, stop func() error) error {
 	if err := os.MkdirAll(filepath.Dir(file()), 0o755); err != nil {
 		return err
 	}
+	removeLegacy()
 	launchctl("bootout", domain()+"/"+label())
 	if err := os.WriteFile(file(), []byte(plist(exe)), 0o644); err != nil {
 		return err
@@ -78,6 +79,17 @@ func Install(exe string, stop func() error) error {
 		stop()
 	}
 	return launchctl("bootstrap", domain(), file())
+}
+
+// removeLegacy takes away the agent 2.x installed, when Hyla was Kero:
+// its hylad would run beside this one, on a socket nothing reads.
+func removeLegacy() {
+	p := filepath.Join(filepath.Dir(file()), "sh.kero.kerod.plist")
+	if _, err := os.Stat(p); err != nil {
+		return
+	}
+	launchctl("bootout", domain()+"/sh.kero.kerod")
+	os.Remove(p)
 }
 
 // EnableLinger does nothing on macOS: an agent runs while its user is
@@ -93,7 +105,7 @@ func Uninstall() error {
 	return os.Remove(file())
 }
 
-// Start starts the agent's kerod, loading it again after a Stop.
+// Start starts the agent's hylad, loading it again after a Stop.
 func Start() error {
 	if launchctl("kickstart", domain()+"/"+label()) == nil {
 		return nil
@@ -101,7 +113,7 @@ func Start() error {
 	return launchctl("bootstrap", domain(), file())
 }
 
-// Restart restarts the agent's kerod: SIGTERM, on which it saves its
+// Restart restarts the agent's hylad: SIGTERM, on which it saves its
 // sessions and ends, which the agent's KeepAlive starts again.
 func Restart() error { return launchctl("kill", "SIGTERM", domain()+"/"+label()) }
 
@@ -123,5 +135,5 @@ func Get() Status {
 	return st
 }
 
-// Stop stops the agent's kerod, until it is started again.
+// Stop stops the agent's hylad, until it is started again.
 func Stop() error { return launchctl("bootout", domain()+"/"+label()) }

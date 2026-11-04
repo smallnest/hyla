@@ -10,10 +10,10 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/actions"
-	"kero/internal/proto"
+	"hyla/internal/actions"
+	"hyla/internal/proto"
 
-	"kero/locales"
+	"hyla/locales"
 )
 
 const (
@@ -791,7 +791,7 @@ func (a *App) sessionMenu(m *ui.Menu, s *proto.Session) {
 // sidebarFooter is the sidebar's foot: the buttons for projects, the
 // palette and Settings; then, at the right, what across the sessions
 // wants a look, each a button going to the next session of it, and
-// nothing while nothing does, or the connection to kerod while there is
+// nothing while nothing does, or the connection to hylad while there is
 // none.
 func (a *App) sidebarFooter(c *ui.Context, pal *palette) {
 	ui.Row(c).Height(36).Shrink(0).Padding(0, 12, 4, 12).Gap(2).AlignItems(ui.Center).DragWindow().Children(func() {
@@ -854,7 +854,7 @@ func (a *App) footerChip(c *ui.Context, pal *palette, st proto.Status, unread bo
 	}
 }
 
-// restartChip offers to restart kerod into this version of Kero, while it
+// restartChip offers to restart hylad into this version of Hyla, while it
 // runs another.
 func (a *App) restartChip(c *ui.Context, pal *palette) {
 	b := ui.ButtonBase(c.Key("chip-restart")).Height(24).Padding(0, 8, 0, 8).Gap(6).Radius(12).AlignItems(ui.Center).
@@ -871,7 +871,7 @@ func (a *App) restartChip(c *ui.Context, pal *palette) {
 	}
 }
 
-// footerNote says how the connection to kerod is, by a dot.
+// footerNote says how the connection to hylad is, by a dot.
 func (a *App) footerNote(c *ui.Context, pal *palette, dot ui.Color, label string) {
 	ui.Row(c).Gap(7).Padding(0, 6).AlignItems(ui.Center).Children(func() {
 		ui.Box(c).Size(6, 6).Radius(3).Background(dot)
@@ -1038,7 +1038,7 @@ func (a *App) card(c *ui.Context, pal *palette, bar ui.TitleBar, shown float32) 
 					iconButton(c, "new-session-2", plusIcon, a.tip(locales.ActionNewSession(), "session.new"), pal, func() { a.newSession("") })
 				})
 			}
-			ui.Text(c, "Kero").FontSize(14).FontWeight(600).TextColor(pal.text)
+			ui.Text(c, "Hyla").FontSize(14).FontWeight(600).TextColor(pal.text)
 			ui.Spacer(c)
 			windowControls(c, pal, a.win)
 		})
@@ -1092,7 +1092,7 @@ func (a *App) emptyState(c *ui.Context, pal *palette) {
 		})
 		ui.Column(c).Margin(40, 0, 0, 0).Padding(14, 16).Gap(6).Radius(10).Background(pal.chip).MaxWidth(420).Children(func() {
 			ui.Text(c, locales.EmptyForAgents()).FontSize(11.5).FontWeight(600).TextColor(pal.textMuted)
-			ui.Text(c, "kero new -n review -- claude\nkero prompt review \"run the tests and fix them\"\nkero wait review && kero read review").
+			ui.Text(c, "hyla new -n review -- claude\nhyla prompt review \"run the tests and fix them\"\nhyla wait review && hyla read review").
 				Font("monospace").FontSize(12).TextColor(pal.text).LineHeight(1.5).Selectable()
 		})
 	})

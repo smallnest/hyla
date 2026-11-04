@@ -1,10 +1,10 @@
 name: Server build
 
-# The server build of Kero (cmd/kero-server), for machines whose sessions
+# The server build of Hyla (cmd/hyla-server), for machines whose sessions
 # the app shows (Settings › Hosts): built for every platform as a release
 # publishes it (scripts/build-server.sh), then each archive installed as a
 # user gets it, by its install script, from a mirror of the release
-# (KERO_RELEASES), and run, on its own platform. CI runs it on pull
+# (HYLA_RELEASES), and run, on its own platform. CI runs it on pull
 # requests; release.yml before it signs what it built.
 on:
   workflow_call:
@@ -63,7 +63,7 @@ jobs:
         run: |
           set -eu
           version="$(jq -r .version mygo.json)"
-          name="kero-server-$version-${{ matrix.os }}-${{ matrix.arch }}.tar.gz"
+          name="hyla-server-$version-${{ matrix.os }}-${{ matrix.arch }}.tar.gz"
           rel="$RUNNER_TEMP/releases/v$version"
           mkdir -p "$rel"
           cp "build/server/$name" "$rel/"
@@ -71,67 +71,67 @@ jobs:
           export HOME="$RUNNER_TEMP/home" XDG_CACHE_HOME="$RUNNER_TEMP/cache"
           mkdir -p "$HOME"
           unset DISPLAY WAYLAND_DISPLAY
-          KERO_RELEASES="file://$RUNNER_TEMP/releases" ${{ matrix.as }} /bin/sh build/server/install-server.sh --no-service
-          kero="$HOME/.local/bin/kero"
-          "$kero" version
-          "$kero" new -n check -- sh -c 'echo kero-ok; sleep 300'
+          HYLA_RELEASES="file://$RUNNER_TEMP/releases" ${{ matrix.as }} /bin/sh build/server/install-server.sh --no-service
+          hyla="$HOME/.local/bin/hyla"
+          "$hyla" version
+          "$hyla" new -n check -- sh -c 'echo hyla-ok; sleep 300'
           for i in $(seq 240); do
-            "$kero" read check | grep -q kero-ok && break
+            "$hyla" read check | grep -q hyla-ok && break
             if [ "$i" = 240 ]; then
-              "$kero" read check
-              cat "$HOME/.config/kero/kerod.log" "$HOME/Library/Application Support/kero/kerod.log" 2>/dev/null || true
+              "$hyla" read check
+              cat "$HOME/.config/hyla/hylad.log" "$HOME/Library/Application Support/hyla/hylad.log" 2>/dev/null || true
               exit 1
             fi
             sleep 0.25
           done
-          "$kero" daemon stop
+          "$hyla" daemon stop
           # libghostty-vt came with the archive: none was downloaded.
           test ! -e "$XDG_CACHE_HOME/mygo/natives"
           test ! -e "$HOME/Library/Caches/mygo/natives"
           sh build/server/install-server.sh --uninstall
-          test ! -e "$HOME/.local/lib/kero"
+          test ! -e "$HOME/.local/lib/hyla"
       - name: Install and run a session
         if: matrix.os == 'windows'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $version = (Get-Content mygo.json -Raw | ConvertFrom-Json).version
-          $name = "kero-server-$version-windows-${{ matrix.arch }}.zip"
+          $name = "hyla-server-$version-windows-${{ matrix.arch }}.zip"
           $rel = Join-Path $env:RUNNER_TEMP "releases\v$version"
           New-Item -ItemType Directory -Force $rel | Out-Null
           Copy-Item "build/server/$name" $rel
           $sum = (Get-FileHash (Join-Path $rel $name) -Algorithm SHA256).Hash.ToLower()
           Set-Content -Encoding ascii -LiteralPath (Join-Path $rel "$name.sha256") -Value "$sum  $name"
-          $env:KERO_RELEASES = 'file:///' + ((Join-Path $env:RUNNER_TEMP releases) -replace '\\', '/')
-          # As kero hosts install runs it: Windows PowerShell, the script
+          $env:HYLA_RELEASES = 'file:///' + ((Join-Path $env:RUNNER_TEMP releases) -replace '\\', '/')
+          # As hyla hosts install runs it: Windows PowerShell, the script
           # from memory.
           $install = "& ([scriptblock]::Create((Get-Content -Raw build/server/install-server.ps1)))"
           powershell -NoProfile -ExecutionPolicy Bypass -Command "$install -NoService"
           if ($LASTEXITCODE -ne 0) { exit 1 }
-          $kero = Join-Path $env:LOCALAPPDATA 'Programs\kero-server\kero.exe'
-          & $kero version
+          $hyla = Join-Path $env:LOCALAPPDATA 'Programs\hyla-server\hyla.exe'
+          & $hyla version
           # The ConPTY panes run in came with the archive.
           foreach ($f in 'conpty.dll', 'OpenConsole.exe') {
-            if (-not (Test-Path (Join-Path $env:LOCALAPPDATA "Programs\kero-server\$f"))) { throw "no $f" }
+            if (-not (Test-Path (Join-Path $env:LOCALAPPDATA "Programs\hyla-server\$f"))) { throw "no $f" }
           }
-          & $kero new -n check -- powershell -NoProfile -Command 'Write-Output kero-ok; Start-Sleep 300'
+          & $hyla new -n check -- powershell -NoProfile -Command 'Write-Output hyla-ok; Start-Sleep 300'
           $ok = $false
           foreach ($i in 1..240) {
-            if ((& $kero read check) -match 'kero-ok') { $ok = $true; break }
+            if ((& $hyla read check) -match 'hyla-ok') { $ok = $true; break }
             Start-Sleep -Milliseconds 250
           }
           if (-not $ok) {
-            & $kero read check
-            Get-Content (Join-Path $env:APPDATA 'kero\kerod.log')
+            & $hyla read check
+            Get-Content (Join-Path $env:APPDATA 'hyla\hylad.log')
             exit 1
           }
-          # Task Scheduler takes the task kerod runs as.
-          & $kero daemon install-service
+          # Task Scheduler takes the task hylad runs as.
+          & $hyla daemon install-service
           if ($LASTEXITCODE -ne 0) { exit 1 }
-          & $kero daemon status
-          & $kero daemon uninstall-service
-          & $kero daemon stop
+          & $hyla daemon status
+          & $hyla daemon uninstall-service
+          & $hyla daemon stop
           # libghostty-vt came with the archive: none was downloaded.
           if (Test-Path (Join-Path $env:LOCALAPPDATA 'mygo\natives')) { throw 'libghostty-vt was downloaded' }
           powershell -NoProfile -ExecutionPolicy Bypass -Command "$install -Uninstall"
-          if (Test-Path (Join-Path $env:LOCALAPPDATA 'Programs\kero-server')) { throw 'the install stayed' }
+          if (Test-Path (Join-Path $env:LOCALAPPDATA 'Programs\hyla-server')) { throw 'the install stayed' }

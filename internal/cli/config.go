@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"strings"
 
-	"kero/internal/settings"
+	"hyla/internal/settings"
 )
 
 // configCmd shows, opens and checks the configuration file.
@@ -63,7 +63,7 @@ func configCmd(args []string) error {
 		cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 		return cmd.Run()
 	}
-	return usageErr("kero config path|show [--defaults]|edit|check")
+	return usageErr("hyla config path|show [--defaults]|edit|check")
 }
 
 // textEditor opens a text file in the system's text editor.

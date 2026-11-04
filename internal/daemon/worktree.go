@@ -9,19 +9,19 @@ import (
 	"strings"
 	"time"
 
-	"kero/internal/git"
-	"kero/internal/proto"
-	"kero/internal/settings"
+	"hyla/internal/git"
+	"hyla/internal/proto"
+	"hyla/internal/settings"
 )
 
-// Sessions in a worktree of their own (plans/git.md, Phase 3): kerod adds
+// Sessions in a worktree of their own (plans/git.md, Phase 3): hylad adds
 // a linked worktree on a new branch as such a session starts, and removes
 // it as the session closes, when the user asks and nothing would be lost
 // that they didn't agree to.
 
-// worktreeDir is the folder kero puts a repository's worktrees in, by
+// worktreeDir is the folder hyla puts a repository's worktrees in, by
 // default: inside the repository, which its info/exclude ignores.
-const worktreeDir = ".kero/worktrees"
+const worktreeDir = ".hyla/worktrees"
 
 // addWorktree makes a session's own worktree, of the repository holding
 // dir, on branch from base ("" the default branch, "HEAD" dir's).
@@ -37,7 +37,7 @@ func (d *Daemon) addWorktree(dir, branch, base string) (*proto.Worktree, error) 
 	}
 	main := r.Main()
 	if main == "" {
-		return nil, errors.New("kero makes worktrees of a repository with a main checkout, not a bare one's")
+		return nil, errors.New("hyla makes worktrees of a repository with a main checkout, not a bare one's")
 	}
 	branch = strings.TrimSpace(branch)
 	if err := git.CheckBranch(ctx, main, branch); err != nil {
@@ -85,7 +85,7 @@ func (d *Daemon) addWorktree(dir, branch, base string) (*proto.Worktree, error) 
 }
 
 // worktreePath is where a worktree for branch goes: in the repository's
-// .kero/worktrees, else in dir (the worktree-dir setting) under the
+// .hyla/worktrees, else in dir (the worktree-dir setting) under the
 // repository's name; a branch's slashes become dashes.
 func worktreePath(main, branch, dir string) string {
 	name := strings.ReplaceAll(branch, "/", "-")

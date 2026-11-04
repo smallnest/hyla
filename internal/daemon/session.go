@@ -14,9 +14,9 @@ import (
 	"github.com/egoist/mygo/plugins/terminal"
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/detect"
-	"kero/internal/proto"
-	"kero/internal/settings"
+	"hyla/internal/detect"
+	"hyla/internal/proto"
+	"hyla/internal/settings"
 )
 
 // idleHold: an agent's screen that stops showing work, without showing
@@ -238,7 +238,7 @@ func (s *pane) onTitle(title string) {
 
 // onNotify takes a program's desktop notification (OSC 9, 777, 99),
 // which tells nothing of its status: a program that needs the user says
-// so with "kero report blocked" or "kero notify". An agent's screen tells
+// so with "hyla report blocked" or "hyla notify". An agent's screen tells
 // whether it waits, and its notification only words the wait, as Claude
 // Code's "needs your permission"; its "waiting for your input", a while
 // after a turn, is dropped. Any other program's goes on to the app as it
@@ -261,7 +261,7 @@ func (s *pane) onNotify(title, body string) {
 	go s.d.notice(proto.Notice{Session: s.sid, Pane: s.info.ID, Title: title, Body: body})
 }
 
-// flag marks the pane as needing the user, as "kero notify" asks; s.mu
+// flag marks the pane as needing the user, as "hyla notify" asks; s.mu
 // is held.
 func (s *pane) flag(title, body string) {
 	msg := strings.TrimSpace(body)
@@ -510,7 +510,7 @@ func (s *pane) setPage(url, title string) error {
 
 // useTheme gives the panes, and those to come, a client's colors, which
 // programs asking about them get: Copilot CLI drew its input box dark on
-// a light background, as kerod's terminals answered with a dark theme.
+// a light background, as hylad's terminals answered with a dark theme.
 func (d *Daemon) useTheme(t proto.Theme) {
 	color := func(c [4]byte) ui.Color { return ui.Color{R: c[0], G: c[1], B: c[2], A: c[3]} }
 	th := &terminal.Theme{Foreground: color(t.Foreground), Background: color(t.Background), Cursor: color(t.Cursor)}

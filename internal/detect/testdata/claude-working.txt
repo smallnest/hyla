@@ -3,7 +3,7 @@
  ▝▝   ▝▝   ~/dev
 
 
-❯ First think briefly, then use the Bash tool to run exactly: date > /tmp/kero-probe-date.txt
+❯ First think briefly, then use the Bash tool to run exactly: date > /tmp/hyla-probe-date.txt
 
 ✢ Osmosing…
 

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"kero/internal/proto"
-	"kero/internal/settings"
+	"hyla/internal/proto"
+	"hyla/internal/settings"
 )
 
 // waits are how long the driving waits: the tests make them short.
@@ -74,7 +74,7 @@ func (b *Bot) prompt(key, chatID, response, text string, t turnInfo) {
 		return
 	}
 	if _, err := b.api.State(); err != nil {
-		b.reply(chatID, "Kero is unreachable: "+err.Error())
+		b.reply(chatID, "Hyla is unreachable: "+err.Error())
 		return
 	}
 	s, err := b.session(c.id)
@@ -172,7 +172,7 @@ func (b *Bot) drive(s *proto.Session, text string, card *turnCard, t turnInfo, a
 	} else if err := b.send(p.ID, text, true); err != nil {
 		return nil, err
 	}
-	// Its turn keeps kerod at its work, as a connection that stays does.
+	// Its turn keeps hylad at its work, as a connection that stays does.
 	b.api.Call("watch", map[string]bool{"stay": true}, nil)
 	stop := t.start.Add(b.timeout())
 	if t.start.IsZero() {
@@ -376,7 +376,7 @@ func turnMeta(l string) bool {
 // answer an agent's hook wrote, where the terminal shows it.
 func (b *Bot) replyWith(r *run) string {
 	if r.doubted {
-		return "Kero cannot tell the turn's text from what came before. /status shows the pane."
+		return "Hyla cannot tell the turn's text from what came before. /status shows the pane."
 	}
 	head := ""
 	if r.status.Status == proto.Waiting {
@@ -539,7 +539,7 @@ func workingError(s *proto.Session, p proto.Pane) error {
 func timedOut(err error) bool { return strings.Contains(err.Error(), "timed out") }
 
 // send types text into a pane, then Enter apart from it, which a program
-// could take for a paste of a newline, as kero prompt does.
+// could take for a paste of a newline, as hyla prompt does.
 func (b *Bot) send(id, text string, enter bool) error {
 	if err := b.api.Call("send", proto.SendParams{ID: id, Data: text}, nil); err != nil {
 		return err
@@ -552,7 +552,7 @@ func (b *Bot) send(id, text string, enter bool) error {
 }
 
 // paneOf is a session's lead pane, else its first: a session no client's
-// state has told kerod the lead of has none.
+// state has told hylad the lead of has none.
 func paneOf(s *proto.Session) proto.Pane { return leadPane(s) }
 
 // work tells a pane whose agent works, or waits for the user.

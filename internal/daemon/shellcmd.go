@@ -97,11 +97,11 @@ func marksExit(shell string) bool {
 // powershellPrompt wraps PowerShell's prompt, after the profile made it:
 // it makes the process's directory the shell's location, which cd leaves
 // alone, so that the sidebar sees where the shell is (procCwd).
-const powershellPrompt = `$global:__keroPrompt=$function:prompt;` +
-	`function global:prompt{if($PWD.Provider.Name -eq 'FileSystem'){[Environment]::CurrentDirectory=$PWD.ProviderPath};& $global:__keroPrompt}`
+const powershellPrompt = `$global:__hylaPrompt=$function:prompt;` +
+	`function global:prompt{if($PWD.Provider.Name -eq 'FileSystem'){[Environment]::CurrentDirectory=$PWD.ProviderPath};& $global:__hylaPrompt}`
 
-const powershellExit = `$__keroOk=$?; $__keroCode=$LASTEXITCODE; ` +
-	`[Console]::Write("$([char]27)]133;D;$(if ($__keroOk) {0} elseif ($__keroCode) {$__keroCode} else {1})$([char]7)")`
+const powershellExit = `$__hylaOk=$?; $__hylaCode=$LASTEXITCODE; ` +
+	`[Console]::Write("$([char]27)]133;D;$(if ($__hylaOk) {0} elseif ($__hylaCode) {$__hylaCode} else {1})$([char]7)")`
 
 func powershellArgs(name string, command []string) []string {
 	script := powershellPrompt
@@ -130,7 +130,7 @@ func shellQuote(shell, s string) string {
 	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
 }
 
-// oneLine tells a command given as one line, as `kero new -- "npm run
+// oneLine tells a command given as one line, as `hyla new -- "npm run
 // dev"` gives it, which the shell runs as it is.
 func oneLine(args []string) bool {
 	return len(args) == 1 && strings.ContainsAny(args[0], " ;|&")

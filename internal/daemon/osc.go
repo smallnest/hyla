@@ -10,7 +10,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
 // oscScanner finds, in a program's output, the OSC sequences the daemon

@@ -7,10 +7,10 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
-	"kero/locales"
+	"hyla/locales"
 )
 
-// kero's form controls, as macOS 27 draws its own: a pop-up button, its
+// hyla's form controls, as macOS 27 draws its own: a pop-up button, its
 // choice beside the up and down chevrons in a soft disc, which the whole
 // button takes on as the pointer comes, opening its menu over itself with
 // the current item, checked, on it; a search menu, the same button with a

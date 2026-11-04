@@ -6,10 +6,10 @@ const tabs: { id: string; lines: Line[] }[] = [
   {
     id: 'sessions',
     lines: [
-      { cmd: 'kero new -n fix-login -- claude' },
+      { cmd: 'hyla new -n fix-login -- claude' },
       { out: 'k3f9a2' },
-      { cmd: 'kero ls' },
-      { out: 'kero' },
+      { cmd: 'hyla ls' },
+      { out: 'hyla' },
       { out: '  k3f9a2  fix-login       working   claude' },
       { out: '  p81c0d  review-pr-42    waiting   codex' },
       { out: '  d07e11  dev server      idle      zsh' },
@@ -18,9 +18,9 @@ const tabs: { id: string; lines: Line[] }[] = [
   {
     id: 'split',
     lines: [
-      { cmd: 'kero split --down -- npm run dev' },
+      { cmd: 'hyla split --down -- npm run dev' },
       { out: 'p2c4e8' },
-      { cmd: 'kero wait p2c4e8 --for idle --timeout 1m' },
+      { cmd: 'hyla wait p2c4e8 --for idle --timeout 1m' },
       { out: '  VITE v8.0.0  ready in 212 ms' },
       { out: '  ➜  Local:   http://localhost:5173/' },
     ],
@@ -28,20 +28,20 @@ const tabs: { id: string; lines: Line[] }[] = [
   {
     id: 'prompt',
     lines: [
-      { cmd: 'kero prompt review "summarize the diff in two lines"' },
+      { cmd: 'hyla prompt review "summarize the diff in two lines"' },
       { out: '● The redirect now keeps its query string after the' },
       { out: '  session expires; loginURL() builds it from the request.' },
-      { cmd: 'kero read tests -n 3' },
-      { out: 'ok   kero/auth   0.412s' },
+      { cmd: 'hyla read tests -n 3' },
+      { out: 'ok   hyla/auth   0.412s' },
     ],
   },
   {
     id: 'remote',
     lines: [
-      { cmd: 'kero hosts add devbox me@devbox' },
-      { cmd: 'kero -H devbox new -n migrate -- claude' },
+      { cmd: 'hyla hosts add devbox me@devbox' },
+      { cmd: 'hyla -H devbox new -n migrate -- claude' },
       { out: 'm4e7b1' },
-      { cmd: 'kero -H devbox ls' },
+      { cmd: 'hyla -H devbox ls' },
       { out: 'devbox' },
       { out: '  m4e7b1  migrate         working   claude' },
       { out: '# close your laptop; it keeps running on devbox', dim: true },
@@ -50,10 +50,10 @@ const tabs: { id: string; lines: Line[] }[] = [
   {
     id: 'report',
     lines: [
-      { cmd: 'kero report working "Migrating the database" --progress 40' },
-      { cmd: 'kero report blocked "Approve the production deploy?"' },
-      { out: '# the session turns to waiting, and Kero notifies you', dim: true },
-      { cmd: 'kero report done "Deployed to staging"' },
+      { cmd: 'hyla report working "Migrating the database" --progress 40' },
+      { cmd: 'hyla report blocked "Approve the production deploy?"' },
+      { out: '# the session turns to waiting, and Hyla notifies you', dim: true },
+      { cmd: 'hyla report done "Deployed to staging"' },
     ],
   },
 ];

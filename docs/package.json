@@ -1,5 +1,5 @@
 {
-  "name": "@kero/docs",
+  "name": "@hyla/docs",
   "private": true,
-  "description": "kero's documentation, as Markdown; the website renders it at /docs"
+  "description": "hyla's documentation, as Markdown; the website renders it at /docs"
 }

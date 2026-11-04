@@ -19,21 +19,21 @@ func file() string {
 	return filepath.Join(base, "systemd", "user", Name()+".service")
 }
 
-// unit is the unit that runs exe's kerod. It starts kerod again whenever
+// unit is the unit that runs exe's hylad. It starts hylad again whenever
 // it ends, as after the restart an update asks for (host.restart).
 func unit(exe string) string {
-	return fmt.Sprintf(`# Kero's daemon, which runs the sessions: written by kero daemon install-service.
+	return fmt.Sprintf(`# Hyla's daemon, which runs the sessions: written by hyla daemon install-service.
 [Unit]
-Description=Kero sessions (kerod)
-Documentation=https://github.com/egoist/kero/blob/main/docs/remote.md
+Description=Hyla sessions (hylad)
+Documentation=https://github.com/smallnest/hyla/blob/main/docs/remote.md
 
 [Service]
 Type=simple
 ExecStart=%s daemon serve
-Environment=KERO_SERVICE=1
+Environment=HYLA_SERVICE=1
 Restart=always
 RestartSec=2
-# kerod saves its sessions as it stops, to start them again
+# hylad saves its sessions as it stops, to start them again
 # (restore-sessions); their programs end with it.
 KillMode=mixed
 TimeoutStopSec=15
@@ -52,6 +52,17 @@ func systemdQuote(s string) string {
 	return `"` + r.Replace(s) + `"`
 }
 
+// removeLegacy takes away the unit 2.x installed, when Hyla was Kero.
+func removeLegacy() {
+	p := filepath.Join(filepath.Dir(file()), "kerod.service")
+	if _, err := os.Stat(p); err != nil {
+		return
+	}
+	systemctl("disable", "kerod.service")
+	systemctl("stop", "kerod.service")
+	os.Remove(p)
+}
+
 func systemctl(args ...string) (string, error) {
 	out, err := exec.Command("systemctl", append([]string{"--user"}, args...)...).CombinedOutput()
 	s := strings.TrimSpace(string(out))
@@ -61,7 +72,7 @@ func systemctl(args ...string) (string, error) {
 	return s, err
 }
 
-// Install writes the unit for exe, enables it and starts it. A kerod
+// Install writes the unit for exe, enables it and starts it. A hylad
 // already running, which the app or a bridge started, is stopped first
 // (stop): the service's starts its sessions again.
 func Install(exe string, stop func() error) error {
@@ -69,11 +80,12 @@ func Install(exe string, stop func() error) error {
 		return ErrUnsupported
 	}
 	if _, err := systemctl("show-environment"); err != nil {
-		return fmt.Errorf("no systemd user session to run kerod in: %w", err)
+		return fmt.Errorf("no systemd user session to run hylad in: %w", err)
 	}
 	if err := os.MkdirAll(filepath.Dir(file()), 0o755); err != nil {
 		return err
 	}
+	removeLegacy()
 	if err := os.WriteFile(file(), []byte(unit(exe)), 0o644); err != nil {
 		return err
 	}
@@ -141,7 +153,7 @@ func Start() error {
 	return err
 }
 
-// Restart restarts the service: kerod saves its sessions and starts them
+// Restart restarts the service: hylad saves its sessions and starts them
 // again.
 func Restart() error {
 	_, err := systemctl("restart", Name()+".service")

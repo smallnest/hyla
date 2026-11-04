@@ -1,5 +1,5 @@
 // Package tailscale asks the Tailscale running on this machine who
-// connects to kerod's network listeners, and where it can listen: its
+// connects to hylad's network listeners, and where it can listen: its
 // local API, over tailscaled's socket, else the tailscale command, which
 // knows how to reach the app's on macOS and Windows.
 package tailscale
@@ -62,7 +62,7 @@ var sockets = []string{
 }
 
 func socket() string {
-	if s := os.Getenv("KERO_TAILSCALED_SOCKET"); s != "" {
+	if s := os.Getenv("HYLA_TAILSCALED_SOCKET"); s != "" {
 		return s
 	}
 	for _, s := range sockets {

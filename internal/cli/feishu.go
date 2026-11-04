@@ -9,18 +9,18 @@ import (
 
 	"golang.org/x/term"
 
-	"kero/internal/feishu"
-	"kero/internal/proto"
-	"kero/internal/settings"
+	"hyla/internal/feishu"
+	"hyla/internal/proto"
+	"hyla/internal/settings"
 )
 
 const feishuUsage = `Usage:
-  kero feishu setup [--app <id>] [--email <address>]
+  hyla feishu setup [--app <id>] [--email <address>]
                                   ask for the app's ID and secret, keep them,
                                   and connect: the address may use the bot too
-  kero feishu status [--json]      whether the bot is connected
-  kero feishu test                 ask Feishu for an access token, as a check
-  kero feishu send <chat> <text>   send a message to a chat, by its ID`
+  hyla feishu status [--json]      whether the bot is connected
+  hyla feishu test                 ask Feishu for an access token, as a check
+  hyla feishu send <chat> <text>   send a message to a chat, by its ID`
 
 func feishuCmd(args []string, host string) error {
 	sub := ""
@@ -40,11 +40,11 @@ func feishuCmd(args []string, host string) error {
 		fmt.Print(feishuUsage)
 		return nil
 	}
-	return usageErr("kero feishu: no command %q", sub)
+	return usageErr("hyla feishu: no command %q", sub)
 }
 
-// feishuSetup asks for the app's ID and secret, keeps the secret in kero's
-// directory, writes the keys, connects kerod's bot, and, given the
+// feishuSetup asks for the app's ID and secret, keeps the secret in hyla's
+// directory, writes the keys, connects hylad's bot, and, given the
 // account's email, sends the test message it says works.
 func feishuSetup(args []string) error {
 	f, err := parse(args, map[string]string{"app": "app", "email": "email"},
@@ -79,7 +79,7 @@ func feishuSetup(args []string) error {
 		}
 	}
 	if app == "" {
-		return usageErr("kero feishu setup: the app's ID is needed")
+		return usageErr("hyla feishu setup: the app's ID is needed")
 	}
 	secret, secretErr := settings.LoadFeishuSecret()
 	if secretErr != nil && !errors.Is(secretErr, settings.ErrFeishuNotConfigured) {
@@ -100,7 +100,7 @@ func feishuSetup(args []string) error {
 		}
 	}
 	if appSecret == "" {
-		return usageErr("kero feishu setup: the App Secret is needed")
+		return usageErr("hyla feishu setup: the App Secret is needed")
 	}
 	fmt.Println("Checking the app with Feishu…")
 	if err := feishu.Probe(app, appSecret); err != nil {
@@ -134,7 +134,7 @@ func feishuSetup(args []string) error {
 		c.Call("feishu.restart", nil, nil)
 		var st proto.FeishuState
 		if err := c.Call("feishu.status", nil, &st); err == nil && st.Connected {
-			fmt.Printf("kerod connects app %s.\n", st.App)
+			fmt.Printf("hylad connects app %s.\n", st.App)
 		}
 		done()
 	}
@@ -144,7 +144,7 @@ func feishuSetup(args []string) error {
 	fmt.Printf(`
 Next, in Feishu:
   1. Open the app in Feishu, or find it in search. A first message to it
-     gets Kero going, and Kero replies.
+     gets Hyla going, and Hyla replies.
   2. If nothing comes, check that the app has the Bot capability, the
      scopes im:message and im:resource, and the event im.message.receive,
      received over a long connection, and that a version is published.
@@ -165,7 +165,7 @@ const feishuChecklist = `Check the app in the Feishu Open Platform console (open
 
 func allowLine(allow []string) string {
 	if len(allow) == 0 {
-		return "only the person who ran kero feishu setup"
+		return "only the person who ran hyla feishu setup"
 	}
 	return strings.Join(allow, ", ")
 }
@@ -188,7 +188,7 @@ func feishuTest() error {
 // machine's app: a test, or a notice.
 func feishuSend(args []string, host string) error {
 	if len(args) < 2 {
-		return usageErr("kero feishu send <chat> <text…>")
+		return usageErr("hyla feishu send <chat> <text…>")
 	}
 	who, text := args[0], strings.Join(args[1:], " ")
 	kind := "chat_id"
@@ -229,15 +229,15 @@ func feishuStatusCmd(args []string, host string) error {
 	}
 	switch {
 	case !st.Configured:
-		fmt.Println("off: feishu-app names no app. kero feishu setup connects one.")
+		fmt.Println("off: feishu-app names no app. hyla feishu setup connects one.")
 	case !st.Secret:
-		fmt.Println("set up partly: kero feishu setup keeps the app's secret.")
+		fmt.Println("set up partly: hyla feishu setup keeps the app's secret.")
 	case st.Connected:
 		fmt.Printf("connected: app %s\n", st.App)
 		fmt.Printf("who may use it: %s\n", allowLine(settings.Load().Feishu.Allow))
 	default:
 		fmt.Printf("not connected: app %s, %s\n", st.App, st.Error)
-		fmt.Println("kero daemon log holds why.")
+		fmt.Println("hyla daemon log holds why.")
 	}
 	return nil
 }

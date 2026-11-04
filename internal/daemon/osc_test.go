@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
 func TestScannerAcrossReads(t *testing.T) {
@@ -121,7 +121,7 @@ func TestProgressOnlyForAgents(t *testing.T) {
 	}
 }
 
-// A report kerod takes for a pane, as kero report sends it with no
+// A report hylad takes for a pane, as hyla report sends it with no
 // terminal to write to, as under an agent's shell tool, is the pane's as
 // one it wrote.
 func TestReportCall(t *testing.T) {

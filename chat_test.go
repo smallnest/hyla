@@ -14,15 +14,15 @@ import (
 	"github.com/egoist/mygo/plugins/terminal"
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/client"
-	"kero/internal/proto"
-	"kero/internal/settings"
-	"kero/locales"
+	"hyla/internal/client"
+	"hyla/internal/proto"
+	"hyla/internal/settings"
+	"hyla/locales"
 )
 
-// fakeKerod is a kerod that answers a chat window's methods, on a socket
+// fakeHylad is a hylad that answers a chat window's methods, on a socket
 // of its own, where none runs.
-type fakeKerod struct {
+type fakeHylad struct {
 	mu    sync.Mutex
 	feed  proto.FeishuFeed
 	chats proto.FeishuChats
@@ -56,7 +56,7 @@ func (p *pipe) typed() string {
 	return p.got.String()
 }
 
-func (f *fakeKerod) answer(req proto.Request) proto.Message {
+func (f *fakeHylad) answer(req proto.Request) proto.Message {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	var res any
@@ -94,7 +94,7 @@ func (f *fakeKerod) answer(req proto.Request) proto.Message {
 }
 
 // serve answers the calls of connections to it.
-func (f *fakeKerod) serve(t *testing.T, ln net.Listener) {
+func (f *fakeHylad) serve(t *testing.T, ln net.Listener) {
 	t.Cleanup(func() { ln.Close() })
 	for {
 		c, err := ln.Accept()
@@ -105,11 +105,11 @@ func (f *fakeKerod) serve(t *testing.T, ln net.Listener) {
 	}
 }
 
-func (f *fakeKerod) conn(t *testing.T, c net.Conn) {
+func (f *fakeHylad) conn(t *testing.T, c net.Conn) {
 	{
 		defer c.Close()
 		dec, enc := json.NewDecoder(c), json.NewEncoder(c)
-		// The connection's greeting, as kerod answers it.
+		// The connection's greeting, as hylad answers it.
 		var hello proto.Hello
 		if err := dec.Decode(&hello); err != nil {
 			return
@@ -132,9 +132,9 @@ func (f *fakeKerod) conn(t *testing.T, c net.Conn) {
 	}
 }
 
-// chatApp is the app with a Feishu app, and a fake kerod of this machine
+// chatApp is the app with a Feishu app, and a fake hylad of this machine
 // that answers the chat window's methods.
-func chatApp(t *testing.T) (*App, *fakeKerod) {
+func chatApp(t *testing.T) (*App, *fakeHylad) {
 	t.Helper()
 	a := testApp(t)
 	home := t.TempDir()
@@ -142,21 +142,21 @@ func chatApp(t *testing.T) (*App, *fakeKerod) {
 	if err := os.WriteFile(path, []byte("feishu-app = cli_test\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("KERO_CONFIG", path)
+	t.Setenv("HYLA_CONFIG", path)
 	set := settings.Load()
 	a.set.Feishu = set.Feishu
-	f := &fakeKerod{a: a}
-	f.feed = proto.FeishuFeed{ID: "s1", Chat: "oc_1", Name: "Kero bot", Host: "mac", Pane: "a", Agent: "claude", Lines: []proto.FeishuLine{
+	f := &fakeHylad{a: a}
+	f.feed = proto.FeishuFeed{ID: "s1", Chat: "oc_1", Name: "Hyla bot", Host: "mac", Pane: "a", Agent: "claude", Lines: []proto.FeishuLine{
 		{Kind: "note", Text: "Fix the build"},
 		{Kind: "think", Text: "The build broke."},
 		{Kind: "tool", Text: "Tool Bash", Title: "go build", Detail: `{"command":"go build","description":"Build it"}`},
-		{Kind: "tool", Text: "Result", Detail: "# kero\n./main.go:3:1: syntax error"},
+		{Kind: "tool", Text: "Result", Detail: "# hyla\n./main.go:3:1: syntax error"},
 		{Kind: "agent", Text: "I will look."},
 		{Kind: "agent", Text: "Here: **fixed** the `main.go` syntax:\n\n```go\nfunc main() {}\n```\n\n- one\n- two"},
 		{Kind: "agent", Text: "The build passes.", Answer: true},
 	}}
-	f.chats = proto.FeishuChats{Host: "mac", Chats: []proto.FeishuChat{{ID: "oc_1", Name: "Kero bot", Type: "p2p", Session: "s1"}, {ID: "oc_2", Name: "Team", Type: "group"}}}
-	ln, err := net.Listen("unix", filepath.Join(t.TempDir(), "kerod.sock"))
+	f.chats = proto.FeishuChats{Host: "mac", Chats: []proto.FeishuChat{{ID: "oc_1", Name: "Hyla bot", Type: "p2p", Session: "s1"}, {ID: "oc_2", Name: "Team", Type: "group"}}}
+	ln, err := net.Listen("unix", filepath.Join(t.TempDir(), "hylad.sock"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -183,7 +183,7 @@ func chatApp(t *testing.T) (*App, *fakeKerod) {
 	return a, f
 }
 
-// dialer is a host's connection to a fake kerod.
+// dialer is a host's connection to a fake hylad.
 type dialer string
 
 func (d dialer) Dial() (net.Conn, error) { return net.Dial("unix", string(d)) }

@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	"kero/internal/client"
-	"kero/internal/proto"
+	"hyla/internal/client"
+	"hyla/internal/proto"
 )
 
 // cookiesCmd saves the cookies of the browser panes' pages to a file, or
@@ -19,7 +19,7 @@ import (
 // Netscape cookies.txt that curl and browser extensions write, for a
 // file named .txt.
 func cookiesCmd(c *client.Client, p proto.BrowserParams, pos []string, f *flags) error {
-	const use = "kero browser [target] cookies <save [file] | load <file>> [--domain domain]"
+	const use = "hyla browser [target] cookies <save [file] | load <file>> [--domain domain]"
 	if len(pos) == 0 || len(pos) > 2 || len(f.rest) > 0 || f.vals["out"] != "" || f.vals["text"] != "" || f.set["enter"] || p.Ref != "" {
 		return usageErr("%s", use)
 	}
@@ -68,7 +68,7 @@ func cookiesCmd(c *client.Client, p proto.BrowserParams, pos []string, f *flags)
 		return nil
 	case "load":
 		if file == "" {
-			return usageErr("kero browser [target] cookies load <file> [--domain domain]")
+			return usageErr("hyla browser [target] cookies load <file> [--domain domain]")
 		}
 		var b []byte
 		var err error

@@ -1,16 +1,16 @@
-// Package remote connects Kero to kerod on another machine: an Addr names
+// Package remote connects Hyla to hylad on another machine: an Addr names
 // the host and how to reach it, Dial opens one connection that carries
 // every stream a client needs (proto.MuxHello), and Server answers one,
-// for `kero __bridge` and kerod's network listeners.
+// for `hyla __bridge` and hylad's network listeners.
 //
 // Three ways reach a host:
 //
-//   - ssh://[user@]host[:port], or just [user@]host: OpenSSH runs `kero
+//   - ssh://[user@]host[:port], or just [user@]host: OpenSSH runs `hyla
 //     __bridge` on the host, with the user's ~/.ssh/config, keys and agent,
-//     and nothing to set up there but Kero itself.
-//   - wsl://[distro]: Kero in a WSL distribution of this Windows machine,
+//     and nothing to set up there but Hyla itself.
+//   - wsl://[distro]: Hyla in a WSL distribution of this Windows machine,
 //     through wsl.exe, as SSH would.
-//   - http://host:port and https://host[:port]: one of kerod's network
+//   - http://host:port and https://host[:port]: one of hylad's network
 //     listeners, which Tailscale tells the caller of (see package daemon).
 package remote
 
@@ -22,7 +22,7 @@ import (
 	"strings"
 )
 
-// DefaultPort is the port kerod's tailnet listener takes when it names
+// DefaultPort is the port hylad's tailnet listener takes when it names
 // none, as a development build's does not (ListenPort), and an http://
 // address without one.
 const DefaultPort = "7373"
@@ -33,9 +33,9 @@ type Addr struct {
 	User   string // ssh's
 	Host   string // the host, or for wsl the distribution, "" its default
 	Port   string
-	// Kero is the kero executable on the host, for ssh and wsl, when it is
+	// Hyla is the hyla executable on the host, for ssh and wsl, when it is
 	// not where the bridge looks (BridgeLocations).
-	Kero string
+	Hyla string
 	// Code is a tailcat address's pair code: the host's key, its
 	// pre-shared key, and the relay to reach it by.
 	Code string
@@ -67,10 +67,10 @@ func ParseAddr(s string) (Addr, error) {
 	if u.User != nil {
 		a.User = u.User.Username()
 		if _, has := u.User.Password(); has {
-			return Addr{}, fmt.Errorf("%q: Kero takes no password in an address", raw)
+			return Addr{}, fmt.Errorf("%q: Hyla takes no password in an address", raw)
 		}
 	}
-	a.Kero = u.Query().Get("kero")
+	a.Hyla = u.Query().Get("hyla")
 	switch a.Scheme {
 	case "ssh":
 		if a.Host == "" {
@@ -82,11 +82,11 @@ func ParseAddr(s string) (Addr, error) {
 		if a.Host == "" {
 			return Addr{}, fmt.Errorf("%q names no host", raw)
 		}
-		if a.Kero != "" {
-			return Addr{}, fmt.Errorf("%q: kero= is for ssh:// and wsl:// addresses", raw)
+		if a.Hyla != "" {
+			return Addr{}, fmt.Errorf("%q: hyla= is for ssh:// and wsl:// addresses", raw)
 		}
 	default:
-		return Addr{}, fmt.Errorf("%q: Kero reaches hosts over ssh://, wsl://, http:// or https://", raw)
+		return Addr{}, fmt.Errorf("%q: Hyla reaches hosts over ssh://, wsl://, http:// or https://", raw)
 	}
 	if u.Path != "" && u.Path != "/" {
 		return Addr{}, fmt.Errorf("%q: an address has no path", raw)
@@ -100,8 +100,8 @@ func ParseAddr(s string) (Addr, error) {
 	if a.User != "" && (!plainName(a.User, "._+-") || strings.HasPrefix(a.User, "-")) {
 		return Addr{}, fmt.Errorf("%q: a user is a name of letters, digits, dots and dashes", raw)
 	}
-	if a.Kero != "" && !absPath(a.Kero) {
-		return Addr{}, fmt.Errorf("%q: kero= is an absolute path of letters, digits, dots, dashes and slashes, as /opt/kero/kero or C:/kero/kero.exe", raw)
+	if a.Hyla != "" && !absPath(a.Hyla) {
+		return Addr{}, fmt.Errorf("%q: hyla= is an absolute path of letters, digits, dots, dashes and slashes, as /opt/hyla/hyla or C:/hyla/hyla.exe", raw)
 	}
 	if a.Port != "" {
 		for _, r := range a.Port {
@@ -134,13 +134,13 @@ func (a Addr) String() string {
 	if a.Port != "" {
 		b.WriteString(":" + a.Port)
 	}
-	if a.Kero != "" {
-		b.WriteString("?kero=" + url.QueryEscape(a.Kero))
+	if a.Hyla != "" {
+		b.WriteString("?hyla=" + url.QueryEscape(a.Hyla))
 	}
 	return b.String()
 }
 
-// Bridged tells an address whose host runs `kero __bridge` for the
+// Bridged tells an address whose host runs `hyla __bridge` for the
 // client: ssh and wsl.
 func (a Addr) Bridged() bool { return a.Scheme == "ssh" || a.Scheme == "wsl" }
 
@@ -199,8 +199,8 @@ func plainName(s, extra string) bool {
 	return true
 }
 
-// absPath reports whether p is a path kero= takes: absolute, of Unix, or
-// of Windows with forward slashes, as C:/kero/kero.exe, of characters no
+// absPath reports whether p is a path hyla= takes: absolute, of Unix, or
+// of Windows with forward slashes, as C:/hyla/hyla.exe, of characters no
 // shell, sh, cmd or PowerShell, reads as anything else.
 func absPath(p string) bool {
 	rest := p

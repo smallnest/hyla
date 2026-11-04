@@ -14,23 +14,23 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"kero/internal/build"
-	"kero/internal/client"
-	"kero/internal/daemon"
-	"kero/internal/proto"
-	"kero/internal/remote"
-	"kero/internal/service"
-	"kero/internal/settings"
-	"kero/internal/update"
+	"hyla/internal/build"
+	"hyla/internal/client"
+	"hyla/internal/daemon"
+	"hyla/internal/proto"
+	"hyla/internal/remote"
+	"hyla/internal/service"
+	"hyla/internal/settings"
+	"hyla/internal/update"
 )
 
 // splitHost takes the global -H/--host off the front of the arguments:
-// the host to act on, else $KERO_HOST, else "" for this machine; env
-// tells a host of $KERO_HOST's. Inside a pane, $KERO_HOST, which a
+// the host to act on, else $HYLA_HOST, else "" for this machine; env
+// tells a host of $HYLA_HOST's. Inside a pane, $HYLA_HOST, which a
 // shell's profile may set, gives way to the pane's own machine.
 func splitHost(args []string) (host string, env bool, rest []string, err error) {
-	if os.Getenv("KERO_PANE") == "" {
-		host = os.Getenv("KERO_HOST")
+	if os.Getenv("HYLA_PANE") == "" {
+		host = os.Getenv("HYLA_HOST")
 		env = host != ""
 	}
 	for len(args) > 0 {
@@ -38,7 +38,7 @@ func splitHost(args []string) (host string, env bool, rest []string, err error) 
 		switch {
 		case a == "-H" || a == "--host":
 			if len(args) < 2 {
-				return "", false, nil, usageErr("%s needs a host: a name of kero hosts, or an address", a)
+				return "", false, nil, usageErr("%s needs a host: a name of hyla hosts, or an address", a)
 			}
 			host, env, args = args[1], false, args[2:]
 		case strings.HasPrefix(a, "--host="):
@@ -52,7 +52,7 @@ func splitHost(args []string) (host string, env bool, rest []string, err error) 
 			return host, env, args, nil
 		}
 	}
-	return "", false, nil, usageErr("kero -H <host> <command> (see kero help)")
+	return "", false, nil, usageErr("hyla -H <host> <command> (see hyla help)")
 }
 
 // localOnly are the commands of this machine alone, which -H takes
@@ -61,10 +61,10 @@ var localOnly = map[string]bool{"report": true, "actions": true, "skill": true, 
 	"hosts": true, "__bridge": true, "help": true, "--help": true, "-h": true}
 
 // onHost is the host the command acts on, "" for this machine: whose
-// panes $KERO_PANE and $KERO_SESSION name nothing on another.
+// panes $HYLA_PANE and $HYLA_SESSION name nothing on another.
 var onHost string
 
-// versionCmd prints the version of Kero, and of a host's.
+// versionCmd prints the version of Hyla, and of a host's.
 func versionCmd(host string) error {
 	v := build.Version()
 	if v == "" {
@@ -73,7 +73,7 @@ func versionCmd(host string) error {
 	if build.Server {
 		v += ", server build"
 	}
-	fmt.Printf("kero %s (protocol %d)\n", v, proto.Version)
+	fmt.Printf("hyla %s (protocol %d)\n", v, proto.Version)
 	if host == "" {
 		return nil
 	}
@@ -83,7 +83,7 @@ func versionCmd(host string) error {
 	}
 	defer rc.Close()
 	h := rc.Welcome.Host
-	fmt.Printf("%s: kero %s (protocol %d) on %s/%s\n", host, orDash(h.Kero), h.Version, h.OS, h.Arch)
+	fmt.Printf("%s: hyla %s (protocol %d) on %s/%s\n", host, orDash(h.Hyla), h.Version, h.OS, h.Arch)
 	return nil
 }
 
@@ -102,7 +102,7 @@ func hostAddr(host string) (string, remote.Addr, error) {
 	}
 	a, err := remote.ParseAddr(host)
 	if err != nil {
-		return "", a, fmt.Errorf("%w: %q is no host of kero hosts, nor an address: %v", errNotFound, host, err)
+		return "", a, fmt.Errorf("%w: %q is no host of hyla hosts, nor an address: %v", errNotFound, host, err)
 	}
 	if a.Scheme == "tailcat" && !set.Tailcat {
 		return "", a, fmt.Errorf("Tailcat is off: turn it on with tailcat = true")
@@ -121,14 +121,14 @@ func dialHostWithin(host string, d time.Duration) (*remote.Conn, error) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), d)
 	defer cancel()
-	c, err := remote.Dial(ctx, a, remote.Options{App: build.Version(), Client: clientName("kero CLI"), Port: settings.Load().TailcatPort})
+	c, err := remote.Dial(ctx, a, remote.Options{App: build.Version(), Client: clientName("hyla CLI"), Port: settings.Load().TailcatPort})
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s: %v", errUnreachable, host, err)
 	}
 	return c, nil
 }
 
-// clientName says what a client is, for kero clients on the host.
+// clientName says what a client is, for hyla clients on the host.
 func clientName(what string) string {
 	h, _ := os.Hostname()
 	s := what
@@ -141,7 +141,7 @@ func clientName(what string) string {
 	return s
 }
 
-// connect opens a control connection to kerod: this machine's, started
+// connect opens a control connection to hylad: this machine's, started
 // as needed, or a host's.
 func connect(host string) (*client.Client, func(), error) { return connectWithin(host, 30*time.Second) }
 
@@ -162,14 +162,14 @@ func connectWithin(host string, d time.Duration) (*client.Client, func(), error)
 	if err != nil {
 		rc.Close()
 		if errors.Is(err, client.ErrVersion) {
-			return nil, nil, fmt.Errorf("%w: kerod on %s runs Kero %s: update it, or this one (kero -H %s daemon update)", errUnreachable, host, rc.Welcome.Host.Kero, host)
+			return nil, nil, fmt.Errorf("%w: hylad on %s runs Hyla %s: update it, or this one (hyla -H %s daemon update)", errUnreachable, host, rc.Welcome.Host.Hyla, host)
 		}
 		return nil, nil, fmt.Errorf("%w: %s: %v", errUnreachable, host, err)
 	}
 	return c, func() { c.Close(); rc.Close() }, nil
 }
 
-// hostSessions are the sessions of a machine, for kero ls --all: Host is
+// hostSessions are the sessions of a machine, for hyla ls --all: Host is
 // what -H takes to act on them, "local" for this machine.
 type hostSessions struct {
 	Host     string          `json:"host"`
@@ -179,7 +179,7 @@ type hostSessions struct {
 	state    proto.State
 }
 
-// listAll lists the sessions of this machine and of every host of kero
+// listAll lists the sessions of this machine and of every host of hyla
 // hosts, asking them all at once; a host out of reach says why in place
 // of its sessions, and fails nothing.
 func listAll(asJSON bool) error {
@@ -267,7 +267,7 @@ func hostsCmd(args []string) error {
 			return printJSON(set.Hosts)
 		}
 		if len(set.Hosts) == 0 {
-			fmt.Println("no hosts (add one with kero hosts add <name> <address>)")
+			fmt.Println("no hosts (add one with hyla hosts add <name> <address>)")
 			return nil
 		}
 		w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
@@ -283,7 +283,7 @@ func hostsCmd(args []string) error {
 
 	case "add":
 		if len(f.pos) != 3 {
-			return usageErr("kero hosts add <name> <address> [--remote-control]")
+			return usageErr("hyla hosts add <name> <address> [--remote-control]")
 		}
 		line := f.pos[1] + "=" + f.pos[2]
 		if f.set["rc"] {
@@ -301,12 +301,12 @@ func hostsCmd(args []string) error {
 		if err := settings.Save(set); err != nil {
 			return err
 		}
-		fmt.Printf("added %s (%s): kero -H %s ls\n", h.Name, h.Addr, h.Name)
+		fmt.Printf("added %s (%s): hyla -H %s ls\n", h.Name, h.Addr, h.Name)
 		return nil
 
 	case "remove", "rm":
 		if len(f.pos) != 2 {
-			return usageErr("kero hosts remove <name>")
+			return usageErr("hyla hosts remove <name>")
 		}
 		h := set.Host(f.pos[1])
 		if h == nil {
@@ -318,7 +318,7 @@ func hostsCmd(args []string) error {
 
 	case "check":
 		if len(f.pos) != 2 {
-			return usageErr("kero hosts check <name|address>")
+			return usageErr("hyla hosts check <name|address>")
 		}
 		start := time.Now()
 		rc, err := dialHost(f.pos[1])
@@ -333,23 +333,23 @@ func hostsCmd(args []string) error {
 		if h.Server {
 			kind = "the server build"
 		}
-		fmt.Printf("kero: %s (protocol %d), %s\n", orDash(h.Kero), h.Version, kind)
+		fmt.Printf("hyla: %s (protocol %d), %s\n", orDash(h.Hyla), h.Version, kind)
 		if rtt, err := rc.Ping(); err == nil {
 			fmt.Printf("round trip: %s\n", rtt.Round(100*time.Microsecond))
 		}
 		c, err := client.ConnectVia(rc)
 		if err != nil {
-			return fmt.Errorf("kerod: %w", err)
+			return fmt.Errorf("hylad: %w", err)
 		}
 		defer c.Close()
 		var st proto.State
 		c.Call("state", nil, &st)
-		fmt.Printf("kerod: Kero %s, pid %d, %d sessions\n", orDash(c.Welcome.App), c.Welcome.PID, len(st.Sessions))
+		fmt.Printf("hylad: Hyla %s, pid %d, %d sessions\n", orDash(c.Welcome.App), c.Welcome.PID, len(st.Sessions))
 		return nil
 
 	case "install":
 		if len(f.pos) != 2 {
-			return usageErr("kero hosts install <name|address> [--version v]")
+			return usageErr("hyla hosts install <name|address> [--version v]")
 		}
 		_, a, err := hostAddr(f.pos[1])
 		if err != nil {
@@ -371,10 +371,10 @@ func hostsCmd(args []string) error {
 		cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
 		return cmd.Run()
 	}
-	return usageErr("kero hosts ls|add|remove|check|install|tailcat")
+	return usageErr("hyla hosts ls|add|remove|check|install|tailcat")
 }
 
-// tailcatCmd is `kero hosts tailcat enable|disable|rotate|code`: this
+// tailcatCmd is `hyla hosts tailcat enable|disable|rotate|code`: this
 // machine as a host over Tailcat, and its pair code. The code is a
 // secret, so only the command that means to show it prints it.
 func tailcatCmd(args []string) error {
@@ -387,7 +387,7 @@ func tailcatCmd(args []string) error {
 	switch sub {
 	case "code":
 		if !set.Tailcat {
-			return errors.New("Tailcat is off: kero hosts tailcat enable")
+			return errors.New("Tailcat is off: hyla hosts tailcat enable")
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		code, err := remote.LocalTailcatAddress(ctx)
@@ -396,11 +396,11 @@ func tailcatCmd(args []string) error {
 			return err
 		}
 		fmt.Println(code)
-		fmt.Fprintln(os.Stderr, "the pair code is the secret: anyone with it can connect; kero hosts tailcat rotate makes a new one")
+		fmt.Fprintln(os.Stderr, "the pair code is the secret: anyone with it can connect; hyla hosts tailcat rotate makes a new one")
 		if !on {
-			fmt.Fprintln(os.Stderr, "kerod does not listen through Tailcat here: kero hosts tailcat enable")
+			fmt.Fprintln(os.Stderr, "hylad does not listen through Tailcat here: hyla hosts tailcat enable")
 		} else {
-			fmt.Fprintf(os.Stderr, "kerod listens on port %s: the Port setting of the other machines is this one (kero hosts tailcat port sets it)\n", port)
+			fmt.Fprintf(os.Stderr, "hylad listens on port %s: the Port setting of the other machines is this one (hyla hosts tailcat port sets it)\n", port)
 		}
 		return nil
 	case "enable":
@@ -419,17 +419,17 @@ func tailcatCmd(args []string) error {
 		if err := settings.Save(set); err != nil {
 			return err
 		}
-		fmt.Println("kerod listens through Tailcat: kero hosts tailcat code")
+		fmt.Println("hylad listens through Tailcat: hyla hosts tailcat code")
 		return nil
 	case "disable":
 		set.SetTailcatListen("")
 		return settings.Save(set)
 	case "port":
 		if len(args) != 2 || !settings.ValidTailcatPort(args[1]) {
-			return usageErr("kero hosts tailcat port <port>")
+			return usageErr("hyla hosts tailcat port <port>")
 		}
 		if !on {
-			return errors.New("kerod does not listen through Tailcat here: kero hosts tailcat enable")
+			return errors.New("hylad does not listen through Tailcat here: hyla hosts tailcat enable")
 		}
 		set.SetTailcatListen(args[1])
 		return settings.Save(set)
@@ -438,7 +438,7 @@ func tailcatCmd(args []string) error {
 		if err != nil {
 			return err
 		}
-		// kerod starts its listener with the key again, which follow finds.
+		// hylad starts its listener with the key again, which follow finds.
 		set.TailcatRotate = !set.TailcatRotate
 		if err := settings.Save(set); err != nil {
 			return err
@@ -453,10 +453,10 @@ func tailcatCmd(args []string) error {
 		fmt.Fprintln(os.Stderr, "the old pair code no longer connects: add this computer again on your other machines")
 		return nil
 	}
-	return usageErr("kero hosts tailcat enable [port]|disable|port <port>|rotate|code")
+	return usageErr("hyla hosts tailcat enable [port]|disable|port <port>|rotate|code")
 }
 
-// releasedVersion is this Kero's version, to install the same on a host,
+// releasedVersion is this Hyla's version, to install the same on a host,
 // "" for a development build, which installs the latest release.
 func releasedVersion() string {
 	v := build.Version()
@@ -476,7 +476,7 @@ func deleteHost(hosts []settings.Host, name string) []settings.Host {
 	return out
 }
 
-// clientsCmd lists who is connected to kerod.
+// clientsCmd lists who is connected to hylad.
 func clientsCmd(c *client.Client, args []string) error {
 	f, err := parse(args, nil, map[string]string{"json": "json"})
 	if err != nil {
@@ -498,11 +498,11 @@ func clientsCmd(c *client.Client, args []string) error {
 	return w.Flush()
 }
 
-// bridge is `kero __bridge`, which ssh or wsl.exe runs for a client on
+// bridge is `hyla __bridge`, which ssh or wsl.exe runs for a client on
 // another machine: it answers the client's remote connection on its
 // standard input and output, and passes each stream on to this machine's
-// kerod, starting it as needed, as a local client would connect. It
-// speaks to kerod as any client does, so that it bridges to a kerod of
+// hylad, starting it as needed, as a local client would connect. It
+// speaks to hylad as any client does, so that it bridges to a hylad of
 // another version too, for the client to tell the user so, and to update
 // and restart it.
 func bridge(args []string) error {
@@ -531,13 +531,13 @@ func bridge(args []string) error {
 			defer s.Close()
 			conn, err := client.Local{}.Dial()
 			if err != nil {
-				b, _ := json.Marshal(proto.Welcome{Version: proto.Version, Error: "kerod: " + err.Error()})
+				b, _ := json.Marshal(proto.Welcome{Version: proto.Version, Error: "hylad: " + err.Error()})
 				s.Write(append(b, '\n'))
 				return
 			}
 			defer conn.Close()
-			// Who connects, for kero clients, in the stream's own Hello,
-			// which a kerod of any version takes.
+			// Who connects, for hyla clients, in the stream's own Hello,
+			// which a hylad of any version takes.
 			var h map[string]any
 			if json.Unmarshal(hello, &h) == nil {
 				h["peer"], h["via"], h["client"] = peer, via, mux.Client
@@ -557,7 +557,7 @@ func bridge(args []string) error {
 		Closed: func() { os.Exit(0) },
 	}
 	if !info.Server && daemon.AppUpdates() {
-		// The desktop app updates itself, then kerod restarts into it.
+		// The desktop app updates itself, then hylad restarts into it.
 		info.Updates = true
 		srv.Update = func(app string) error {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
@@ -566,19 +566,19 @@ func bridge(args []string) error {
 		}
 	} else if info.Updates {
 		dir := update.InstallDir()
-		// kerod starts from the install, as an update moves this one aside.
-		client.Exe = filepath.Join(dir, "kero")
+		// hylad starts from the install, as an update moves this one aside.
+		client.Exe = filepath.Join(dir, "hyla")
 		srv.Update = func(app string) error {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 			defer cancel()
-			// Never back to an older Kero: the app asks for its own version.
+			// Never back to an older Hyla: the app asks for its own version.
 			return update.Install(ctx, app, dir, build.Version(), false)
 		}
 	}
 	return srv.Serve(stdio{})
 }
 
-// restartLocal restarts this machine's kerod into the Kero installed: its
+// restartLocal restarts this machine's hylad into the Hyla installed: its
 // service's, else one this executable starts.
 func restartLocal() error {
 	if service.Installed() {
@@ -617,7 +617,7 @@ func (stdio) Close() error {
 	return os.Stdout.Close()
 }
 
-// serveCmd is `kero daemon serve`: kerod in the foreground, for a service
+// serveCmd is `hyla daemon serve`: hylad in the foreground, for a service
 // manager, which never exits for being idle.
 func serveCmd(args []string) error {
 	var listen []string
@@ -633,7 +633,7 @@ func serveCmd(args []string) error {
 		case strings.HasPrefix(a, "--listen="):
 			listen = append(listen, strings.TrimPrefix(a, "--listen="))
 		default:
-			return usageErr("kero daemon serve [--listen tailnet://:7373]…")
+			return usageErr("hyla daemon serve [--listen tailnet://:7373]…")
 		}
 	}
 	for _, l := range listen {

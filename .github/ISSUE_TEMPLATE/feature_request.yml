@@ -1,12 +1,12 @@
 name: Feature request
-description: Suggest something Kero should do
+description: Suggest something Hyla should do
 labels: [enhancement]
 body:
   - type: textarea
     id: problem
     attributes:
       label: What you're trying to do
-      description: The workflow or problem behind the request, such as how you run your agents today and where Kero gets in the way.
+      description: The workflow or problem behind the request, such as how you run your agents today and where Hyla gets in the way.
     validations:
       required: true
   - type: textarea

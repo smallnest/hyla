@@ -85,8 +85,8 @@ jobs:
           go-version-file: go.mod
       - run: go test ./internal/...
 
-  # The server build of Kero, for machines whose sessions the app shows
-  # (Settings › Hosts): kerod and the kero CLI without the app, with
+  # The server build of Hyla, for machines whose sessions the app shows
+  # (Settings › Hosts): hylad and the hyla CLI without the app, with
   # libghostty-vt, for Linux, macOS and Windows, which the install scripts
   # install and the server build updates itself from (internal/update).
   # Each archive is checked on its own platform.
@@ -143,7 +143,7 @@ jobs:
           for p in linux-amd64 linux-arm64 darwin-amd64 darwin-arm64 windows-amd64 windows-arm64; do
             ext=tar.gz
             case "$p" in windows-*) ext=zip ;; esac
-            a="kero-server-$version-$p.$ext"
+            a="hyla-server-$version-$p.$ext"
             want="$want $a $a.sig $a.sha256"
           done
           for w in $want; do

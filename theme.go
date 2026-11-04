@@ -4,10 +4,10 @@ import (
 	"github.com/egoist/mygo/plugins/terminal"
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/settings"
+	"hyla/internal/settings"
 )
 
-// palette is kero's colors, for the light and the dark appearance.
+// palette is hyla's colors, for the light and the dark appearance.
 type palette struct {
 	dark bool
 

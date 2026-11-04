@@ -3,10 +3,10 @@
 mygo_windows_*.syso
 node_modules/
 .DS_Store
-/kero
-/kero.exe
+/hyla
+/hyla.exe
 
-# Local agent tools: not kero's files. They made the tree dirty, and the
+# Local agent tools: not hyla's files. They made the tree dirty, and the
 # 30-minute upstream sync refused every run.
 /.agents/
 /.claude/skills/

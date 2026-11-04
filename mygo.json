@@ -1,7 +1,7 @@
 {
-  "name": "Kero",
-  "identifier": "sh.kero",
-  "version": "2.1.37",
+  "name": "Hyla",
+  "identifier": "sh.hyla",
+  "version": "3.0.0",
   "out": "build",
   "i18n": {
     "dir": "locales",
@@ -9,15 +9,15 @@
   },
   "updates": {
     "publicKey": "CJGqv/HGMyORlUKh5NCvwLOb3p9Fblp1d3oj8qDMQ30=",
-    "github": "smallnest/kero"
+    "github": "smallnest/hyla"
   },
   "macos": {
     "signingIdentity": "-",
     "entitlements": "entitlements.plist",
     "infoPlist": {
-      "NSMicrophoneUsageDescription": "A program running in Kero would like to use the microphone.",
-      "NSCameraUsageDescription": "A program running in Kero would like to use the camera.",
-      "NSAppleEventsUsageDescription": "A program running in Kero would like to control another app."
+      "NSMicrophoneUsageDescription": "A program running in Hyla would like to use the microphone.",
+      "NSCameraUsageDescription": "A program running in Hyla would like to use the camera.",
+      "NSAppleEventsUsageDescription": "A program running in Hyla would like to control another app."
     }
   }
 }

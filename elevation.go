@@ -6,13 +6,13 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/settings"
+	"hyla/internal/settings"
 )
 
 // Surfaces stand out by their color and an edge, crisp, on whole pixels.
 // In the light, the edge is a small soft shadow and no line; in the dark,
 // where shadows hardly show, a hairline a little lighter than the
-// surface, over a dark shadow, as a lit edge. These are kero's levels.
+// surface, over a dark shadow, as a lit edge. These are hyla's levels.
 
 // raised lifts a surface off what is under it a little: the card, the
 // selected row, buttons.
@@ -81,7 +81,7 @@ func face(e ui.Element, pal *palette, bg ui.Color) ui.Element {
 	return darkShadow(litEdge(e, pal))
 }
 
-// button is kero's button: a raised surface, or the accent's for the
+// button is hyla's button: a raised surface, or the accent's for the
 // primary one, with a label and, optionally, its keys.
 func button(c *ui.Context, key, label, keys string, primary bool, pal *palette) bool {
 	return sizedButton(c, key, label, keys, primary, 30, 8, pal)
@@ -130,7 +130,7 @@ func sizedButtonAt(c *ui.Context, key, label, keys string, primary bool, height,
 	return b.Clicked()
 }
 
-// borderless returns the theme with kero's look: its accent, and no lines
+// borderless returns the theme with hyla's look: its accent, and no lines
 // around controls, which stand out by their fill: white fields and
 // buttons on soft panels.
 // applied is the settings the window shows: the last Apply's.
@@ -166,7 +166,7 @@ func borderless(c *ui.Context, pal *palette) *ui.Theme {
 	return &t
 }
 
-// toggle is kero's switch: a track that shows on and off alike, the
+// toggle is hyla's switch: a track that shows on and off alike, the
 // accent's when on, with a knob that springs across. It returns the
 // switch, for OnChange.
 func toggle(c *ui.Context, on *bool, pal *palette) ui.Element {

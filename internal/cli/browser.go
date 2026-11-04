@@ -10,15 +10,15 @@ import (
 	"strings"
 	"time"
 
-	"kero/internal/client"
-	"kero/internal/proto"
+	"hyla/internal/client"
+	"hyla/internal/proto"
 )
 
-// browserCommands are what kero browser does to a page, which name no
-// target: kero browser text is this session's browser's text.
+// browserCommands are what hyla browser does to a page, which name no
+// target: hyla browser text is this session's browser's text.
 var browserCommands = []string{"open", "back", "forward", "reload", "text", "html", "snapshot", "click", "type", "wait", "eval", "screenshot", "cookies"}
 
-// browserCmd drives a browser pane's page, which the app has: kerod asks
+// browserCmd drives a browser pane's page, which the app has: hylad asks
 // the app, and hands its answer back.
 func browserCmd(c *client.Client, st proto.State, args []string) error {
 	f, err := parse(args, map[string]string{"timeout": "timeout", "t": "timeout", "o": "out", "out": "out", "text": "text", "ref": "ref", "domain": "domain"},
@@ -26,7 +26,7 @@ func browserCmd(c *client.Client, st proto.State, args []string) error {
 	if err != nil {
 		return err
 	}
-	const use = "kero browser [target] <open|back|forward|reload|text|html|snapshot|click|type|wait|eval|screenshot|cookies> [args…]"
+	const use = "hyla browser [target] <open|back|forward|reload|text|html|snapshot|click|type|wait|eval|screenshot|cookies> [args…]"
 	pos := f.pos
 	var t target
 	if len(pos) > 0 && !slices.Contains(browserCommands, pos[0]) {
@@ -36,7 +36,7 @@ func browserCmd(c *client.Client, st proto.State, args []string) error {
 		pos = pos[1:]
 	} else {
 		if t, err = findOrCurrent(st, nil); err != nil {
-			return usageErr("which browser? (outside kero, name one): %s", use)
+			return usageErr("which browser? (outside hyla, name one): %s", use)
 		}
 		// The pane a command runs in is a terminal: its session's
 		// browser is meant.
@@ -65,7 +65,7 @@ func browserCmd(c *client.Client, st proto.State, args []string) error {
 		}
 		return append([]string{""}, pos...)
 	}
-	// The text after the arguments, as kero send takes it: all of them,
+	// The text after the arguments, as hyla send takes it: all of them,
 	// those after -- too, or - for stdin.
 	rest := func(from []string) (string, error) {
 		text := strings.Join(append(from, f.rest...), " ")
@@ -81,27 +81,27 @@ func browserCmd(c *client.Client, st proto.State, args []string) error {
 			return err
 		}
 		if strings.TrimSpace(p.Text) == "" {
-			return usageErr("kero browser [target] open <url>")
+			return usageErr("hyla browser [target] open <url>")
 		}
 	case "back", "forward", "reload", "screenshot":
 		if len(pos) > 0 || len(f.rest) > 0 {
-			return usageErr("kero browser [target] %s takes no arguments", op)
+			return usageErr("hyla browser [target] %s takes no arguments", op)
 		}
 	case "text", "html", "snapshot":
 		if len(pos) > 1 || len(pos) == 1 && p.Ref != "" {
-			return usageErr("kero browser [target] %s [selector | --ref ref]", op)
+			return usageErr("hyla browser [target] %s [selector | --ref ref]", op)
 		}
 		if len(pos) == 1 {
 			p.Selector = pos[0]
 		}
 	case "click":
 		if pos = sel(pos); len(pos) != 1 {
-			return usageErr("kero browser [target] click <selector | --ref ref>")
+			return usageErr("hyla browser [target] click <selector | --ref ref>")
 		}
 		p.Selector = pos[0]
 	case "type":
 		if pos = sel(pos); len(pos) < 1 {
-			return usageErr("kero browser [target] type <selector | --ref ref> <text…> [--enter]")
+			return usageErr("hyla browser [target] type <selector | --ref ref> <text…> [--enter]")
 		}
 		p.Selector, p.Enter = pos[0], f.set["enter"]
 		if p.Text, err = rest(pos[1:]); err != nil {
@@ -109,7 +109,7 @@ func browserCmd(c *client.Client, st proto.State, args []string) error {
 		}
 	case "wait":
 		if len(pos) > 1 || len(pos) == 1 && p.Ref != "" {
-			return usageErr("kero browser [target] wait [selector | --ref ref] [--text text]")
+			return usageErr("hyla browser [target] wait [selector | --ref ref] [--text text]")
 		}
 		if len(pos) == 1 {
 			p.Selector = pos[0]
@@ -122,7 +122,7 @@ func browserCmd(c *client.Client, st proto.State, args []string) error {
 			return err
 		}
 		if strings.TrimSpace(p.Text) == "" {
-			return usageErr("kero browser [target] eval <js…>")
+			return usageErr("hyla browser [target] eval <js…>")
 		}
 	}
 	if f.vals["out"] != "" && op != "screenshot" {
@@ -179,7 +179,7 @@ func browserOf(t target) (string, error) {
 	case 1:
 		return ids[0], nil
 	case 0:
-		return "", fmt.Errorf("%w: session %s has no browser pane (open one with kero split --url <url>)", errNotFound, t.s.ID)
+		return "", fmt.Errorf("%w: session %s has no browser pane (open one with hyla split --url <url>)", errNotFound, t.s.ID)
 	}
 	return "", fmt.Errorf("%w: session %s has several browser panes, name one: %s", errNotFound, t.s.ID, strings.Join(ids, ", "))
 }
@@ -195,7 +195,7 @@ func saveShot(png []byte, pane, out string) error {
 		return err
 	}
 	if out == "" {
-		out = filepath.Join(os.TempDir(), fmt.Sprintf("kero-%s-%s.png", pane, time.Now().Format("20060102-150405.000")))
+		out = filepath.Join(os.TempDir(), fmt.Sprintf("hyla-%s-%s.png", pane, time.Now().Format("20060102-150405.000")))
 	}
 	if err := os.WriteFile(out, png, 0o644); err != nil {
 		return err

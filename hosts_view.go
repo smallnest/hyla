@@ -12,11 +12,11 @@ import (
 	"github.com/egoist/mygo/plugins/updater"
 	"github.com/egoist/mygo/ui"
 
-	"kero/internal/proto"
-	"kero/internal/remote"
-	"kero/internal/shell"
+	"hyla/internal/proto"
+	"hyla/internal/remote"
+	"hyla/internal/shell"
 
-	"kero/locales"
+	"hyla/locales"
 )
 
 var (
@@ -30,7 +30,7 @@ var (
 
 // hostNeedsRow reports whether a host has a row of its own in the
 // sidebar, besides its groups: while it can't be reached, wants updating
-// first, or is busy with what the user asked, as installing Kero.
+// first, or is busy with what the user asked, as installing Hyla.
 func (a *App) hostNeedsRow(h *host) bool {
 	return h.busy != "" || h.conn == connFailed || h.conn == connVersion
 }
@@ -44,7 +44,7 @@ func (a *App) hostLine(c *ui.Context, pal *palette, h *host, top float32) {
 }
 
 // hostHeader is a remote host's name, with how the app stands with it: a
-// dot while it connects or failed to, a chip when Kero there wants
+// dot while it connects or failed to, a chip when Hyla there wants
 // updating.
 func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32) {
 	hdr := ui.Row(c.Key("host-"+h.name)).Height(30).Margin(top, 0, 2, 0).Padding(0, 6, 0, 8).Gap(7).AlignItems(ui.Center).Radius(6)
@@ -86,7 +86,7 @@ func (a *App) hostTag(c *ui.Context, pal *palette, h *host) {
 
 // hostState says how the app stands with a host, at the end of its row,
 // or of its first group's header: a dot while it connects or failed to,
-// a chip when Kero there wants updating or kerod restarting.
+// a chip when Hyla there wants updating or hylad restarting.
 func (a *App) hostState(c *ui.Context, pal *palette, h *host) {
 	switch {
 	case h.busy != "":
@@ -112,7 +112,7 @@ func (a *App) hostState(c *ui.Context, pal *palette, h *host) {
 		}
 	case h.stale():
 		b := ui.ButtonBase(c.Key("restart")).Height(22).Padding(0, 7).Gap(5).Radius(11).AlignItems(ui.Center).
-			Label(locales.HostRestartAction(h.name)).Tooltip(locales.HostStaleTip(h.name, h.daemonApp, h.info.Kero))
+			Label(locales.HostRestartAction(h.name)).Tooltip(locales.HostStaleTip(h.name, h.daemonApp, h.info.Hyla))
 		if b.Hovered() {
 			b.Background(pal.rowHover)
 		}
@@ -132,11 +132,11 @@ func (a *App) hostDot(c *ui.Context, pal *palette, col ui.Color, label string) {
 	ui.Box(c).Size(7, 7).Radius(3.5).Background(col).Shrink(0).Margin(0, 4, 0, 0).Label(label).Tooltip(label)
 }
 
-// hostTip tells what a host is: its address, and Kero there.
+// hostTip tells what a host is: its address, and Hyla there.
 func (a *App) hostTip(h *host) string {
 	tip := h.addr.String()
 	if i := h.info; i.OS != "" {
-		tip += "\n" + locales.HostAbout(i.Kero, i.OS+"/"+i.Arch, i.Hostname, i.User)
+		tip += "\n" + locales.HostAbout(i.Hyla, i.OS+"/"+i.Arch, i.Hostname, i.User)
 	}
 	if h.conn == connFailed {
 		tip += "\n" + h.err
@@ -300,8 +300,8 @@ func (a *App) removeHost(name string) {
 	a.applySettings(s)
 }
 
-// installOnHost asks, then installs Kero on a host the app reaches over
-// SSH or WSL, as Kero's install script does, and connects.
+// installOnHost asks, then installs Hyla on a host the app reaches over
+// SSH or WSL, as Hyla's install script does, and connects.
 func (a *App) installOnHost(h *host) {
 	a.confirm = &confirmation{
 		open:   true,
@@ -350,10 +350,10 @@ func (a *App) install(h *host) {
 	}()
 }
 
-// hostVersionDetail says how Kero on a host differs from this app, and
+// hostVersionDetail says how Hyla on a host differs from this app, and
 // what updates which.
 func (a *App) hostVersionDetail(h *host) string {
-	v, app := h.kero(), mygo.App.Version()
+	v, app := h.hyla(), mygo.App.Version()
 	switch {
 	case h.ahead():
 		return locales.HostNewerDetail(h.name, v, app)
@@ -365,8 +365,8 @@ func (a *App) hostVersionDetail(h *host) string {
 	return locales.HostVersionDetail(h.name, v, app)
 }
 
-// offerHostUpdate updates the server build of Kero on a host to this
-// app's version, and restarts kerod there into it, asking first, as the
+// offerHostUpdate updates the server build of Hyla on a host to this
+// app's version, and restarts hylad there into it, asking first, as the
 // restart ends the programs in its sessions. A host newer than the app,
 // or one that updates otherwise, gets told what to do instead.
 func (a *App) offerHostUpdate(h *host) {
@@ -399,7 +399,7 @@ func (a *App) offerHostUpdate(h *host) {
 	}
 }
 
-// offerHostRestart restarts kerod on a host, asking first while programs
+// offerHostRestart restarts hylad on a host, asking first while programs
 // run in its sessions.
 func (a *App) offerHostRestart(h *host) {
 	a.confirm = &confirmation{
@@ -415,8 +415,8 @@ func (a *App) offerHostRestart(h *host) {
 	}
 }
 
-// hostRequest asks a host to update Kero, then restart kerod into it, or
-// only to restart it; the app connects again as kerod comes back, its
+// hostRequest asks a host to update Hyla, then restart hylad into it, or
+// only to restart it; the app connects again as hylad comes back, its
 // sessions with it, or, should it fail, as it stands.
 func (a *App) hostRequest(h *host, what string) {
 	rc := h.rc
@@ -443,7 +443,7 @@ func (a *App) hostRequest(h *host, what string) {
 			}
 			if err != nil {
 				a.toast(fmt.Sprintf("%s: %v", h.name, err))
-				// kerod may have stopped all the same: the connection
+				// hylad may have stopped all the same: the connection
 				// that disconnected waited for this.
 				a.reconnect(h)
 				return
@@ -452,7 +452,7 @@ func (a *App) hostRequest(h *host, what string) {
 				a.toast(locales.HostUpdated(h.name, version))
 			}
 			// Through the bridge, which stays, or through a new
-			// connection to the listener of the kerod that follows.
+			// connection to the listener of the hylad that follows.
 			time.AfterFunc(time.Second, func() { a.update(func() { a.reconnectHost(h) }) })
 		})
 	}()

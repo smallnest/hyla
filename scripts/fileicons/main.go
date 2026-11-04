@@ -1,5 +1,5 @@
 // Command fileicons brings Pierre's file icons (github.com/pierrecomputer/vscode-icons,
-// MIT) into kero: from a checkout of theirs, built with `node
+// MIT) into hyla: from a checkout of theirs, built with `node
 // scripts/build-icon-theme.mjs`, the icons of the complete theme, in their
 // light and dark colors, go to icons/files, and the names, extensions and
 // defaults they are for to fileicons_gen.go.
@@ -89,7 +89,7 @@ func main() {
 	fmt.Printf("%d icons, %d names, %d extensions\n", len(t.IconDefinitions), len(t.FileNames), len(t.FileExtensions))
 }
 
-// writeMap writes a map of names, which kero matches without regard to
+// writeMap writes a map of names, which hyla matches without regard to
 // case, as VS Code does.
 func writeMap(g *bytes.Buffer, field string, m map[string]string) {
 	keys := make([]string, 0, len(m))

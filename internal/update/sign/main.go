@@ -14,7 +14,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"kero/internal/update"
+	"hyla/internal/update"
 )
 
 func main() {
@@ -37,7 +37,7 @@ func main() {
 			fail(err)
 		}
 		if err := update.Verify(b, version, goos, goarch, sig); err != nil {
-			fail(fmt.Errorf("%s: the key is not the one Kero checks (update.PublicKey): %w", path, err))
+			fail(fmt.Errorf("%s: the key is not the one Hyla checks (update.PublicKey): %w", path, err))
 		}
 		sum := sha256.Sum256(b)
 		if err := os.WriteFile(path+".sig", []byte(sig+"\n"), 0o644); err != nil {
@@ -57,10 +57,10 @@ func fail(err error) {
 }
 
 // parseName reads the version and platform of an archive from its name,
-// as update.Asset writes it: kero-server-2.1.0-linux-amd64.tar.gz, or
-// kero-server-2.1.0-windows-amd64.zip.
+// as update.Asset writes it: hyla-server-2.1.0-linux-amd64.tar.gz, or
+// hyla-server-2.1.0-windows-amd64.zip.
 func parseName(name string) (version, goos, goarch string, err error) {
-	rest, ok := strings.CutPrefix(name, "kero-server-")
+	rest, ok := strings.CutPrefix(name, "hyla-server-")
 	rest, ok2 := strings.CutSuffix(rest, ".tar.gz")
 	if !ok2 {
 		rest, ok2 = strings.CutSuffix(rest, ".zip")

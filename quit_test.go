@@ -5,7 +5,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
-	"kero/locales"
+	"hyla/locales"
 )
 
 // quit-ends-sessions, off by default, makes every quit end this machine's

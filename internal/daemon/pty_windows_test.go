@@ -14,7 +14,7 @@ import (
 )
 
 // conPTYs returns the ConPTYs a test runs in, by name: Windows' own and
-// the one Kero ships, from the repository's resources.
+// the one Hyla ships, from the repository's resources.
 func conPTYs(t *testing.T) map[string]conPTY {
 	t.Helper()
 	out := map[string]conPTY{"system": systemConPTY}

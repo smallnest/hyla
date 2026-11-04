@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	keroclient "kero/internal/client"
-	"kero/internal/proto"
+	hylaclient "hyla/internal/client"
+	"hyla/internal/proto"
 )
 
 // attached attaches a client to a pane whose frames go nowhere.
@@ -114,7 +114,7 @@ func TestTyped(t *testing.T) {
 	}
 }
 
-// serveDialer dials d as the app does this machine's kerod.
+// serveDialer dials d as the app does this machine's hylad.
 type serveDialer struct{ d *Daemon }
 
 func (s serveDialer) Dial() (net.Conn, error) {
@@ -136,8 +136,8 @@ func TestPaneSizeOverStreams(t *testing.T) {
 	}
 	s := d.findPane(ses.Panes[0].ID)
 	t.Cleanup(s.close)
-	open := func() *keroclient.Stream {
-		st, err := keroclient.AttachVia(serveDialer{d}, s.info.ID)
+	open := func() *hylaclient.Stream {
+		st, err := hylaclient.AttachVia(serveDialer{d}, s.info.ID)
 		if err != nil {
 			t.Fatal(err)
 		}

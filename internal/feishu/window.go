@@ -9,10 +9,10 @@ import (
 	lark "github.com/larksuite/oapi-sdk-go/v3"
 	larkim "github.com/larksuite/oapi-sdk-go/v3/service/im/v1"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
-// A chat window is a Feishu chat and a Kero session as one conversation.
+// A chat window is a Feishu chat and a Hyla session as one conversation.
 // The session's pane shows the agent at work; the window shows the
 // conversation the agent keeps, the way the chat sees it. The window
 // sends a prompt to the chat as the user, which the bot then gives the
@@ -83,7 +83,7 @@ func (b *Bot) Sends(chatID, text string) (proto.FeishuSent, error) {
 }
 
 // feedRef starts a chat window's prompt, before the prompt itself.
-const feedRef = "kero-window"
+const feedRef = "hyla-window"
 
 // windowEvent tells a message that a chat window sends: the bot hears it
 // back with its first line, as it sends it. The window's prompt is no
@@ -111,7 +111,7 @@ func windowPrompt(content string) (chatID string, ok bool) {
 // one that took it, if any, else the one that answers the chat's
 // messages, if one is known. Its turn's answer then comes to that host.
 func (b *Bot) claimRef(ref, chatID string) bool {
-	// Kerod keeps the event to the first host that claims it, which is
+	// Hylad keeps the event to the first host that claims it, which is
 	// the host the chat's messages go to, when /host named one.
 	b.mu.Lock()
 	want := b.chatLocked(chatKey(chatID, "")).host

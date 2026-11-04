@@ -8,23 +8,26 @@ import (
 	"strconv"
 	"strings"
 
-	"kero/internal/actions"
-	"kero/internal/adblock"
-	"kero/internal/proto"
-	"kero/internal/remote"
+	"hyla/internal/actions"
+	"hyla/internal/adblock"
+	"hyla/internal/proto"
+	"hyla/internal/remote"
 )
 
-// kero's configuration is a file of lines `key = value`, as Ghostty's:
+// hyla's configuration is a file of lines `key = value`, as Ghostty's:
 // `#` starts a comment, and keys that hold lists, as env and keybind,
 // repeat. The keys are Ghostty's where they mean what Ghostty's do. A
 // file holds what the user changed; the rest is the defaults. The
 // Settings window edits it in place, keeping its comments and order.
 
-// ConfigPath returns the configuration file: $KERO_CONFIG, else
-// $XDG_CONFIG_HOME/kero/config, else ~/.config/kero/config; kero-dev in
-// place of kero for a development build (proto.Name).
+// ConfigPath returns the configuration file: $HYLA_CONFIG, else
+// $XDG_CONFIG_HOME/hyla/config, else ~/.config/hyla/config; hyla-dev in
+// place of hyla for a development build (proto.Name).
+//
+// The file of 2.x, which called Hyla Kero, is this one: the first to ask
+// for it moves it here, as proto.Dir moves the directory.
 func ConfigPath() string {
-	if p := os.Getenv("KERO_CONFIG"); p != "" {
+	if p := os.Getenv("HYLA_CONFIG"); p != "" {
 		return p
 	}
 	base := os.Getenv("XDG_CONFIG_HOME")
@@ -32,7 +35,18 @@ func ConfigPath() string {
 		home, _ := os.UserHomeDir()
 		base = filepath.Join(home, ".config")
 	}
-	return filepath.Join(base, proto.Name(), "config")
+	name := proto.Name()
+	p := filepath.Join(base, name, "config")
+	old := filepath.Join(base, strings.Replace(name, "hyla", "kero", 1), "config")
+	if _, err := os.Stat(p); err != nil {
+		if _, err := os.Stat(old); err == nil {
+			if os.MkdirAll(filepath.Dir(p), 0o755) == nil && os.Rename(old, p) == nil {
+				return p
+			}
+			return old
+		}
+	}
+	return p
 }
 
 // key is a key of the configuration: how it reads and writes a setting.
@@ -123,7 +137,7 @@ func mapChoice(name, doc string, f func(*Settings) *string, file, ours []string)
 }
 
 // keys are the configuration's keys, in the order a new file and
-// `kero config show` list them.
+// `hyla config show` list them.
 var keys = append([]key{
 	mapChoice("new-session-directory", "where a new session starts", func(s *Settings) *string { return &s.NewSessionDir },
 		[]string{"current", "project", "home"}, []string{"current", "project", "home"}),
@@ -133,11 +147,11 @@ var keys = append([]key{
 		func(s *Settings) *string { return &s.SidebarRows }, "detailed", "compact"),
 	boolKey("focus-follows-mouse", "focus the pane the pointer moves into", func(s *Settings) *bool { return &s.FocusFollowsMouse }),
 	boolKey("confirm-close", "ask before closing a pane a program runs in", func(s *Settings) *bool { return &s.ConfirmClose }),
-	boolKey("restore-sessions", "start sessions again after kerod restarts, as after a reboot", func(s *Settings) *bool { return &s.RestoreSessions }),
+	boolKey("restore-sessions", "start sessions again after hylad restarts, as after a reboot", func(s *Settings) *bool { return &s.RestoreSessions }),
 	boolKey("resume-agents", "as sessions start again, resume the conversation of the coding agent each pane ran", func(s *Settings) *bool { return &s.ResumeAgents }),
-	boolKey("quit-ends-sessions", "quitting ends this machine's sessions and its kerod, as Quit and End All Sessions does; other machines' keep running", func(s *Settings) *bool { return &s.QuitEndsSessions }),
+	boolKey("quit-ends-sessions", "quitting ends this machine's sessions and its hylad, as Quit and End All Sessions does; other machines' keep running", func(s *Settings) *bool { return &s.QuitEndsSessions }),
 	boolKey("session-history", "list the coding agents' ended conversations in the sidebar, to resume or archive", func(s *Settings) *bool { return &s.SessionHistory }),
-	choiceKey("macos-show-app-icon", "where Kero's icon shows; closing the window keeps Kero running in the menu bar while it shows there. Windows and Linux always show it in the notification area",
+	choiceKey("macos-show-app-icon", "where Hyla's icon shows; closing the window keeps Hyla running in the menu bar while it shows there. Windows and Linux always show it in the notification area",
 		func(s *Settings) *string { return &s.AppIcon }, AppIcons...),
 
 	{name: "window-opacity", doc: "how much of the window's background the wash covers while translucent, 0 to 1",
@@ -155,17 +169,17 @@ var keys = append([]key{
 	boolKey("window-blur", "blur the desktop behind the translucent background; off, the wash is plain transparency", func(s *Settings) *bool { return &s.WindowBlur }),
 	float32Key("pane-opacity", "how much of the window's background shows in a terminal while the window is translucent, 0 to 1, as window-opacity; 0 shows the desktop alone, and the terminal's text stays opaque", func(s *Settings) *float32 { return &s.PaneOpacity }),
 	boolKey("pane-blur", "blur what shows through the terminals; off, they are plain transparency, and 0% opacity shows the desktop alone", func(s *Settings) *bool { return &s.PaneBlur }),
-	boolKey("pet", "Kero the frog on the window's top edge, who follows your sessions", func(s *Settings) *bool { return &s.Pet }),
-	float32Key("pet-offset", "where Kero stands across the window, 0 to 1; drag it there", func(s *Settings) *float32 { return &s.PetOffset }),
+	boolKey("pet", "Hyla the frog on the window's top edge, who follows your sessions", func(s *Settings) *bool { return &s.Pet }),
+	float32Key("pet-offset", "where Hyla stands across the window, 0 to 1; drag it there", func(s *Settings) *float32 { return &s.PetOffset }),
 	float32Key("pet-size", "how tall a Codex pet shows, against the Codex app's 82 DIPs, 0.5 to 3", func(s *Settings) *float32 { return &s.PetSize }),
-	stringKey("pet-set", `the pet on the window's edge: kero, codex (the Codex app's active pet), or a Codex pet's directory name in ~/.codex/pets, or in kero's own`, func(s *Settings) *string { return &s.PetSet }),
+	stringKey("pet-set", `the pet on the window's edge: hyla, codex (the Codex app's active pet), or a Codex pet's directory name in ~/.codex/pets, or in hyla's own`, func(s *Settings) *string { return &s.PetSet }),
 	choiceKey("window-theme", "the app's appearance", func(s *Settings) *string { return &s.Appearance }, "system", "light", "dark"),
 	choiceKey("language", "the app's language; system follows the system's", func(s *Settings) *string { return &s.Language }, append([]string{"system"}, Languages...)...),
 	mapChoice("background", "the window's wash", func(s *Settings) *string { return &s.Background },
 		[]string{"petal", "mist", "meadow", "dusk", "plain"}, []string{"rex", "mist", "meadow", "dusk", "plain"}),
 	boolKey("window-translucent", "let the desktop show through the window", func(s *Settings) *bool { return &s.Vibrancy }),
 
-	stringKey("font-family", "the terminals' font: empty for JetBrains Mono Nerd Font, which Kero carries; monospace for the system's", func(s *Settings) *string { return &s.FontFamily }),
+	stringKey("font-family", "the terminals' font: empty for JetBrains Mono Nerd Font, which Hyla carries; monospace for the system's", func(s *Settings) *string { return &s.FontFamily }),
 	numberKey("font-size", "in points", func(s *Settings) float64 { return float64(s.FontSize) }, func(s *Settings, n float64) { s.FontSize = float32(n) }),
 	numberKey("font-weight", "100 to 900", func(s *Settings) float64 { return float64(s.FontWeight) }, func(s *Settings, n float64) { s.FontWeight = int(n) }),
 	numberKey("line-height", "a multiple of the font's", func(s *Settings) float64 { return float64(s.LineHeight) }, func(s *Settings, n float64) { s.LineHeight = float32(n) }),
@@ -173,7 +187,7 @@ var keys = append([]key{
 	boolKey("font-thicken", "a heavier stroke, as Ghostty's", func(s *Settings) *bool { return &s.Thicken }),
 	numberKey("minimum-contrast", "the least contrast text keeps with its background, 1 (none) to 21, as Ghostty's", func(s *Settings) float64 { return float64(s.MinContrast) }, func(s *Settings, n float64) { s.MinContrast = float32(min(max(n, 1), 21)) }),
 	boolKey("dim-unfocused-terminals", "fade the terminals you're not in, when a session has several panes", func(s *Settings) *bool { return &s.DimUnfocused }),
-	{name: "theme", doc: "terminal colors: kero, a Ghostty theme, or light:<theme>,dark:<theme>",
+	{name: "theme", doc: "terminal colors: hyla, a Ghostty theme, or light:<theme>,dark:<theme>",
 		get: func(s *Settings) []string {
 			if s.LightTheme == s.DarkTheme {
 				return []string{s.LightTheme}
@@ -271,8 +285,8 @@ var keys = append([]key{
 	boolKey("dock-badge", "the number of sessions that need you", func(s *Settings) *bool { return &s.DockBadge }),
 	boolKey("dock-bounce", "once, when a session comes to need you", func(s *Settings) *bool { return &s.BounceDock }),
 
-	boolKey("remote-control", "kero do, kero focus and kero browser drive the app", func(s *Settings) *bool { return &s.RemoteControl }),
-	{name: "host", doc: "another machine whose sessions the app shows, as name=address: [user@]host or ssh://… over SSH, wsl://distro, http(s)://… for kerod's tailnet listener; add remote-control after it to let its programs drive the app, and color=red, orange, amber, green, teal, blue, purple or pink to mark its sessions; repeat it", list: true,
+	boolKey("remote-control", "hyla do, hyla focus and hyla browser drive the app", func(s *Settings) *bool { return &s.RemoteControl }),
+	{name: "host", doc: "another machine whose sessions the app shows, as name=address: [user@]host or ssh://… over SSH, wsl://distro, http(s)://… for hylad's tailnet listener; add remote-control after it to let its programs drive the app, and color=red, orange, amber, green, teal, blue, purple or pink to mark its sessions; repeat it", list: true,
 		get: func(s *Settings) []string {
 			var out []string
 			for _, h := range s.Hosts {
@@ -306,7 +320,7 @@ var keys = append([]key{
 			}
 			return nil
 		}},
-	{name: "listen", doc: "let Kero on other machines reach this one's sessions: tailnet://:7373 on its Tailscale addresses, tailnet-serve:// for Tailscale Serve, tailcat://:7373 through a relay with a pair code instead of Tailscale (tailcat = true), or kero hosts tailcat enable; repeat it", list: true,
+	{name: "listen", doc: "let Hyla on other machines reach this one's sessions: tailnet://:7373 on its Tailscale addresses, tailnet-serve:// for Tailscale Serve, tailcat://:7373 through a relay with a pair code instead of Tailscale (tailcat = true), or hyla hosts tailcat enable; repeat it", list: true,
 		get: func(s *Settings) []string { return slices.Clone(s.Listen) },
 		set: func(s *Settings, v []string) error {
 			s.Listen = nil
@@ -346,8 +360,8 @@ var keys = append([]key{
 			}
 			return nil
 		}},
-	boolKey("tailcat", "give Kero other ways to reach its hosts: a relay with a pair code, which needs no Tailscale. Off, Kero lists none of those hosts and connects to none, and kerod starts no tailcat listener", func(s *Settings) *bool { return &s.Tailcat }),
-	{name: "tailcat-host", doc: "a host Kero reaches over tailcat, as name=tailcat:// plus the pair code of its tailcat listener (tailcat = true); repeat it", list: true,
+	boolKey("tailcat", "give Hyla other ways to reach its hosts: a relay with a pair code, which needs no Tailscale. Off, Hyla lists none of those hosts and connects to none, and hylad starts no tailcat listener", func(s *Settings) *bool { return &s.Tailcat }),
+	{name: "tailcat-host", doc: "a host Hyla reaches over tailcat, as name=tailcat:// plus the pair code of its tailcat listener (tailcat = true); repeat it", list: true,
 		get: func(s *Settings) []string {
 			out := make([]string, len(s.TailcatHosts))
 			for i, h := range s.TailcatHosts {
@@ -384,7 +398,7 @@ var keys = append([]key{
 			}
 			return nil
 		}},
-	{name: "tailcat-port", doc: "the port of the tailcat listeners of the hosts Kero adds, which their pair codes do not have: the default, 7373; set it to the Listener port of a host that names another",
+	{name: "tailcat-port", doc: "the port of the tailcat listeners of the hosts Hyla adds, which their pair codes do not have: the default, 7373; set it to the Listener port of a host that names another",
 		get: func(s *Settings) []string { return []string{s.TailcatPort} },
 		set: func(s *Settings, v []string) error {
 			if p := strings.TrimSpace(v[len(v)-1]); p != "" && !ValidTailcatPort(p) {
@@ -402,12 +416,12 @@ var keys = append([]key{
 			s.TailcatRelay = strings.TrimSpace(v[len(v)-1])
 			return nil
 		}},
-	boolKey("tailcat-rotate", "start kerod's tailcat listener with the key again, whose pair code changed: kero tailcat rotate sets it", func(s *Settings) *bool { return &s.TailcatRotate }),
-	boolKey("remote-updates", "let Kero on another machine that connects update the Kero app here to its version, which restarts it", func(s *Settings) *bool { return &s.RemoteUpdates }),
+	boolKey("tailcat-rotate", "start hylad's tailcat listener with the key again, whose pair code changed: hyla tailcat rotate sets it", func(s *Settings) *bool { return &s.TailcatRotate }),
+	boolKey("remote-updates", "let Hyla on another machine that connects update the Hyla app here to its version, which restarts it", func(s *Settings) *bool { return &s.RemoteUpdates }),
 
 	boolKey("git-status", "show the git branch and changes of each session", func(s *Settings) *bool { return &s.GitStatus }),
 	choiceKey("worktree-base", "what a session's own git worktree branches from: the repository's default branch, or the branch of the session you're in", func(s *Settings) *string { return &s.WorktreeBase }, "default", "current"),
-	stringKey("worktree-dir", "where sessions' own git worktrees go, each under its repository's name; empty for .kero/worktrees in the repository", func(s *Settings) *string { return &s.WorktreeDir }),
+	stringKey("worktree-dir", "where sessions' own git worktrees go, each under its repository's name; empty for .hyla/worktrees in the repository", func(s *Settings) *string { return &s.WorktreeDir }),
 	choiceKey("diff-layout", "the changes panel's diffs: unified while the panel is narrow and side by side once it's wide, or always one", func(s *Settings) *string { return &s.DiffLayout }, "auto", "unified", "split"),
 	boolKey("browser-block-ads", "block ads and trackers in browser panes, with the browser-filter-list lists", func(s *Settings) *bool { return &s.BlockAds }),
 	{name: "browser-filter-list", doc: "a filter list browser-block-ads blocks with: " + strings.Join(adListIDs(), ", ") + ", or a list's https URL; repeat it, and leave it empty for none", list: true,
@@ -435,7 +449,7 @@ var keys = append([]key{
 			}
 			return nil
 		}},
-	{name: "keybind", doc: "<keys>=<action>, over the defaults, as cmd+shift+d=pane.split.down; <keys>=unbind frees keys; see kero actions", list: true,
+	{name: "keybind", doc: "<keys>=<action>, over the defaults, as cmd+shift+d=pane.split.down; <keys>=unbind frees keys; see hyla actions", list: true,
 		get: func(s *Settings) []string {
 			var out []string
 			for _, a := range actions.All {
@@ -463,7 +477,7 @@ var keys = append([]key{
 					bad = append(bad, fmt.Sprintf("%q is not <keys>=<action>", b))
 					continue
 				}
-				// Ghostty marks a global shortcut global:; kero's actions
+				// Ghostty marks a global shortcut global:; hyla's actions
 				// know which are.
 				keys, id := accelerator(strings.TrimPrefix(strings.TrimSpace(b[:i]), "global:")), strings.TrimSpace(b[i+1:])
 				if id == "unbind" {
@@ -638,7 +652,7 @@ func quote(v string) string {
 // format writes s into a configuration, over the file's lines: a key the
 // file sets takes its new values where it is; one the file leaves out is
 // written at the end when it differs from its default. Comments, blank
-// lines and keys kero does not know stay as they are.
+// lines and keys hyla does not know stay as they are.
 func format(s Settings, data string) string {
 	def := Default()
 	lines := parseLines(data)
@@ -675,15 +689,15 @@ func format(s Settings, data string) string {
 }
 
 var header = []string{
-	"# Kero's configuration, as Ghostty's: one setting a line, `key = value`.",
-	"# It holds what differs from the defaults. Kero's Settings window edits",
+	"# Hyla's configuration, as Ghostty's: one setting a line, `key = value`.",
+	"# It holds what differs from the defaults. Hyla's Settings window edits",
 	"# it in place, keeping your comments; what you save here applies at once.",
-	"# `kero config show` lists every key, with its default.",
+	"# `hyla config show` lists every key, with its default.",
 	"",
 }
 
 // Reference writes every key with its value in s, and what it does, as
-// `kero config show` prints it.
+// `hyla config show` prints it.
 func Reference(s Settings) string {
 	var b strings.Builder
 	for _, k := range keys {

@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"kero/internal/proto"
+	"hyla/internal/proto"
 )
 
 func TestDiffState(t *testing.T) {
-	t.Setenv("KERO_CONFIG", filepath.Join(t.TempDir(), "config"))
+	t.Setenv("HYLA_CONFIG", filepath.Join(t.TempDir(), "config"))
 	one := 1
 	pane := func(id string, st proto.Status) proto.Pane { return proto.Pane{ID: id, Status: st} }
 	prev := proto.State{Sessions: []proto.Session{
@@ -130,7 +130,7 @@ func TestEventLine(t *testing.T) {
 // A notice that comes before the state of its new session waits for it,
 // to tell its project and name; the first state only starts the watch.
 func TestFollower(t *testing.T) {
-	t.Setenv("KERO_CONFIG", filepath.Join(t.TempDir(), "config"))
+	t.Setenv("HYLA_CONFIG", filepath.Join(t.TempDir(), "config"))
 	empty := proto.State{}
 	with := proto.State{Sessions: []proto.Session{{ID: "s1", Name: "api", Project: "pr", Panes: []proto.Pane{{ID: "p1"}}}}}
 	notice := proto.Message{Event: "notice", Notice: &proto.Notice{Session: "s1", Pane: "p1", Body: "done"}}
@@ -178,7 +178,7 @@ func TestEventFilterPresent(t *testing.T) {
 // A session moved to another project says so, and a watch of the
 // project it left hears of it.
 func TestSessionMoved(t *testing.T) {
-	t.Setenv("KERO_CONFIG", filepath.Join(t.TempDir(), "config"))
+	t.Setenv("HYLA_CONFIG", filepath.Join(t.TempDir(), "config"))
 	prev := proto.State{Sessions: []proto.Session{{ID: "s1", Name: "api", Project: "a"}}}
 	next := proto.State{Sessions: []proto.Session{{ID: "s1", Name: "api", Project: "b"}}}
 	evs := diffState(prev, next, time.Now())

@@ -5,26 +5,26 @@ import (
 	"path/filepath"
 	"strings"
 
-	"kero/internal/proto"
-	"kero/internal/settings"
+	"hyla/internal/proto"
+	"hyla/internal/settings"
 )
 
-// The answer file is the agent's Stop hook's (kero answer): the prompt
+// The answer file is the agent's Stop hook's (hyla answer): the prompt
 // gives the pane a file of its own, which the hook writes the turn's
 // answer to as the turn ends, and the bot replies with its words, where
 // the terminal's text holds the TUI's frames. M4 of the plan.
 
 // hookAgents are the agents whose Stop hook writes the answer file, for a
-// chat that drives the agent: the agents `kero skill setup` hooks, but
+// chat that drives the agent: the agents `hyla skill setup` hooks, but
 // Codex, whose Stop hook tells no turn's end, nor its answer.
 var hookAgents = map[string]bool{"claude": true, "codex": true, "pi": true, "opencode": true}
 
-// answersDir is where the answer files go: kerod's directory, as the
+// answersDir is where the answer files go: hylad's directory, as the
 // hook, which runs outside the app, finds it.
 func answersDir() string { return filepath.Join(proto.Dir(), "feishu-answers") }
 
 // answerDir is the directory of the agent's answer files in the pane: one
-// by the agent's name, and cut from one to the next, as kero answer
+// by the agent's name, and cut from one to the next, as hyla answer
 // checks, and as cli.answers names its root.
 func answerDir(agent, pane string) string {
 	name := strings.Map(func(r rune) rune {
