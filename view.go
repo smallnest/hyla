@@ -26,6 +26,7 @@ const (
 	headerH = 2 * (barMid - cardGap)
 	cardGap = 8 // around the card
 	rowH    = 34
+	rowH2   = 48 // a detailed row, of two lines
 	// rowInset is where a sidebar row's text starts: a project's name and
 	// its sessions', the badge telling the project from its children.
 	rowInset = 12
@@ -639,7 +640,14 @@ func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int, 
 	*n++
 	index := *n
 	selected := s.ID == a.selected
-	row := ui.Row(c.Key(s.ID)).Height(rowH).Padding(0, 10, 0, inset).Gap(10).AlignItems(ui.Center).Radius(8).Margin(0, 0, 1, 0)
+	// A detailed row gives the session's status message, else its branch
+	// and changes, a line of its own under the name.
+	detailed := a.set.SidebarRows != "compact"
+	h := float32(rowH)
+	if detailed {
+		h = rowH2
+	}
+	row := ui.Row(c.Key(s.ID)).Height(h).Padding(0, 10, 0, inset).Gap(10).AlignItems(ui.Center).Radius(8).Margin(0, 0, 1, 0)
 	hovered := row.Hovered()
 	if pal.dark {
 		// Room for the chosen row's edge in every row, so that choosing
@@ -694,13 +702,52 @@ func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int, 
 			}
 			return
 		}
-		name := ui.Text(c, s.DisplayName(a.set.SessionName)).FontSize(13.5).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0).TextColor(pal.text)
-		if s.Unread {
-			name.FontWeight(650)
+		name := func() {
+			name := ui.Text(c, s.DisplayName(a.set.SessionName)).FontSize(13.5).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0).TextColor(pal.text)
+			if s.Unread {
+				name.FontWeight(650)
+			}
+			if s.Status == proto.Exited && !s.Unread {
+				name.TextColor(pal.textMuted)
+			}
 		}
-		if s.Status == proto.Exited && !s.Unread {
-			name.TextColor(pal.textMuted)
+		when := func() {
+			cmd := c.Modifiers() == ui.Cmd
+			if cmd && index <= 9 {
+				ui.Text(c, actions.Glyphs(fmt.Sprintf("CmdOrCtrl+%d", index))).FontSize(12).TextColor(pal.textMuted).FontFeatures("tnum").SingleLine().Shrink(0)
+				return
+			}
+			// The name gives way to these, never they to the name.
+			ui.Text(c, ago(s.Since, c.Now())).FontSize(12.5).TextColor(pal.textFaint).FontFeatures("tnum").SingleLine().Shrink(0)
 		}
+		if detailed {
+			// The name, the time and the status over the line of what the
+			// session is at, on the row's whole width, so that a long
+			// branch reads as far as it can.
+			ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
+				ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+					name()
+					ui.Spacer(c)
+					when()
+					statusIconP(c, pal, s.Status, s.Unread, s.Progress, 15)
+				})
+				line, msg := rowDetail(s, g, a.hostOf(s.ID).shortDir(s.WorkDir()))
+				// Without project headers, the project says which list the
+				// session is in, before what it is at.
+				if a.prefs.SidebarGroup == "none" || a.prefs.SidebarGroup == "date" {
+					if p := a.projectName(s.Project); p != "" {
+						line = p + " · " + line
+					}
+				}
+				fg := pal.textFaint
+				if msg {
+					fg = pal.textMuted
+				}
+				ui.Text(c, line).FontSize(12).TextColor(fg).SingleLine().Ellipsis("…").MinWidth(0)
+			})
+			return
+		}
+		name()
 		// A branch of its own, as an agent's in a worktree, by the name.
 		if b := offBranch(g); b != "" {
 			ui.Text(c, b).FontSize(12).TextColor(pal.textFaint).SingleLine().Ellipsis("…").Shrink(3).MinWidth(24).MaxWidth(120)
@@ -712,15 +759,22 @@ func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int, 
 			}
 		}
 		ui.Spacer(c)
-		cmd := c.Modifiers() == ui.Cmd
-		if cmd && index <= 9 {
-			ui.Text(c, actions.Glyphs(fmt.Sprintf("CmdOrCtrl+%d", index))).FontSize(12).TextColor(pal.textMuted).FontFeatures("tnum").SingleLine().Shrink(0)
-		} else {
-			// The name gives way to these, never they to the name.
-			ui.Text(c, ago(s.Since, c.Now())).FontSize(12.5).TextColor(pal.textFaint).FontFeatures("tnum").SingleLine().Shrink(0)
-		}
+		when()
 		statusIconP(c, pal, s.Status, s.Unread, s.Progress, 15)
 	})
+}
+
+// rowDetail is a detailed row's second line: the session's status
+// message, else its branch and changes, else where it works.
+func rowDetail(s *proto.Session, g *proto.GitInfo, dir string) (line string, msg bool) {
+	if s.Message != "" {
+		// A notification's text can run over lines: the row has one.
+		return strings.Join(strings.Fields(s.Message), " "), true
+	}
+	if g != nil {
+		return gitSummary(g), false
+	}
+	return dir, false
 }
 
 // renameStarted keeps a rename from ending in the frame it began in,
