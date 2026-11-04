@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="resources/icon.png" width="128" height="128" alt="Hyla">
+</p>
+
 # Hyla
 
 A terminal for coding agents, on macOS, Windows and Linux.
