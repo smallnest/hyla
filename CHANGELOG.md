@@ -4,6 +4,25 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.2.0
+
+- **Add SSH Host** at the foot of the sidebar opens a terminal running ssh
+  to a machine: an address as ssh takes it, such as
+  `root@example.com:2222`, and a name. The machines live in one **SSH
+  Hosts** project, each a row with its name over the address; a click
+  shows its terminal or starts one, **+** adds another, and a right-click
+  removes one. Nothing runs on the machine but an SSH server: no Hyla is
+  needed there, and ssh uses your `~/.ssh/config`, keys and agent.
+- **Settings › Hosts** is **Settings › Hyla Hosts** now, in all three
+  languages, so that it does not read as the sidebar's SSH hosts.
+- A host added in **Settings › Hyla Hosts** shows a row of its own in the
+  sidebar while it has no project there, its name over the address it is
+  reached at; a click starts a session on it, rather than the host
+  staying hidden until one of its projects comes.
+- **Settings › Terminal › Font features** sets the font's OpenType
+  features, as Ghostty's `font-feature`: `ss01` or `+ss01` turns one on,
+  `-calt` off, `cv05=2` picks an alternate; the preview shows them too.
+
 ## 3.1.3
 
 - The sidebar's detailed rows show a session's second line again: its
