@@ -15,7 +15,7 @@ Hyla は、Linux の開発マシン、クラウドの VM、机の下の Mac mini
 
 アプリのほかに何もインストールする必要はありません: アプリ自身の hylad がホストとして働きます。ほかのマシンからの接続方法を選びます:
 
-- **Tailscale 経由。** ホスト側のアプリで **設定 › ホスト › ほかのマシンからの接続を許可** をオンにします。ほかのマシンで追加するアドレス（`http://studio.tail1234.ts.net:7373` など）が表示されます。[Tailscale](#tailscale) を参照してください。
+- **Tailscale 経由。** ホスト側のアプリで **設定 › ホスト › ほかのマシンからの接続を許可** をオンにします。ほかのマシンで追加するアドレス（`http://studio.tail1234.ts.net:7473` など）が表示されます。[Tailscale](#tailscale) を参照してください。
 - **SSH 経由。** そのコンピュータが SSH ログインを受け付けるなら（Mac では **システム設定 › 一般 › 共有 › リモートログイン**）、`ssh` に渡すのと同じアドレスで追加します。Hyla はそこにあるアプリを自分で見つけます。
 
 自分のコンピュータと同じように、ホストのセッションはアプリを閉じている間も動き続けます。
@@ -57,7 +57,7 @@ hyla -H devbox new -n review -- claude
 | --- | --- |
 | `devbox`、`me@devbox`、`me@devbox:2222`、`ssh://me@devbox` | `~/.ssh/config`、キー、エージェントを使った SSH |
 | `wsl://Ubuntu`、`wsl://` | この Windows PC の WSL ディストリビューション（`wsl.exe` 経由） |
-| `http://devbox:7373` | tailnet アドレス上の hylad のリスナー（[Tailscale](#tailscale) を参照） |
+| `http://devbox:7473` | tailnet アドレス上の hylad のリスナー（[Tailscale](#tailscale) を参照） |
 | `https://devbox.tail1234.ts.net` | Tailscale Serve の背後にある hylad |
 | `tailcat://tc…` | ペアコード。リレー経由で接続し、Tailscale は不要です（[Tailcat](#tailcat) を参照） |
 
@@ -93,10 +93,10 @@ hylad は tailnet で待ち受けることもでき、その場合 SSH はまっ
 
 ```ini
 # ホスト上の ~/.config/hyla/config
-listen = tailnet://:7373
+listen = tailnet://:7473
 ```
 
-その後、ホストを `http://devbox:7373` として追加します。接続はプレーンな HTTP ですが、tailnet のデバイス間では WireGuard が暗号化します。
+その後、ホストを `http://devbox:7473` として追加します。接続はプレーンな HTTP ですが、tailnet のデバイス間では WireGuard が暗号化します。
 
 代わりに Tailscale の証明書を使って HTTPS で提供するには、hylad にソケットで待ち受けさせ、Tailscale Serve をそこに向けます:
 
@@ -127,7 +127,7 @@ Tailcat は Tailscale の代わりに、ペアコードでホストに接続し�
 
 **Settings › Hosts › Tailcat** に、Tailcat の設定がすべて 1 つのグループに入っています。上部のスイッチ **Tailcat でほかのホストに接続** でまとめてオンになります。オンのとき、グループは 2 つの部分に分かれます:
 
-- **Add a Host**: このマシンが接続するホストを追加します。相手のマシンの Tailcat グループ、またはそのマシンで `hyla hosts tailcat code` を実行して、ペアコードをコピーします。**リモート Tailcat のポート** は追加するホストの tailcat リスナーのポートです。別のものを指定しなければ 7373 です。
+- **Add a Host**: このマシンが接続するホストを追加します。相手のマシンの Tailcat グループ、またはそのマシンで `hyla hosts tailcat code` を実行して、ペアコードをコピーします。**リモート Tailcat のポート** は追加するホストの tailcat リスナーのポートです。別のものを指定しなければ 7473 です。
 - **Tailcat サービスを提供**: このマシンをホストにします。Hyla はそのペアコードをコピーのボタン付きで表示します。**このコンピュータの Tailcat リスナーポート** はここで hylad が待ち受けるポートです。**Change the pair code** は新しいペアコードにします。
 
 ペアコードにリスナーのポートは入っていません。ほかのマシンの **リモート Tailcat のポート** には、ホストの **このコンピュータの Tailcat リスナーポート** を設定してください。

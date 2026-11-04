@@ -4,6 +4,20 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.1.0
+
+- Hyla's icon is orange now, and its frog is a red-eyed tree frog: red eyes
+  with a black slit. The pet on the window's edge wears the same colours
+  and eyes. Development builds keep the green icon, so they still stand
+  apart from the installed Hyla.
+- **The default port of hylad's network listeners moved from 7373 to
+  7473**, so that Hyla and Kero can run on one machine side by side. A
+  host that listens on 7373 keeps working when its `listen` address names
+  the port (`tailnet://:7373`); a host added as plain `http://name` now
+  asks for 7473.
+- Settings › Appearance calls the pet "Hyla, the tree frog" (小树蛙 Hyla,
+  アマガエルの Hyla).
+
 ## 3.0.0
 
 Hyla was called Kero up to 2.1.37, and this release renames it: the app

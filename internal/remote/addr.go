@@ -25,7 +25,7 @@ import (
 // DefaultPort is the port hylad's tailnet listener takes when it names
 // none, as a development build's does not (ListenPort), and an http://
 // address without one.
-const DefaultPort = "7373"
+const DefaultPort = "7473"
 
 // Addr is how to reach a host.
 type Addr struct {

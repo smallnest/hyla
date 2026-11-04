@@ -64,9 +64,9 @@ hyla config check             # 报告未知的配置项和无效的值
 | `window-blur`        | `true`   | 模糊半透明背景后的桌面；关闭后是普通透明                      |
 | `pane-opacity`       | `0.82`   | 窗口半透明时，终端中显示多少窗口背景，0 到 1，与 `window-opacity` 相同：为 0 时直接看到桌面；文字始终不透明 |
 | `pane-blur`          | `false`  | 模糊终端背后透出的内容；关闭后是普通透明 |
-| `pet`                | `true`   | 小青蛙 Hyla：趴在窗口上沿，跟着你的会话                          |
+| `pet`                | `true`   | 小树蛙 Hyla：趴在窗口上沿，跟着你的会话                          |
 | `pet-offset`         | `0.5`    | Hyla 站在窗口宽度的哪里，0 到 1；直接拖动即可                    |
-| `pet-set`            | `hyla`   | 窗口上沿显示的宠物：`hyla` 小青蛙、`codex` 表示 Codex 应用当前启用的宠物，或 `~/.codex/pets` 中某个宠物目录的名字
+| `pet-set`            | `hyla`   | 窗口上沿显示的宠物：`hyla` 小树蛙、`codex` 表示 Codex 应用当前启用的宠物，或 `~/.codex/pets` 中某个宠物目录的名字
 | `pet-size`           | `1.5`    | Codex 宠物的显示高度，相对 Codex 应用的大小：0.5 到 3
 
 ## 终端
@@ -122,7 +122,7 @@ hyla config check             # 报告未知的配置项和无效的值
 | 配置项         | 默认值  | 说明 |
 | -------------- | ------- | ---- |
 | `host`         |         | 一台主机，写作 `name=address`：通过 SSH 连接时用 `me@devbox` 或 `ssh://…`，WSL 用 `wsl://distro`，hylad 的 tailnet 监听地址用 `http(s)://…`。在后面加上 ` remote-control` 可允许它的程序操控应用，加上 ` color=teal`（red、orange、amber、green、teal、blue、purple 或 pink）可为它的会话标色。每台主机写一行 |
-| `listen`       |         | 允许其他机器上的 Hyla 连接本机：`tailnet://:7373` 监听本机的 Tailscale 地址，`tailnet-serve://` 使用 Tailscale Serve。每个地址写一行 |
+| `listen`       |         | 允许其他机器上的 Hyla 连接本机：`tailnet://:7473` 监听本机的 Tailscale 地址，`tailnet-serve://` 使用 Tailscale Serve。每个地址写一行 |
 | `listen-allow` |         | 除本机所有者外还允许谁连接：某个 tailnet 登录账号、`tag:name`，或用 `*` 允许 tailnet 上的所有人。每项写一行 |
 | `remote-updates` | `false` | 允许你其他机器上的 Hyla 把这里的 Hyla 应用更新到它的版本，应用会随之重新启动 |
 

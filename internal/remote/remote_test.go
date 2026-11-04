@@ -33,7 +33,7 @@ func TestParseAddr(t *testing.T) {
 		{"ssh://[::1]:22", "[::1]:22", "ssh", "", "::1", "22"},
 		{"wsl://", "wsl://", "wsl", "", "", ""},
 		{"wsl://Ubuntu-24.04", "wsl://Ubuntu-24.04", "wsl", "", "Ubuntu-24.04", ""},
-		{"http://build:7373", "http://build:7373", "http", "", "build", "7373"},
+		{"http://build:7473", "http://build:7473", "http", "", "build", "7473"},
 		{"https://build.tail1234.ts.net", "https://build.tail1234.ts.net", "https", "", "build.tail1234.ts.net", ""},
 		{"devbox?hyla=/opt/hyla/hyla", "devbox?hyla=%2Fopt%2Fhyla%2Fhyla", "ssh", "", "devbox", ""},
 		{"devbox?hyla=C:/hyla/hyla.exe", "devbox?hyla=C%3A%2Fhyla%2Fhyla.exe", "ssh", "", "devbox", ""},
@@ -243,7 +243,7 @@ func TestParseListen(t *testing.T) {
 	if ListenPort() == DefaultPort {
 		t.Errorf("a development build listens on %s, as the installed Hyla", DefaultPort)
 	}
-	for _, bad := range []string{"tcp://:80", "tailnet://0.0.0.0:7373", "tailnet-serve://host/x", ":7373", "tailnet://:0", "tailnet://:99999", "tailcat://host:7373", "tailcat://:0"} {
+	for _, bad := range []string{"tcp://:80", "tailnet://0.0.0.0:7473", "tailnet-serve://host/x", ":7473", "tailnet://:0", "tailnet://:99999", "tailcat://host:7473", "tailcat://:0"} {
 		if l, err := ParseListen(bad); err == nil {
 			t.Errorf("%q read as %+v", bad, l)
 		}

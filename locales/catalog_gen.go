@@ -2772,31 +2772,31 @@ func (msgs Messages) SetTranslucentDetail() string {
 	return Catalog.Format(msgs.locale, "setTranslucentDetail", nil)
 }
 
-// PetName says "Hyla, the frog"
+// PetName says "Hyla, the tree frog"
 // in the language the app shows.
 func PetName() string { return In(i18n.Locale()).PetName() }
 
-// PetName says "Hyla, the frog"
+// PetName says "Hyla, the tree frog"
 // in the language of msgs.
 func (msgs Messages) PetName() string {
 	return Catalog.Format(msgs.locale, "petName", nil)
 }
 
-// SetPetDetail says "Who shows on the window’s edge: Hyla the frog, or any Codex pet in ~/.codex/pets, such as those from sites like cod…"
+// SetPetDetail says "Who shows on the window’s edge: Hyla, the tree frog, or any Codex pet in ~/.codex/pets, such as those from sites li…"
 // in the language the app shows.
 func SetPetDetail() string { return In(i18n.Locale()).SetPetDetail() }
 
-// SetPetDetail says "Who shows on the window’s edge: Hyla the frog, or any Codex pet in ~/.codex/pets, such as those from sites like cod…"
+// SetPetDetail says "Who shows on the window’s edge: Hyla, the tree frog, or any Codex pet in ~/.codex/pets, such as those from sites li…"
 // in the language of msgs.
 func (msgs Messages) SetPetDetail() string {
 	return Catalog.Format(msgs.locale, "setPetDetail", nil)
 }
 
-// SetPet says "Hyla the frog"
+// SetPet says "Hyla, the tree frog"
 // in the language the app shows.
 func SetPet() string { return In(i18n.Locale()).SetPet() }
 
-// SetPet says "Hyla the frog"
+// SetPet says "Hyla, the tree frog"
 // in the language of msgs.
 func (msgs Messages) SetPet() string {
 	return Catalog.Format(msgs.locale, "setPet", nil)
@@ -6894,13 +6894,13 @@ func (msgs Messages) SetPetInstalled(name string) string {
 	return Catalog.Format(msgs.locale, "setPetInstalled", map[string]any{"name": name})
 }
 
-// SetPetMissing says "Hyla shows Hyla the frog: it found no pet {name} ({error})."
+// SetPetMissing says "Hyla shows Hyla, the tree frog: it found no pet {name} ({error})."
 // in the language the app shows.
 func SetPetMissing(name string, error string) string {
 	return In(i18n.Locale()).SetPetMissing(name, error)
 }
 
-// SetPetMissing says "Hyla shows Hyla the frog: it found no pet {name} ({error})."
+// SetPetMissing says "Hyla shows Hyla, the tree frog: it found no pet {name} ({error})."
 // in the language of msgs.
 func (msgs Messages) SetPetMissing(name string, error string) string {
 	return Catalog.Format(msgs.locale, "setPetMissing", map[string]any{"name": name, "error": error})
@@ -6916,11 +6916,11 @@ func (msgs Messages) SetPetBuiltin() string {
 	return Catalog.Format(msgs.locale, "setPetBuiltin", nil)
 }
 
-// SetPetBuiltinDetail says "Install these Codex pets to show them beside Hyla the frog. Hyla downloads each from its own repository."
+// SetPetBuiltinDetail says "Install these Codex pets to show them beside Hyla, the tree frog. Hyla downloads each from its own repository."
 // in the language the app shows.
 func SetPetBuiltinDetail() string { return In(i18n.Locale()).SetPetBuiltinDetail() }
 
-// SetPetBuiltinDetail says "Install these Codex pets to show them beside Hyla the frog. Hyla downloads each from its own repository."
+// SetPetBuiltinDetail says "Install these Codex pets to show them beside Hyla, the tree frog. Hyla downloads each from its own repository."
 // in the language of msgs.
 func (msgs Messages) SetPetBuiltinDetail() string {
 	return Catalog.Format(msgs.locale, "setPetBuiltinDetail", nil)
@@ -7096,11 +7096,11 @@ func (msgs Messages) SetTailcatPort() string {
 	return Catalog.Format(msgs.locale, "setTailcatPort", nil)
 }
 
-// SetTailcatPortDetail says "The port of the tailcat listener of the hosts you add: 7373 unless one names another."
+// SetTailcatPortDetail says "The port of the tailcat listener of the hosts you add: 7473 unless one names another."
 // in the language the app shows.
 func SetTailcatPortDetail() string { return In(i18n.Locale()).SetTailcatPortDetail() }
 
-// SetTailcatPortDetail says "The port of the tailcat listener of the hosts you add: 7373 unless one names another."
+// SetTailcatPortDetail says "The port of the tailcat listener of the hosts you add: 7473 unless one names another."
 // in the language of msgs.
 func (msgs Messages) SetTailcatPortDetail() string {
 	return Catalog.Format(msgs.locale, "setTailcatPortDetail", nil)

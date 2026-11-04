@@ -15,14 +15,15 @@ import (
 // a desktop, not a UI. Body, belly and line are the icon's frog
 // (resources/icon.png), so the frog on the edge is the Hyla in the Dock.
 var (
-	petBody  = ui.Hex("#c6eb72")
-	petBelly = ui.Hex("#fdf4a2")
-	petLine  = ui.Hex("#203501") // the icon's outline around body and hands
+	petBody  = ui.Hex("#fb6f02")
+	petBelly = ui.Hex("#fede8e")
+	petLine  = ui.Hex("#3d1e00") // the icon's outline around body and hands
 	// petRim is the width of the line round the head, the hands and the
 	// far arm, at the frog's size.
 	petRim   float32 = 1.6
-	petInk           = ui.Hex("#26362d")
-	petCheek         = ui.Hex("#f29b96")
+	petInk           = ui.Hex("#3a1c05")
+	petIris          = ui.Hex("#e8321f") // the red eye of a tree frog
+	petCheek         = ui.Hex("#ff9db0")
 	petLeaf          = ui.Hex("#5cae79")
 	petSpark         = ui.Hex("#f4c95d")
 	petTear          = ui.Hex("#7bb8ea")
@@ -244,17 +245,17 @@ func petEllipse(cx, cy, rx, ry float32) *ui.Path {
 	return p.Close()
 }
 
-// petEyeOpen is an eye with a bright catch, which blink closes and wide
-// opens.
+// petEyeOpen is a tree frog's eye: red, with a black slit, which blink
+// closes and wide opens.
 func petEyeOpen(p *ui.Painter, x, y, blink float32, wide bool) {
 	ry := 8.8 * (1 - blink*0.9)
 	rx := float32(7.2)
 	if wide {
 		rx, ry = rx+0.8, ry+0.9
 	}
-	p.FillPath(petEllipse(x, y, rx, ry), petInk)
-	p.FillPath(petEllipse(x-2.3, y-2.8, 2.2, 2.6), ui.RGBA(255, 255, 255, 0.92))
-	p.FillPath(petEllipse(x+2.1, y+3.1, 0.9, 1.1), ui.RGBA(255, 255, 255, 0.45))
+	p.FillPath(petEllipse(x, y, rx, ry), petIris)
+	p.FillPath(petEllipse(x, y, rx*0.32, ry*0.8), petInk)
+	p.FillPath(petEllipse(x-2.4, y-3, 2.0, 2.4), ui.RGBA(255, 255, 255, 0.92))
 }
 
 // petEyeHappy is a closed, smiling eye.

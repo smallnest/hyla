@@ -169,7 +169,7 @@ var keys = append([]key{
 	boolKey("window-blur", "blur the desktop behind the translucent background; off, the wash is plain transparency", func(s *Settings) *bool { return &s.WindowBlur }),
 	float32Key("pane-opacity", "how much of the window's background shows in a terminal while the window is translucent, 0 to 1, as window-opacity; 0 shows the desktop alone, and the terminal's text stays opaque", func(s *Settings) *float32 { return &s.PaneOpacity }),
 	boolKey("pane-blur", "blur what shows through the terminals; off, they are plain transparency, and 0% opacity shows the desktop alone", func(s *Settings) *bool { return &s.PaneBlur }),
-	boolKey("pet", "Hyla the frog on the window's top edge, who follows your sessions", func(s *Settings) *bool { return &s.Pet }),
+	boolKey("pet", "Hyla, the tree frog on the window's top edge, who follows your sessions", func(s *Settings) *bool { return &s.Pet }),
 	float32Key("pet-offset", "where Hyla stands across the window, 0 to 1; drag it there", func(s *Settings) *float32 { return &s.PetOffset }),
 	float32Key("pet-size", "how tall a Codex pet shows, against the Codex app's 82 DIPs, 0.5 to 3", func(s *Settings) *float32 { return &s.PetSize }),
 	stringKey("pet-set", `the pet on the window's edge: hyla, codex (the Codex app's active pet), or a Codex pet's directory name in ~/.codex/pets, or in hyla's own`, func(s *Settings) *string { return &s.PetSet }),
@@ -320,7 +320,7 @@ var keys = append([]key{
 			}
 			return nil
 		}},
-	{name: "listen", doc: "let Hyla on other machines reach this one's sessions: tailnet://:7373 on its Tailscale addresses, tailnet-serve:// for Tailscale Serve, tailcat://:7373 through a relay with a pair code instead of Tailscale (tailcat = true), or hyla hosts tailcat enable; repeat it", list: true,
+	{name: "listen", doc: "let Hyla on other machines reach this one's sessions: tailnet://:7473 on its Tailscale addresses, tailnet-serve:// for Tailscale Serve, tailcat://:7473 through a relay with a pair code instead of Tailscale (tailcat = true), or hyla hosts tailcat enable; repeat it", list: true,
 		get: func(s *Settings) []string { return slices.Clone(s.Listen) },
 		set: func(s *Settings, v []string) error {
 			s.Listen = nil
@@ -398,7 +398,7 @@ var keys = append([]key{
 			}
 			return nil
 		}},
-	{name: "tailcat-port", doc: "the port of the tailcat listeners of the hosts Hyla adds, which their pair codes do not have: the default, 7373; set it to the Listener port of a host that names another",
+	{name: "tailcat-port", doc: "the port of the tailcat listeners of the hosts Hyla adds, which their pair codes do not have: the default, 7473; set it to the Listener port of a host that names another",
 		get: func(s *Settings) []string { return []string{s.TailcatPort} },
 		set: func(s *Settings, v []string) error {
 			if p := strings.TrimSpace(v[len(v)-1]); p != "" && !ValidTailcatPort(p) {

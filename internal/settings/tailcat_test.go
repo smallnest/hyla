@@ -34,11 +34,11 @@ func TestTailcatConfig(t *testing.T) {
 		}
 	}
 	// Off, a tailcat listener is a problem, and is not kept.
-	if _, probs := parse("listen = tailcat://:7373\n"); len(probs) == 0 {
+	if _, probs := parse("listen = tailcat://:7473\n"); len(probs) == 0 {
 		t.Error("a tailcat listener read with Tailcat off")
 	}
 	// Also when listen comes before tailcat: the listener is then kept.
-	if s, probs := parse("listen = tailcat://:7373\ntailcat = true\n"); len(probs) > 0 || len(s.Listen) != 1 {
+	if s, probs := parse("listen = tailcat://:7473\ntailcat = true\n"); len(probs) > 0 || len(s.Listen) != 1 {
 		t.Errorf("listen before tailcat: listeners %q, problems %q", s.Listen, probs)
 	}
 	// A bad host, port or relay keeps none of them.
@@ -60,7 +60,7 @@ func TestTailcatConfig(t *testing.T) {
 // names, and none for "".
 func TestTailcatSetListen(t *testing.T) {
 	s := Default()
-	s.Listen = []string{"tailnet://:7373"}
+	s.Listen = []string{"tailnet://:7473"}
 	if _, _, ok := s.TailcatListen(); ok {
 		t.Fatal("a tailcat listener without one")
 	}
@@ -71,7 +71,7 @@ func TestTailcatSetListen(t *testing.T) {
 		t.Fatalf("listeners %q", s.Listen)
 	}
 	s.SetTailcatListen("")
-	if _, _, ok := s.TailcatListen(); ok || len(s.Listen) != 1 || s.Listen[0] != "tailnet://:7373" {
+	if _, _, ok := s.TailcatListen(); ok || len(s.Listen) != 1 || s.Listen[0] != "tailnet://:7473" {
 		t.Fatalf("listeners %q", s.Listen)
 	}
 }

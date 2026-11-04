@@ -2,7 +2,7 @@ package settings
 
 import "strings"
 
-// PetSetHyla is the pet setting of Hyla the frog, the one hyla draws.
+// PetSetHyla is the pet setting of Hyla, the tree frog, the one hyla draws.
 const PetSetHyla = "hyla"
 
 // PetSetCodex is the pet setting of the Codex pet Codex has active now,

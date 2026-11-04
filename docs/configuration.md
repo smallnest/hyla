@@ -64,9 +64,9 @@ hyla config check             # report unknown keys and bad values
 | `window-blur`        | `true`   | Blur the desktop behind the translucent background; off is plain transparency |
 | `pane-opacity`       | `0.82`   | How much of the window's background shows in a terminal while the window is translucent, 0 to 1, as `window-opacity`: 0 shows the desktop alone; the text stays opaque |
 | `pane-blur`          | `false`  | Blur what shows through the terminals; off is plain transparency |
-| `pet`                | `true`   | Hyla the frog, who follows your sessions from the window's top edge |
+| `pet`                | `true`   | Hyla, the tree frog, who follows your sessions from the window's top edge |
 | `pet-offset`         | `0.5`    | Where Hyla stands, 0 to 1 across the window; drag it there       |
-| `pet-set`            | `hyla`   | The pet on the window's edge: `hyla` the frog, `codex` for the Codex app's active pet, or a pet's directory name in `~/.codex/pets`
+| `pet-set`            | `hyla`   | The pet on the window's edge: `hyla` the tree frog, `codex` for the Codex app's active pet, or a pet's directory name in `~/.codex/pets`
 | `pet-size`           | `1.5`    | How tall a Codex pet shows, against the Codex app's size: 0.5 to 3
 
 ## Terminal
@@ -122,7 +122,7 @@ Other machines whose sessions the app shows, and `hyla -H` reaches. See [Remote 
 | Key            | Default | Description |
 | -------------- | ------- | ----------- |
 | `host`         |         | A host, as `name=address`: `me@devbox` or `ssh://…` over SSH, `wsl://distro`, `http(s)://…` for hylad's tailnet listener. Add ` remote-control` after it to let its programs drive the app, and ` color=teal` (red, orange, amber, green, teal, blue, purple or pink) to mark its sessions. Repeat it for each host |
-| `listen`       |         | Let Hyla on other machines reach this one: `tailnet://:7373` on its Tailscale addresses, `tailnet-serve://` for Tailscale Serve. Repeat it for each |
+| `listen`       |         | Let Hyla on other machines reach this one: `tailnet://:7473` on its Tailscale addresses, `tailnet-serve://` for Tailscale Serve. Repeat it for each |
 | `listen-allow` |         | Who besides the machine's owner may connect: a tailnet login, `tag:name`, or `*` for anyone on the tailnet. Repeat it for each |
 | `remote-updates` | `false` | Let Hyla on your other machines update the Hyla app here to its version, which relaunches it |
 

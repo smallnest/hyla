@@ -163,7 +163,7 @@ Usage:
   hyla pets rm <name>           remove an installed pet
   hyla daemon status|stop|restart|update [version]
   hyla daemon stop --force         kill a hylad that does not stop
-  hyla daemon serve [--listen tailnet://:7373]…
+  hyla daemon serve [--listen tailnet://:7473]…
                                 run hylad in the foreground, never idle,
                                 as a service does
   hyla daemon install-service|uninstall-service

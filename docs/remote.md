@@ -15,7 +15,7 @@ A host is any machine with Hyla on it. It can be another computer where you alre
 
 The app needs nothing installed beside it: its own hylad serves as the host. Pick how your other machines reach it:
 
-- **Over Tailscale.** In the app on the host, turn on **Settings › Hosts › Let other machines connect**. It shows the address to add elsewhere, such as `http://studio.tail1234.ts.net:7373`. See [Tailscale](#tailscale).
+- **Over Tailscale.** In the app on the host, turn on **Settings › Hosts › Let other machines connect**. It shows the address to add elsewhere, such as `http://studio.tail1234.ts.net:7473`. See [Tailscale](#tailscale).
 - **Over SSH.** If the computer takes SSH logins (on a Mac, **System Settings › General › Sharing › Remote Login**), add it by the address you'd give `ssh`. Hyla finds the app there on its own.
 
 Sessions on the host keep running while its app is closed, as they do on your own computer.
@@ -57,7 +57,7 @@ An address says how to reach a host. Hyla takes the same address in Settings, in
 | --- | --- |
 | `devbox`, `me@devbox`, `me@devbox:2222`, `ssh://me@devbox` | SSH, with your `~/.ssh/config`, keys and agent |
 | `wsl://Ubuntu`, `wsl://` | A WSL distribution of this Windows PC, through `wsl.exe` |
-| `http://devbox:7373` | hylad's listener on a tailnet address (see [Tailscale](#tailscale)) |
+| `http://devbox:7473` | hylad's listener on a tailnet address (see [Tailscale](#tailscale)) |
 | `https://devbox.tail1234.ts.net` | hylad behind Tailscale Serve |
 | `tailcat://tc…` | A pair code, through a relay: no Tailscale needed (see [Tailcat](#tailcat)) |
 
@@ -93,10 +93,10 @@ hylad can also listen on your tailnet, so that it needs no SSH at all. Tailscale
 
 ```ini
 # ~/.config/hyla/config on the host
-listen = tailnet://:7373
+listen = tailnet://:7473
 ```
 
-Then add the host as `http://devbox:7373`. The connection is plain HTTP, which WireGuard encrypts between tailnet devices.
+Then add the host as `http://devbox:7473`. The connection is plain HTTP, which WireGuard encrypts between tailnet devices.
 
 To serve it over HTTPS with Tailscale's certificate instead, let hylad listen on a socket and point Tailscale Serve at it:
 
@@ -127,7 +127,7 @@ The pair code is the host's address. It contains the host's key, a secret pre-sh
 
 **Settings › Hosts › Tailcat** holds all Tailcat settings, in one group. The switch **Use Tailcat to Reach Other Hosts** turns them all on. With it on, the group has two parts:
 
-- **Add a Host** adds a host that this machine reaches. Copy the pair code from the host's Tailcat group, or from `hyla hosts tailcat code` on the host. **Remote Tailcat Port** is the port of the tailcat listener of the hosts that you add: 7373 unless one of them names another.
+- **Add a Host** adds a host that this machine reaches. Copy the pair code from the host's Tailcat group, or from `hyla hosts tailcat code` on the host. **Remote Tailcat Port** is the port of the tailcat listener of the hosts that you add: 7473 unless one of them names another.
 - **Provide Tailcat Service** makes this machine a host. Hyla then shows its pair code, with a button to copy it, and **This Computer's Tailcat Listener Port** is the port that hylad listens on here. **Change the pair code** makes a new code.
 
 The pair code does not have the port of the listener in it. The **Remote Tailcat Port** of the other machines must be the **This Computer's Tailcat Listener Port** of the host.

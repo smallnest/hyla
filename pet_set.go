@@ -12,9 +12,9 @@ import (
 	"hyla/locales"
 )
 
-// Pet sets are the pets on the window's edge beside Hyla the frog: Codex
+// Pet sets are the pets on the window's edge beside Hyla, the tree frog: Codex
 // pets' spritesheets, which the pet shows frame by frame for each mood,
-// where Hyla the frog is drawn (pet_draw.go).
+// where Hyla, the tree frog is drawn (pet_draw.go).
 
 const (
 	petSetFrame  = 150 * time.Millisecond // the Codex app's pace, 6⅔ frames a second
@@ -46,7 +46,7 @@ type petSet struct {
 }
 
 // petSetLoad reads the pet the settings show, if it is no frog, and
-// says when it is not there, for the pet shows Hyla the frog then.
+// says when it is not there, for the pet shows Hyla, the tree frog then.
 func (a *App) petSetLoad() *petSet {
 	if a.set.PetSet == settings.PetSetHyla {
 		return nil

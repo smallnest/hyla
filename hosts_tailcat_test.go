@@ -157,7 +157,7 @@ func TestTailcatSettingRows(t *testing.T) {
 		t.Errorf("a listener's port without a listener: %q", tt.Texts())
 	}
 	s = a.set.Clone()
-	s.SetTailcatListen("7373")
+	s.SetTailcatListen("7473")
 	a.set, a.ss.tailcat = s, tailcatDraft{code: "tailcat://" + testCode}
 	tt.Frame()
 	for _, want := range []string{locales.SetTailcatListenPort(), locales.SetTailcatCode(), locales.SetTailcatCodeDetail(), locales.SetTailcatChange()} {
@@ -194,14 +194,14 @@ func TestTailcatRotate(t *testing.T) {
 	}
 	s := a.set.Clone()
 	s.Tailcat = true
-	s.SetTailcatListen("7373")
+	s.SetTailcatListen("7473")
 	rot := s.TailcatRotate
 	a.set, a.ss.tailcat = s, tailcatDraft{}
 	a.rotateTailcatCode()
 	if a.set.TailcatRotate == rot {
 		t.Error("hylad told not to start its listener again")
 	}
-	if l, port, ok := a.set.TailcatListen(); !ok || l != "tailcat://:7373" || port != "7373" {
+	if l, port, ok := a.set.TailcatListen(); !ok || l != "tailcat://:7473" || port != "7473" {
 		t.Fatalf("listen %q", a.set.Listen)
 	}
 	if a.pendingToast == "" {

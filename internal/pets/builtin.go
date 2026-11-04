@@ -29,7 +29,7 @@ type Builtin struct {
 	ID string
 }
 
-// Builtins lists the pets hyla offers, beside Hyla the frog, which it
+// Builtins lists the pets hyla offers, beside Hyla, the tree frog, which it
 // does not fetch: the Codex app's active pet, if it has one, and the
 // packs of builtinURL, as the README there lists them.
 func Builtins() []Builtin {

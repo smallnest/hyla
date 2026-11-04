@@ -15,7 +15,7 @@ Hyla 可以在同一个窗口中显示运行在其他机器上的会话，比如
 
 应用本身无需额外安装任何东西：它自带的 hylad 就能充当主机。选择其他机器连接它的方式：
 
-- **通过 Tailscale。** 在主机上的应用中，打开 **设置 › 主机 › 允许其他机器连接**。界面会显示可在其他机器上添加的地址，例如 `http://studio.tail1234.ts.net:7373`。详见 [Tailscale](#tailscale)。
+- **通过 Tailscale。** 在主机上的应用中，打开 **设置 › 主机 › 允许其他机器连接**。界面会显示可在其他机器上添加的地址，例如 `http://studio.tail1234.ts.net:7473`。详见 [Tailscale](#tailscale)。
 - **通过 SSH。** 如果这台电脑接受 SSH 登录（在 Mac 上为 **系统设置 › 通用 › 共享 › 远程登录**），就用你传给 `ssh` 的地址添加它。Hyla 会自动找到那台电脑上的应用。
 
 即使主机上的应用已关闭，其中的会话仍会继续运行，和在你自己电脑上一样。
@@ -57,7 +57,7 @@ hyla -H devbox new -n review -- claude
 | --- | --- |
 | `devbox`、`me@devbox`、`me@devbox:2222`、`ssh://me@devbox` | SSH，使用你的 `~/.ssh/config`、密钥和 agent |
 | `wsl://Ubuntu`、`wsl://` | 本台 Windows 电脑上的 WSL 发行版，通过 `wsl.exe` 连接 |
-| `http://devbox:7373` | hylad 在 tailnet 地址上的监听（见 [Tailscale](#tailscale)） |
+| `http://devbox:7473` | hylad 在 tailnet 地址上的监听（见 [Tailscale](#tailscale)） |
 | `https://devbox.tail1234.ts.net` | 位于 Tailscale Serve 之后的 hylad |
 | `tailcat://tc…` | 配对码，经中继连接：不需要 Tailscale（见 [Tailcat](#tailcat)） |
 
@@ -95,10 +95,10 @@ hylad 也可以在你的 tailnet 上监听，这样就完全不需要 SSH。Tail
 
 ```ini
 # 主机上的 ~/.config/hyla/config
-listen = tailnet://:7373
+listen = tailnet://:7473
 ```
 
-然后以 `http://devbox:7373` 添加该主机。连接本身是明文 HTTP，由 WireGuard 在 tailnet 设备之间加密。
+然后以 `http://devbox:7473` 添加该主机。连接本身是明文 HTTP，由 WireGuard 在 tailnet 设备之间加密。
 
 如果想改用 Tailscale 的证书通过 HTTPS 提供服务，可以让 hylad 监听一个套接字，再将 Tailscale Serve 指向它：
 
@@ -129,7 +129,7 @@ Tailcat 用配对码代替 Tailscale 连接主机，两边都不需要 Tailscale
 
 **Settings › Hosts › Tailcat** 集中了所有 Tailcat 设置，都在一个分组里。分组顶部的开关 **使用 Tailcat 连接其它主机** 一次打开它们。打开后，分组分为两部分：
 
-- **Add a Host**（添加主机）：添加这台电脑要连接的机器。从对方机器 Tailcat 分组里，或在对方机器上运行 `hyla hosts tailcat code`，复制它的配对码。**远程 Tailcat 服务端口** 是要添加的机器上 tailcat 监听所用的端口：没有另写时是 7373。
+- **Add a Host**（添加主机）：添加这台电脑要连接的机器。从对方机器 Tailcat 分组里，或在对方机器上运行 `hyla hosts tailcat code`，复制它的配对码。**远程 Tailcat 服务端口** 是要添加的机器上 tailcat 监听所用的端口：没有另写时是 7473。
 - **提供 Tailcat 服务**：把这台电脑变成主机。Hyla 随即显示它的配对码，并带复制按钮；**本机 Tailcat 服务监听端口** 是 hylad 在这里监听的端口。**Change the pair code** 会换一个新配对码。
 
 配对码里没有监听端口。其他机器的 **远程 Tailcat 服务端口** 要填主机的 **本机 Tailcat 服务监听端口**。

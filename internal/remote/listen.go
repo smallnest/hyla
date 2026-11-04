@@ -12,14 +12,14 @@ import (
 // Listen is one of hylad's network listeners, as the configuration's
 // listen key and `hyla daemon serve --listen` name it:
 //
-//   - tailnet://:7373, or tailnet:// for ListenPort: plain HTTP on this
+//   - tailnet://:7473, or tailnet:// for ListenPort: plain HTTP on this
 //     machine's Tailscale addresses, which WireGuard encrypts; tailscaled
 //     tells who connects.
 //   - tailnet-serve:///path/to/serve.sock, or tailnet-serve:// for
 //     serve.sock in hyla's directory: a socket for Tailscale Serve to pass
 //     HTTPS connections to (`tailscale serve --bg unix:/path/to/serve.sock`),
 //     which tells who connects in its headers.
-//   - tailcat://:7373, or tailcat://: a relay for Hyla anywhere, over
+//   - tailcat://:7473, or tailcat://: a relay for Hyla anywhere, over
 //     the tailcat library (tailcat.go): WireGuard end to end,
 //     with a public DERP relay only to reach the peer. There is no
 //     Tailscale account: the pair code hylad shows is the secret to
@@ -82,7 +82,8 @@ func ParseListen(s string) (Listen, error) {
 // listens beside the installed Hyla's on the same machine.
 func ListenPort() string {
 	if mygo.IsDev() {
-		return "7374"
+		n, _ := strconv.Atoi(DefaultPort)
+		return strconv.Itoa(n + 1)
 	}
 	return DefaultPort
 }

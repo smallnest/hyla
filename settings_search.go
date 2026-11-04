@@ -98,7 +98,7 @@ func settingsIndex() []searchEntry {
 		{"hosts", locales.SetTailcatTitle(), "tailcat pair code relay derp paircode no-tailscale tailcat-relay tailcat-port"},
 		{"hosts", locales.SetTailcatListen(), "tailcat listener provide service host relay tailnet port tailcat:// hyla hosts tailcat enable"},
 		{"hosts", locales.SetTailcatCode(), "tailcat pair code paircode copy secret share other machines"},
-		{"hosts", locales.SetListen(), "listen tailnet tailscale share this computer host port 7373 listen-allow"},
+		{"hosts", locales.SetListen(), "listen tailnet tailscale share this computer host port 7473 listen-allow"},
 
 		{"advanced", locales.SetConfigFile(), "configuration ghostty edit file dotfiles"},
 		{"advanced", "hylad", "daemon background service restart sessions"},

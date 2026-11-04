@@ -118,7 +118,7 @@ type Settings struct {
 	// one's and the CLI reaches with -H.
 	Hosts []Host `json:"hosts,omitempty"`
 	// Listen are hylad's network listeners, for clients on other machines
-	// (tailnet://:7373, tailnet-serve://), and ListenAllow who may connect
+	// (tailnet://:7473, tailnet-serve://), and ListenAllow who may connect
 	// besides the machine's owner: tailnet logins, tag:name, or *.
 	Listen      []string `json:"listen,omitempty"`
 	ListenAllow []string `json:"listenAllow,omitempty"`
