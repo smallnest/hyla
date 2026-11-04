@@ -65,9 +65,9 @@ var All = []Action{
 	{ID: "text.bigger", Title: "Bigger", Menu: "View", Keys: "CmdOrCtrl+=", Remote: true},
 	{ID: "text.smaller", Title: "Smaller", Menu: "View", Keys: "CmdOrCtrl+-", Remote: true},
 	{ID: "text.reset", Title: "Actual Size", Menu: "View", Keys: "CmdOrCtrl+0", Remote: true},
-	// Ghostty's Control+`, which works in every app: the user may give it
+	// Control+Shift+T, which works in every app: the user may give it
 	// another, or none, in Settings › Keyboard.
-	{ID: "quickTerminal.toggle", Title: "Quick Terminal", Menu: "View", Keys: "Ctrl+`", Remote: true, Global: true},
+	{ID: "quickTerminal.toggle", Title: "Quick Terminal", Menu: "View", Keys: "Ctrl+Shift+T", Remote: true, Global: true},
 }
 
 // pcKeys are the defaults on Windows and Linux, where Control is the

@@ -194,7 +194,13 @@ func (a *App) paletteItems() []paletteItem {
 	}
 	for _, act := range actions.All {
 		id := act.ID
-		cmds = append(cmds, paletteItem{title: strings.TrimSuffix(actionTitle(act.ID), "…"), keys: actions.Glyphs(actions.Keys(act, a.set.Shortcuts)),
+		// A global shortcut shows too, marked, though the menus leave it to
+		// the system to take.
+		keys := actions.Glyphs(actions.Keys(act, a.set.Shortcuts))
+		if keys != "" && act.Global {
+			keys += " " + locales.PaletteShortcutGlobal()
+		}
+		cmds = append(cmds, paletteItem{title: strings.TrimSuffix(actionTitle(act.ID), "…"), keys: keys,
 			words: act.Title + " " + actionWords[id], run: func() { a.run(id, nil) }})
 	}
 	for _, page := range settingsPages {

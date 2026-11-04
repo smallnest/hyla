@@ -244,6 +244,7 @@
   "paletteRestartService": "Restart Background Service",
   "paletteRestartServiceDetail": "Sessions start again where they were",
   "paletteOpenInBrowser": "Open in Browser Pane",
+  "paletteShortcutGlobal": "global",
   "paletteLabel": "Go to Session",
   "palettePlaceholder": "Go to session or run a command…",
   "paletteNoMatches": "No matches",

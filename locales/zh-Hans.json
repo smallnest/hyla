@@ -168,6 +168,7 @@
   "paletteRestartService": "重启后台服务",
   "paletteRestartServiceDetail": "会话会在原处重新开始",
   "paletteOpenInBrowser": "在浏览器面板中打开",
+  "paletteShortcutGlobal": "全局",
   "paletteLabel": "前往会话",
   "palettePlaceholder": "前往会话或运行命令…",
   "paletteNoMatches": "没有匹配项",

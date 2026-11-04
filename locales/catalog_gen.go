@@ -1736,6 +1736,16 @@ func (msgs Messages) PaletteOpenInBrowser() string {
 	return Catalog.Format(msgs.locale, "paletteOpenInBrowser", nil)
 }
 
+// PaletteShortcutGlobal says "global"
+// in the language the app shows.
+func PaletteShortcutGlobal() string { return In(i18n.Locale()).PaletteShortcutGlobal() }
+
+// PaletteShortcutGlobal says "global"
+// in the language of msgs.
+func (msgs Messages) PaletteShortcutGlobal() string {
+	return Catalog.Format(msgs.locale, "paletteShortcutGlobal", nil)
+}
+
 // PaletteLabel says "Go to Session"
 // in the language the app shows.
 func PaletteLabel() string { return In(i18n.Locale()).PaletteLabel() }

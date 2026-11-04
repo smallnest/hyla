@@ -168,6 +168,7 @@
   "paletteRestartService": "バックグラウンドサービスを再起動",
   "paletteRestartServiceDetail": "セッションは元の場所から再開します",
   "paletteOpenInBrowser": "ブラウザペインで開く",
+  "paletteShortcutGlobal": "グローバル",
   "paletteLabel": "セッションへ移動",
   "palettePlaceholder": "セッションへ移動、またはコマンドを実行…",
   "paletteNoMatches": "一致なし",
