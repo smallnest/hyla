@@ -168,7 +168,7 @@ func (b *Bot) finished(key, chatID, response, agent, dir, sid, text string, out 
 	// answer, which the agent's command left no transcript for.
 	b.keepTurn(agent, sid, text, reply)
 	b.replyTurn(key, response, chatID, Card{Title: titleOf(reply), Text: reply, State: state,
-		Duration: time.Since(started), Usage: UsageOf(out.Text)}, reply)
+		Duration: time.Since(started), Usage: UsageOf(agent, out.Text)}, reply)
 }
 
 // lostSession tells whether a Codex turn could not continue the session
@@ -292,7 +292,9 @@ func (b *Bot) turnCommand(agent, sid, resume string, told bool) []string {
 			cmd = append(cmd, "resume", resume, "--skip-git-repo-check")
 		}
 	case "opencode":
-		cmd = append(cmd, "run")
+		// Its events, as JSON lines, name the session, its answer, and
+		// what the turn used.
+		cmd = append(cmd, "run", "--format", "json")
 		// OpenCode names a session of its own ses_…, and makes the one
 		// an ID it does not know names: a chat's ID, or a pane's
 		// conversation's, is one of its own, which the turn keeps.

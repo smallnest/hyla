@@ -170,8 +170,16 @@ type Usage struct {
 	Context, MaxContext  int
 }
 
-// UsageOf reads what a Claude Code turn used from its stream's result.
-func UsageOf(raw string) Usage {
+// UsageOf reads what a turn used from its agent's output: the result of
+// a Claude Code stream, the steps of an OpenCode one, or a Codex turn's
+// usage.
+func UsageOf(agent, raw string) Usage {
+	switch agent {
+	case "opencode":
+		return opencodeUsage(raw)
+	case "codex":
+		return codexUsage(raw)
+	}
 	var u Usage
 	var m struct {
 		Type  string `json:"type"`
@@ -207,6 +215,55 @@ func UsageOf(raw string) Usage {
 	return u
 }
 
+// opencodeUsage reads what an OpenCode turn used from the steps it
+// finished: the last step's tokens are the conversation's context.
+func opencodeUsage(raw string) Usage {
+	var u Usage
+	for _, line := range strings.Split(raw, "\n") {
+		var e struct {
+			Type string `json:"type"`
+			Part *struct {
+				Tokens *struct {
+					Input  int `json:"input"`
+					Output int `json:"output"`
+					Cache  struct {
+						Read  int `json:"read"`
+						Write int `json:"write"`
+					} `json:"cache"`
+				} `json:"tokens"`
+			} `json:"part"`
+		}
+		if json.Unmarshal([]byte(line), &e) != nil || e.Type != "step_finish" || e.Part == nil || e.Part.Tokens == nil {
+			continue
+		}
+		t := e.Part.Tokens
+		u = Usage{Input: t.Input + t.Cache.Read + t.Cache.Write, Output: t.Output, Cache: t.Cache.Read}
+		u.Context = u.Input + u.Output
+	}
+	return u
+}
+
+// codexUsage reads what a Codex turn used from its completed event.
+func codexUsage(raw string) Usage {
+	var u Usage
+	for _, line := range strings.Split(raw, "\n") {
+		var e struct {
+			Type  string `json:"type"`
+			Usage *struct {
+				Input       int `json:"input_tokens"`
+				Output      int `json:"output_tokens"`
+				CachedInput int `json:"cached_input_tokens"`
+			} `json:"usage"`
+		}
+		if json.Unmarshal([]byte(line), &e) != nil || e.Type != "turn.completed" || e.Usage == nil {
+			continue
+		}
+		u = Usage{Input: e.Usage.Input, Output: e.Usage.Output, Cache: e.Usage.CachedInput}
+		u.Context = u.Input + u.Output
+	}
+	return u
+}
+
 // text is what a turn used, as a card's footer shows it: the tokens it
 // took and gave, and the conversation's context, each only when known.
 func (u Usage) text() string {
@@ -223,6 +280,9 @@ func (u Usage) text() string {
 	if u.Context > 0 && u.MaxContext > 0 {
 		parts = append(parts, fmt.Sprintf("ctx %s/%s %d%%", countText(u.Context), countText(u.MaxContext),
 			int(math.Round(float64(u.Context)/float64(u.MaxContext)*100))))
+	} else if u.Context > 0 {
+		// An agent that does not say how much its model holds.
+		parts = append(parts, "ctx "+countText(u.Context))
 	}
 	return strings.Join(parts, " · ")
 }

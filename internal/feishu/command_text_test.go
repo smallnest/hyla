@@ -38,3 +38,17 @@ func TestCommandTextCodex(t *testing.T) {
 		t.Errorf("the failure %q", got)
 	}
 }
+
+// An OpenCode turn's events give its answer, the session a chat
+// continues, and what the turn used.
+func TestCommandTextOpenCode(t *testing.T) {
+	raw := `{"type":"step_start","timestamp":1,"sessionID":"ses_1","part":{"id":"p1","type":"step-start"}}
+{"type":"text","timestamp":2,"sessionID":"ses_1","part":{"id":"p2","type":"text","text":"Hello."}}
+{"type":"step_finish","timestamp":3,"sessionID":"ses_1","part":{"id":"p3","type":"step-finish","reason":"stop","tokens":{"input":21500,"output":469,"reasoning":0,"cache":{"read":39900,"write":0}}}}`
+	if got := commandText("opencode", raw); got != "Hello." {
+		t.Errorf("the answer %q", got)
+	}
+	if sid := conversation("opencode", raw, "x"); sid != "ses_1" {
+		t.Errorf("opencode continues %q", sid)
+	}
+}

@@ -799,7 +799,7 @@ func TestCommandContinues(t *testing.T) {
 	b, _, _ := newBot(t)
 	first := b.backgroundCommand("opencode", "sid-1", "", "hi", false)
 	next := b.backgroundCommand("opencode", "sid-2", "ses_9", "again", false)
-	if strings.Join(next, " ") != "opencode run --session ses_9 again" || strings.Join(first, " ") != "opencode run --session ses_sid1 hi" {
+	if strings.Join(next, " ") != "opencode run --format json --session ses_9 again" || strings.Join(first, " ") != "opencode run --format json --session ses_sid1 hi" {
 		t.Errorf("%q, %q", first, next)
 	}
 	// A chat's ID is no session of OpenCode's own: its turn makes one
@@ -997,7 +997,7 @@ func TestCardTurn(t *testing.T) {
 	}
 	// What the turn used, as the footer shows it: the tokens it took,
 	// with the cached ones, and gave, and the context.
-	u := UsageOf(`{"type":"result","usage":{"input_tokens":4200,"output_tokens":680,"cache_read_input_tokens":12000},` +
+	u := UsageOf("claude", `{"type":"result","usage":{"input_tokens":4200,"output_tokens":680,"cache_read_input_tokens":12000},`+
 		`"modelUsage":{"m":{"contextWindow":200000,"canonicalModel":"claude-sonnet-5-5"}}}`)
 	if u.Input != 16200 || u.Output != 680 || u.Cache != 12000 || u.Context != 16880 || u.MaxContext != 200000 ||
 		u.Model != "claude-sonnet-5-5" {
@@ -1290,5 +1290,34 @@ func TestYoloCommands(t *testing.T) {
 	}
 	if b.yoloFor("claude") {
 		t.Error("claude's turns ask the chat for permissions with its yolo option off")
+	}
+}
+
+// An OpenCode turn's footer shows its tokens, and the context it took,
+// which the agent does not size.
+func TestUsageOfOpenCode(t *testing.T) {
+	raw := `{"type":"step_finish","timestamp":3,"sessionID":"ses_1","part":{"type":"step-finish",` +
+		`"tokens":{"input":21500,"output":469,"reasoning":0,"cache":{"read":39900,"write":0}}}}`
+	u := UsageOf("opencode", raw)
+	if u.Input != 61400 || u.Output != 469 || u.Cache != 39900 || u.Context != 61869 || u.MaxContext != 0 {
+		t.Errorf("the usage is %+v", u)
+	}
+	if got := u.text(); got != "↑61.4k · ↓469 · cache 39.9k · ctx 61.8k" {
+		t.Errorf("the usage reads %q", got)
+	}
+}
+
+// A Codex turn's footer shows what its completed event names.
+func TestUsageOfCodex(t *testing.T) {
+	raw := `{"type":"turn.completed","usage":{"input_tokens":4200,"output_tokens":680,"cached_input_tokens":1200}}`
+	u := UsageOf("codex", raw)
+	if u.Input != 4200 || u.Output != 680 || u.Cache != 1200 || u.Context != 4880 {
+		t.Errorf("the usage is %+v", u)
+	}
+	if got := u.text(); got != "↑4.2k · ↓680 · cache 1.2k · ctx 4.8k" {
+		t.Errorf("the usage reads %q", got)
+	}
+	if footer := (Card{State: "done", Usage: u, Duration: 16 * time.Second}).footer("en_us"); !strings.Contains(footer, "↑4.2k") {
+		t.Errorf("the footer reads %q", footer)
 	}
 }

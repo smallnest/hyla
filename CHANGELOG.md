@@ -4,6 +4,15 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.1.1
+
+- A Feishu chat whose agent is OpenCode shows what the turn used in its
+  card's footer again. The turn now runs with `--format json`, whose
+  steps name the tokens it took, gave and cached, and the context they
+  make. Codex's turns do too, from their `turn.completed` usage. An agent
+  that does not say how much its model holds shows the context without a
+  size, as `ctx 61.8k`.
+
 ## 3.1.0
 
 - Hyla's icon is orange now, and its frog is a red-eyed tree frog: red eyes

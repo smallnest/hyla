@@ -11,6 +11,9 @@ import (
 )
 
 func TestSplitHost(t *testing.T) {
+	// A test run inside a pane has the pane's HYLA_PANE, which hides
+	// $HYLA_HOST.
+	t.Setenv("HYLA_PANE", "")
 	t.Setenv("HYLA_HOST", "")
 	for _, c := range []struct {
 		args []string
