@@ -4,6 +4,14 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.1.2
+
+- A Feishu chat whose agent is Pi or Gemini shows what the turn used in
+  its card's footer too. Their turns run with the JSON their CLIs print
+  (Pi's `--mode json`, Gemini's `--output-format json`), which names the
+  answer, the model, the tokens and the context, as OpenCode's and
+  Codex's do.
+
 ## 3.1.1
 
 - A Feishu chat whose agent is OpenCode shows what the turn used in its

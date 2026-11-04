@@ -179,6 +179,10 @@ func UsageOf(agent, raw string) Usage {
 		return opencodeUsage(raw)
 	case "codex":
 		return codexUsage(raw)
+	case "pi":
+		return piUsage(raw)
+	case "gemini":
+		return geminiUsage(raw)
 	}
 	var u Usage
 	var m struct {
@@ -259,6 +263,65 @@ func codexUsage(raw string) Usage {
 			continue
 		}
 		u = Usage{Input: e.Usage.Input, Output: e.Usage.Output, Cache: e.Usage.CachedInput}
+		u.Context = u.Input + u.Output
+	}
+	return u
+}
+
+// piUsage reads what a Pi turn used from the assistant message it ended.
+func piUsage(raw string) Usage {
+	var u Usage
+	for _, line := range strings.Split(raw, "\n") {
+		var e struct {
+			Type    string `json:"type"`
+			Message *struct {
+				Role          string `json:"role"`
+				Model         string `json:"model"`
+				ResponseModel string `json:"responseModel"`
+				Usage         *struct {
+					Input      int `json:"input"`
+					Output     int `json:"output"`
+					CacheRead  int `json:"cacheRead"`
+					CacheWrite int `json:"cacheWrite"`
+				} `json:"usage"`
+			} `json:"message"`
+		}
+		if json.Unmarshal([]byte(line), &e) != nil || e.Type != "message_end" || e.Message == nil ||
+			e.Message.Role != "assistant" || e.Message.Usage == nil {
+			continue
+		}
+		m := e.Message
+		u = Usage{Model: firstNotEmpty(m.ResponseModel, m.Model),
+			Input: m.Usage.Input + m.Usage.CacheRead + m.Usage.CacheWrite, Output: m.Usage.Output, Cache: m.Usage.CacheRead}
+		u.Context = u.Input + u.Output
+	}
+	return u
+}
+
+// geminiUsage reads what a Gemini turn used from its stats, whose models
+// are the ones the turn ran.
+func geminiUsage(raw string) Usage {
+	var u Usage
+	var r struct {
+		Stats *struct {
+			Models map[string]struct {
+				Tokens struct {
+					Input      int `json:"input"`
+					Candidates int `json:"candidates"`
+					Cached     int `json:"cached"`
+				} `json:"tokens"`
+			} `json:"models"`
+		} `json:"stats"`
+	}
+	if json.Unmarshal([]byte(strings.TrimSpace(raw)), &r) != nil || r.Stats == nil {
+		return u
+	}
+	for name, m := range r.Stats.Models {
+		// The model that did the most of the turn.
+		if m.Tokens.Input+m.Tokens.Candidates <= u.Input+u.Output {
+			continue
+		}
+		u = Usage{Model: name, Input: m.Tokens.Input, Output: m.Tokens.Candidates, Cache: m.Tokens.Cached}
 		u.Context = u.Input + u.Output
 	}
 	return u

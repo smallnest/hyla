@@ -302,17 +302,20 @@ func (b *Bot) turnCommand(agent, sid, resume string, told bool) []string {
 			cmd = append(cmd, "--session", id)
 		}
 	case "gemini":
-		cmd = append(cmd, "-p")
+		// One JSON object, whose response is its answer and whose stats
+		// name what the turn used.
+		cmd = append(cmd, "-p", "--output-format", "json")
 		if again {
 			cmd = append(cmd, "--resume", resume)
 		} else {
 			cmd = append(cmd, "--session-id", sid)
 		}
 	case "pi":
+		// Its events, as JSON, name its answer and what it used.
 		if again {
-			cmd = append(cmd, "-p", "--session-id", resume)
+			cmd = append(cmd, "-p", "--mode", "json", "--session-id", resume)
 		} else {
-			cmd = append(cmd, "-p", "--session-id", sid)
+			cmd = append(cmd, "-p", "--mode", "json", "--session-id", sid)
 		}
 	default:
 		if !again && !wrote && len(cmd) == 1 {
@@ -566,6 +569,52 @@ func commandText(agent, raw string) string {
 		}
 		if failure != "" {
 			return failure
+		}
+	case "pi":
+		// The events of --mode json: an assistant message's text is its
+		// answer.
+		var text strings.Builder
+		for _, line := range strings.Split(raw, "\n") {
+			var e struct {
+				Type    string `json:"type"`
+				Message *struct {
+					Role    string `json:"role"`
+					Content []struct {
+						Type string `json:"type"`
+						Text string `json:"text"`
+					} `json:"content"`
+				} `json:"message"`
+			}
+			if json.Unmarshal([]byte(line), &e) != nil || e.Type != "message_end" || e.Message == nil || e.Message.Role != "assistant" {
+				continue
+			}
+			for _, c := range e.Message.Content {
+				if c.Type == "text" && c.Text != "" {
+					if text.Len() > 0 {
+						text.WriteString("\n\n")
+					}
+					text.WriteString(c.Text)
+				}
+			}
+		}
+		if t := strings.TrimSpace(text.String()); t != "" {
+			return t
+		}
+	case "gemini":
+		// One JSON object, whose response is its answer.
+		var r struct {
+			Response string `json:"response"`
+			Error    *struct {
+				Message string `json:"message"`
+			} `json:"error"`
+		}
+		if json.Unmarshal([]byte(strings.TrimSpace(raw)), &r) == nil {
+			if r.Response != "" {
+				return r.Response
+			}
+			if r.Error != nil && r.Error.Message != "" {
+				return r.Error.Message
+			}
 		}
 	}
 	return strings.TrimSpace(raw)

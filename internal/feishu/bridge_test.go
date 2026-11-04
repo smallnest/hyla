@@ -1321,3 +1321,30 @@ func TestUsageOfCodex(t *testing.T) {
 		t.Errorf("the footer reads %q", footer)
 	}
 }
+
+// A Pi turn's footer shows its model, tokens and context.
+func TestUsageOfPi(t *testing.T) {
+	raw := `{"type":"message_end","message":{"role":"assistant","model":"claude-sonnet-4-5",` +
+		`"usage":{"input":4200,"output":680,"cacheRead":12000,"cacheWrite":300,` +
+		`"totalTokens":17180,"cost":{"total":0.1}}}}`
+	u := UsageOf("pi", raw)
+	if u.Model != "claude-sonnet-4-5" || u.Input != 16500 || u.Output != 680 || u.Cache != 12000 || u.Context != 17180 {
+		t.Errorf("the usage is %+v", u)
+	}
+	if got := u.text(); got != "↑16.5k · ↓680 · cache 12k · ctx 17.1k" {
+		t.Errorf("the usage reads %q", got)
+	}
+}
+
+// A Gemini turn's footer shows the model its stats name.
+func TestUsageOfGemini(t *testing.T) {
+	raw := `{"response":"Hello.","stats":{"models":{"gemini-2.5-pro":{"tokens":` +
+		`{"input":1000,"candidates":200,"cached":400}}}}}`
+	u := UsageOf("gemini", raw)
+	if u.Model != "gemini-2.5-pro" || u.Input != 1000 || u.Output != 200 || u.Cache != 400 || u.Context != 1200 {
+		t.Errorf("the usage is %+v", u)
+	}
+	if got := u.text(); got != "↑1k · ↓200 · cache 400 · ctx 1.2k" {
+		t.Errorf("the usage reads %q", got)
+	}
+}

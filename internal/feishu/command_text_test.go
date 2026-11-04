@@ -52,3 +52,21 @@ func TestCommandTextOpenCode(t *testing.T) {
 		t.Errorf("opencode continues %q", sid)
 	}
 }
+
+// A Pi turn's events give its answer, and what it used.
+func TestCommandTextPi(t *testing.T) {
+	raw := `{"type":"message_start","message":{"role":"user","content":[{"type":"text","text":"hi"}]}}
+{"type":"message_end","message":{"role":"assistant","content":[{"type":"text","text":"Hello."},{"type":"toolCall","id":"t1","name":"bash","arguments":{}}]}}
+{"type":"agent_end"}`
+	if got := commandText("pi", raw); got != "Hello." {
+		t.Errorf("the answer %q", got)
+	}
+}
+
+// A Gemini turn's JSON object gives its answer.
+func TestCommandTextGemini(t *testing.T) {
+	raw := `{"response":"Hello.","stats":{"models":{"gemini-2.5-pro":{"tokens":{"input":1000,"candidates":200,"cached":400}}}}}`
+	if got := commandText("gemini", raw); got != "Hello." {
+		t.Errorf("the answer %q", got)
+	}
+}
