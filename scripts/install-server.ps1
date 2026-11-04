@@ -145,14 +145,17 @@ function Install-Hyla {
 		# go, so that one hylad serves this machine. Its settings and
 		# sessions stay: Hyla moves them to %APPDATA%\hyla as it starts.
 		$oldlib = Join-Path $env:LOCALAPPDATA 'Programs\kero-server'
+		$errorAction = $ErrorActionPreference
+		$ErrorActionPreference = 'SilentlyContinue'
 		if (Test-Path -LiteralPath (Join-Path $oldlib 'kero.exe')) {
-			$ErrorActionPreference = 'SilentlyContinue'
-			& (Join-Path $oldlib 'kero.exe') daemon uninstall-service 2>$null | Out-Null
-			& (Join-Path $oldlib 'kero.exe') daemon stop 2>$null | Out-Null
+			& (Join-Path $oldlib 'kero.exe') daemon uninstall-service *> $null
+			& (Join-Path $oldlib 'kero.exe') daemon stop *> $null
 			Remove-Item -LiteralPath $oldlib -Recurse -Force -ErrorAction SilentlyContinue
-			$ErrorActionPreference = 'Continue'
 		}
-		schtasks.exe /Delete /TN '\Kero\kerod' /F 2>$null | Out-Null
+		# No task of 2.x's is no error, which schtasks says on stderr: cmd
+		# drops it, so that a caller's $ErrorActionPreference = 'Stop' holds.
+		cmd /c 'schtasks /Delete /TN \Kero\kerod /F >nul 2>&1'
+		$ErrorActionPreference = $errorAction
 
 		$upgrade = Test-Path -LiteralPath $hyla
 		Write-Output "Installing in $lib"

@@ -54,6 +54,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
+      # One at a time: each job merges its checksums into the release's
+      # SHA256SUMS, which two at once would each write from what they
+      # read, and one of the uploads fails as the asset already exists.
+      max-parallel: 1
       matrix:
         include:
           - { name: macOS, os: macos-latest, platform: "darwin/arm64,darwin/amd64" }
