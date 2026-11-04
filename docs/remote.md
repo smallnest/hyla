@@ -15,7 +15,7 @@ A host is any machine with Hyla on it. It can be another computer where you alre
 
 The app needs nothing installed beside it: its own hylad serves as the host. Pick how your other machines reach it:
 
-- **Over Tailscale.** In the app on the host, turn on **Settings › Hosts › Let other machines connect**. It shows the address to add elsewhere, such as `http://studio.tail1234.ts.net:7473`. See [Tailscale](#tailscale).
+- **Over Tailscale.** In the app on the host, turn on **Settings › Hyla Hosts › Let other machines connect**. It shows the address to add elsewhere, such as `http://studio.tail1234.ts.net:7473`. See [Tailscale](#tailscale).
 - **Over SSH.** If the computer takes SSH logins (on a Mac, **System Settings › General › Sharing › Remote Login**), add it by the address you'd give `ssh`. Hyla finds the app there on its own.
 
 Sessions on the host keep running while its app is closed, as they do on your own computer.
@@ -36,7 +36,7 @@ irm https://github.com/smallnest/hyla/releases/latest/download/install-server.ps
 
 ### Adding the host
 
-On your computer, open **Settings › Hosts**, type the host's address, such as `me@devbox` for SSH or the address the host's app showed, and press **Add**. The host's projects appear in the sidebar with yours, each tagged with the host's name.
+On your computer, open **Settings › Hyla Hosts**, type the host's address, such as `me@devbox` for SSH or the address the host's app showed, and press **Add**. The host's projects appear in the sidebar with yours, each tagged with the host's name.
 
 The same from the command line:
 
@@ -89,7 +89,7 @@ WSL may stop a distribution a while after its last program started from Windows 
 
 ### Tailscale
 
-hylad can also listen on your tailnet, so that it needs no SSH at all. Tailscale tells hylad who connects, and by default only the Tailscale user who owns the machine gets in. On a host with the app, turn on **Settings › Hosts › Let other machines connect**, which shows the address to add elsewhere. On a server, or to set it by hand, add this to the configuration on the host:
+hylad can also listen on your tailnet, so that it needs no SSH at all. Tailscale tells hylad who connects, and by default only the Tailscale user who owns the machine gets in. On a host with the app, turn on **Settings › Hyla Hosts › Let other machines connect**, which shows the address to add elsewhere. On a server, or to set it by hand, add this to the configuration on the host:
 
 ```ini
 # ~/.config/hyla/config on the host
@@ -125,7 +125,7 @@ Tailcat reaches a host with a pair code instead of Tailscale. It needs no Tailsc
 
 The pair code is the host's address. It contains the host's key, a secret pre-shared key and the relay's region, as a long `tc…` string. **Treat it as a password: anyone who has it can connect to the host.**
 
-**Settings › Hosts › Tailcat** holds all Tailcat settings, in one group. The switch **Use Tailcat to Reach Other Hosts** turns them all on. With it on, the group has two parts:
+**Settings › Hyla Hosts › Tailcat** holds all Tailcat settings, in one group. The switch **Use Tailcat to Reach Other Hosts** turns them all on. With it on, the group has two parts:
 
 - **Add a Host** adds a host that this machine reaches. Copy the pair code from the host's Tailcat group, or from `hyla hosts tailcat code` on the host. **Remote Tailcat Port** is the port of the tailcat listener of the hosts that you add: 7473 unless one of them names another.
 - **Provide Tailcat Service** makes this machine a host. Hyla then shows its pair code, with a button to copy it, and **This Computer's Tailcat Listener Port** is the port that hylad listens on here. **Change the pair code** makes a new code.
@@ -182,7 +182,7 @@ On Linux this first enables lingering (`loginctl enable-linger`), which keeps yo
 
 ## Working on a host
 
-- **The sidebar.** It lists projects, yours first, then each host's in the order of **Settings › Hosts**. A host's projects carry its name after theirs, as `api` `devbox`, so the same repository on two machines sits side by side. A host gets a row of its own only when it needs you: when Hyla can't reach it, wants updating, or isn't installed there. A host with no sessions doesn't show; start one there with Open Project. Right-click one of a host's projects for the host's menu: reconnect, restart hylad, update Hyla, its color, its settings.
+- **The sidebar.** It lists projects, yours first, then each host's in the order of **Settings › Hyla Hosts**. A host's projects carry its name after theirs, as `api` `devbox`, so the same repository on two machines sits side by side. A host gets a row of its own only when it needs you: when Hyla can't reach it, wants updating, or isn't installed there. A host with no sessions doesn't show; start one there with Open Project. Right-click one of a host's projects for the host's menu: reconnect, restart hylad, update Hyla, its color, its settings.
 - **Colors.** Each host has a color, picked from its name: its tag in the sidebar and its name in a pane's header wear it, so a remote pane is plain to see. Pick another from the host's menu, **Color**, or with `color=` after its address (`host = devbox=me@devbox color=teal`).
 - **New sessions.** <kbd>⌘</kbd> <kbd>T</kbd> and **New Session** start a session on the host of the session you're looking at. A project's **+** starts one in it, on its machine.
 - **Open Project.** With hosts added, <kbd>⌘</kbd> <kbd>O</kbd> lists folders in Hyla instead of your computer's dialog, starting on the machine of the session you're looking at; the switch at its top lists another's. Type to filter, or type a path such as `~/code`. <kbd>↩</kbd> goes into a folder, and <kbd>⌘</kbd> <kbd>↩</kbd> or **Open** opens it as a project.
@@ -193,7 +193,7 @@ On Linux this first enables lingering (`loginctl enable-linger`), which keeps yo
 
 ### Remote Control
 
-`hyla focus` and `hyla do` let a program drive the app. For a host, that's code on another machine driving your computer's window, so it's off by default. Turn it on per host in **Settings › Hosts**, or with `remote-control` after the address:
+`hyla focus` and `hyla do` let a program drive the app. For a host, that's code on another machine driving your computer's window, so it's off by default. Turn it on per host in **Settings › Hyla Hosts**, or with `remote-control` after the address:
 
 ```ini
 host = devbox=me@devbox remote-control
@@ -210,7 +210,7 @@ The app and a host can run different versions of Hyla. When the host runs an old
 - Hyla updates a host only when you ask, never on a reconnect, and never back to an older version.
 - When the host runs a newer Hyla than the app, update the app instead (**Settings › General**).
 - Hyla updates an install of its install scripts. If you installed Hyla on the host another way, update it the way you installed it.
-- A host running the Hyla desktop app takes updates from your other machines once you let it: on that computer, turn on **Settings › Hosts › Let them update Hyla here** (`remote-updates = true`). The app there then updates to the newest release, relaunches, and restarts hylad. Until then, update it on that computer.
+- A host running the Hyla desktop app takes updates from your other machines once you let it: on that computer, turn on **Settings › Hyla Hosts › Let them update Hyla here** (`remote-updates = true`). The app there then updates to the newest release, relaunches, and restarts hylad. Until then, update it on that computer.
 
 From the command line:
 

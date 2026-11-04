@@ -1131,23 +1131,6 @@ func (a *App) agentsPage(c *ui.Context, pal *palette) {
 	codeBlock(c, pal, "hyla report working \"Deploying\" --progress 40\nhyla report blocked \"Approve the migration?\" --kind permission\nhyla report done \"Deployed\"")
 }
 
-// docLink opens a page of Hyla's documentation in the browser: the
-// accent's words and an arrow, under the group it tells more of.
-func docLink(c *ui.Context, pal *palette, key, label, url string) {
-	b := ui.ButtonBase(c.Key(key)).AlignSelf(ui.Start).Padding(2, 4).Gap(3).Radius(5).AlignItems(ui.Center).Label(label).Tooltip(url)
-	col := pal.accent
-	if b.Hovered() {
-		col = col.Mix(pal.text, 0.25)
-	}
-	b.TextColor(col).Children(func() {
-		ui.Text(c, label).FontSize(12.5).FontWeight(500)
-		ui.Icon(c, linkIcon).Size(11, 11)
-	})
-	if b.Clicked() {
-		mygo.Shell.OpenExternal(url)
-	}
-}
-
 func codeBlock(c *ui.Context, pal *palette, code string) {
 	ui.Text(c, code).Font("monospace").FontSize(12).LineHeight(1.55).TextColor(pal.text).
 		Padding(12, 16).Radius(10).Background(pal.chip).Selectable()

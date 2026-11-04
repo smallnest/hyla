@@ -720,7 +720,7 @@
   "changesExpandUp": "Expand Up",
   "changesExpandDown": "Expand Down",
   "changesExpandAll": "Expand All",
-  "pageHosts": "Hosts",
+  "pageHosts": "Hyla Hosts",
   "pageExperimental": "Experimental",
   "hostThisComputer": "This Computer",
   "hostColor": "Color",
@@ -958,7 +958,7 @@
       }
     }
   },
-  "hostDesktopDetail": "{host} runs the Hyla app, version {version}, and this is Hyla {app}. Update Hyla on {host}, or turn on Let them update Hyla there (Settings › Hosts) to update it from here.",
+  "hostDesktopDetail": "{host} runs the Hyla app, version {version}, and this is Hyla {app}. Update Hyla on {host}, or turn on Let them update Hyla there (Settings › Hyla Hosts) to update it from here.",
   "@hostDesktopDetail": {
     "placeholders": {
       "host": {
@@ -1073,12 +1073,12 @@
       }
     }
   },
-  "setHosts": "Hosts",
+  "setHosts": "Hyla Hosts",
   "setHostsDetail": "Other machines whose sessions show in the sidebar after this computer's. Hyla reaches them over SSH with your keys and agent, through WSL, or through hylad's listener on your tailnet, and hyla -H <name> drives them from the command line.",
   "setHostsNone": "No hosts",
   "setHostsNoneDetail": "Add a machine you reach with ssh. If Hyla isn't installed there, Hyla offers to install it.",
-  "setHostsDocs": "Setting up hosts",
-  "setHostAdd": "Add a Host",
+  "setHostsDocs": "Setting up Hyla Hosts",
+  "setHostAdd": "Add a Hyla Host",
   "setHostAddDetail": "me@devbox or ssh://me@devbox:2222 over SSH, as ssh takes it with your ~/.ssh/config; wsl://Ubuntu for a WSL distribution; http://devbox:7473 or https://devbox.tail1234.ts.net for hylad's tailnet listener.",
   "setHostAddressPlaceholder": "me@devbox",
   "setHostNamePlaceholder": "Name: {name}",
@@ -1116,7 +1116,7 @@
   "setRemoteUpdatesDetail": "Hyla on your other machines can update this app to its version. The app relaunches, and the programs running in its sessions end.",
   "setHostSettingsSplit": "A host's own settings",
   "setHostSettingsSplitDetail": "The shell, environment, scrollback and session restore of a host's sessions come from its own configuration: run hyla config edit on the host. Appearance, keyboard and notifications are this app's.",
-  "setShellThisComputer": "These apply to this computer's sessions. Each host's come from its own configuration (Settings › Hosts).",
+  "setShellThisComputer": "These apply to this computer's sessions. Each host's come from its own configuration (Settings › Hyla Hosts).",
   "confirmQuitAllHosts": "Sessions on other machines keep running.",
   "hostInstallTitle": "Install Hyla on {host}?",
   "@hostInstallTitle": {
@@ -1256,8 +1256,8 @@
   "setTailcatTitle": "Tailcat",
   "setTailcat": "Use Tailcat to Reach Other Hosts",
   "setTailcatDetail": "Reach hosts with a pair code through a relay, instead of Tailscale. Off, Hyla lists none of these hosts and connects to none of them, and hylad starts no tailcat listener.",
-  "setTailcatAdd": "Add a Host",
-  "setTailcatAddDetail": "Copy the pair code of the host's tailcat listener, in Settings › Hosts on that machine. The pair code is the host's secret: anyone with it can connect.",
+  "setTailcatAdd": "Add a Hyla Host",
+  "setTailcatAddDetail": "Copy the pair code of the host's tailcat listener, in Settings › Hyla Hosts on that machine. The pair code is the host's secret: anyone with it can connect.",
   "setTailcatPlaceholder": "tailcat://tc… or the pair code",
   "setTailcatNamePlaceholder": "devbox",
   "setTailcatPort": "Remote Tailcat Port",

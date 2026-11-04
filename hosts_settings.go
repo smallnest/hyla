@@ -39,7 +39,9 @@ func (a *App) hostsPage(c *ui.Context, pal *palette) {
 			a.hostRow(c, pal, h)
 		}
 	})
-	docLink(c, pal, "hosts-docs", locales.SetHostsDocs(), "https://kero.sh/docs/remote")
+	// The page's groups say what they do, and the docs are in the app: a
+	// line of its own, not a link.
+	ui.Text(c, locales.SetHostsDocs()).FontSize(12.5).FontWeight(500).TextColor(pal.textMuted).Padding(2, 4).AlignSelf(ui.Start)
 	a.tailcatGroup(c, pal)
 	settingsGroup(c, pal, locales.SetHostAdd(), locales.SetHostAddDetail(), func() {
 		d := &a.ss.host

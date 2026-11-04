@@ -5588,11 +5588,11 @@ func (msgs Messages) ChangesExpandAll() string {
 	return Catalog.Format(msgs.locale, "changesExpandAll", nil)
 }
 
-// PageHosts says "Hosts"
+// PageHosts says "Hyla Hosts"
 // in the language the app shows.
 func PageHosts() string { return In(i18n.Locale()).PageHosts() }
 
-// PageHosts says "Hosts"
+// PageHosts says "Hyla Hosts"
 // in the language of msgs.
 func (msgs Messages) PageHosts() string {
 	return Catalog.Format(msgs.locale, "pageHosts", nil)
@@ -6206,11 +6206,11 @@ func (msgs Messages) PickerHint(open string) string {
 	return Catalog.Format(msgs.locale, "pickerHint", map[string]any{"open": open})
 }
 
-// SetHosts says "Hosts"
+// SetHosts says "Hyla Hosts"
 // in the language the app shows.
 func SetHosts() string { return In(i18n.Locale()).SetHosts() }
 
-// SetHosts says "Hosts"
+// SetHosts says "Hyla Hosts"
 // in the language of msgs.
 func (msgs Messages) SetHosts() string {
 	return Catalog.Format(msgs.locale, "setHosts", nil)
@@ -6246,21 +6246,21 @@ func (msgs Messages) SetHostsNoneDetail() string {
 	return Catalog.Format(msgs.locale, "setHostsNoneDetail", nil)
 }
 
-// SetHostsDocs says "Setting up hosts"
+// SetHostsDocs says "Setting up Hyla Hosts"
 // in the language the app shows.
 func SetHostsDocs() string { return In(i18n.Locale()).SetHostsDocs() }
 
-// SetHostsDocs says "Setting up hosts"
+// SetHostsDocs says "Setting up Hyla Hosts"
 // in the language of msgs.
 func (msgs Messages) SetHostsDocs() string {
 	return Catalog.Format(msgs.locale, "setHostsDocs", nil)
 }
 
-// SetHostAdd says "Add a Host"
+// SetHostAdd says "Add a Hyla Host"
 // in the language the app shows.
 func SetHostAdd() string { return In(i18n.Locale()).SetHostAdd() }
 
-// SetHostAdd says "Add a Host"
+// SetHostAdd says "Add a Hyla Host"
 // in the language of msgs.
 func (msgs Messages) SetHostAdd() string {
 	return Catalog.Format(msgs.locale, "setHostAdd", nil)
@@ -6430,11 +6430,11 @@ func (msgs Messages) SetHostSettingsSplitDetail() string {
 	return Catalog.Format(msgs.locale, "setHostSettingsSplitDetail", nil)
 }
 
-// SetShellThisComputer says "These apply to this computer's sessions. Each host's come from its own configuration (Settings › Hosts)."
+// SetShellThisComputer says "These apply to this computer's sessions. Each host's come from its own configuration (Settings › Hyla Hosts)."
 // in the language the app shows.
 func SetShellThisComputer() string { return In(i18n.Locale()).SetShellThisComputer() }
 
-// SetShellThisComputer says "These apply to this computer's sessions. Each host's come from its own configuration (Settings › Hosts)."
+// SetShellThisComputer says "These apply to this computer's sessions. Each host's come from its own configuration (Settings › Hyla Hosts)."
 // in the language of msgs.
 func (msgs Messages) SetShellThisComputer() string {
 	return Catalog.Format(msgs.locale, "setShellThisComputer", nil)
@@ -7066,21 +7066,21 @@ func (msgs Messages) SetTailcatDetail() string {
 	return Catalog.Format(msgs.locale, "setTailcatDetail", nil)
 }
 
-// SetTailcatAdd says "Add a Host"
+// SetTailcatAdd says "Add a Hyla Host"
 // in the language the app shows.
 func SetTailcatAdd() string { return In(i18n.Locale()).SetTailcatAdd() }
 
-// SetTailcatAdd says "Add a Host"
+// SetTailcatAdd says "Add a Hyla Host"
 // in the language of msgs.
 func (msgs Messages) SetTailcatAdd() string {
 	return Catalog.Format(msgs.locale, "setTailcatAdd", nil)
 }
 
-// SetTailcatAddDetail says "Copy the pair code of the host's tailcat listener, in Settings › Hosts on that machine. The pair code is the host's…"
+// SetTailcatAddDetail says "Copy the pair code of the host's tailcat listener, in Settings › Hyla Hosts on that machine. The pair code is the h…"
 // in the language the app shows.
 func SetTailcatAddDetail() string { return In(i18n.Locale()).SetTailcatAddDetail() }
 
-// SetTailcatAddDetail says "Copy the pair code of the host's tailcat listener, in Settings › Hosts on that machine. The pair code is the host's…"
+// SetTailcatAddDetail says "Copy the pair code of the host's tailcat listener, in Settings › Hyla Hosts on that machine. The pair code is the h…"
 // in the language of msgs.
 func (msgs Messages) SetTailcatAddDetail() string {
 	return Catalog.Format(msgs.locale, "setTailcatAddDetail", nil)
