@@ -106,6 +106,16 @@ func (msgs Messages) ActionOpenProject() string {
 	return Catalog.Format(msgs.locale, "actionOpenProject", nil)
 }
 
+// ActionAddSSHHost says "Add SSH Host…"
+// in the language the app shows.
+func ActionAddSSHHost() string { return In(i18n.Locale()).ActionAddSSHHost() }
+
+// ActionAddSSHHost says "Add SSH Host…"
+// in the language of msgs.
+func (msgs Messages) ActionAddSSHHost() string {
+	return Catalog.Format(msgs.locale, "actionAddSSHHost", nil)
+}
+
 // ActionGoToSession says "Go to Session…"
 // in the language the app shows.
 func ActionGoToSession() string { return In(i18n.Locale()).ActionGoToSession() }
@@ -604,6 +614,16 @@ func CommonAdd() string { return In(i18n.Locale()).CommonAdd() }
 // in the language of msgs.
 func (msgs Messages) CommonAdd() string {
 	return Catalog.Format(msgs.locale, "commonAdd", nil)
+}
+
+// CommonConnect says "Connect"
+// in the language the app shows.
+func CommonConnect() string { return In(i18n.Locale()).CommonConnect() }
+
+// CommonConnect says "Connect"
+// in the language of msgs.
+func (msgs Messages) CommonConnect() string {
+	return Catalog.Format(msgs.locale, "commonConnect", nil)
 }
 
 // CommonInstall says "Install"
@@ -5842,6 +5862,16 @@ func (msgs Messages) HostSessions(count int) string {
 	return Catalog.Format(msgs.locale, "hostSessions", map[string]any{"count": count})
 }
 
+// HostStartSession says "Start a session on {host}"
+// in the language the app shows.
+func HostStartSession(host string) string { return In(i18n.Locale()).HostStartSession(host) }
+
+// HostStartSession says "Start a session on {host}"
+// in the language of msgs.
+func (msgs Messages) HostStartSession(host string) string {
+	return Catalog.Format(msgs.locale, "hostStartSession", map[string]any{"host": host})
+}
+
 // HostCopyAddress says "Copy Address"
 // in the language the app shows.
 func HostCopyAddress() string { return In(i18n.Locale()).HostCopyAddress() }
@@ -6316,6 +6346,76 @@ func SetHostNeedsAddress() string { return In(i18n.Locale()).SetHostNeedsAddress
 // in the language of msgs.
 func (msgs Messages) SetHostNeedsAddress() string {
 	return Catalog.Format(msgs.locale, "setHostNeedsAddress", nil)
+}
+
+// SshHostDetail says "Open a terminal over SSH, as ssh takes its address: your ~/.ssh/config, keys and agent. The machine needs nothing but…"
+// in the language the app shows.
+func SshHostDetail() string { return In(i18n.Locale()).SshHostDetail() }
+
+// SshHostDetail says "Open a terminal over SSH, as ssh takes its address: your ~/.ssh/config, keys and agent. The machine needs nothing but…"
+// in the language of msgs.
+func (msgs Messages) SshHostDetail() string {
+	return Catalog.Format(msgs.locale, "sshHostDetail", nil)
+}
+
+// SshHostAddressPlaceholder says "me@devbox:2222"
+// in the language the app shows.
+func SshHostAddressPlaceholder() string { return In(i18n.Locale()).SshHostAddressPlaceholder() }
+
+// SshHostAddressPlaceholder says "me@devbox:2222"
+// in the language of msgs.
+func (msgs Messages) SshHostAddressPlaceholder() string {
+	return Catalog.Format(msgs.locale, "sshHostAddressPlaceholder", nil)
+}
+
+// SshHostOnly says "Add SSH addresses here, as me@devbox or ssh://me@devbox:2222. For Hyla hosts, see Settings › Hyla Hosts."
+// in the language the app shows.
+func SshHostOnly() string { return In(i18n.Locale()).SshHostOnly() }
+
+// SshHostOnly says "Add SSH addresses here, as me@devbox or ssh://me@devbox:2222. For Hyla hosts, see Settings › Hyla Hosts."
+// in the language of msgs.
+func (msgs Messages) SshHostOnly() string {
+	return Catalog.Format(msgs.locale, "sshHostOnly", nil)
+}
+
+// SshNoService says "Hyla's service isn't running yet: try again in a moment."
+// in the language the app shows.
+func SshNoService() string { return In(i18n.Locale()).SshNoService() }
+
+// SshNoService says "Hyla's service isn't running yet: try again in a moment."
+// in the language of msgs.
+func (msgs Messages) SshNoService() string {
+	return Catalog.Format(msgs.locale, "sshNoService", nil)
+}
+
+// SshHostsProject says "SSH Hosts"
+// in the language the app shows.
+func SshHostsProject() string { return In(i18n.Locale()).SshHostsProject() }
+
+// SshHostsProject says "SSH Hosts"
+// in the language of msgs.
+func (msgs Messages) SshHostsProject() string {
+	return Catalog.Format(msgs.locale, "sshHostsProject", nil)
+}
+
+// SshRemoveTitle says "Remove {name}?"
+// in the language the app shows.
+func SshRemoveTitle(name string) string { return In(i18n.Locale()).SshRemoveTitle(name) }
+
+// SshRemoveTitle says "Remove {name}?"
+// in the language of msgs.
+func (msgs Messages) SshRemoveTitle(name string) string {
+	return Catalog.Format(msgs.locale, "sshRemoveTitle", map[string]any{"name": name})
+}
+
+// SshRemoveDetail says "Its terminal closes, and the machine leaves the SSH project."
+// in the language the app shows.
+func SshRemoveDetail() string { return In(i18n.Locale()).SshRemoveDetail() }
+
+// SshRemoveDetail says "Its terminal closes, and the machine leaves the SSH project."
+// in the language of msgs.
+func (msgs Messages) SshRemoveDetail() string {
+	return Catalog.Format(msgs.locale, "sshRemoveDetail", nil)
 }
 
 // SetHostRemoteControl says "Remote Control"

@@ -73,6 +73,10 @@ type prefs struct {
 	ArchivedOpen bool `json:"archivedOpen,omitempty"`
 	// QuickSession is the session the quick terminal shows (quick.go).
 	QuickSession string `json:"quickSession,omitempty"`
+	// SSHProject is the software project the sidebar's SSH terminals open
+	// in, "" until one is made; SSHHosts are the machines it lists.
+	SSHProject string    `json:"sshProject,omitempty"`
+	SSHHosts   []sshHost `json:"sshHostList,omitempty"`
 }
 
 const (
@@ -155,6 +159,7 @@ type App struct {
 	find    findState
 	confirm *confirmation
 	wtAsk   *worktreeAsk
+	sshAsk  *sshAsk // the sidebar's add-a-host-over-SSH dialog
 	// endedAll shows all of the sidebar's Ended; skillMissing tells, as
 	// of skillsAt, that no kind of agent has Hyla's skill (ended.go).
 	// This fork has no Ended (session history): the fields stay for
@@ -1495,6 +1500,14 @@ func (a *App) newSession(projectID string) {
 	if projectID != "" {
 		h = a.hostOf(projectID)
 	}
+	// ⌘T in an SSH terminal adds a machine, which opens ssh there, as the
+	// project's own New Session does; a shell there is no machine's.
+	if projectID == "" && h == a.local() {
+		if cur := a.session(a.selected); cur != nil && cur.Project != "" && cur.Project == a.prefs.SSHProject {
+			a.askSSHHost()
+			return
+		}
+	}
 	a.newSessionOn(h, projectID)
 }
 
@@ -1502,6 +1515,11 @@ func (a *App) newSession(projectID string) {
 // the one of the session shown there, else the first.
 func (a *App) newSessionOn(h *host, projectID string) {
 	if h.cl == nil {
+		return
+	}
+	// The SSH project's New Session adds a machine, which opens ssh.
+	if projectID != "" && projectID == a.prefs.SSHProject {
+		a.askSSHHost()
 		return
 	}
 	p := proto.CreateParams{Project: projectID}

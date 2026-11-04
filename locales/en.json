@@ -7,6 +7,7 @@
   "actionNewSessionHome": "New Session in Home",
   "actionNewSessionWorktree": "New Session in Worktree…",
   "actionOpenProject": "Open Project…",
+  "actionAddSSHHost": "Add SSH Host…",
   "actionGoToSession": "Go to Session…",
   "actionResumeConversation": "Resume Conversation…",
   "actionJumpToAttention": "Jump to Session Needing You",
@@ -57,6 +58,7 @@
   "commonRemove": "Remove",
   "commonSave": "Save",
   "commonAdd": "Add",
+  "commonConnect": "Connect",
   "commonInstall": "Install",
   "commonReinstall": "Reinstall",
   "commonUpdate": "Update",
@@ -833,6 +835,14 @@
       }
     }
   },
+  "hostStartSession": "Start a session on {host}",
+  "@hostStartSession": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
   "hostCopyAddress": "Copy Address",
   "hostSettings": "Host Settings…",
   "hostRemove": "Remove Host…",
@@ -1098,6 +1108,13 @@
     }
   },
   "setHostNeedsAddress": "Type the host's address",
+  "sshHostDetail": "Open a terminal over SSH, as ssh takes its address: your ~/.ssh/config, keys and agent. The machine needs nothing but an SSH server: no Hyla there.",
+  "sshHostAddressPlaceholder": "me@devbox:2222",
+  "sshHostOnly": "Add SSH addresses here, as me@devbox or ssh://me@devbox:2222. For Hyla hosts, see Settings › Hyla Hosts.",
+  "sshNoService": "Hyla's service isn't running yet: try again in a moment.",
+  "sshHostsProject": "SSH Hosts",
+  "sshRemoveTitle": "Remove {name}?",
+  "sshRemoveDetail": "Its terminal closes, and the machine leaves the SSH project.",
   "setHostRemoteControl": "Remote Control",
   "setHostRemoteControlDetail": "Let programs on {host} show sessions and run the app's actions (hyla focus, hyla do)",
   "@setHostRemoteControlDetail": {

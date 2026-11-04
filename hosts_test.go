@@ -116,7 +116,8 @@ func TestSidebarHosts(t *testing.T) {
 
 // The sidebar is flat: a remote group carries its host's name, and the
 // host has a row of its own only while it wants the user, as when it can't
-// be reached; one with no sessions shows nowhere.
+// be reached; one with no sessions shows its name and the address to
+// reach it at, so that a host added from the sidebar shows there.
 func TestSidebarFlat(t *testing.T) {
 	a := testApp(t)
 	a.mergeState(a.local(), a.st)
@@ -135,9 +136,17 @@ func TestSidebarFlat(t *testing.T) {
 	if !ok || !ok2 || abs32(tag.Y+tag.H/2-(api.Y+api.H/2)) > 1 || tag.X <= api.X {
 		t.Errorf("build's tag %+v is not after its group's name %+v", tag, api)
 	}
-	// A host with no sessions shows nowhere, nor one connecting first.
-	if tt.HasText("empty") || tt.HasText("No sessions") {
-		t.Errorf("a host without sessions shows: %q", tt.Texts())
+	// A host with no sessions shows its name, and the address it is reached
+	// at under it, to start a session on; so does one connecting first.
+	name, ok := tt.Find("empty")
+	addr, ok2 := tt.Find("me@empty")
+	if !ok || !ok2 {
+		t.Errorf("a host without sessions shows nowhere: %q", tt.Texts())
+	} else if addr.Y <= name.Y || addr.X <= name.X {
+		t.Errorf("the address %+v does not sit under the name %+v", addr, name)
+	}
+	if tt.HasText("No sessions") {
+		t.Errorf("this machine claims no sessions: %q", tt.Texts())
 	}
 	empty.conn, empty.loaded = connConnecting, false
 	if a.hostNeedsRow(build) || a.hostNeedsRow(empty) {

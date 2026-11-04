@@ -49,6 +49,12 @@ hyla projects            # list projects
 hyla new -p my-app       # start a session in a project by name
 ```
 
+### SSH hosts
+
+The sidebar's foot has **Add SSH Host**. Type an address as ssh takes it, such as `root@example.com:2222`, and a name (the address's host by default): Hyla opens a terminal running `ssh` to that machine. It is ssh in a terminal like any other, with your `~/.ssh/config`, keys and agent; the machine needs an SSH server and nothing else, no Hyla.
+
+All the machines live in one project, **SSH Hosts**, with the host's icon. Each row is a machine, its name over the address ssh runs to; a click shows its terminal, or starts one. The project's **+** or the sidebar's **Add SSH Host** adds another machine, and a right-click removes one.
+
 ## hylad
 
 Sessions run in **hylad**, a daemon that the app starts on demand. Hyla is a window onto hylad:

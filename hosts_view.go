@@ -43,6 +43,56 @@ func (a *App) hostLine(c *ui.Context, pal *palette, h *host, top float32) {
 	a.hostNote(c, pal, h)
 }
 
+// hostRows is a remote host's rows in the sidebar where it has no group
+// of its own: its header, a note while it needs one, or, with empty, the
+// machine to start a session on.
+func (a *App) hostRows(c *ui.Context, pal *palette, h *host, top float32, empty bool) {
+	if a.hostNeedsRow(h) {
+		a.hostLine(c, pal, h, top)
+		return
+	}
+	a.hostHeader(c, pal, h, top)
+	if empty {
+		a.hostEmpty(c, pal, h)
+	}
+}
+
+// hostEmpty is a host with no project in the sidebar yet: the machine to
+// start a session on, its host name over the address the app reaches it
+// at, as a session's row has what it is at under its name.
+func (a *App) hostEmpty(c *ui.Context, pal *palette, h *host) {
+	ready := h.conn == connReady
+	name := h.addr.Host
+	if h.info.Hostname != "" {
+		name = h.info.Hostname
+	}
+	inset := float32(rowInset + projectBadge + projectBadgeGap)
+	if pal.dark {
+		inset++
+	}
+	row := ui.Row(c.Key("host-empty-"+h.name)).Height(rowH2).Margin(0, 0, 1, 0).Padding(0, 10, 0, inset).Gap(10).AlignItems(ui.Center).Radius(8)
+	if row.Hovered() {
+		row.Background(pal.rowHover)
+	}
+	// A host the app is still reaching shows, faded, and starts nothing
+	// until it is there.
+	if !ready {
+		row.Opacity(0.55)
+	}
+	pointerTooltip(c, row, "tip-host-empty-"+h.name, locales.HostStartSession(h.label())+"\n"+h.addr.String())
+	row.ContextMenu(func(m *ui.Menu) { a.hostMenu(m, h) })
+	if ready && row.Clicked() {
+		a.newSessionOn(h, "")
+	}
+	row.Children(func() {
+		ui.Icon(c, terminalIcon).Size(14, 14).TextColor(pal.textMuted).Shrink(0)
+		ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
+			ui.Text(c, name).FontSize(13.5).TextColor(pal.text).SingleLine().Ellipsis("…")
+			ui.Text(c, h.addr.String()).Font("monospace").FontSize(12).TextColor(pal.textFaint).SingleLine().Ellipsis("…").MinWidth(0)
+		})
+	})
+}
+
 // hostHeader is a remote host's name, with how the app stands with it: a
 // dot while it connects or failed to, a chip when Hyla there wants
 // updating.
