@@ -3,7 +3,7 @@
 A release is a tag: pushing `vX.Y.Z` runs the Release workflow
 (`.github/workflows/release.yml`), which builds the app for macOS, Windows
 and Linux, the server build for each platform, runs the tests, and leaves
-it all in a draft release. Publishing the draft releases it.
+it all in a draft release, which it publishes once every job succeeded.
 
 ## Steps
 
@@ -33,15 +33,11 @@ it all in a draft release. Publishing the draft releases it.
    gh run watch <run id> --exit-status
    ```
 
-6. Once every job succeeded, the release is ready and stays a draft:
-   publishing it is the user's call. Say it is green and wait for the
-   user to ask, then:
-
-   ```sh
-   gh release edit vX.Y.Z --draft=false
-   ```
-
-   Where `gh` can't edit releases, run the Publish release workflow
+6. The Release run publishes the draft itself once every job succeeded:
+   the tag was the word to release. A job that failed leaves the draft
+   unpublished; fixed, run the workflow by hand on `master`, which
+   replaces the draft and moves the tag to that commit. Where the run
+   cannot publish, run the Publish release workflow
    (`.github/workflows/publish-release.yml`) on `master` instead: it
    publishes the draft of `mygo.json`'s version.
 

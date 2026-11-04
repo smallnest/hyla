@@ -1,8 +1,9 @@
 # Hyla
 
 - Cutting a release: follow [RELEASING.md](RELEASING.md), from `master`.
-- Publishing a release is the user's call: a green Release run leaves a
-  draft, which stays a draft until the user asks to publish it.
+- A tag push publishes its release when every job of the Release run
+  passed: tag only when the user asks to release, and never publish a
+  draft by hand. A job that failed leaves the draft unpublished.
 
 ## The branches
 

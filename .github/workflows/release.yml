@@ -153,3 +153,18 @@ jobs:
           for w in $want; do
             echo "$names" | grep -qxF "$w" || { echo "::error::v$version has no $w"; exit 1; }
           done
+
+  # A tag asked to release: once every job above passed, the draft goes
+  # out. A job that failed leaves it a draft, for a run by hand.
+  publish:
+    needs: [assets]
+    name: Publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Publish the draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v$(jq -r .version mygo.json)"
+          gh release edit "$tag" --repo "$GITHUB_REPOSITORY" --draft=false
