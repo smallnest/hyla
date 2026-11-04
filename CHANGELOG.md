@@ -4,6 +4,19 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.1.3
+
+- The sidebar's detailed rows show a session's second line again: its
+  status message, else its branch and changes, else its folder. **Settings
+  › General › Sidebar rows** keeps the choice, detailed or compact.
+- The quick terminal drops onto Hyla's panes instead of across the whole
+  screen: as wide as them and half the window tall, at their top left.
+  With Hyla's window hidden or minimized, it still drops from the top of
+  the screen.
+- It has a shortcut by default now: **Control+`** (⌃` on a Mac), as
+  Ghostty's quick terminal does, and it works in every app. **Settings ›
+  Keyboard** gives it another, or none.
+
 ## 3.1.2
 
 - A Feishu chat whose agent is Pi or Gemini shows what the turn used in
