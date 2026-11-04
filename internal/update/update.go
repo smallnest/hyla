@@ -31,7 +31,7 @@ import (
 
 // PublicKey checks Hyla's releases: mygo.json's updates.publicKey, whose
 // private key signs the app's updates and the server build's archives.
-const PublicKey = "CJGqv/HGMyORlUKh5NCvwLOb3p9Fblp1d3oj8qDMQ30="
+const PublicKey = "4i7/aBU46ps8x2EzZW/XaVZ+QX1rbt3Vqsk6y2Ga5vg="
 
 // Repo is the GitHub repository of Hyla's releases.
 const Repo = "smallnest/hyla"

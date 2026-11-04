@@ -124,8 +124,13 @@ There is no Apple Developer ID. macOS builds are ad-hoc signed (an
 release takes a certificate or notarization.
 
 `~/.hyla-release-keys/mygo-update.key` signs updates; its public half is
-`mygo.json`'s `updates.publicKey`. Never commit the secret, and never
-replace the pair: every installed app trusts only that public key.
+`mygo.json`'s `updates.publicKey`, which `internal/update.PublicKey` holds
+too. Never commit the secret, and never replace the pair: every installed
+app trusts only that public key.
+
+3.0.0 was an exception: the pair of 2.x was lost, so it starts a new one.
+No release is stranded by it, because a 2.x app does not update from this
+repository anyway. From here on the pair stays as it is.
 
 ## Checks before a push
 
