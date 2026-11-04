@@ -14,6 +14,10 @@ Hyla started as a fork of [Kero](https://kero.sh) — `smallnest/kero`, itself a
 fork of `egoist/kero` — and has since gone its own way: a name and a look of
 its own, and the features below that Kero never had.
 
+<p align="center">
+  <img src="docs/screenshot.jpg" alt="Hyla's sidebar of sessions, a terminal running an agent, and the Settings window over it">
+</p>
+
 ## What it does
 
 - **Sessions outlive the window.** They run in `hylad`, a small daemon, so
