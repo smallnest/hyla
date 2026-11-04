@@ -102,15 +102,34 @@ func (a *App) showQuick() {
 	}
 	q.err = ""
 	a.attachQuick()
-	d := mygo.Screen.DisplayNearestPoint(mygo.Screen.CursorScreenPoint())
-	wa := d.WorkArea
-	r := mygo.Rectangle{X: wa.X, Y: wa.Y, Width: wa.Width, Height: int(float64(wa.Height) * quickHeight)}
+	r := a.quickFrame()
 	q.shown = true
 	q.ref.Focus()
-	a.slideQuick(r, wa.Y-r.Height, wa.Y, nil)
+	a.slideQuick(r, r.Y-r.Height, r.Y, nil)
 	q.win.Show()
 	q.win.Focus()
 	a.reportView()
+}
+
+// quickFrame is where the quick terminal shows: over the panes of the
+// main window, as wide as they are and half its height, at their top
+// left, so that it reads as the panes' own. With no window in sight, it
+// drops from the top of the display with the pointer, as Ghostty's does.
+func (a *App) quickFrame() mygo.Rectangle {
+	if a.win != nil && !a.win.IsDestroyed() && a.win.IsVisible() && !a.win.IsMinimized() && !a.win.IsFullScreen() {
+		b := a.win.Bounds()
+		sideW, pad := int(a.chrome.sideW), int(a.chrome.mainPad)
+		w := b.Width - sideW - pad - cardGap
+		if a.rightShown() {
+			w -= int(a.sideWidth(a.side.rowW)) + sideGap
+		}
+		if w >= minPanes {
+			return mygo.Rectangle{X: b.X + sideW + pad, Y: b.Y + cardGap, Width: w, Height: b.Height / 2}
+		}
+	}
+	d := mygo.Screen.DisplayNearestPoint(mygo.Screen.CursorScreenPoint())
+	wa := d.WorkArea
+	return mygo.Rectangle{X: wa.X, Y: wa.Y, Width: wa.Width, Height: int(float64(wa.Height) * quickHeight)}
 }
 
 // hideQuick slides the quick terminal back up, which gives the keyboard
