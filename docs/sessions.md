@@ -55,6 +55,12 @@ The sidebar's foot has **Add SSH Host**. Type an address as ssh takes it, such a
 
 All the machines live in one project, **SSH Hosts**, with the host's icon. Each row is a machine, its name over the address ssh runs to; a click shows its terminal, or starts one. The project's **+** or the sidebar's **Add SSH Host** adds another machine, and a right-click removes one.
 
+### K8s pods
+
+The sidebar's foot has **Add K8s Pod** too. Type a command as kubectl exec takes it, such as `kubectl exec -it web-0 -n prod -- /bin/bash`: Hyla opens a terminal running it on this computer, with your kubeconfig, and names the pod from the command.
+
+The pods live in one project, **K8s Pods**, with the Kubernetes icon. Each row is a pod, its name over its command; a click shows its terminal, or starts one, **+** adds another, and a right-click removes one.
+
 ## hylad
 
 Sessions run in **hylad**, a daemon that the app starts on demand. Hyla is a window onto hylad:

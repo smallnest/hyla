@@ -77,6 +77,10 @@ type prefs struct {
 	// in, "" until one is made; SSHHosts are the machines it lists.
 	SSHProject string    `json:"sshProject,omitempty"`
 	SSHHosts   []sshHost `json:"sshHostList,omitempty"`
+	// K8sProject is the software project the sidebar's kubectl terminals
+	// open in, "" until one is made; K8sPods are the pods it lists.
+	K8sProject string   `json:"k8sProject,omitempty"`
+	K8sPods    []k8sPod `json:"k8sPodList,omitempty"`
 }
 
 const (
@@ -160,6 +164,7 @@ type App struct {
 	confirm *confirmation
 	wtAsk   *worktreeAsk
 	sshAsk  *sshAsk // the sidebar's add-a-host-over-SSH dialog
+	k8sAsk  *k8sAsk // the sidebar's add-a-kubectl-exec-pod dialog
 	// endedAll shows all of the sidebar's Ended; skillMissing tells, as
 	// of skillsAt, that no kind of agent has Hyla's skill (ended.go).
 	// This fork has no Ended (session history): the fields stay for
@@ -1502,12 +1507,19 @@ func (a *App) newSession(projectID string) {
 	if projectID != "" {
 		h = a.hostOf(projectID)
 	}
-	// ⌘T in an SSH terminal adds a machine, which opens ssh there, as the
-	// project's own New Session does; a shell there is no machine's.
+	// ⌘T in an SSH or K8s terminal adds a machine or a pod, which opens
+	// its terminal, as the project's own New Session does; a shell there
+	// is no machine's.
 	if projectID == "" && h == a.local() {
-		if cur := a.session(a.selected); cur != nil && cur.Project != "" && cur.Project == a.prefs.SSHProject {
-			a.askSSHHost()
-			return
+		if cur := a.session(a.selected); cur != nil && cur.Project != "" {
+			if cur.Project == a.prefs.SSHProject {
+				a.askSSHHost()
+				return
+			}
+			if cur.Project == a.prefs.K8sProject {
+				a.askK8sPod()
+				return
+			}
 		}
 	}
 	a.newSessionOn(h, projectID)
@@ -1519,9 +1531,14 @@ func (a *App) newSessionOn(h *host, projectID string) {
 	if h.cl == nil {
 		return
 	}
-	// The SSH project's New Session adds a machine, which opens ssh.
+	// The SSH and K8s projects' New Session adds a machine or a pod,
+	// which opens its terminal.
 	if projectID != "" && projectID == a.prefs.SSHProject {
 		a.askSSHHost()
+		return
+	}
+	if projectID != "" && projectID == a.prefs.K8sProject {
+		a.askK8sPod()
 		return
 	}
 	p := proto.CreateParams{Project: projectID}

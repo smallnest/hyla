@@ -1122,6 +1122,22 @@
   "sshHostsProject": "SSH Hosts",
   "sshRemoveTitle": "Remove {name}?",
   "sshRemoveDetail": "Its terminal closes, and the machine leaves the SSH project.",
+  "actionAddK8sPod": "Add K8s Pod…",
+  "k8sPodDetail": "Enter a pod as kubectl exec takes it, and Hyla opens a terminal running it: kubectl exec -it web-0 -n prod -- /bin/bash. kubectl runs on this computer, with your kubeconfig.",
+  "k8sPodCommandPlaceholder": "kubectl exec -it <pod> -n <namespace> -- /bin/bash",
+  "k8sPodOnly": "Add a kubectl exec command, as kubectl exec -it <pod> -n <namespace> -- /bin/bash.",
+  "k8sPodNeedsPod": "kubectl exec names no pod: kubectl exec -it <pod> -n <namespace> -- /bin/bash.",
+  "k8sPodsProject": "K8s Pods",
+  "k8sCopyCommand": "Copy Command",
+  "k8sRemoveTitle": "Remove {name}?",
+  "@k8sRemoveTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "k8sRemoveDetail": "Its terminal closes, and the pod leaves the K8s project.",
   "setHostRemoteControl": "Remote Control",
   "setHostRemoteControlDetail": "Let programs on {host} show sessions and run the app's actions (hyla focus, hyla do)",
   "@setHostRemoteControlDetail": {

@@ -6488,6 +6488,96 @@ func (msgs Messages) SshRemoveDetail() string {
 	return Catalog.Format(msgs.locale, "sshRemoveDetail", nil)
 }
 
+// ActionAddK8sPod says "Add K8s Pod…"
+// in the language the app shows.
+func ActionAddK8sPod() string { return In(i18n.Locale()).ActionAddK8sPod() }
+
+// ActionAddK8sPod says "Add K8s Pod…"
+// in the language of msgs.
+func (msgs Messages) ActionAddK8sPod() string {
+	return Catalog.Format(msgs.locale, "actionAddK8sPod", nil)
+}
+
+// K8sPodDetail says "Enter a pod as kubectl exec takes it, and Hyla opens a terminal running it: kubectl exec -it web-0 -n prod -- /bin/ba…"
+// in the language the app shows.
+func K8sPodDetail() string { return In(i18n.Locale()).K8sPodDetail() }
+
+// K8sPodDetail says "Enter a pod as kubectl exec takes it, and Hyla opens a terminal running it: kubectl exec -it web-0 -n prod -- /bin/ba…"
+// in the language of msgs.
+func (msgs Messages) K8sPodDetail() string {
+	return Catalog.Format(msgs.locale, "k8sPodDetail", nil)
+}
+
+// K8sPodCommandPlaceholder says "kubectl exec -it <pod> -n <namespace> -- /bin/bash"
+// in the language the app shows.
+func K8sPodCommandPlaceholder() string { return In(i18n.Locale()).K8sPodCommandPlaceholder() }
+
+// K8sPodCommandPlaceholder says "kubectl exec -it <pod> -n <namespace> -- /bin/bash"
+// in the language of msgs.
+func (msgs Messages) K8sPodCommandPlaceholder() string {
+	return Catalog.Format(msgs.locale, "k8sPodCommandPlaceholder", nil)
+}
+
+// K8sPodOnly says "Add a kubectl exec command, as kubectl exec -it <pod> -n <namespace> -- /bin/bash."
+// in the language the app shows.
+func K8sPodOnly() string { return In(i18n.Locale()).K8sPodOnly() }
+
+// K8sPodOnly says "Add a kubectl exec command, as kubectl exec -it <pod> -n <namespace> -- /bin/bash."
+// in the language of msgs.
+func (msgs Messages) K8sPodOnly() string {
+	return Catalog.Format(msgs.locale, "k8sPodOnly", nil)
+}
+
+// K8sPodNeedsPod says "kubectl exec names no pod: kubectl exec -it <pod> -n <namespace> -- /bin/bash."
+// in the language the app shows.
+func K8sPodNeedsPod() string { return In(i18n.Locale()).K8sPodNeedsPod() }
+
+// K8sPodNeedsPod says "kubectl exec names no pod: kubectl exec -it <pod> -n <namespace> -- /bin/bash."
+// in the language of msgs.
+func (msgs Messages) K8sPodNeedsPod() string {
+	return Catalog.Format(msgs.locale, "k8sPodNeedsPod", nil)
+}
+
+// K8sPodsProject says "K8s Pods"
+// in the language the app shows.
+func K8sPodsProject() string { return In(i18n.Locale()).K8sPodsProject() }
+
+// K8sPodsProject says "K8s Pods"
+// in the language of msgs.
+func (msgs Messages) K8sPodsProject() string {
+	return Catalog.Format(msgs.locale, "k8sPodsProject", nil)
+}
+
+// K8sCopyCommand says "Copy Command"
+// in the language the app shows.
+func K8sCopyCommand() string { return In(i18n.Locale()).K8sCopyCommand() }
+
+// K8sCopyCommand says "Copy Command"
+// in the language of msgs.
+func (msgs Messages) K8sCopyCommand() string {
+	return Catalog.Format(msgs.locale, "k8sCopyCommand", nil)
+}
+
+// K8sRemoveTitle says "Remove {name}?"
+// in the language the app shows.
+func K8sRemoveTitle(name string) string { return In(i18n.Locale()).K8sRemoveTitle(name) }
+
+// K8sRemoveTitle says "Remove {name}?"
+// in the language of msgs.
+func (msgs Messages) K8sRemoveTitle(name string) string {
+	return Catalog.Format(msgs.locale, "k8sRemoveTitle", map[string]any{"name": name})
+}
+
+// K8sRemoveDetail says "Its terminal closes, and the pod leaves the K8s project."
+// in the language the app shows.
+func K8sRemoveDetail() string { return In(i18n.Locale()).K8sRemoveDetail() }
+
+// K8sRemoveDetail says "Its terminal closes, and the pod leaves the K8s project."
+// in the language of msgs.
+func (msgs Messages) K8sRemoveDetail() string {
+	return Catalog.Format(msgs.locale, "k8sRemoveDetail", nil)
+}
+
 // SetHostRemoteControl says "Remote Control"
 // in the language the app shows.
 func SetHostRemoteControl() string { return In(i18n.Locale()).SetHostRemoteControl() }

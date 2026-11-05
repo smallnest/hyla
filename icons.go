@@ -62,6 +62,9 @@ var (
 	cpuIcon         = icon(`<rect x="2.5" y="2.5" width="11" height="11" rx="2.5"/><rect x="5.75" y="5.75" width="4.5" height="4.5" rx="1"/><path d="M6 1v1.5M10 1v1.5M6 13.5V15M10 13.5V15M1 6h1.5M1 10h1.5M13.5 6H15M13.5 10H15"/>`)
 	archiveIcon     = icon(`<rect x="2" y="3" width="12" height="3" rx="1"/><path d="M3 6v6.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6M6.5 9h3"/>`)
 	sortIcon        = icon(`<path d="M3 4.5h9M3 8h6M3 11.5h3"/><path d="M12 4.5v7M9.5 9 12 11.5 14.5 9"/>`)
+	// k8sIcon is the Kubernetes wheel: a heptagon around a ship's wheel,
+	// as the logo draws it, in Hyla's stroke.
+	k8sIcon = icon(`<path d="M8 1.7 13.2 4.2 14.4 9.8 10.9 14.3 5.1 14.3 1.6 9.8 2.8 4.2Z"/><circle cx="8" cy="8.3" r="1.9"/><path d="M8 6.4V3.3M9.5 7.2l2.7-2M9.8 8.6l3.4.7M8.9 9.9l1.5 3.1M7.1 9.9l-1.5 3.1M6.2 8.6l-3.4.7M6.5 7.2l-2.7-2"/>`)
 )
 
 // programIcons are the logos of programs a pane may run, by the name hylad

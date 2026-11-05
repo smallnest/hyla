@@ -121,7 +121,7 @@ func (a *App) view(c *ui.Context) {
 		a.chrome = chromeFor(progress, a.prefs.SidebarWidth, bar)
 		w := a.chrome.sideW
 		side := ui.Row(c).Width(w).Shrink(0).AlignItems(ui.Stretch).ClipX()
-		if h := a.local(); h.conn == connReady && h.cl != nil && !a.prefs.SidebarHidden && !a.pal.open && !a.picker.open && a.sshAsk == nil && (a.confirm == nil || !a.confirm.open) {
+		if h := a.local(); h.conn == connReady && h.cl != nil && !a.prefs.SidebarHidden && !a.pal.open && !a.picker.open && a.sshAsk == nil && a.k8sAsk == nil && (a.confirm == nil || !a.confirm.open) {
 			if files := side.DroppedFiles(); len(files) > 0 {
 				go a.openProjectDirs(h, h.cl, slices.Clone(files), true)
 			}
@@ -158,6 +158,7 @@ func (a *App) view(c *ui.Context) {
 	a.confirmView(c, pal)
 	a.worktreeView(c, pal)
 	a.sshView(c, pal)
+	a.k8sView(c, pal)
 	// A preview that showed no more fades in anew next time.
 	if !a.previewShown {
 		a.previewKey = ""
@@ -433,9 +434,10 @@ func (a *App) dateHeader(c *ui.Context, pal *palette, key, label string, count i
 
 func (a *App) groupView(c *ui.Context, pal *palette, g group, gi int, n *int) {
 	id, key := g.project.ID, g.key()
-	// The SSH project opens ssh terminals, not shells: its rows are the
-	// machines it lists.
+	// The SSH and K8s projects open terminals of their own, not shells:
+	// their rows are the machines and pods they list.
 	ssh := id != "" && id == a.prefs.SSHProject
+	k8s := id != "" && id == a.prefs.K8sProject
 	collapsed := a.prefs.Collapsed[key]
 	// current says this project holds the session in the card; folded, its
 	// badge keeps a dot for it.
@@ -544,11 +546,14 @@ func (a *App) groupView(c *ui.Context, pal *palette, g group, gi int, n *int) {
 				action:  locales.SidebarCloseProject(),
 				destroy: true,
 				run: func() {
-					// The SSH project closed is one the sidebar no longer
-					// opens: its machines and their terminals went with
-					// its project.
+					// An SSH or K8s project closed is one the sidebar no
+					// longer opens: its rows and their terminals went
+					// with its project.
 					if ssh {
 						a.clearSSHProject()
+					}
+					if k8s {
+						a.clearK8sProject()
 					}
 					a.call(id, "project.close", proto.IDParams{ID: id}, nil)
 				},
@@ -558,8 +563,12 @@ func (a *App) groupView(c *ui.Context, pal *palette, g group, gi int, n *int) {
 	hdr.Children(func() {
 		badge := ui.Box(c.Key("project-icon-"+key)).Size(projectBadge, projectBadge).Radius(5).Center().Shrink(0).
 			Background(a.projectBadgeColor(g.project)).Children(func() {
-			if ssh {
-				ui.Icon(c, hostIcon).Size(13, 13).TextColor(ui.Hex("#ffffff"))
+			if ssh || k8s {
+				icon := hostIcon
+				if k8s {
+					icon = k8sIcon
+				}
+				ui.Icon(c, icon).Size(13, 13).TextColor(ui.Hex("#ffffff"))
 				return
 			}
 			ui.Text(c, projectInitial(g.project.Name)).FontSize(10.5).FontWeight(700).TextColor(ui.Hex("#ffffff"))
@@ -617,8 +626,9 @@ func (a *App) groupView(c *ui.Context, pal *palette, g group, gi int, n *int) {
 		return
 	}
 	for _, s := range g.sessions {
-		// A machine's terminal is its row, not a session of its own.
-		if ssh && a.sshHostOfSession(s.ID) != nil {
+		// A machine's or pod's terminal is its row, not a session of its
+		// own.
+		if ssh && a.sshHostOfSession(s.ID) != nil || k8s && a.k8sPodOfSession(s.ID) != nil {
 			continue
 		}
 		a.sessionRow(c, pal, s, n, float32(rowInset+projectBadge+projectBadgeGap))
@@ -631,12 +641,21 @@ func (a *App) groupView(c *ui.Context, pal *palette, g group, gi int, n *int) {
 			a.sshEmpty(c, pal)
 		}
 	}
+	if k8s {
+		for i := range a.prefs.K8sPods {
+			a.k8sPodRow(c, pal, i)
+		}
+		if len(a.prefs.K8sPods) == 0 {
+			a.k8sEmpty(c, pal)
+		}
+	}
 }
 
 // projectTip is a project's header tooltip: its directory, or the name of
-// the sidebar's SSH project, which has no directory of its own.
+// the sidebar's SSH and K8s projects, which have no directory of their
+// own.
 func (a *App) projectTip(g group) string {
-	if g.project.ID != "" && g.project.ID == a.prefs.SSHProject {
+	if g.project.ID != "" && (g.project.ID == a.prefs.SSHProject || g.project.ID == a.prefs.K8sProject) {
 		return g.project.Name
 	}
 	return g.host.shortDir(g.project.Dir)
@@ -713,11 +732,16 @@ func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int, 
 		a.startRename(s.ID)
 	}
 	tip := a.hostOf(s.ID).shortDir(s.WorkDir())
-	// An SSH terminal says the address ssh runs to, here and below.
+	// An SSH or K8s terminal says where it runs to, here and below.
 	sshAddr := ""
 	if h := a.sshHostOfSession(s.ID); h != nil {
 		sshAddr = h.Addr
 		tip = sshAddr + "\n" + tip
+	}
+	k8sCmd := ""
+	if pod := a.k8sPodOfSession(s.ID); pod != nil {
+		k8sCmd = pod.Command
+		tip = k8sCmd + "\n" + tip
 	}
 	ssh := sshAddr != ""
 	if s.Process != "" {
@@ -777,11 +801,16 @@ func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int, 
 					statusIconP(c, pal, s.Status, s.Unread, s.Progress, 15)
 				})
 				line, msg := rowDetail(s, g, a.hostOf(s.ID).shortDir(s.WorkDir()))
-				if ssh {
+				switch {
+				case ssh:
 					// An SSH terminal's second line is the address ssh
 					// runs to, not what the folder it runs in is.
 					line, msg = sshAddr, false
-				} else if a.prefs.SidebarGroup == "none" || a.prefs.SidebarGroup == "date" {
+				case k8sCmd != "":
+					// A K8s terminal's is the kubectl command that
+					// enters its pod.
+					line, msg = k8sCmd, false
+				case a.prefs.SidebarGroup == "none" || a.prefs.SidebarGroup == "date":
 					// Without project headers, the project says which list
 					// the session is in, before what it is at.
 					if p := a.projectName(s.Project); p != "" {
@@ -797,9 +826,11 @@ func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int, 
 			return
 		}
 		name()
-		// An SSH terminal names the machine it reaches, by its name.
-		if ssh {
-			ui.Text(c, sshAddr).Font("monospace").FontSize(12).TextColor(pal.textFaint).SingleLine().Ellipsis("…").Shrink(3).MinWidth(24).MaxWidth(160)
+		// An SSH or K8s terminal names what it reaches, by its name.
+		if detail := sshAddr; detail != "" {
+			ui.Text(c, detail).Font("monospace").FontSize(12).TextColor(pal.textFaint).SingleLine().Ellipsis("…").Shrink(3).MinWidth(24).MaxWidth(160)
+		} else if k8sCmd != "" {
+			ui.Text(c, k8sCmd).Font("monospace").FontSize(12).TextColor(pal.textFaint).SingleLine().Ellipsis("…").Shrink(3).MinWidth(24).MaxWidth(220)
 		}
 		// A branch of its own, as an agent's in a worktree, by the name.
 		if b := offBranch(g); b != "" {
@@ -904,6 +935,7 @@ func (a *App) sidebarFooter(c *ui.Context, pal *palette) {
 	ui.Row(c).Height(36).Shrink(0).Padding(0, 12, 4, 12).Gap(2).AlignItems(ui.Center).DragWindow().Children(func() {
 		iconButton(c, "open-project", folderIcon, a.tip(locales.ActionOpenProject(), "project.open"), pal, a.openProject)
 		iconButton(c, "add-ssh", hostIcon, a.tip(locales.ActionAddSSHHost(), ""), pal, a.askSSHHost)
+		iconButton(c, "add-k8s", k8sIcon, a.tip(locales.ActionAddK8sPod(), ""), pal, a.askK8sPod)
 		iconButton(c, "palette", searchIcon, a.tip(locales.ActionGoToSession(), "palette.open"), pal, a.openPalette)
 		iconButton(c, "settings", gearIcon, a.tip(locales.SettingsTitle(), "settings.open"), pal, func() { a.openSettings("") })
 		ui.Spacer(c)
