@@ -4,6 +4,24 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.3.0
+
+- **DSH** (DeepSeek Harness) is a coding agent Hyla knows: the sidebar
+  shows it working, waiting for an approval or idle, it resumes after a
+  restart, and a Feishu chat can run it with `/new <project> dsh`. Its
+  chats start the session DSH makes and continue it.
+- **Settings › Terminal › Fallback font** adds the fonts Hyla's terminals
+  draw what their font lacks with, such as Chinese, in the order they are
+  tried; the configuration file sets them with `font-fallback`.
+- **Settings › Terminal › Cell width** widens or narrows the terminals'
+  cells from 0.8 to 2 times the font's, without changing the size of the
+  text; the configuration file sets it with `cell-width`.
+- The quick terminal is <kbd>Control</kbd> <kbd>`</kbd> on every platform,
+  as Ghostty's documentation gives it, so it no longer takes
+  <kbd>Control</kbd> <kbd>Shift</kbd> <kbd>T</kbd>, which terminals paste
+  with. A keybind of your own keeps it.
+- Removing a Hyla host in **Settings › Hyla Hosts** works again.
+
 ## 3.2.0
 
 - **Add SSH Host** at the foot of the sidebar opens a terminal running ssh
