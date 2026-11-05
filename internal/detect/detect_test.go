@@ -10,7 +10,7 @@ func TestManifestsCompile(t *testing.T) {
 	if err := Load(); err != nil {
 		t.Fatal(err)
 	}
-	for _, a := range []string{"claude", "codex", "gemini", "opencode", "amp", "cursor-agent", "droid", "qwen", "copilot", "kiro-cli", "cline", "kimi", "pi"} {
+	for _, a := range []string{"claude", "codex", "gemini", "opencode", "amp", "cursor-agent", "droid", "qwen", "copilot", "kiro-cli", "cline", "kimi", "pi", "dsh"} {
 		if !Known(a) {
 			t.Errorf("no rules for %s", a)
 		}
@@ -77,5 +77,23 @@ func TestProgress(t *testing.T) {
 	}
 	if got := Detect("kiro-cli", Input{Progress: "4;0"}); got.State != Idle {
 		t.Errorf("progress 4;0: %s (rule %q), want idle", got.State, got.Rule)
+	}
+}
+
+// DSH's screens: its approval bar and status line.
+func TestDSH(t *testing.T) {
+	cases := []struct {
+		name  string
+		in    Input
+		state State
+	}{
+		{"at its prompt", Input{Screen: screen(t, "dsh-idle.txt")}, Idle},
+		{"working", Input{Screen: screen(t, "dsh-working.txt")}, Working},
+		{"awaiting approval", Input{Screen: screen(t, "dsh-blocked.txt")}, Blocked},
+	}
+	for _, c := range cases {
+		if got := Detect("dsh", c.in); got.State != c.state {
+			t.Errorf("%s: %s (rule %q), want %s", c.name, got.State, got.Rule, c.state)
+		}
 	}
 }
