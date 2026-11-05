@@ -295,6 +295,8 @@
   "setCellWidthDetail": "字形の大きさや行の高さを変えずに、ターミナルのセルの幅を広げたり狭めたりします。",
   "setLineHeight": "行の高さ",
   "setWeight": "太さ",
+  "setWeightExtraLight": "極細",
+  "setWeightThin": "細体",
   "setWeightLight": "細字",
   "setWeightRegular": "標準",
   "setWeightMedium": "中字",

@@ -879,3 +879,30 @@ func TestCJKFamily(t *testing.T) {
 		}
 	}
 }
+
+// The weight menu has the lighter weights too, which Hyla's own font
+// draws: extra light, and thin.
+func TestWeightExtraLight(t *testing.T) {
+	a := testApp(t)
+	a.ss.page = "terminal"
+	tt := ui.NewTester(a.settingsView, 820, 900)
+	tt.Frame()
+	if err := tt.Click("Regular"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	tt.Advance(time.Second)
+	tt.Frame()
+	for _, want := range []string{"Extra Light", "Thin", "Light"} {
+		if !tt.HasText(want) {
+			t.Fatalf("no %q in the weight menu; texts %q", want, tt.Texts())
+		}
+	}
+	if err := tt.Click("Extra Light"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.set.FontWeight != 200 {
+		t.Errorf("chose weight %d, want 200", a.set.FontWeight)
+	}
+}

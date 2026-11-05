@@ -845,8 +845,12 @@ func (a *App) terminalPage(c *ui.Context, pal *palette) {
 			ui.Textf(c, "%.2f×", s.LineHeight).FontSize(12.5).TextColor(pal.textMuted).Width(40).FontFeatures("tnum")
 		})
 		settingRow(c, pal, locales.SetWeight(), "", func() {
-			popup(c, "weight", &s.FontWeight, []int{300, 400, 500, 600}, func(w int) string {
-				return map[int]string{300: locales.SetWeightLight(), 400: locales.SetWeightRegular(), 500: locales.SetWeightMedium(), 600: locales.SetWeightSemibold()}[w]
+			popup(c, "weight", &s.FontWeight, []int{100, 200, 300, 400, 500, 600}, func(w int) string {
+				return map[int]string{
+					100: locales.SetWeightThin(), 200: locales.SetWeightExtraLight(),
+					300: locales.SetWeightLight(), 400: locales.SetWeightRegular(),
+					500: locales.SetWeightMedium(), 600: locales.SetWeightSemibold(),
+				}[w]
 			}, 140, pal)
 		})
 		settingRow(c, pal, locales.SetLigatures(), locales.SetLigaturesDetail(), func() {

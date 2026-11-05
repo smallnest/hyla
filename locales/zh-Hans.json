@@ -309,6 +309,8 @@
   "setCellWidthDetail": "横向加宽或收窄终端单元格，同时保持字形大小和行高不变。",
   "setLineHeight": "行高",
   "setWeight": "字重",
+  "setWeightExtraLight": "加细",
+  "setWeightThin": "纤细",
   "setWeightLight": "细体",
   "setWeightRegular": "常规",
   "setWeightMedium": "中等",

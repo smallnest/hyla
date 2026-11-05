@@ -3154,6 +3154,26 @@ func (msgs Messages) SetWeight() string {
 	return Catalog.Format(msgs.locale, "setWeight", nil)
 }
 
+// SetWeightExtraLight says "Extra Light"
+// in the language the app shows.
+func SetWeightExtraLight() string { return In(i18n.Locale()).SetWeightExtraLight() }
+
+// SetWeightExtraLight says "Extra Light"
+// in the language of msgs.
+func (msgs Messages) SetWeightExtraLight() string {
+	return Catalog.Format(msgs.locale, "setWeightExtraLight", nil)
+}
+
+// SetWeightThin says "Thin"
+// in the language the app shows.
+func SetWeightThin() string { return In(i18n.Locale()).SetWeightThin() }
+
+// SetWeightThin says "Thin"
+// in the language of msgs.
+func (msgs Messages) SetWeightThin() string {
+	return Catalog.Format(msgs.locale, "setWeightThin", nil)
+}
+
 // SetWeightLight says "Light"
 // in the language the app shows.
 func SetWeightLight() string { return In(i18n.Locale()).SetWeightLight() }

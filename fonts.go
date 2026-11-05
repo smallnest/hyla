@@ -15,6 +15,7 @@ import (
 // hyla carries JetBrains Mono, with Nerd Fonts' icons (resources/fonts,
 // SIL Open Font License, see OFL.txt there): the terminals' font unless
 // the user picks another, and the icons of prompts and of agents' TUIs.
+// Its weights from thin to extra bold, each file one, are all it draws.
 
 // bundledFont is the family the fonts register as.
 const bundledFont = "JetBrainsMono Nerd Font"

@@ -457,6 +457,8 @@
   "setCellWidthDetail": "Widen or narrow terminal cells without scaling glyphs or changing line height.",
   "setLineHeight": "Line height",
   "setWeight": "Weight",
+  "setWeightExtraLight": "Extra Light",
+  "setWeightThin": "Thin",
   "setWeightLight": "Light",
   "setWeightRegular": "Regular",
   "setWeightMedium": "Medium",

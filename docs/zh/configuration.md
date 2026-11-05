@@ -77,7 +77,7 @@ hyla config check             # 报告未知的配置项和无效的值
 | `font-family`         |         | 留空则使用 Hyla 自带的 JetBrains Mono Nerd Font；设为 `monospace` 则使用系统等宽字体；也可以填任何已安装的字体族 |
 | `font-fallback`       |         | `font-family` 缺少字形时（如中文）依次使用的字体：`PingFang SC, Apple Color Emoji`。留空则由系统选择 |
 | `font-size`           | `13`    | 单位为磅                                                                 |
-| `font-weight`         | `400`   | `100` 到 `900`                                                           |
+| `font-weight`         | `400`   | `100` 到 `900`；Hyla 自带字体画得出 `200`（加细）与 `300`（细体）           |
 | `line-height`         | `1.22`  | 字体默认行高的倍数                                                       |
 | `font-ligatures`      | `true`  | 按字体的设计连写字符                                                     |
 | `font-thicken`        | `false` | 加粗笔画，同 Ghostty                                                     |
