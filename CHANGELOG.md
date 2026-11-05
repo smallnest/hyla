@@ -4,6 +4,16 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.3.1
+
+- **Add K8s Pod** at the foot of the sidebar opens a terminal running a
+  `kubectl exec` command, such as
+  `kubectl exec -it web-0 -n prod -- /bin/bash`: kubectl runs on this
+  computer, with your kubeconfig, and the pod needs no Hyla. The pods
+  live in one **K8s Pods** project, each a row with its name over the
+  command; a click shows its terminal or starts one, **+** adds another,
+  and a right-click removes one.
+
 ## 3.3.0
 
 - **DSH** (DeepSeek Harness) is a coding agent Hyla knows: the sidebar
