@@ -4,6 +4,12 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.3.2
+
+- **Settings › Terminal › Weight** offers **Thin** and **Extra Light**
+  beside the other weights, for terminals drawn in JetBrains Mono Nerd
+  Font.
+
 ## 3.3.1
 
 - **Add K8s Pod** at the foot of the sidebar opens a terminal running a
