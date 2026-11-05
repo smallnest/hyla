@@ -1,0 +1,58 @@
+id = "dsh"
+version = "2026.11.05.1"
+min_engine_version = 1
+updated_at = "2026-11-05T00:00:00Z"
+aliases = ["deepseek-harness", "dsh-tui"]
+
+# The approval bar above the prompt: Yes allows the call once, No and Esc
+# reject it.
+[[rules]]
+id = "approval_bar"
+state = "blocked"
+priority = 400
+region = "whole_recent"
+visible_blocker = true
+all = [
+  { any = [
+    { contains = ["Allow this operation?"] },
+    { contains = ["Awaiting approval"] },
+  ] },
+  { any = [
+    { contains = ["Yes, allow once"] },
+    { contains = ["Enter confirm"] },
+  ] },
+]
+
+# A question of the agent's, which its options answer.
+[[rules]]
+id = "question"
+state = "blocked"
+priority = 350
+region = "whole_recent"
+visible_blocker = true
+any = [
+  { all = [{ contains = ["select"] }, { contains = ["Enter"] }], any = [{ contains = ["Esc"] }, { contains = ["esc"] }] },
+]
+
+# The status line while a turn runs: the hint that stops it, which the
+# line shows only then. Its idle line says no such word.
+[[rules]]
+id = "working"
+state = "working"
+priority = 200
+region = "whole_recent"
+visible_working = true
+any = [
+  { contains = ["Esc to interrupt"] },
+  { regex = ['(?i)\b(running|thinking|working)\b[^\n]*\bto interrupt'] },
+  # A wrapped line splits the hint.
+  { regex = ['(?i)Esc to\s*interrupt'] },
+]
+
+[[rules]]
+id = "working_spinner"
+state = "working"
+priority = 100
+region = "whole_recent"
+visible_working = true
+line_regex = ['^[ \t]*[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏] ']

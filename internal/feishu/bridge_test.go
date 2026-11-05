@@ -816,6 +816,58 @@ func TestCommandContinues(t *testing.T) {
 	}
 }
 
+// DSH runs its tasks headless, as JSON events: its final event is the
+// answer, and its session event names the conversation it continues.
+func TestDSHCommand(t *testing.T) {
+	b, _, _ := newBot(t)
+	first := b.backgroundCommand("dsh", "1234-5678", "", "hi", false)
+	next := b.backgroundCommand("dsh", "", "session-9", "again", false)
+	if strings.Join(first, " ") != "dsh headless --json hi" ||
+		strings.Join(next, " ") != "dsh headless --json --session-id session-9 again" {
+		t.Errorf("%q, %q", first, next)
+	}
+	// DSH has no yolo option: a turn adds none, whether or not it is on.
+	for _, told := range []bool{false, true} {
+		if cmd := strings.Join(b.backgroundCommand("dsh", "", "session-9", "go", told), " "); cmd != "dsh headless --json --session-id session-9 go" {
+			t.Errorf("yolo %q", cmd)
+		}
+	}
+	// Its command from feishu-agent-command's own option goes with the
+	// command, before the subcommand, as its program takes it.
+	b.cfg.Agents = map[string]string{"dsh": "dsh --permission-mode read-only"}
+	if cmd := strings.Join(b.backgroundCommand("dsh", "s", "", "x", true), " "); cmd != "dsh --permission-mode read-only headless --json x" {
+		t.Errorf("written %q", cmd)
+	}
+	b.cfg.Agents = nil
+	sid := conversation("dsh", `{"type":"session","sessionId":"session-1","cwd":"/x"}`+"\n"+
+		`{"type":"text","text":"hi"}`+"\n"+
+		`{"type":"final","text":"2"}`+"\n", "x")
+	if sid != "session-1" {
+		t.Errorf("dsh continues %q", sid)
+	}
+	// The final event is its answer; thinking and tools are not.
+	raw := `{"type":"session","sessionId":"session-1"}` + "\n" +
+		`{"type":"thinking","text":"hmm"}` + "\n" +
+		`{"type":"tool_call","callId":"c","tool":"bash","input":{}}` + "\n" +
+		`{"type":"tool_result","callId":"c","status":"completed","result":"…"}` + "\n" +
+		`{"type":"text","text":"2"}` + "\n" +
+		`{"type":"status","phase":"turn_end","turn":1,"reason":{"kind":"completed"}}` + "\n" +
+		`{"type":"final","text":"1+1=2"}` + "\n"
+	if got := commandText("dsh", raw); got != "1+1=2" {
+		t.Errorf("answered %q", got)
+	}
+	// A failure before the turn has no final event.
+	if got := commandText("dsh", `{"type":"error","message":"session \"x\" does not exist"}`+"\n"); got != `session "x" does not exist` {
+		t.Errorf("failed %q", got)
+	}
+	// A turn that fails in-turn ends with an empty final event.
+	failed := `{"type":"status","phase":"turn_end","turn":1,"reason":{"kind":"error","message":"no model"}}` + "\n" +
+		`{"type":"final","text":""}` + "\n"
+	if got := commandText("dsh", failed); got != "The turn ended: error (no model)" {
+		t.Errorf("a failed turn %q", got)
+	}
+}
+
 // splitCommand cuts the commands, and leaves prompts, and // paths.
 func TestSplitCommand(t *testing.T) {
 	for _, c := range []struct{ in, cmd, rest string }{

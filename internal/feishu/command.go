@@ -261,12 +261,19 @@ func (b *Bot) turnCommand(agent, sid, resume string, told bool) []string {
 	// it.
 	cmd := append([]string{}, agentCommand(b.cfg, agent)...)
 	// on is whether the turn takes the option: as it told, or as the
-	// settings have it where feishu-agent-command names it.
+	// settings have it where feishu-agent-command names it. DSH has none.
 	on := told || settings.IsYolo(&b.cfg, b.yolo, agent)
 	flag := slices.Clone(settings.YoloFlag(agent))
-	cmd = cmd[:1]
-	if _, named := settings.AgentYolo(&b.cfg, agent); named {
-		cmd = append(cmd, flag...)
+	if agent == "dsh" {
+		// DSH takes its option as a setting the task and the stream go
+		// after, not before its words, which its prompt would take for
+		// its own. A subcommand it was written with goes, and is added
+		// again below.
+		if _, named := settings.AgentYolo(&b.cfg, agent); named {
+			cmd = cmd[:1]
+		}
+	} else {
+		cmd = append(cmd[:1], agentHead(b.cfg, agent, flag)...)
 	}
 	switch agent {
 	case "claude":
@@ -317,6 +324,19 @@ func (b *Bot) turnCommand(agent, sid, resume string, told bool) []string {
 		} else {
 			cmd = append(cmd, "-p", "--mode", "json", "--session-id", sid)
 		}
+	case "dsh":
+		// Its events, as JSON lines, name the session it runs, which a
+		// chat's next turns go on with, and its final event is its answer.
+		cmd = append(cmd, "headless", "--json")
+		// DSH has no option that runs it without its approvals, and its
+		// sandbox is its own setting, DSH_PERMISSION_MODE: a yolo option
+		// from its command goes, and the turn asks no approval.
+		cmd = slices.DeleteFunc(cmd, func(w string) bool { return slices.Contains(flag, w) })
+		// The first turn starts a session and its events name it; only
+		// the turns after it go on with one.
+		if resume != "" {
+			cmd = append(cmd, "--session-id", resume)
+		}
 	default:
 		if !again && !wrote && len(cmd) == 1 {
 			return nil // no way told to run one prompt and end
@@ -342,6 +362,23 @@ func (b *Bot) agentArgs(agent string, told bool) []string {
 var agentSubcommand = map[string]string{
 	"codex":    "exec",
 	"opencode": "run",
+	"dsh":      "headless",
+}
+
+// agentHead is the agent's command after its program, and before its
+// words: the option where feishu-agent-command names it, which the
+// program takes before its subcommand, or else nothing, since a turn's
+// option goes after the subcommand. Claude Code's turns never name it
+// here: its subcommand's options follow, and a prompt after them would
+// take them for its own.
+func agentHead(f settings.Feishu, agent string, flag []string) []string {
+	if agent == "claude" {
+		return nil
+	}
+	if _, named := settings.AgentYolo(&f, agent); named {
+		return flag
+	}
+	return nil
 }
 
 // yoloFor is whether the agent's turns take its yolo option: as
@@ -405,14 +442,18 @@ func conversation(agent, raw string, sid string) string {
 		// OpenCode names its session sessionID, as Claude Code does
 		// session_id, and Codex thread_id.
 		var m struct {
-			Snake  string `json:"session_id"`
-			Camel  string `json:"sessionID"`
-			Thread string `json:"thread_id"`
+			Type      string `json:"type"`
+			Snake     string `json:"session_id"`
+			Camel     string `json:"sessionID"`
+			Thread    string `json:"thread_id"`
+			SessionID string `json:"sessionId"`
 		}
 		if json.Unmarshal([]byte(line), &m) != nil {
 			continue
 		}
 		switch {
+		case m.Type == "session" && m.SessionID != "" && agent == "dsh":
+			found = m.SessionID
 		case m.Camel != "" && agent == "opencode":
 			found = m.Camel
 		case m.Thread != "":
@@ -599,6 +640,44 @@ func commandText(agent, raw string) string {
 		}
 		if t := strings.TrimSpace(text.String()); t != "" {
 			return t
+		}
+	case "dsh":
+		// The events of --json: the final event's text is its answer,
+		// which a turn that failed may leave empty; an error event, or
+		// the turn's end, says why it failed.
+		final := ""
+		failure := ""
+		for _, line := range strings.Split(raw, "\n") {
+			var e struct {
+				Type    string `json:"type"`
+				Phase   string `json:"phase"`
+				Text    string `json:"text"`
+				Message string `json:"message"`
+				Reason  *struct {
+					Kind    string `json:"kind"`
+					Message string `json:"message"`
+				} `json:"reason"`
+			}
+			if json.Unmarshal([]byte(line), &e) != nil {
+				continue
+			}
+			switch {
+			case e.Type == "final":
+				final = e.Text
+			case e.Type == "error":
+				failure = e.Message
+			case e.Type == "status" && e.Phase == "turn_end" && e.Reason != nil && e.Reason.Kind != "" && e.Reason.Kind != "completed":
+				failure = "The turn ended: " + e.Reason.Kind
+				if e.Reason.Message != "" {
+					failure += " (" + e.Reason.Message + ")"
+				}
+			}
+		}
+		if t := strings.TrimSpace(final); t != "" {
+			return t
+		}
+		if failure != "" {
+			return failure
 		}
 	case "gemini":
 		// One JSON object, whose response is its answer.

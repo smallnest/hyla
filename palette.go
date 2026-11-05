@@ -472,10 +472,15 @@ func confirmDialog(c *ui.Context, pal *palette, pending **confirmation) bool {
 		cf.open = false
 		cf.altRun()
 	}
+	// Only once the answer came: what it runs may clear *pending itself,
+	// which removeHost does as the page, rebuilt, sees the host gone.
+	// Another question asked in its place, as the page's own, stays.
 	if cf.open {
 		return false
 	}
-	*pending = nil
+	if *pending == cf {
+		*pending = nil
+	}
 	return true
 }
 

@@ -2520,11 +2520,11 @@ func (msgs Messages) SetResumeAgents() string {
 	return Catalog.Format(msgs.locale, "setResumeAgents", nil)
 }
 
-// SetResumeAgentsDetail says "Claude Code, Codex, Pi and OpenCode pick up their conversation where it was, once Hyla’s skill is set up for them i…"
+// SetResumeAgentsDetail says "Claude Code, Codex, Pi, OpenCode and DSH pick up their conversation where it was, once Hyla’s skill is set up for t…"
 // in the language the app shows.
 func SetResumeAgentsDetail() string { return In(i18n.Locale()).SetResumeAgentsDetail() }
 
-// SetResumeAgentsDetail says "Claude Code, Codex, Pi and OpenCode pick up their conversation where it was, once Hyla’s skill is set up for them i…"
+// SetResumeAgentsDetail says "Claude Code, Codex, Pi, OpenCode and DSH pick up their conversation where it was, once Hyla’s skill is set up for t…"
 // in the language of msgs.
 func (msgs Messages) SetResumeAgentsDetail() string {
 	return Catalog.Format(msgs.locale, "setResumeAgentsDetail", nil)
@@ -3042,6 +3042,46 @@ func (msgs Messages) SetFontSystem() string {
 	return Catalog.Format(msgs.locale, "setFontSystem", nil)
 }
 
+// SetFontFallback says "Fallback font"
+// in the language the app shows.
+func SetFontFallback() string { return In(i18n.Locale()).SetFontFallback() }
+
+// SetFontFallback says "Fallback font"
+// in the language of msgs.
+func (msgs Messages) SetFontFallback() string {
+	return Catalog.Format(msgs.locale, "setFontFallback", nil)
+}
+
+// SetFontFallbackDetail says "Fonts for what the font lacks, such as Chinese or emoji, in the order they are tried."
+// in the language the app shows.
+func SetFontFallbackDetail() string { return In(i18n.Locale()).SetFontFallbackDetail() }
+
+// SetFontFallbackDetail says "Fonts for what the font lacks, such as Chinese or emoji, in the order they are tried."
+// in the language of msgs.
+func (msgs Messages) SetFontFallbackDetail() string {
+	return Catalog.Format(msgs.locale, "setFontFallbackDetail", nil)
+}
+
+// SetFallbackAdd says "Add a font…"
+// in the language the app shows.
+func SetFallbackAdd() string { return In(i18n.Locale()).SetFallbackAdd() }
+
+// SetFallbackAdd says "Add a font…"
+// in the language of msgs.
+func (msgs Messages) SetFallbackAdd() string {
+	return Catalog.Format(msgs.locale, "setFallbackAdd", nil)
+}
+
+// SetFallbackAddMore says "Add another font…"
+// in the language the app shows.
+func SetFallbackAddMore() string { return In(i18n.Locale()).SetFallbackAddMore() }
+
+// SetFallbackAddMore says "Add another font…"
+// in the language of msgs.
+func (msgs Messages) SetFallbackAddMore() string {
+	return Catalog.Format(msgs.locale, "setFallbackAddMore", nil)
+}
+
 // SetUseFont says "Use “{name}”"
 // in the language the app shows.
 func SetUseFont(name string) string { return In(i18n.Locale()).SetUseFont(name) }
@@ -3072,6 +3112,26 @@ func SetSizeDetail(bigger string, smaller string) string {
 // in the language of msgs.
 func (msgs Messages) SetSizeDetail(bigger string, smaller string) string {
 	return Catalog.Format(msgs.locale, "setSizeDetail", map[string]any{"bigger": bigger, "smaller": smaller})
+}
+
+// SetCellWidth says "Cell width"
+// in the language the app shows.
+func SetCellWidth() string { return In(i18n.Locale()).SetCellWidth() }
+
+// SetCellWidth says "Cell width"
+// in the language of msgs.
+func (msgs Messages) SetCellWidth() string {
+	return Catalog.Format(msgs.locale, "setCellWidth", nil)
+}
+
+// SetCellWidthDetail says "Widen or narrow terminal cells without scaling glyphs or changing line height."
+// in the language the app shows.
+func SetCellWidthDetail() string { return In(i18n.Locale()).SetCellWidthDetail() }
+
+// SetCellWidthDetail says "Widen or narrow terminal cells without scaling glyphs or changing line height."
+// in the language of msgs.
+func (msgs Messages) SetCellWidthDetail() string {
+	return Catalog.Format(msgs.locale, "setCellWidthDetail", nil)
 }
 
 // SetLineHeight says "Line height"

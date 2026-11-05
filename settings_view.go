@@ -828,6 +828,9 @@ func (a *App) terminalPage(c *ui.Context, pal *palette) {
 				a.set.FontFamily = v
 			})
 		})
+		settingsGroup(c, pal, "", locales.SetFontFallbackDetail(), func() {
+			a.fontFallbackField(c, pal)
+		})
 		settingRow(c, pal, locales.SetSize(), locales.SetSizeDetail(a.keys("text.bigger"), a.keys("text.smaller")), func() {
 			sizes := []float32{10, 11, 12, 13, 14, 15, 16, 18, 20, 22, 24, 28}
 			if !slices.Contains(sizes, s.FontSize) {
@@ -934,11 +937,13 @@ func (a *App) terminalPreview(c *ui.Context, pal *palette) {
 	if pal.dark {
 		th = dark
 	}
-	font := a.termFamily()
 	features := uiFeatures(a.fontFeatures())
 	line := func(spans ...ui.Span) {
+		// The preview draws in the UI's font, and takes the terminals' size,
+		// weight and features: another family shapes the lines with its own
+		// advances, and the preview keeps no cell width of its own.
 		for i := range spans {
-			spans[i].Font, spans[i].Size, spans[i].Weight, spans[i].Features = font, a.set.FontSize, a.set.FontWeight, features
+			spans[i].Size, spans[i].Weight, spans[i].Features = a.set.FontSize, a.set.FontWeight, features
 		}
 		ui.RichText(c, spans...).LineHeight(a.set.LineHeight).SingleLine()
 	}
@@ -955,6 +960,80 @@ func (a *App) terminalPreview(c *ui.Context, pal *palette) {
 			}
 		})
 	})
+}
+
+// fontFallbackField shows font-fallback as the families in the order they
+// are tried, each removed by its x, and above them a search menu of the
+// families installed, which adds one: a font may lack Chinese, emoji or
+// icons, which a fallback of the user's draws. It returns the button that
+// adds one.
+func (a *App) fontFallbackField(c *ui.Context, pal *palette) {
+	cur := a.fallbackFonts()
+	for i, f := range cur {
+		family, at := f, i
+		ui.Row(c.Key("fb-"+family)).Padding(8, 0).Gap(8).AlignItems(ui.Center).Children(func() {
+			ui.Textf(c, "%d", at+1).FontSize(12).TextColor(pal.textFaint).Width(14).FontFeatures("tnum").Shrink(0)
+			ui.Text(c, family).FontSize(13).TextColor(pal.text).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1).Grow(1)
+			iconButton(c, "fb-x-"+family, closeIcon, locales.CommonRemove(), pal, func() {
+				a.set.FontFallback = strings.Join(slices.Delete(slices.Clone(cur), at, at+1), ", ")
+			})
+		})
+	}
+	label := locales.SetFallbackAdd()
+	if len(cur) > 0 {
+		label = locales.SetFallbackAddMore()
+	}
+	ui.Row(c).Padding(8, 0).AlignItems(ui.Center).Children(func() {
+		a.searchPopup(c, "fallback", label, fallbackOptions(), 240, locales.SetUseFont, pal, func(v string) {
+			a.addFallback(v, -1)
+		})
+	})
+}
+
+// fallbackOptions are the families a fallback may be: the font menu's
+// after hyla's own and the system's, then every other family the machine
+// has: first those whose names name Chinese, Japanese or Korean, then the
+// rest, each listed once. MyGo lists the machine's families once, so one
+// installed while hyla runs shows after a restart.
+var fallbackOptions = sync.OnceValue(func() []string {
+	var out, rest []string
+	seen := map[string]bool{fontChoices[0]: true, bundledFont: true}
+	add := func(list *[]string, name string) {
+		if name == "" || seen[name] {
+			return
+		}
+		seen[name] = true
+		*list = append(*list, name)
+	}
+	for _, name := range fontChoices[2:] {
+		add(&out, name)
+	}
+	for _, f := range ui.FontFamilies() {
+		if f.Monospaced {
+			add(&out, f.Name)
+		}
+	}
+	for _, f := range ui.FontFamilies() {
+		if cjkFamily(f.Name) {
+			add(&out, f.Name)
+		} else {
+			add(&rest, f.Name)
+		}
+	}
+	return append(out, rest...)
+})
+
+// cjkFamily tells, by the name, that a family draws Chinese, Japanese or
+// Korean, as the fallback a terminal's font lacks them wants.
+func cjkFamily(name string) bool {
+	for _, s := range []string{"CJK", "Hei", "Song", "Kai", "Ming", "Gothic", "Mincho", "Myeongjo", "YaHei", "Gulim",
+		"PingFang", "Hiragino", "Noto Sans SC", "Noto Sans TC", "Noto Sans JP", "Noto Sans KR", "Noto Serif SC", "Noto Serif TC", "Noto Serif JP", "Noto Serif KR",
+		"Source Han", "WenQuanYi", "Droid Sans Fallback", "Sarasa", "LXGW", "Hong Kong", "Macau", "Zhuyin"} {
+		if strings.Contains(name, s) {
+			return true
+		}
+	}
+	return false
 }
 
 // fontFeaturesField edits font-feature as a comma-separated list. What

@@ -75,6 +75,7 @@ hyla config check             # report unknown keys and bad values
 | --------------------- | ------- | ------------------------------------------------------------------------ |
 | `theme`               | `hyla`  | Terminal colors: `hyla`, any Ghostty theme, or `light:<theme>,dark:<theme>` |
 | `font-family`         |         | Empty for JetBrains Mono Nerd Font, which Hyla includes; `monospace` for the system's; or any installed family |
+| `font-fallback`       |         | Fonts for what `font-family` lacks, such as Chinese, in the order they are tried: `PingFang SC, Apple Color Emoji`. Empty for the system's choice |
 | `font-size`           | `13`    | In points                                                                |
 | `font-weight`         | `400`   | `100` to `900`                                                           |
 | `line-height`         | `1.22`  | A multiple of the font's                                                 |

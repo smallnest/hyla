@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"runtime"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -436,7 +437,9 @@ func TestPopupButtons(t *testing.T) {
 // and stays in the window: near the window's bottom it moves up, where
 // it once went above the button, and further up, cut off by the top.
 func TestPopupMenuStaysInWindow(t *testing.T) {
-	for _, h := range []int{900, 400} {
+	// The page does not scroll, so a window too short for its rows shows
+	// the size's button no room to open its menu.
+	for _, h := range []int{900, 460} {
 		a := testApp(t)
 		a.ss.page = "terminal"
 		a.set.FontSize = 15
@@ -477,6 +480,9 @@ func TestPopupMenuStaysInWindow(t *testing.T) {
 		tt.Frame()
 	}
 }
+
+// The font menu offers every monospaced family installed, so a font
+// installed with the system is there to pick.
 
 // The font menu offers every monospaced family installed, so a font
 // installed with the system is there to pick.
@@ -795,5 +801,81 @@ func TestFontFeaturesField(t *testing.T) {
 			t.Errorf("after a bad tag, font-feature %q, want %q", a.set.FontFeatures, want)
 		}
 		shot(t, tt, "font-features-bad-"+name)
+	}
+}
+
+// The fallback font picks the families the machine has, one after
+// another, and each goes by its x.
+func TestFallbackFont(t *testing.T) {
+	a := testApp(t)
+	a.ss.page = "terminal"
+	a.set.FontFallback = "PingFang SC, Menlo"
+	// Room for every row: a page too short for the picker's menu shows
+	// the font under the window's foot.
+	tt := ui.NewTester(a.settingsView, 820, 980)
+	tt.Frame()
+	// A font already there comes once.
+	if err := tt.Click("Add another font…"); err != nil {
+		t.Fatalf("no fallback picker: %v; texts %q", err, tt.Texts())
+	}
+	tt.Frame()
+	tt.Advance(time.Second)
+	tt.Frame()
+	tt.Type("pingfang sc")
+	for range 3 {
+		tt.Frame()
+	}
+	if item, ok := tt.Find("PingFang SC"); !ok {
+		t.Fatalf("no PingFang SC; texts %q", tt.Texts())
+	} else {
+		tt.ClickAt(item.X+6, item.Y+item.H/2)
+	}
+	tt.Frame()
+	if want := "PingFang SC, Menlo"; a.set.FontFallback != want {
+		t.Errorf("fallback %q, want %q", a.set.FontFallback, want)
+	}
+	// The terminals' font, then the fallbacks in order.
+	if got := a.termFamily(); !strings.HasSuffix(got, ", PingFang SC, Menlo") {
+		t.Errorf("families %q, want them to end in the fallbacks", got)
+	}
+	shot(t, tt, "fallback-font")
+	// Each x takes out its family.
+	remove(t, tt, "PingFang SC")
+	if want := "Menlo"; a.set.FontFallback != want {
+		t.Fatalf("after PingFang SC's x, fallback %q, want %q", a.set.FontFallback, want)
+	}
+	remove(t, tt, "Menlo")
+	tt.Frame()
+	if a.set.FontFallback != "" {
+		t.Errorf("after Menlo's x, fallback %q, want none", a.set.FontFallback)
+	}
+	// With none, the terminals draw with their font alone.
+	if got := a.termFamily(); strings.Contains(got, ",") {
+		t.Errorf("families %q, want the font alone", got)
+	}
+}
+
+// remove presses the x of family, at the right of its row.
+func remove(t *testing.T, tt *ui.Tester, family string) {
+	t.Helper()
+	if _, ok := tt.Find(family); !ok {
+		t.Fatalf("no %s; texts %q", family, tt.Texts())
+	}
+	if err := tt.Click("Remove"); err != nil {
+		t.Fatalf("no x of %s: %v", family, err)
+	}
+	tt.Frame()
+}
+
+// A family name says whether it draws Chinese, Japanese or Korean.
+func TestCJKFamily(t *testing.T) {
+	for name, want := range map[string]bool{
+		"PingFang SC": true, "Hiragino Sans GB": true, "Source Han Sans SC": true, "Microsoft YaHei": true,
+		"Noto Sans CJK SC": true, "Hiragino Mincho ProN": true, "Apple SD Gothic Neo": true,
+		"Menlo": false, "SF Mono": false, "Apple Color Emoji": false,
+	} {
+		if got := cjkFamily(name); got != want {
+			t.Errorf("cjkFamily(%q) %v, want %v", name, got, want)
+		}
 	}
 }

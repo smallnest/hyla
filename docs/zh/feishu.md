@@ -64,6 +64,7 @@ pi -p --session-id <id> "<prompt>"                              # Pi
 gemini -p "<prompt>"                                            # Gemini CLI
 opencode run "<prompt>"
 codex exec --json "<prompt>"
+dsh headless --json --session-id <id> "<prompt>"                # DSH
 ```
 
 每条命令在聊天的会话中运行，该会话没有终端和 shell：命令运行时侧边栏显示工作中，结束后显示空闲。它在 `feishu-dir` 指定的目录中运行，环境与窗格相同。命令的输出写到 hyla 目录下 `feishu-run` 中的文件，其文本就是回复。聊天会继续这段对话。第一轮用 hylad 生成的 ID 开始会话，之后的轮次继续它：
@@ -75,10 +76,11 @@ codex exec --json "<prompt>"
 | Gemini | `--session-id <id>` | `--resume <id>` |
 | OpenCode | `run "<prompt>"` | `run --session <id>`；输出中给出会话 |
 | Codex | `exec --json "<prompt>"` | `exec --json resume <id> --skip-git-repo-check`；事件中给出会话 |
+| DSH | `headless --json "<prompt>"`；DSH 不接受 `--permission-mode`（用设置 `DSH_PERMISSION_MODE`），事件中给出会话 | `headless --json --session-id <id> "<prompt>"`；DSH 遇到不认识的 ID 会失败 |
 
 `/new <项目> <智能体>` 用另一个智能体开始新对话。
 
-回复是命令的输出。对 Claude Code，在 `feishu-agent-command` 中使用 `--output-format stream-json` 的命令给出的是消息的文本，而不是整个流。对 Codex，事件中给出会话，事件里的消息就是回复。
+回复是命令的输出。对 Claude Code，在 `feishu-agent-command` 中使用 `--output-format stream-json` 的命令给出的是消息的文本，而不是整个流。对 Codex，事件中给出会话，事件里的消息就是回复。DSH 在第一个事件中给出会话，`final` 事件中是答案。
 
 后台命令没有窗格输入：在这类会话中 `/answer` 会说明这一点。
 
@@ -173,7 +175,7 @@ feishu-agent-command = pi=pi
 | `feishu-stream` | `2s` | 工作中的卡片多久更新一次文本。 |
 | `feishu-cards` | `true` | 每条回复都以卡片显示：先是本轮的执行卡片，然后是回答的卡片，正文按 Markdown 渲染。设为 `false` 时回复以普通消息发送。 |
 | `feishu-run` | `session` | 提示如何运行智能体：`command`，在后台运行智能体自己的命令；或 `session`，在会话的窗格中运行，和用户的轮次一样。 |
-| `feishu-agent` | `default` | `/new` 会话运行的智能体：`default`，或识别器认识的名字，如 `claude`、`codex`、`opencode`、`pi`。 |
+| `feishu-agent` | `default` | `/new` 会话运行的智能体：`default`，或识别器认识的名字，如 `claude`、`codex`、`opencode`、`pi`、`dsh`。 |
 | `feishu-dir` | 空 | 消息未指明项目时，新会话开始的目录。为空时使用 `new-session-directory`。 |
 | `feishu-agent-command` | 空 | `名称=命令`，按智能体名称：运行该智能体的命令。未列出的智能体运行其程序，不带参数。命令可以以 `~/` 开头。 |
 

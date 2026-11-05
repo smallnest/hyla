@@ -3,9 +3,13 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"slices"
+	"strings"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
+
+	"hyla/internal/settings"
 )
 
 // hyla carries JetBrains Mono, with Nerd Fonts' icons (resources/fonts,
@@ -46,13 +50,41 @@ func loadFonts() {
 }
 
 // termFamily returns the family terminals draw with: the user's, else
-// the font hyla carries, else the system's monospaced one.
+// the font hyla carries, else the system's monospaced one, then the
+// fonts of font-fallback, which draw what it lacks.
 func (a *App) termFamily() string {
-	if f := a.set.FontFamily; f != "" {
-		return f
+	f := "monospace" // the system's
+	switch {
+	case a.set.FontFamily != "":
+		f = a.set.FontFamily
+	case fontsLoaded:
+		f = bundledFont
 	}
-	if fontsLoaded {
-		return bundledFont
+	return a.set.FallbackFamilies(f)
+}
+
+// fallbackFonts are the families of font-fallback, less those the
+// terminal's font has already.
+func (a *App) fallbackFonts() []string {
+	var out []string
+	for _, f := range settings.ParseFontFallback(a.set.FontFallback) {
+		// The terminal's own font is not a fallback, whichever field names it.
+		if strings.EqualFold(f, a.termFamily()) {
+			continue
+		}
+		out = append(out, f)
 	}
-	return "monospace"
+	return out
+}
+
+// addFallback adds family to font-fallback: in place, as the i'th of
+// them, else at the end.
+func (a *App) addFallback(family string, i int) {
+	f := a.fallbackFonts()
+	if i < 0 || i > len(f) {
+		f = append(f, family)
+	} else {
+		f = slices.Insert(f, i, family)
+	}
+	a.set.FontFallback = strings.Join(f, ", ")
 }

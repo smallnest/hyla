@@ -47,7 +47,9 @@ func settingsIndex() []searchEntry {
 		{"appearance", locales.SetBackground(), "background wash petal mist meadow dusk plain gradient color"},
 
 		{"terminal", locales.SetFont(), "font-family typeface jetbrains mono nerd"},
+		{"terminal", locales.SetFontFallback(), "font-fallback fonts chinese cjk han emoji glyphs missing"},
 		{"terminal", locales.SetSize(), "font-size zoom bigger smaller text"},
+		{"terminal", locales.SetCellWidth(), "cell-width horizontal spacing glyph " + locales.SetCellWidthDetail()},
 		{"terminal", locales.SetLineHeight(), "line-height spacing leading cell"},
 		{"terminal", locales.SetWeight(), "font-weight bold light"},
 		{"terminal", locales.SetLigatures(), "font-ligatures calt arrows"},

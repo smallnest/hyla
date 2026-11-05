@@ -66,6 +66,7 @@ hyla config check             # 不明なキーと不正な値を報告
 | --------------------- | ---------- | ------------------------------------------------------------------------ |
 | `theme`               | `hyla`     | ターミナルの色: `hyla`、任意の Ghostty テーマ、または `light:<theme>,dark:<theme>` |
 | `font-family`         |            | 空欄なら Hyla に付属の JetBrains Mono Nerd Font、`monospace` ならシステムのもの、またはインストール済みの任意のファミリー |
+| `font-fallback`       |            | `font-family` にない字形（漢字など）を表示するフォントを順に指定：`PingFang SC, Apple Color Emoji`。空欄ならシステムに任せる |
 | `font-size`           | `13`       | ポイント単位                                                             |
 | `font-weight`         | `400`      | `100` から `900`                                                         |
 | `line-height`         | `1.22`     | フォントの行の高さに対する倍率                                           |

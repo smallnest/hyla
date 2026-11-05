@@ -112,12 +112,22 @@ var pcKeys = map[string]string{
 	"text.reset":        "Ctrl+0",
 }
 
+// linuxKeys are the defaults on Linux alone, where the quick terminal's
+// Control+Shift+T is GTK's paste, which the system takes before Hyla
+// when something is selected in another app.
+var linuxKeys = map[string]string{
+	"quickTerminal.toggle": "Ctrl+`",
+}
+
 func init() {
 	if runtime.GOOS == "darwin" {
 		return
 	}
 	for i, a := range All {
 		if k, ok := pcKeys[a.ID]; ok {
+			All[i].Keys = k
+		}
+		if k, ok := linuxKeys[a.ID]; ok && runtime.GOOS == "linux" {
 			All[i].Keys = k
 		}
 	}

@@ -185,7 +185,16 @@ func (a *App) hostRow(c *ui.Context, pal *palette, h *host) {
 				a.ss.hostEdit = hostDraft{name: h.name, addr: h.cfg.Addr, editing: h.name}
 			})
 			iconButton(c, "reconnect", reloadIcon, locales.HostReconnect(), pal, func() { a.reconnectHost(h) })
-			iconButton(c, "remove", closeIcon, locales.HostRemove(), pal, func() { a.ss.confirm = a.removeHostConfirmation(h) })
+			iconButton(c, "remove", closeIcon, locales.HostRemove(), pal, func() {
+				cf := a.removeHostConfirmation(h)
+				// The row is built again while its question shows, as fast as the
+				// app draws: another question, whose answer would wait on a
+				// pointer that no longer nears its button, takes no click. The
+				// one asked stays.
+				if q := a.ss.confirm; q == nil || q.title != cf.title {
+					a.ss.confirm = cf
+				}
+			})
 		})
 		ui.Row(c).Gap(10).AlignItems(ui.Center).Padding(0, 0, 0, 26).Children(func() {
 			ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {

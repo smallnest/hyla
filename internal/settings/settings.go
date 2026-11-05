@@ -51,9 +51,17 @@ type Settings struct {
 	PetSize       float32 `json:"petSize"`       // how tall a Codex pet shows, against the Codex app's frame
 
 	// Terminal
-	FontFamily string  `json:"fontFamily"` // "" the font hyla carries; "monospace" the system's
-	FontSize   float32 `json:"fontSize"`
-	LineHeight float32 `json:"lineHeight"`
+	FontFamily string `json:"fontFamily"` // "" the font hyla carries; "monospace" the system's
+	// FontFallback is the families after FontFamily, which draw what it
+	// lacks: Chinese in a Chinese font, as "PingFang SC, Apple Color Emoji".
+	// It is kept as written, so that "" asks for the system's choice.
+	FontFallback string  `json:"fontFallback,omitempty"`
+	FontSize     float32 `json:"fontSize"`
+	LineHeight   float32 `json:"lineHeight"`
+	// CellWidth is the width of terminal cells, a multiple of the font's:
+	// 1 keeps its grid, and other values space characters out or bring
+	// them together without scaling them, as Ghostty's adjust-cell-width.
+	CellWidth  float32 `json:"cellWidth"`
 	FontWeight int     `json:"fontWeight"`
 	Ligatures  bool    `json:"ligatures"`
 	// FontFeatures turn the font's OpenType features on and off, as
@@ -213,6 +221,7 @@ func Default() Settings {
 		DimUnfocused:     true,
 		FontSize:         13,
 		LineHeight:       1.22,
+		CellWidth:        1,
 		FontWeight:       400,
 		Ligatures:        true,
 		MinContrast:      3,
@@ -463,6 +472,28 @@ func ParseFontFeatures(list string) ([]string, error) {
 	return out, nil
 }
 
+// ParseFontFallback reads font-fallback as font-family takes a list:
+// families separated by commas, in the order they are tried. It returns
+// them as written, without the spaces around them, or nil for none.
+func ParseFontFallback(list string) []string {
+	var out []string
+	for _, f := range strings.Split(list, ",") {
+		if f = strings.TrimSpace(f); f != "" {
+			out = append(out, f)
+		}
+	}
+	return out
+}
+
+// FallbackFamilies returns font-fallback as the family list of the font
+// that takes it, after family.
+func (s Settings) FallbackFamilies(family string) string {
+	if f := s.FontFallback; strings.TrimSpace(f) != "" {
+		return family + ", " + f
+	}
+	return family
+}
+
 func validFeature(f string) bool {
 	tag, value, set := strings.Cut(f, "=")
 	if rest, ok := strings.CutPrefix(tag, "-"); ok {
@@ -529,6 +560,9 @@ func (s *Settings) normalize() {
 	}
 	if s.LineHeight < 0.8 || s.LineHeight > 2.5 {
 		s.LineHeight = d.LineHeight
+	}
+	if !(s.CellWidth >= 0.8 && s.CellWidth <= 2) {
+		s.CellWidth = d.CellWidth
 	}
 	if s.FontWeight < 100 || s.FontWeight > 900 {
 		s.FontWeight = d.FontWeight

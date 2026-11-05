@@ -204,6 +204,7 @@ func TestResumeCommand(t *testing.T) {
 		{"codex", "019a2b3c-4d5e", "codex resume 019a2b3c-4d5e"},
 		{"pi", "0f3c2a1b-8e9d", "pi --session 0f3c2a1b-8e9d"},
 		{"opencode", "ses_ea7b9b964ffemfrVYxK9yw55Gz", "opencode --session ses_ea7b9b964ffemfrVYxK9yw55Gz"},
+		{"dsh", "session-4be33028-388d", "dsh headless --session-id session-4be33028-388d"},
 		{"claude", "x; rm -rf ~", ""},
 		{"claude", "", ""},
 		{"vim", "abc", ""},

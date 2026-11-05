@@ -62,7 +62,7 @@ Sessions run in **hylad**, a daemon that the app starts on demand. Hyla is a win
 - Quitting Hyla leaves every session running.
 - Opening Hyla again shows every session as it was, scrollback included.
 - After hylad itself restarts, such as after a reboot, Hyla starts your sessions again in their directories. Turn this off with `restore-sessions = false`.
-- A pane that was running Claude Code, Codex, Pi or OpenCode resumes its conversation, as the agent's own resume option would, once [Hyla's skill](./agents.md#install-the-skill) is set up for that agent. Other programs don't start again unasked: their pane comes back at a shell. Turn this off with `resume-agents = false`.
+- A pane that was running Claude Code, Codex, Pi, OpenCode or DSH resumes its conversation, as the agent's own resume option would, once [Hyla's skill](./agents.md#install-the-skill) is set up for that agent. Other programs don't start again unasked: their pane comes back at a shell. Turn this off with `resume-agents = false`.
 
 ```sh
 hyla daemon status       # is hylad running?

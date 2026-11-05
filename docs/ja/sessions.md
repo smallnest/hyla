@@ -64,7 +64,7 @@ hyla new -p my-app       # 名前で指定したプロジェクトでセッシ�
 - Hyla を終了しても、すべてのセッションは動き続けます。
 - もう一度 Hyla を開くと、スクロールバックも含め、すべてのセッションが元のまま表示されます。
 - 再起動のあとなど hylad 自体が再起動すると、Hyla はセッションをそれぞれのディレクトリで再び開始します。`restore-sessions = false` でオフにできます。
-- そのエージェント向けに [Hyla のスキル](./agents.md#install-the-skill)をセットアップしてあれば、Claude Code、Codex、Pi、OpenCode が動いていたペインは、エージェント自身の再開オプションと同じように会話を再開します。ほかのプログラムは勝手に再起動しません: そのペインはシェルに戻ります。`resume-agents = false` でオフにできます。
+- そのエージェント向けに [Hyla のスキル](./agents.md#install-the-skill)をセットアップしてあれば、Claude Code、Codex、Pi、OpenCode、DSH が動いていたペインは、エージェント自身の再開オプションと同じように会話を再開します。ほかのプログラムは勝手に再起動しません: そのペインはシェルに戻ります。`resume-agents = false` でオフにできます。
 
 ```sh
 hyla daemon status       # hylad は動いている？

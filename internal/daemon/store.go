@@ -403,6 +403,10 @@ func resumeCommand(a *proto.AgentSession) []string {
 		return []string{"codex", "resume", a.ID}
 	case "pi", "opencode":
 		return []string{a.Agent, "--session", a.ID}
+	case "dsh":
+		// Its headless run goes on with the session, in the terminal
+		// DSH needs.
+		return []string{"dsh", "headless", "--session-id", a.ID}
 	}
 	return nil
 }

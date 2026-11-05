@@ -114,6 +114,21 @@ func TestGlobalKeybind(t *testing.T) {
 	}
 }
 
+// font-fallback holds the fonts after font-family, in order.
+func TestFontFallback(t *testing.T) {
+	s, probs := parse("font-fallback = PingFang SC,  Apple Color Emoji\n")
+	if len(probs) != 0 || strings.Join(ParseFontFallback(s.FontFallback), ", ") != "PingFang SC, Apple Color Emoji" {
+		t.Errorf("fallback %q, problems %q", s.FontFallback, probs)
+	}
+	if got, want := s.FallbackFamilies("Menlo"), "Menlo, PingFang SC,  Apple Color Emoji"; got != want {
+		t.Errorf("families %q, want %q", got, want)
+	}
+	s, _ = parse("font-fallback = \n")
+	if s.FontFallback != "" || s.FallbackFamilies("Menlo") != "Menlo" {
+		t.Errorf("an empty fallback %q", s.FontFallback)
+	}
+}
+
 func TestBadValuesKeepDefaults(t *testing.T) {
 	s, probs := parse("cursor-style = triangle\nfont-size = big\nconfirm-close = maybe\n")
 	d := Default()
@@ -312,5 +327,18 @@ func TestFontFeature(t *testing.T) {
 	}
 	if out := format(Default(), ""); strings.Contains(out, "font-feature") {
 		t.Errorf("a new file sets font-feature:\n%s", out)
+	}
+}
+
+// font-fallback gives the terminals the user's fallback fonts, after their
+// font, which the platform draws the glyphs missing from.
+func TestFallbackFamilies(t *testing.T) {
+	s := Settings{FontFallback: " PingFang SC ,Apple Color Emoji"}
+	if got, want := s.FallbackFamilies("Menlo"), "Menlo,  PingFang SC ,Apple Color Emoji"; got != want {
+		t.Errorf("families %q, want %q", got, want)
+	}
+	s = Settings{FontFallback: "  "}
+	if got := s.FallbackFamilies("Menlo"); got != "Menlo" {
+		t.Errorf("an empty fallback gave %q", got)
 	}
 }

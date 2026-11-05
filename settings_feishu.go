@@ -17,7 +17,7 @@ import (
 
 // The agents a new session from Feishu runs, unless the configuration
 // names others.
-var feishuAgents = []string{"default", "claude", "codex", "opencode", "pi", "gemini", "qwen", "kimi", "amp", "droid"}
+var feishuAgents = []string{"default", "claude", "codex", "opencode", "pi", "gemini", "qwen", "kimi", "amp", "droid", "dsh"}
 
 // feishuYoloAgents are the agents Settings › Feishu's yolo modes set:
 // those whose commands take an option that skips their permission

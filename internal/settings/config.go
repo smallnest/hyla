@@ -180,9 +180,11 @@ var keys = append([]key{
 	boolKey("window-translucent", "let the desktop show through the window", func(s *Settings) *bool { return &s.Vibrancy }),
 
 	stringKey("font-family", "the terminals' font: empty for JetBrains Mono Nerd Font, which Hyla carries; monospace for the system's", func(s *Settings) *string { return &s.FontFamily }),
+	stringKey("font-fallback", `the fonts of what font-family lacks, in the order they are tried, as "PingFang SC"; empty for the system's choice`, func(s *Settings) *string { return &s.FontFallback }),
 	numberKey("font-size", "in points", func(s *Settings) float64 { return float64(s.FontSize) }, func(s *Settings, n float64) { s.FontSize = float32(n) }),
 	numberKey("font-weight", "100 to 900", func(s *Settings) float64 { return float64(s.FontWeight) }, func(s *Settings, n float64) { s.FontWeight = int(n) }),
 	numberKey("line-height", "a multiple of the font's", func(s *Settings) float64 { return float64(s.LineHeight) }, func(s *Settings, n float64) { s.LineHeight = float32(n) }),
+	numberKey("cell-width", "the width of terminal cells, a multiple of the font's, from 0.8 to 2; the text keeps its size", func(s *Settings) float64 { return float64(s.CellWidth) }, func(s *Settings, n float64) { s.CellWidth = float32(n) }),
 	boolKey("font-ligatures", "join characters as the font draws them", func(s *Settings) *bool { return &s.Ligatures }),
 	{name: "font-feature", doc: "the font's OpenType features, as Ghostty's: ss01 turns one on, -calt turns one off, cv05=2 picks an alternate; comma-separated or repeated, and applied after font-ligatures", list: true,
 		get: func(s *Settings) []string { return slices.Clone(s.FontFeatures) },
@@ -644,7 +646,7 @@ func parse(data string) (Settings, []string) {
 	for _, name := range order {
 		k := findKey(name)
 		v := values[name]
-		if !k.list && v[len(v)-1] == "" && name != "font-family" && name != "command" {
+		if !k.list && v[len(v)-1] == "" && name != "font-family" && name != "font-fallback" && name != "command" {
 			continue // a key left empty keeps its default
 		}
 		if err := k.set(&s, v); err != nil {

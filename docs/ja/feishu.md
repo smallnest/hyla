@@ -64,6 +64,7 @@ pi -p --session-id <id> "<prompt>"                              # Pi
 gemini -p "<prompt>"                                            # Gemini CLI
 opencode run "<prompt>"
 codex exec "<prompt>"
+dsh headless --json --session-id <id> "<prompt>"                # DSH
 ```
 
 各コマンドはチャットのセッションで動きます。そのセッションにはターミナルもシェルもありません。動いているあいだサイドバーは working を、終わると idle を表示します。`feishu-dir` のディレクトリで、ペインと同じ環境で動きます。出力は hyla のディレクトリの `feishu-run` 下のファイルに書き込まれ、そのテキストが返信になります。チャットは会話を続けます。最初のターンは hylad が作った ID でセッションを始め、次のターンがそれを続けます:
@@ -75,10 +76,11 @@ codex exec "<prompt>"
 | Gemini | `--session-id <id>` | `--resume <id>` |
 | OpenCode | `run "<prompt>"` | `run --session <id>`。出力がセッションを示す |
 | Codex | `exec "<prompt>"` | `exec resume <id> --skip-git-repo-check`。出力がセッションを示す |
+| DSH | `headless --json "<prompt>"`。DSH は `--permission-mode` を受け付けず、設定 `DSH_PERMISSION_MODE` を使う。出力がセッションを示す | `headless --json --session-id <id> "<prompt>"`。DSH は知らない ID で失敗する |
 
 `/new <プロジェクト> <エージェント>` は別のエージェントで新しい会話を始めます。
 
-返信はコマンドの出力です。Claude Code では、`feishu-agent-command` で `--output-format stream-json` を使うコマンドは、ストリーム全体ではなくメッセージのテキストを返します。
+返信はコマンドの出力です。Claude Code では、`feishu-agent-command` で `--output-format stream-json` を使うコマンドは、ストリーム全体ではなくメッセージのテキストを返します。DSH では、最初のイベントがセッションを示し、`final` イベントが答えです。
 
 バックグラウンドのコマンドはペインへの入力を持ちません。そのようなセッションでの `/answer` はそう答えます。
 
@@ -173,7 +175,7 @@ feishu-agent-command = pi=pi
 | `feishu-stream` | `2s` | 作業中のカードが新しいテキストを取り込む間隔です。 |
 | `feishu-cards` | `true` | すべての返答をカードで返します。まずターンのカード、次に回答のカードで、本文は Markdown で表示します。`false` にすると返答は通常のメッセージになります。 |
 | `feishu-run` | `session` | プロンプトがエージェントを動かす方法: `command` はバックグラウンドでエージェント自身のコマンド、`session` はセッションのペインでユーザーのターンとして。 |
-| `feishu-agent` | `default` | `/new` セッションが動かすエージェント: `default`、または検出器が知る名前（`claude`、`codex`、`opencode`、`pi`）。 |
+| `feishu-agent` | `default` | `/new` セッションが動かすエージェント: `default`、または検出器が知る名前（`claude`、`codex`、`opencode`、`pi`、`dsh`）。 |
 | `feishu-dir` | 空 | メッセージがプロジェクトを名指さないときに、新しいセッションが始まるディレクトリ。空なら `new-session-directory` です。 |
 | `feishu-agent-command` | 空 | `名前=コマンド`、エージェント名ごと: そのエージェントを動かすコマンド。載っていないエージェントは、引数なしでプログラムを実行します。コマンドは `~/` で始められます。 |
 

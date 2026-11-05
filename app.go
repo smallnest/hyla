@@ -985,7 +985,7 @@ func (a *App) watchReturn() {
 
 func (a *App) termFont() terminal.Font {
 	f := terminal.Font{Family: a.termFamily(), Size: a.set.FontSize, Weight: a.set.FontWeight,
-		LineHeight: a.set.LineHeight, Thicken: a.set.Thicken}
+		CellWidth: a.set.CellWidth, LineHeight: a.set.LineHeight, Thicken: a.set.Thicken}
 	f.Features = a.fontFeatures()
 	return f
 }
@@ -1190,8 +1190,8 @@ func (a *App) apply(s settings.Settings, save bool) {
 			a.toast(locales.ToastSaveSettingsFailed(err.Error()))
 		}
 	}
-	font := old.FontFamily != s.FontFamily || old.FontSize != s.FontSize || old.FontWeight != s.FontWeight ||
-		old.LineHeight != s.LineHeight || old.Ligatures != s.Ligatures || old.Thicken != s.Thicken ||
+	font := old.FontFamily != s.FontFamily || old.FontFallback != s.FontFallback || old.FontSize != s.FontSize || old.FontWeight != s.FontWeight ||
+		old.CellWidth != s.CellWidth || old.LineHeight != s.LineHeight || old.Ligatures != s.Ligatures || old.Thicken != s.Thicken ||
 		!slices.Equal(old.FontFeatures, s.FontFeatures)
 	themes := old.LightTheme != s.LightTheme || old.DarkTheme != s.DarkTheme
 	anew := old.Cursor != s.Cursor || old.CursorBlink != s.CursorBlink || old.OptionAsAlt != s.OptionAsAlt ||
@@ -1281,7 +1281,9 @@ func (a *App) apply(s settings.Settings, save bool) {
 	if (old.BlockAds != s.BlockAds || !slices.Equal(old.AdLists, s.AdLists)) && (a.ads.started || len(a.webs) > 0) {
 		a.applyAdBlock()
 	}
-	if (!slices.Equal(old.Hosts, s.Hosts) || !slices.Equal(old.TailcatHosts, s.TailcatHosts) || old.Tailcat != s.Tailcat) && a.win != nil {
+	// syncHosts lets go of removed hosts' connections, with no window to
+	// wait for: without one the dead host stays in the sidebar.
+	if !slices.Equal(old.Hosts, s.Hosts) || !slices.Equal(old.TailcatHosts, s.TailcatHosts) || old.Tailcat != s.Tailcat {
 		a.syncHosts()
 	}
 	// The bot's commands run in this window's environment, which a token

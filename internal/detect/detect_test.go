@@ -10,7 +10,7 @@ func TestManifestsCompile(t *testing.T) {
 	if err := Load(); err != nil {
 		t.Fatal(err)
 	}
-	for _, a := range []string{"claude", "codex", "gemini", "opencode", "amp", "cursor-agent", "droid", "qwen", "copilot", "kiro-cli", "cline", "kimi", "pi"} {
+	for _, a := range []string{"claude", "codex", "gemini", "opencode", "amp", "cursor-agent", "droid", "qwen", "copilot", "kiro-cli", "cline", "kimi", "pi", "dsh"} {
 		if !Known(a) {
 			t.Errorf("no rules for %s", a)
 		}
