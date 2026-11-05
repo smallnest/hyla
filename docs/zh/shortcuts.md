@@ -65,14 +65,14 @@ description: Hyla 的默认键盘快捷键，以及用于重新绑定的操作 i
 | 放大           | <kbd>⌘</kbd> <kbd>=</kbd> | <kbd>Ctrl</kbd> <kbd>=</kbd>                  | `text.bigger`    |
 | 缩小           | <kbd>⌘</kbd> <kbd>-</kbd> | <kbd>Ctrl</kbd> <kbd>-</kbd>                  | `text.smaller`   |
 | 实际大小       | <kbd>⌘</kbd> <kbd>0</kbd> | <kbd>Ctrl</kbd> <kbd>0</kbd>                  | `text.reset`     |
-| 快速终端       | <kbd>⌃</kbd> <kbd>⇧</kbd> <kbd>T</kbd> | <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>T</kbd> | `quickTerminal.toggle` |
+| 快速终端       | <kbd>⌃</kbd> <kbd>`</kbd> | <kbd>Ctrl</kbd> <kbd>`</kbd> | `quickTerminal.toggle` |
 
 ## 快速终端
 
-快速终端从 Hyla 的窗格上方落下，宽度与窗格相同、高度为主窗口的一半，起点在窗格左上角；再按一次快捷键或点击别处时收起。Hyla 窗口隐藏、最小化或在其他空间时，改为从屏幕顶部落下。它的快捷键默认是 <kbd>Control</kbd> <kbd>Shift</kbd> <kbd>T</kbd>，在所有应用中都有效；可以在**设置 › 键盘**或[配置文件](./configuration.md#键盘)中改掉或取消：
+快速终端从 Hyla 的窗格上方落下，宽度与窗格相同、高度为主窗口的一半，起点在窗格左上角；再按一次快捷键或点击别处时收起。Hyla 窗口隐藏、最小化或在其他空间时，改为从屏幕顶部落下。它的快捷键默认是 <kbd>Control</kbd> <kbd>`</kbd>（与 Ghostty 相同），在所有应用中都有效；可以在**设置 › 键盘**或[配置文件](./configuration.md#键盘)中改掉或取消：
 
 ```ini
-keybind = global:ctrl+shift+t=quickTerminal.toggle
+keybind = global:ctrl+`=quickTerminal.toggle
 ```
 
 它显示一个专属会话“快速终端”，隐藏时和退出 Hyla 后都会继续运行，边栏也会和其他会话一起列出它。shell 退出后，下次按下会启动新的 shell。也可以从**显示 › 快速终端**和菜单栏图标的菜单打开它，或用 `hyla do quickTerminal.toggle` 在脚本中切换。

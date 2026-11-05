@@ -65,14 +65,14 @@ Windows と Linux では、<kbd>Ctrl</kbd> と文字キーの組み合わせは�
 | 拡大                   | <kbd>⌘</kbd> <kbd>=</kbd>              | <kbd>Ctrl</kbd> <kbd>=</kbd>                  | `text.bigger`    |
 | 縮小                   | <kbd>⌘</kbd> <kbd>-</kbd>              | <kbd>Ctrl</kbd> <kbd>-</kbd>                  | `text.smaller`   |
 | 実際のサイズ           | <kbd>⌘</kbd> <kbd>0</kbd>              | <kbd>Ctrl</kbd> <kbd>0</kbd>                  | `text.reset`     |
-| クイックターミナル     | <kbd>⌃</kbd> <kbd>⇧</kbd> <kbd>T</kbd> | <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>T</kbd> | `quickTerminal.toggle` |
+| クイックターミナル     | <kbd>⌃</kbd> <kbd>`</kbd> | <kbd>Ctrl</kbd> <kbd>`</kbd> | `quickTerminal.toggle` |
 
 ## クイックターミナル
 
-クイックターミナルは Hyla のペインの上に降りてきます。幅はペインと同じ、高さはウインドウの半分で、左上から始まり、ショートカットをもう一度押すか別の場所をクリックすると戻ります。Hyla のウインドウが隠れている・最小化されている・別のスペースにあるときは、画面の上端から降りてきます。ショートカットは既定で <kbd>Control</kbd> <kbd>Shift</kbd> <kbd>T</kbd> で、どのアプリでも効きます。**設定 › キーボード** か[設定ファイル](./configuration.md#キーボード)で変えたり外したりできます:
+クイックターミナルは Hyla のペインの上に降りてきます。幅はペインと同じ、高さはウインドウの半分で、左上から始まり、ショートカットをもう一度押すか別の場所をクリックすると戻ります。Hyla のウインドウが隠れている・最小化されている・別のスペースにあるときは、画面の上端から降りてきます。ショートカットは Ghostty と同じく既定で <kbd>Control</kbd> <kbd>`</kbd> で、どのアプリでも効きます。**設定 › キーボード** か[設定ファイル](./configuration.md#キーボード)で変えたり外したりできます:
 
 ```ini
-keybind = global:ctrl+shift+t=quickTerminal.toggle
+keybind = global:ctrl+`=quickTerminal.toggle
 ```
 
 専用のセッション「クイックターミナル」を表示し、隠している間も Hyla を終了した後も動き続け、サイドバーにも他のセッションと一緒に表示されます。シェルが終了すると、次に押したときに新しいシェルが始まります。**表示 › クイックターミナル** やメニューバーのアイコンのメニューからも開け、`hyla do quickTerminal.toggle` でスクリプトから切り替えられます。

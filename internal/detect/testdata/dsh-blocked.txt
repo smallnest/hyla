@@ -1,0 +1,12 @@
+  › run the tests
+
+  ╭─ bash ──────────────────────────────────────────────────────╮
+  │ go test ./...                                               │
+  ╰─────────────────────────────────────────────────────────────╯
+
+   ⏳ Awaiting approval · bash
+  Allow this operation?
+  ❯ Yes, allow once
+    Yes, and don't ask again
+    No
+  ↑/↓ select · Enter confirm · Esc reject
