@@ -786,6 +786,14 @@ func sessionOf(l []*proto.Session, id string) *proto.Session {
 	return nil
 }
 
+// memory is what a chat's turns went on with, as the bot keeps it across
+// its restarts.
+func (b *Bot) memory(key string) chatMemory {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.mem[key]
+}
+
 // bindFile is where the chats' bindings go: hylad's directory, kept with
 // its sessions, so that a chat finds its session again after hylad
 // restarts.
@@ -794,7 +802,25 @@ func bindFile() string { return filepath.Join(proto.Dir(), "feishu-chats.json") 
 // save writes the bindings.
 func (b *Bot) save() {
 	b.mu.Lock()
-	w := chatsFile{Turns: maps.Clone(b.times), Pins: maps.Clone(b.pins)}
+	// What the chats went on with is kept, even where a chat's own fields
+	// have none: a turn that ends without telling its conversation keeps
+	// the one it was given, and the next turn goes on with that.
+	for key, c := range b.chats {
+		m := b.mem[key]
+		if c.agent != "" {
+			m.Agent = c.agent
+		}
+		if c.dir != "" {
+			m.Dir = c.dir
+		}
+		if c.sid != "" {
+			m.Sid = c.sid
+		}
+		if m != (chatMemory{}) {
+			b.mem[key] = m
+		}
+	}
+	w := chatsFile{Turns: maps.Clone(b.times), Pins: maps.Clone(b.pins), Chats: maps.Clone(b.mem)}
 	allowed := map[string][]string{}
 	for key, c := range b.chats {
 		for tool := range c.allowed {
@@ -842,6 +868,22 @@ func (b *Bot) load() {
 			b.chats[k] = &chat{id: id}
 		}
 		b.binds[k] = id
+	}
+	// What a chat's turns went on with, which a restart of the bot would
+	// leave a new conversation of: the agent's, its directory, and the
+	// conversation it continues.
+	for k, m := range w.Chats {
+		b.mem[k] = m
+		c := b.chatLocked(k)
+		if c.agent == "" {
+			c.agent = m.Agent
+		}
+		if c.dir == "" {
+			c.dir = m.Dir
+		}
+		if c.sid == "" {
+			c.sid = m.Sid
+		}
 	}
 	for k, tools := range w.Allowed {
 		c := b.chats[k]

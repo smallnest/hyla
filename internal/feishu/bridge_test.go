@@ -685,6 +685,48 @@ func TestBindsPersist(t *testing.T) {
 	}
 }
 
+// A chat's agent conversation goes on across a restart of the bot, as its
+// bound session does: the next turn continues the conversation the last
+// one left, not a new one. It goes on too where the chat lost it, as a
+// restart of another kind would leave it.
+func TestChatContinuesAcrossRestarts(t *testing.T) {
+	defer shortWaits()()
+	b, luna, msgs := newBot(t)
+	b.cfg.Run = settings.FeishuRunCommand
+	b.cfg.Agent = "opencode"
+	b.chats["c1"] = &chat{id: "s1"}
+	b.leave("c1")
+	luna.files = []string{
+		`{"type":"step_start","sessionID":"ses_A"}`, "",
+		`{"type":"step_start","sessionID":"ses_B"}`, "",
+		`{"type":"step_start","sessionID":"ses_C"}`, "",
+	}
+	b.onMessage(nil, textMsg("c1", "ou_me", "first"))
+	if got := b.chat("c1").sid; got != "ses_A" {
+		t.Fatalf("the first turn's conversation is %q", got)
+	}
+
+	again := New(Config{Settings: b.cfg, Secret: settings.FeishuSecret{AppID: "cli_a", AppSecret: "x", Me: "ou_me"}, Luna: luna, Log: t.Logf})
+	again.msgs = msgs
+	again.sync = true
+	again.load()
+	if got := again.chat("c1").sid; got != "ses_A" {
+		t.Fatalf("after a restart the chat's conversation is %q", got)
+	}
+	again.onMessage(nil, textMsg("c1", "ou_me", "second"))
+	if len(luna.ran) != 2 || !slices.Contains(luna.ran[1].Command, "ses_A") {
+		t.Fatalf("the turn after a restart ran %v, not the conversation before it", luna.ran)
+	}
+
+	// A chat that lost its conversation goes on with the one the bot
+	// remembers.
+	again.chat("c1").sid = ""
+	again.onMessage(nil, textMsg("c1", "ou_me", "third"))
+	if len(luna.ran) != 3 || !slices.Contains(luna.ran[2].Command, "ses_B") {
+		t.Fatalf("the turn after the loss ran %v, not the conversation before it", luna.ran)
+	}
+}
+
 // shortWaits makes the waits the driving relies on short, for the tests.
 func shortWaits() func() {
 	old := waits

@@ -253,6 +253,19 @@ type turnTimes struct {
 type chatsFile struct {
 	Turns map[string]turnTimes `json:"turns,omitempty"`
 	Pins  map[string]string    `json:"pins,omitempty"` // chats, by session
+	// Chats is what each chat's turns continue, across a restart of the
+	// bot: a chat's bound session outlives one, but what the agent went on
+	// with is the bot's alone, and would start anew without it.
+	Chats map[string]chatMemory `json:"chats,omitempty"`
+}
+
+// chatMemory is what a chat's next turn continues: the agent, the
+// directory its command runs in, and the conversation, as the agent names
+// it.
+type chatMemory struct {
+	Agent string `json:"agent,omitempty"`
+	Dir   string `json:"dir,omitempty"`
+	Sid   string `json:"sid,omitempty"`
 }
 
 // ChatsList lists the app's chats, with the sessions the bot's turns of

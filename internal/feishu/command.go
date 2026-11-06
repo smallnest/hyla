@@ -19,7 +19,11 @@ import (
 // replies to, which t has; a restart's take on the turn has none.
 func (b *Bot) background(key, chatID, response, text string, t turnInfo) {
 	base := b.chat(key)
+	mem := b.memory(key)
 	agent := base.agent
+	if agent == "" {
+		agent = mem.Agent
+	}
 	if agent == "" {
 		agent = b.cfg.Agent
 	}
@@ -28,6 +32,9 @@ func (b *Bot) background(key, chatID, response, text string, t turnInfo) {
 		return
 	}
 	dir := base.dir
+	if dir == "" {
+		dir = mem.Dir
+	}
 	if dir == "" {
 		dir = b.cfg.Dir
 	}
@@ -42,11 +49,17 @@ func (b *Bot) background(key, chatID, response, text string, t turnInfo) {
 		b.reply(chatID, err.Error())
 		return
 	}
-	sid := base.sid
+	// The conversation the chat went on with, as the turn before left it:
+	// the chat's own, or what the bot remembers of it across a restart.
+	resume := base.sid
+	if resume == "" {
+		resume = mem.Sid
+	}
+	sid := resume
 	if sid == "" {
 		sid = newUUID()
 	}
-	cmd := b.backgroundCommand(agent, sid, base.sid, text, true)
+	cmd := b.backgroundCommand(agent, sid, resume, text, true)
 	asks := false
 	if agent == "claude" {
 		if b.yoloFor(agent) {

@@ -150,6 +150,11 @@ type Bot struct {
 	// binds are the chats' sessions, by chat key, which hylad's state
 	// file keeps across its restarts.
 	binds map[string]string
+	// mem is what each chat's turns went on with, by chat key, which the
+	// file keeps across restarts: the agent, its directory and the
+	// conversation. The chat's own fields are the turn's, and a turn whose
+	// chat has none of them goes on with the memory's.
+	mem   map[string]chatMemory
 	seen  map[string]bool // event IDs, for a while
 	order []string        // seen's, oldest first
 	// notes tell what the bot's cards are about, by message ID, for the
@@ -282,6 +287,7 @@ func New(c Config) *Bot {
 		logf:     c.Log,
 		chats:    map[string]*chat{},
 		binds:    map[string]string{},
+		mem:      map[string]chatMemory{},
 		seen:     map[string]bool{},
 		notes:    map[string]record{},
 		heard:    map[string]int64{},
