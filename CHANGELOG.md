@@ -4,6 +4,13 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.5.1
+
+- Hyla's Feishu bot keeps a chat's coding-agent conversation across a
+  restart, in `feishu-chats.json`: every message of the chat goes on with
+  the conversation before it, instead of starting a new agent session
+  under the chat's session and losing the context.
+
 ## 3.5.0
 
 - **Settings › Appearance › Sidebar background** puts a picture of this
