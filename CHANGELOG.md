@@ -4,6 +4,21 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.4.0
+
+- **Settings › Appearance › Window material** chooses what the window's
+  translucent background is made of: the sidebar's, a window's, a
+  popover's, **Plastic** (a frosted content background), Liquid Glass as
+  the Dock's, or clear glass.
+- **Settings › Appearance › Background** adds **Dock**: Liquid Glass
+  under a thin veil, as the Dock's own background.
+- **Settings › Terminal › Terminal blur** blurs what shows through
+  translucent terminals, and **Terminal material** chooses Liquid Glass,
+  **Plastic** or clear glass for it.
+- The **Dusk** background is gone, too close to **Petal**; a
+  configuration that names `dusk` gets Petal.
+- Quitting Hyla always quits, quickly.
+
 ## 3.3.2
 
 - **Settings › Terminal › Weight** offers **Thin** and **Extra Light**
