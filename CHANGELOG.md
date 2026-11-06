@@ -4,6 +4,15 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.5.0
+
+- **Settings › Appearance › Sidebar background** puts a picture of this
+  machine behind the sidebar's sessions: as tall as 80% of the sidebar,
+  vertically centred and against its left edge, and cropped by the
+  sidebar where it is wider.
+- **Picture opacity** dims the picture, 35% by default and 0 for none,
+  so that the sessions stay easy to read.
+
 ## 3.4.0
 
 - **Settings › Appearance › Window material** chooses what the window's
