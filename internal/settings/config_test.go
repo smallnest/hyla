@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -143,21 +144,59 @@ func TestBadValuesKeepDefaults(t *testing.T) {
 // The terminals' translucency reads its switch and number, and keeps the
 // default for the number out of its range.
 func TestPaneTranslucency(t *testing.T) {
-	s, probs := parse("pane-opacity = 0.4\npane-blur = true\n")
-	if len(probs) != 0 || s.PaneOpacity != 0.4 || !s.PaneBlur {
-		t.Errorf("pane-opacity %v, pane-blur %v, problems %q", s.PaneOpacity, s.PaneBlur, probs)
+	s, probs := parse("pane-opacity = 0.4\npane-blur = true\npane-material = glass-clear\n")
+	if len(probs) != 0 || s.PaneOpacity != 0.4 || !s.PaneBlur || s.PaneMaterial != "glass-clear" {
+		t.Errorf("pane-opacity %v, pane-blur %v, pane-material %q, problems %q",
+			s.PaneOpacity, s.PaneBlur, s.PaneMaterial, probs)
 	}
 	d := Default()
-	if d.PaneOpacity != DefaultPaneOpacity || d.PaneBlur {
-		t.Errorf("defaults %v, %v", d.PaneOpacity, d.PaneBlur)
+	if d.PaneOpacity != DefaultPaneOpacity || d.PaneBlur || d.PaneMaterial != "glass" {
+		t.Errorf("defaults %v, %v, %q", d.PaneOpacity, d.PaneBlur, d.PaneMaterial)
 	}
 	s, _ = parse("pane-opacity = 2\n")
 	if s.PaneOpacity != d.PaneOpacity {
 		t.Errorf("out of range: pane-opacity %v, pane-blur %v", s.PaneOpacity, s.PaneBlur)
 	}
+	if _, probs := parse("pane-material = nope"); len(probs) == 0 {
+		t.Error("a terminal material Hyla has not was taken")
+	}
 }
 
 // Hyla elsewhere updates the app here only once the user lets it.
+// The window's material is a choice, the sidebar's by default, and one
+// Hyla has not is refused.
+func TestWindowMaterial(t *testing.T) {
+	s, probs := parse("window-material = glass")
+	if len(probs) != 0 || s.WindowMaterial != "glass" {
+		t.Errorf("window-material glass: %q, %v", s.WindowMaterial, probs)
+	}
+	if d := Default(); d.WindowMaterial != "sidebar" {
+		t.Errorf("default window-material %q", d.WindowMaterial)
+	}
+	if _, probs := parse("window-material = nope"); len(probs) == 0 {
+		t.Error("a material Hyla has not was taken")
+	}
+}
+
+// The Dock's is a wash of its own, as the Dock's background is.
+func TestDockBackground(t *testing.T) {
+	s, probs := parse("background = dock")
+	if len(probs) != 0 || s.Background != "dock" {
+		t.Errorf("background dock: %q, %v", s.Background, probs)
+	}
+	if !slices.ContainsFunc(Backgrounds, func(b struct{ ID, Name string }) bool { return b.ID == "dock" }) {
+		t.Error("the Dock's background is not one Settings offers")
+	}
+}
+
+// Dusk is gone: a configuration that still names it gets Petal.
+func TestDuskBackgroundMigrates(t *testing.T) {
+	s, probs := parse("background = dusk\n")
+	if len(probs) != 0 || s.Background != "rex" {
+		t.Errorf("background dusk: %q, %v", s.Background, probs)
+	}
+}
+
 func TestRemoteUpdatesOptIn(t *testing.T) {
 	if Default().RemoteUpdates {
 		t.Error("remote updates are on by default")

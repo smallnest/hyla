@@ -43,12 +43,18 @@ type Settings struct {
 	Vibrancy      bool    `json:"vibrancy"`      // the window's material under the wash
 	WindowOpacity float32 `json:"windowOpacity"` // how much of the wash covers the window, 0 to 1
 	WindowBlur    bool    `json:"windowBlur"`    // blur the desktop behind the wash
-	PaneOpacity   float32 `json:"paneOpacity"`   // how much of the window's background shows in a terminal, 0 to 1
-	PaneBlur      bool    `json:"paneBlur"`      // blur what shows through the terminals
-	Pet           bool    `json:"pet"`           // the frog on the window's top edge
-	PetOffset     float32 `json:"petOffset"`     // where it stands, 0 to 1 across the window
-	PetSet        string  `json:"petSet"`        // who: "hyla", a Codex pet's directory name, or "codex" for the active one
-	PetSize       float32 `json:"petSize"`       // how tall a Codex pet shows, against the Codex app's frame
+	// WindowMaterial is the window's material under the wash: "sidebar",
+	// "window", "popover", "glass" or "glass-clear".
+	WindowMaterial string  `json:"windowMaterial"`
+	PaneOpacity    float32 `json:"paneOpacity"` // how much of the window's background shows in a terminal, 0 to 1
+	PaneBlur       bool    `json:"paneBlur"`    // blur what shows through the terminals
+	// PaneMaterial is the terminal's glass where PaneBlur is on: "glass"
+	// (Liquid Glass) or "glass-clear".
+	PaneMaterial string  `json:"paneMaterial"`
+	Pet          bool    `json:"pet"`       // the frog on the window's top edge
+	PetOffset    float32 `json:"petOffset"` // where it stands, 0 to 1 across the window
+	PetSet       string  `json:"petSet"`    // who: "hyla", a Codex pet's directory name, or "codex" for the active one
+	PetSize      float32 `json:"petSize"`   // how tall a Codex pet shows, against the Codex app's frame
 
 	// Terminal
 	FontFamily string `json:"fontFamily"` // "" the font hyla carries; "monospace" the system's
@@ -213,7 +219,9 @@ func Default() Settings {
 		Vibrancy:         true,
 		WindowOpacity:    DefaultWindowOpacity,
 		WindowBlur:       true,
+		WindowMaterial:   "sidebar",
 		PaneOpacity:      DefaultPaneOpacity,
+		PaneMaterial:     "glass",
 		Pet:              true,
 		PetOffset:        0.5,
 		PetSet:           PetSetHyla,
@@ -271,8 +279,8 @@ var Backgrounds = []struct{ ID, Name string }{
 	{"rex", "Petal"},
 	{"mist", "Mist"},
 	{"meadow", "Meadow"},
-	{"dusk", "Dusk"},
 	{"plain", "Plain"},
+	{"dock", "Dock"},
 }
 
 // Path returns the settings' file, the configuration (ConfigPath).

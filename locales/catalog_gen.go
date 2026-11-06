@@ -2852,6 +2852,76 @@ func (msgs Messages) SetWindowBlur() string {
 	return Catalog.Format(msgs.locale, "setWindowBlur", nil)
 }
 
+// SetWindowMaterial says "Window material"
+// in the language the app shows.
+func SetWindowMaterial() string { return In(i18n.Locale()).SetWindowMaterial() }
+
+// SetWindowMaterial says "Window material"
+// in the language of msgs.
+func (msgs Messages) SetWindowMaterial() string {
+	return Catalog.Format(msgs.locale, "setWindowMaterial", nil)
+}
+
+// SetWindowMaterialDetail says "What the window's background is made of: Liquid Glass frosts the desktop as the Dock does; the sidebar material light…"
+// in the language the app shows.
+func SetWindowMaterialDetail() string { return In(i18n.Locale()).SetWindowMaterialDetail() }
+
+// SetWindowMaterialDetail says "What the window's background is made of: Liquid Glass frosts the desktop as the Dock does; the sidebar material light…"
+// in the language of msgs.
+func (msgs Messages) SetWindowMaterialDetail() string {
+	return Catalog.Format(msgs.locale, "setWindowMaterialDetail", nil)
+}
+
+// SetMaterialSidebar says "Sidebar"
+// in the language the app shows.
+func SetMaterialSidebar() string { return In(i18n.Locale()).SetMaterialSidebar() }
+
+// SetMaterialSidebar says "Sidebar"
+// in the language of msgs.
+func (msgs Messages) SetMaterialSidebar() string {
+	return Catalog.Format(msgs.locale, "setMaterialSidebar", nil)
+}
+
+// SetMaterialWindow says "Window"
+// in the language the app shows.
+func SetMaterialWindow() string { return In(i18n.Locale()).SetMaterialWindow() }
+
+// SetMaterialWindow says "Window"
+// in the language of msgs.
+func (msgs Messages) SetMaterialWindow() string {
+	return Catalog.Format(msgs.locale, "setMaterialWindow", nil)
+}
+
+// SetMaterialPopover says "Popover"
+// in the language the app shows.
+func SetMaterialPopover() string { return In(i18n.Locale()).SetMaterialPopover() }
+
+// SetMaterialPopover says "Popover"
+// in the language of msgs.
+func (msgs Messages) SetMaterialPopover() string {
+	return Catalog.Format(msgs.locale, "setMaterialPopover", nil)
+}
+
+// SetMaterialGlass says "Liquid Glass"
+// in the language the app shows.
+func SetMaterialGlass() string { return In(i18n.Locale()).SetMaterialGlass() }
+
+// SetMaterialGlass says "Liquid Glass"
+// in the language of msgs.
+func (msgs Messages) SetMaterialGlass() string {
+	return Catalog.Format(msgs.locale, "setMaterialGlass", nil)
+}
+
+// SetMaterialGlassClear says "Clear glass"
+// in the language the app shows.
+func SetMaterialGlassClear() string { return In(i18n.Locale()).SetMaterialGlassClear() }
+
+// SetMaterialGlassClear says "Clear glass"
+// in the language of msgs.
+func (msgs Messages) SetMaterialGlassClear() string {
+	return Catalog.Format(msgs.locale, "setMaterialGlassClear", nil)
+}
+
 // SetPaneGlass says "Terminal transparency"
 // in the language the app shows.
 func SetPaneGlass() string { return In(i18n.Locale()).SetPaneGlass() }
@@ -2900,6 +2970,26 @@ func SetPaneBlurDetail() string { return In(i18n.Locale()).SetPaneBlurDetail() }
 // in the language of msgs.
 func (msgs Messages) SetPaneBlurDetail() string {
 	return Catalog.Format(msgs.locale, "setPaneBlurDetail", nil)
+}
+
+// SetPaneMaterial says "Terminal material"
+// in the language the app shows.
+func SetPaneMaterial() string { return In(i18n.Locale()).SetPaneMaterial() }
+
+// SetPaneMaterial says "Terminal material"
+// in the language of msgs.
+func (msgs Messages) SetPaneMaterial() string {
+	return Catalog.Format(msgs.locale, "setPaneMaterial", nil)
+}
+
+// SetPaneMaterialDetail says "What the terminal's glass is made of when Terminal blur is on: Liquid Glass frosts what shows through; Clear glass ba…"
+// in the language the app shows.
+func SetPaneMaterialDetail() string { return In(i18n.Locale()).SetPaneMaterialDetail() }
+
+// SetPaneMaterialDetail says "What the terminal's glass is made of when Terminal blur is on: Liquid Glass frosts what shows through; Clear glass ba…"
+// in the language of msgs.
+func (msgs Messages) SetPaneMaterialDetail() string {
+	return Catalog.Format(msgs.locale, "setPaneMaterialDetail", nil)
 }
 
 // SetWindowOpacityDetail says "How much of the window’s background the wash covers while the window is translucent; the panes stay opaque."
@@ -2982,16 +3072,6 @@ func (msgs Messages) BgMeadow() string {
 	return Catalog.Format(msgs.locale, "bgMeadow", nil)
 }
 
-// BgDusk says "Dusk"
-// in the language the app shows.
-func BgDusk() string { return In(i18n.Locale()).BgDusk() }
-
-// BgDusk says "Dusk"
-// in the language of msgs.
-func (msgs Messages) BgDusk() string {
-	return Catalog.Format(msgs.locale, "bgDusk", nil)
-}
-
 // BgPlain says "Plain"
 // in the language the app shows.
 func BgPlain() string { return In(i18n.Locale()).BgPlain() }
@@ -3000,6 +3080,16 @@ func BgPlain() string { return In(i18n.Locale()).BgPlain() }
 // in the language of msgs.
 func (msgs Messages) BgPlain() string {
 	return Catalog.Format(msgs.locale, "bgPlain", nil)
+}
+
+// BgDock says "Dock"
+// in the language the app shows.
+func BgDock() string { return In(i18n.Locale()).BgDock() }
+
+// BgDock says "Dock"
+// in the language of msgs.
+func (msgs Messages) BgDock() string {
+	return Catalog.Format(msgs.locale, "bgDock", nil)
 }
 
 // SetText says "Text"

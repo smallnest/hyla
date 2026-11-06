@@ -167,8 +167,10 @@ var keys = append([]key{
 			return nil
 		}},
 	boolKey("window-blur", "blur the desktop behind the translucent background; off, the wash is plain transparency", func(s *Settings) *bool { return &s.WindowBlur }),
+	choiceKey("window-material", "the window's material behind the wash while blurred: sidebar, window, popover, glass (Liquid Glass, as the Dock's) or glass-clear", func(s *Settings) *string { return &s.WindowMaterial }, "sidebar", "window", "popover", "glass", "glass-clear"),
 	float32Key("pane-opacity", "how much of the window's background shows in a terminal while the window is translucent, 0 to 1, as window-opacity; 0 shows the desktop alone, and the terminal's text stays opaque", func(s *Settings) *float32 { return &s.PaneOpacity }),
 	boolKey("pane-blur", "blur what shows through the terminals; off, they are plain transparency, and 0% opacity shows the desktop alone", func(s *Settings) *bool { return &s.PaneBlur }),
+	choiceKey("pane-material", "the terminal's glass while Terminal blur is on: glass (Liquid Glass) or glass-clear", func(s *Settings) *string { return &s.PaneMaterial }, "glass", "glass-clear"),
 	boolKey("pet", "Hyla, the tree frog on the window's top edge, who follows your sessions", func(s *Settings) *bool { return &s.Pet }),
 	float32Key("pet-offset", "where Hyla stands across the window, 0 to 1; drag it there", func(s *Settings) *float32 { return &s.PetOffset }),
 	float32Key("pet-size", "how tall a Codex pet shows, against the Codex app's 82 DIPs, 0.5 to 3", func(s *Settings) *float32 { return &s.PetSize }),
@@ -176,7 +178,7 @@ var keys = append([]key{
 	choiceKey("window-theme", "the app's appearance", func(s *Settings) *string { return &s.Appearance }, "system", "light", "dark"),
 	choiceKey("language", "the app's language; system follows the system's", func(s *Settings) *string { return &s.Language }, append([]string{"system"}, Languages...)...),
 	mapChoice("background", "the window's wash", func(s *Settings) *string { return &s.Background },
-		[]string{"petal", "mist", "meadow", "dusk", "plain"}, []string{"rex", "mist", "meadow", "dusk", "plain"}),
+		[]string{"petal", "mist", "meadow", "plain", "dock"}, []string{"rex", "mist", "meadow", "plain", "dock"}),
 	boolKey("window-translucent", "let the desktop show through the window", func(s *Settings) *bool { return &s.Vibrancy }),
 
 	stringKey("font-family", "the terminals' font: empty for JetBrains Mono Nerd Font, which Hyla carries; monospace for the system's", func(s *Settings) *string { return &s.FontFamily }),
@@ -646,6 +648,15 @@ func parse(data string) (Settings, []string) {
 	for _, name := range order {
 		k := findKey(name)
 		v := values[name]
+		if name == "background" {
+			// Dusk is gone: its wash was too close to Petal's. A file that
+			// still names it gets Petal, without a problem to report.
+			for i, val := range v {
+				if val == "dusk" {
+					v[i] = "petal"
+				}
+			}
+		}
 		if !k.list && v[len(v)-1] == "" && name != "font-family" && name != "font-fallback" && name != "command" {
 			continue // a key left empty keeps its default
 		}

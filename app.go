@@ -1257,7 +1257,7 @@ func (a *App) apply(s settings.Settings, save bool) {
 	}
 	// The wash changes with the material or its blur, which a change of
 	// opacity too, its alpha only, would leave as it was.
-	if old.Vibrancy != s.Vibrancy || old.WindowBlur != s.WindowBlur || old.WindowOpacity != s.WindowOpacity {
+	if old.Vibrancy != s.Vibrancy || old.WindowBlur != s.WindowBlur || old.WindowOpacity != s.WindowOpacity || old.WindowMaterial != s.WindowMaterial {
 		if a.win != nil {
 			a.win.SetVibrancy(vibrancyFor(s))
 		}
@@ -1392,12 +1392,24 @@ func (a *App) reloadConfig() {
 }
 
 // vibrancyFor is the window's material, if Background blur is on: off,
-// the desktop shows behind the wash without it.
+// the desktop shows behind the wash without it. The material is the
+// setting's: the sidebar's by default, and Liquid Glass, as the Dock's,
+// by choice.
 func vibrancyFor(s settings.Settings) mygo.Vibrancy {
-	if s.Vibrancy && s.WindowBlur {
-		return mygo.VibrancySidebar
+	if !s.Vibrancy || !s.WindowBlur {
+		return mygo.VibrancyNone
 	}
-	return mygo.VibrancyNone
+	switch s.WindowMaterial {
+	case "window":
+		return mygo.VibrancyWindow
+	case "popover":
+		return mygo.VibrancyPopover
+	case "glass":
+		return mygo.VibrancyGlass
+	case "glass-clear":
+		return mygo.VibrancyGlassClear
+	}
+	return mygo.VibrancySidebar
 }
 
 var lineSuffix = regexp.MustCompile(`(:\d+){1,2}$`)

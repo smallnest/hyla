@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/egoist/mygo/plugins/glass"
 	"github.com/egoist/mygo/plugins/terminal"
 	"github.com/egoist/mygo/ui"
 
@@ -228,11 +229,38 @@ func backdrop(c *ui.Context, pal *palette, row ui.Element, s settings.Settings) 
 // does. The card is not glass, which fogs what it covers and would leave a
 // card opaque whatever its opacity. An opaque card, or one in a window that
 // is not translucent, is the card's background.
-func paneGlass(pal *palette, s settings.Settings) *paneWash {
+func paneGlass(pal *palette, s settings.Settings) ui.Material {
 	if !s.Vibrancy || s.PaneOpacity >= 1 {
 		return nil
 	}
-	return &paneWash{opacity: s.PaneOpacity, background: s.Background, dark: pal.dark}
+	w := &paneWash{opacity: s.PaneOpacity, background: s.Background, dark: pal.dark}
+	if s.PaneBlur {
+		return paneFrost{wash: w, material: s.PaneMaterial}
+	}
+	return w
+}
+
+// paneFrost is a terminal's card with the terminal blur on: the wash it
+// paints, over the system's glass (macOS 26 and later), which frosts what
+// shows through it as a card of the Dock's material. A system without
+// Liquid Glass leaves the wash alone, as plain transparency.
+type paneFrost struct {
+	wash     *paneWash
+	material string // "glass" or "glass-clear"
+}
+
+func (f paneFrost) PaintMaterial(p *ui.Painter, box ui.Rect, radii [4]float32) {
+	f.wash.PaintMaterial(p, box, radii)
+}
+
+// NativeGlass places the system's glass under the card, which the wash,
+// as translucent as the pane, shows through.
+func (f paneFrost) NativeGlass() (ui.NativeGlassSpec, bool) {
+	style := glass.Regular
+	if f.material == "glass-clear" {
+		style = glass.Clear
+	}
+	return ui.NativeGlassSpec{Style: int(style)}, true
 }
 
 // paneWash paints a card as backdrop paints the window: the background's
@@ -322,12 +350,14 @@ var washTable = map[string]wash{
 		light: []string{"#e2eee5", "#ebf2e7", "#f3f2e2", "#f5f0d6"}, lightGlow: ui.RGBA(214, 240, 222, 0.75),
 		dark: []string{"#111814", "#141a16", "#181a14"}, darkGlow: ui.RGBA(70, 130, 95, 0.2),
 	},
-	"dusk": {
-		light: []string{"#e4dbf3", "#efdeee", "#f6e3dc", "#f7e6cf"}, lightGlow: ui.RGBA(246, 206, 222, 0.8),
-		dark: []string{"#191321", "#1e161e", "#221a17"}, darkGlow: ui.RGBA(150, 80, 110, 0.25),
-	},
 	"plain": {
 		light: []string{"#eceef4", "#eceef4"}, lightGlow: ui.RGBA(0, 0, 0, 0),
 		dark: []string{"#141418", "#141418"}, darkGlow: ui.RGBA(0, 0, 0, 0),
+	},
+	// The Dock's: the desktop behind the window, frosted, under a thin
+	// neutral veil that grounds what sits on it, in the Dock's gray.
+	"dock": {
+		light: []string{"#f3f4f6", "#eeeff2", "#f6f6f7"}, lightGlow: ui.RGBA(0, 0, 0, 0),
+		dark: []string{"#131315", "#161618", "#19191b"}, darkGlow: ui.RGBA(0, 0, 0, 0),
 	},
 }

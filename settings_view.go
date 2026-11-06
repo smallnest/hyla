@@ -643,6 +643,21 @@ func (a *App) updatesGroup(c *ui.Context, pal *palette) {
 	})
 }
 
+// materialName names a window material as Settings offers it.
+func materialName(id string) string {
+	switch id {
+	case "window":
+		return locales.SetMaterialWindow()
+	case "popover":
+		return locales.SetMaterialPopover()
+	case "glass":
+		return locales.SetMaterialGlass()
+	case "glass-clear":
+		return locales.SetMaterialGlassClear()
+	}
+	return locales.SetMaterialSidebar()
+}
+
 func (a *App) appearancePage(c *ui.Context, pal *palette) {
 	s := &a.set
 	settingsGroup(c, pal, "", "", func() {
@@ -664,6 +679,9 @@ func (a *App) appearancePage(c *ui.Context, pal *palette) {
 		})
 		settingRow(c, pal, locales.SetWindowBlur(), locales.SetWindowBlurDetail(), func() {
 			toggle(c.Key("window-blur"), &s.WindowBlur, pal)
+		})
+		settingRow(c, pal, locales.SetWindowMaterial(), locales.SetWindowMaterialDetail(), func() {
+			popup(c, "window-material", &s.WindowMaterial, []string{"sidebar", "window", "popover", "glass", "glass-clear"}, materialName, 200, pal)
 		})
 	})
 	settingsGroup(c, pal, locales.SetPetGroup(), "", func() {
@@ -725,7 +743,7 @@ func localeTag(language string) string {
 
 // backgroundName is a wash's name in the language the app shows.
 func backgroundName(id, name string) string {
-	if t, ok := map[string]func() string{"rex": locales.BgPetal, "mist": locales.BgMist, "meadow": locales.BgMeadow, "dusk": locales.BgDusk, "plain": locales.BgPlain}[id]; ok {
+	if t, ok := map[string]func() string{"rex": locales.BgPetal, "mist": locales.BgMist, "meadow": locales.BgMeadow, "plain": locales.BgPlain, "dock": locales.BgDock}[id]; ok {
 		return t()
 	}
 	return name
@@ -737,6 +755,14 @@ func (a *App) backgroundTile(c *ui.Context, pal *palette, id, name string) {
 	tile := ui.ButtonBase(c.Key("bg-" + id)).Column().Width(104).Gap(8).AlignItems(ui.Stretch).Label(name)
 	if tile.Clicked() {
 		a.set.Background = id
+		if id == "dock" {
+			// The Dock's is Liquid Glass under a thin veil: choose it, and
+			// let the veil show where the wash covered nothing at all.
+			a.set.WindowMaterial = "glass"
+			if a.set.WindowOpacity < 0.2 {
+				a.set.WindowOpacity = 0.45
+			}
+		}
 	}
 	tile.Children(func() {
 		sw := raised(ui.Box(c).Size(104, 68).Radius(12), pal).Clip()
@@ -886,6 +912,9 @@ func (a *App) terminalPage(c *ui.Context, pal *palette) {
 		})
 		settingRow(c, pal, locales.SetPaneBlur(), locales.SetPaneBlurDetail(), func() {
 			toggle(c.Key("pane-blur"), &s.PaneBlur, pal)
+		})
+		settingRow(c, pal, locales.SetPaneMaterial(), locales.SetPaneMaterialDetail(), func() {
+			popup(c, "pane-material", &s.PaneMaterial, []string{"glass", "glass-clear"}, materialName, 200, pal)
 		})
 	})
 	settingsGroup(c, pal, locales.SetCursor(), "", func() {

@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/egoist/mygo/plugins/glass"
 	"github.com/egoist/mygo/plugins/terminal"
 	"github.com/egoist/mygo/ui"
 
@@ -65,5 +66,31 @@ func TestPaneGlassKeepsTheTerminal(t *testing.T) {
 		}
 		shot(t, tt, fmt.Sprintf("pane-glass-%.2f", opacity))
 		term.Close()
+	}
+}
+
+// Terminal blur has the system's glass under the card, which the wash
+// shows through; without it, the wash alone.
+func TestPaneFrost(t *testing.T) {
+	pal := &lightPalette
+	s := settings.Settings{Vibrancy: true, PaneOpacity: 0.5, PaneBlur: true, PaneMaterial: "glass"}
+	m := paneGlass(pal, s)
+	f, ok := m.(paneFrost)
+	if !ok {
+		t.Fatalf("terminal blur has no glass: %T", m)
+	}
+	if _, ok := any(f).(ui.NativeGlassMaterial); !ok {
+		t.Error("the frost asks for no system glass")
+	}
+	if spec, ok := f.NativeGlass(); !ok || spec.Style != int(glass.Regular) {
+		t.Errorf("the frost's glass is %+v, %v", spec, ok)
+	}
+	s.PaneMaterial = "glass-clear"
+	if spec, ok := paneGlass(pal, s).(paneFrost).NativeGlass(); !ok || spec.Style != int(glass.Clear) {
+		t.Errorf("the clear frost's glass is %+v, %v", spec, ok)
+	}
+	s.PaneBlur = false
+	if _, ok := paneGlass(pal, s).(*paneWash); !ok {
+		t.Errorf("without terminal blur, the card is %T", paneGlass(pal, s))
 	}
 }

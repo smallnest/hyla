@@ -58,12 +58,14 @@ hyla config check             # report unknown keys and bad values
 | -------------------- | -------- | --------------------------------------------------------------- |
 | `window-theme`       | `system` | The app's appearance: `system`, `light` or `dark`               |
 | `language`           | `system` | The app's language: `system`, `en`, `ja` or `zh-Hans`           |
-| `background`         | `petal`  | The window's wash: `petal`, `mist`, `meadow`, `dusk` or `plain` |
+| `background`         | `petal`  | The window's wash: `petal`, `mist`, `meadow`, `plain` or `dock` (the Dock's: Liquid Glass under a thin veil) |
 | `window-translucent` | `true`   | Let the desktop show through the window                         |
 | `window-opacity`     | `0.82`   | How much of the window's background the wash covers while translucent, 0 to 1 |
 | `window-blur`        | `true`   | Blur the desktop behind the translucent background; off is plain transparency |
+| `window-material`    | `sidebar` | The window's material behind the wash while blurred: `sidebar`, `window`, `popover`, `glass` (Liquid Glass, as the Dock's) or `glass-clear` |
 | `pane-opacity`       | `0.82`   | How much of the window's background shows in a terminal while the window is translucent, 0 to 1, as `window-opacity`: 0 shows the desktop alone; the text stays opaque |
 | `pane-blur`          | `false`  | Blur what shows through the terminals; off is plain transparency |
+| `pane-material`      | `glass`  | The terminal's glass while `pane-blur` is on: `glass` (Liquid Glass) or `glass-clear` |
 | `pet`                | `true`   | Hyla, the tree frog, who follows your sessions from the window's top edge |
 | `pet-offset`         | `0.5`    | Where Hyla stands, 0 to 1 across the window; drag it there       |
 | `pet-set`            | `hyla`   | The pet on the window's edge: `hyla` the tree frog, `codex` for the Codex app's active pet, or a pet's directory name in `~/.codex/pets`

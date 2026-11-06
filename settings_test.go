@@ -716,21 +716,29 @@ func TestAdListToggles(t *testing.T) {
 	}
 }
 
-// A material only shows when the window is translucent and blurred.
+// A material only shows when the window is translucent and blurred, and
+// it is the one the settings name, the sidebar's by default.
 func TestVibrancyFor(t *testing.T) {
 	for _, c := range []struct {
 		vibrancy, blur bool
+		material       string
 		want           mygo.Vibrancy
 	}{
-		{true, true, mygo.VibrancySidebar},
-		{true, false, mygo.VibrancyNone},
-		{false, true, mygo.VibrancyNone},
-		{false, false, mygo.VibrancyNone},
+		{true, true, "", mygo.VibrancySidebar},
+		{true, true, "sidebar", mygo.VibrancySidebar},
+		{true, true, "window", mygo.VibrancyWindow},
+		{true, true, "popover", mygo.VibrancyPopover},
+		{true, true, "glass", mygo.VibrancyGlass},
+		{true, true, "glass-clear", mygo.VibrancyGlassClear},
+		{true, true, "not-a-material", mygo.VibrancySidebar},
+		{true, false, "glass", mygo.VibrancyNone},
+		{false, true, "glass", mygo.VibrancyNone},
+		{false, false, "", mygo.VibrancyNone},
 	} {
 		s := settings.Default()
-		s.Vibrancy, s.WindowBlur = c.vibrancy, c.blur
+		s.Vibrancy, s.WindowBlur, s.WindowMaterial = c.vibrancy, c.blur, c.material
 		if got := vibrancyFor(s); got != c.want {
-			t.Errorf("translucent %v, blurred %v: %q, want %q", c.vibrancy, c.blur, got, c.want)
+			t.Errorf("translucent %v, blurred %v, material %q: %q, want %q", c.vibrancy, c.blur, c.material, got, c.want)
 		}
 	}
 }

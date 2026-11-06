@@ -57,8 +57,9 @@ hyla config check             # 不明なキーと不正な値を報告
 | -------------------- | ---------- | --------------------------------------------------------------- |
 | `window-theme`       | `system`   | アプリの外観: `system`、`light`、`dark`                         |
 | `language`           | `system`   | アプリの言語: `system`、`en`、`ja`、`zh-Hans`                   |
-| `background`         | `petal`    | ウインドウの背景: `petal`、`mist`、`meadow`、`dusk`、`plain`    |
+| `background`         | `petal`    | ウインドウの背景: `petal`、`mist`、`meadow`、`plain`、`dock`（Dock のもの: Liquid Glass と薄いベール）    |
 | `window-translucent` | `true`     | ウインドウからデスクトップを透けて見せる                        |
+| `window-material`    | `sidebar` | ぼかすときのウインドウ背景の素材: `sidebar`、`window`、`popover`、`glass`（Dock のような Liquid Glass）、`glass-clear` |
 
 ## ターミナル
 
