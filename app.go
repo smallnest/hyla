@@ -194,7 +194,8 @@ type App struct {
 	previewShown bool
 	arrived      map[string]bool
 	copyText     string
-	peek         peek // the image a path Command hovers shows
+	peek         peek       // the image a path Command hovers shows
+	art          sidebarArt // the picture behind the sidebar
 	// from is the host whose program asked for the action being run (hyla
 	// do), nil for the user's.
 	from   *host

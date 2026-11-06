@@ -2872,6 +2872,66 @@ func (msgs Messages) SetWindowMaterialDetail() string {
 	return Catalog.Format(msgs.locale, "setWindowMaterialDetail", nil)
 }
 
+// SetSidebarImage says "Sidebar background"
+// in the language the app shows.
+func SetSidebarImage() string { return In(i18n.Locale()).SetSidebarImage() }
+
+// SetSidebarImage says "Sidebar background"
+// in the language of msgs.
+func (msgs Messages) SetSidebarImage() string {
+	return Catalog.Format(msgs.locale, "setSidebarImage", nil)
+}
+
+// SetSidebarImageDetail says "A picture behind the sidebar's sessions: as tall as 80% of the sidebar, centred vertically and against its left edge."
+// in the language the app shows.
+func SetSidebarImageDetail() string { return In(i18n.Locale()).SetSidebarImageDetail() }
+
+// SetSidebarImageDetail says "A picture behind the sidebar's sessions: as tall as 80% of the sidebar, centred vertically and against its left edge."
+// in the language of msgs.
+func (msgs Messages) SetSidebarImageDetail() string {
+	return Catalog.Format(msgs.locale, "setSidebarImageDetail", nil)
+}
+
+// SetSidebarImageChoose says "Choose Image…"
+// in the language the app shows.
+func SetSidebarImageChoose() string { return In(i18n.Locale()).SetSidebarImageChoose() }
+
+// SetSidebarImageChoose says "Choose Image…"
+// in the language of msgs.
+func (msgs Messages) SetSidebarImageChoose() string {
+	return Catalog.Format(msgs.locale, "setSidebarImageChoose", nil)
+}
+
+// SetSidebarImageFilter says "Images"
+// in the language the app shows.
+func SetSidebarImageFilter() string { return In(i18n.Locale()).SetSidebarImageFilter() }
+
+// SetSidebarImageFilter says "Images"
+// in the language of msgs.
+func (msgs Messages) SetSidebarImageFilter() string {
+	return Catalog.Format(msgs.locale, "setSidebarImageFilter", nil)
+}
+
+// SetSidebarImageOpacity says "Picture opacity"
+// in the language the app shows.
+func SetSidebarImageOpacity() string { return In(i18n.Locale()).SetSidebarImageOpacity() }
+
+// SetSidebarImageOpacity says "Picture opacity"
+// in the language of msgs.
+func (msgs Messages) SetSidebarImageOpacity() string {
+	return Catalog.Format(msgs.locale, "setSidebarImageOpacity", nil)
+}
+
+// SetSidebarImageOpacityDetail says "How much of the picture shows through the sidebar's sessions: lower keeps the sessions easy to read."
+// in the language the app shows.
+func SetSidebarImageOpacityDetail() string { return In(i18n.Locale()).SetSidebarImageOpacityDetail() }
+
+// SetSidebarImageOpacityDetail says "How much of the picture shows through the sidebar's sessions: lower keeps the sessions easy to read."
+// in the language of msgs.
+func (msgs Messages) SetSidebarImageOpacityDetail() string {
+	return Catalog.Format(msgs.locale, "setSidebarImageOpacityDetail", nil)
+}
+
 // SetMaterialSidebar says "Sidebar"
 // in the language the app shows.
 func SetMaterialSidebar() string { return In(i18n.Locale()).SetMaterialSidebar() }

@@ -60,6 +60,8 @@ hyla config check             # 不明なキーと不正な値を報告
 | `background`         | `petal`    | ウインドウの背景: `petal`、`mist`、`meadow`、`plain`、`dock`（Dock のもの: Liquid Glass と薄いベール）    |
 | `window-translucent` | `true`     | ウインドウからデスクトップを透けて見せる                        |
 | `window-material`    | `sidebar` | ぼかすときのウインドウ背景の素材: `sidebar`、`window`、`popover`、`plastic`（磨りガラスのコンテンツ背景）、`glass`（Dock のような Liquid Glass）、`glass-clear` |
+| `sidebar-image`      |           | サイドバーのセッションの後ろに表示する画像: 高さはサイドバー全体の 80%、上下中央に置き、左端に少し余白を空けます。空欄なら表示しません |
+| `sidebar-image-opacity` | `0.35` | サイドバーの背景画像の見え方、0（表示しない）から 1（不透明） |
 
 ## ターミナル
 

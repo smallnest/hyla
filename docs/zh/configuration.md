@@ -63,6 +63,8 @@ hyla config check             # 报告未知的配置项和无效的值
 | `window-opacity`     | `0.82`   | 开启半透明时窗口背景的覆盖程度，0 到 1                        |
 | `window-blur`        | `true`   | 模糊半透明背景后的桌面；关闭后是普通透明                      |
 | `window-material`    | `sidebar` | 模糊时窗口背景的材质：`sidebar`、`window`、`popover`、`plastic`（磨砂内容背景）、`glass`（Liquid Glass，和 Dock 一样）或 `glass-clear` |
+| `sidebar-image`      |          | 左边栏会话后面的一张图片：高度为整个左边栏的 80%，垂直居中，靠左且与左边留一点距离；留空则不显示 |
+| `sidebar-image-opacity` | `0.35` | 左边栏背景图的可见程度，0（不显示）到 1（完全不透明） |
 | `pane-opacity`       | `0.82`   | 窗口半透明时，终端中显示多少窗口背景，0 到 1，与 `window-opacity` 相同：为 0 时直接看到桌面；文字始终不透明 |
 | `pane-blur`          | `false`  | 模糊终端背后透出的内容；关闭后是普通透明 |
 | `pane-material`      | `glass`  | 终端模糊开启时玻璃的材质：`glass`（Liquid Glass）、`plastic`（磨砂内容背景）或 `glass-clear` |

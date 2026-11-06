@@ -184,6 +184,21 @@ func TestWindowMaterial(t *testing.T) {
 	}
 }
 
+// A picture behind the sidebar is a file's path, and none of the
+// settings' own until one is chosen; its opacity is 0 to 1.
+func TestSidebarImage(t *testing.T) {
+	s, probs := parse("sidebar-image = /Users/me/Pictures/side by side.png\nsidebar-image-opacity = 0.6\n")
+	if len(probs) != 0 || s.SidebarImage != "/Users/me/Pictures/side by side.png" || s.SidebarImageOpacity != 0.6 {
+		t.Errorf("sidebar-image %q at %v, problems %q", s.SidebarImage, s.SidebarImageOpacity, probs)
+	}
+	if d := Default(); d.SidebarImage != "" || d.SidebarImageOpacity != DefaultSidebarImageOpacity {
+		t.Errorf("defaults %q at %v", d.SidebarImage, d.SidebarImageOpacity)
+	}
+	if s, _ := parse("sidebar-image-opacity = 2\n"); s.SidebarImageOpacity != DefaultSidebarImageOpacity {
+		t.Errorf("out of range: sidebar-image-opacity %v", s.SidebarImageOpacity)
+	}
+}
+
 // The Dock's is a wash of its own, as the Dock's background is.
 func TestDockBackground(t *testing.T) {
 	s, probs := parse("background = dock")

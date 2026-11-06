@@ -685,6 +685,27 @@ func (a *App) appearancePage(c *ui.Context, pal *palette) {
 		settingRow(c, pal, locales.SetWindowMaterial(), locales.SetWindowMaterialDetail(), func() {
 			popup(c, "window-material", &s.WindowMaterial, []string{"sidebar", "window", "popover", "plastic", "glass", "glass-clear"}, materialName, 200, pal)
 		})
+		detail := locales.SetSidebarImageDetail()
+		if s.SidebarImage != "" {
+			detail = filepath.Base(s.SidebarImage)
+		}
+		settingRow(c, pal, locales.SetSidebarImage(), detail, func() {
+			if button(c, "sidebar-image", locales.SetSidebarImageChoose(), "", false, pal) {
+				a.pickSidebarImage()
+			}
+			if s.SidebarImage != "" && button(c, "sidebar-image-clear", locales.CommonRemove(), "", false, pal) {
+				s.SidebarImage = ""
+			}
+		})
+		if s.SidebarImage != "" {
+			settingRow(c, pal, locales.SetSidebarImageOpacity(), locales.SetSidebarImageOpacityDetail(), func() {
+				v := float64(s.SidebarImageOpacity)
+				slider(c, "sidebar-image-opacity", &v, 0, 1, 160, pal).OnChange(func() {
+					s.SidebarImageOpacity = float32(int(v*100+0.5)) / 100
+				})
+				ui.Textf(c, "%.0f%%", s.SidebarImageOpacity*100).FontSize(12.5).TextColor(pal.textMuted).Width(40).FontFeatures("tnum")
+			})
+		}
 	})
 	settingsGroup(c, pal, locales.SetPetGroup(), "", func() {
 		settingRow(c, pal, locales.SetPet(), locales.SetPetDetail(), func() {

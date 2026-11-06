@@ -133,7 +133,10 @@ func (a *App) view(c *ui.Context) {
 		}
 		side.Children(func() {
 			ui.Column(c).Width(a.prefs.SidebarWidth).Shrink(0).Margin(0, 0, 0, w-a.prefs.SidebarWidth).
-				Opacity(0.4 + 0.6*shown).Children(func() { a.sidebar(c, pal, bar) })
+				Opacity(0.4 + 0.6*shown).Children(func() {
+				a.sidebarArtView(c)
+				a.sidebar(c, pal, bar)
+			})
 		})
 		// The gaps around the cards move the window too.
 		main := ui.Column(c).Grow(1).MinWidth(0).Padding(cardGap, cardGap, cardGap, a.chrome.mainPad).DragWindow()

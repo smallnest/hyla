@@ -45,9 +45,14 @@ type Settings struct {
 	WindowBlur    bool    `json:"windowBlur"`    // blur the desktop behind the wash
 	// WindowMaterial is the window's material under the wash: "sidebar",
 	// "window", "popover", "glass" or "glass-clear".
-	WindowMaterial string  `json:"windowMaterial"`
-	PaneOpacity    float32 `json:"paneOpacity"` // how much of the window's background shows in a terminal, 0 to 1
-	PaneBlur       bool    `json:"paneBlur"`    // blur what shows through the terminals
+	WindowMaterial string `json:"windowMaterial"`
+	// SidebarImage is a picture of this machine shown behind the sidebar,
+	// as tall as 80% of it, against its left edge: an image file's path,
+	// "" for none. SidebarImageOpacity is how much of it shows, 0 to 1.
+	SidebarImage        string  `json:"sidebarImage"`
+	SidebarImageOpacity float32 `json:"sidebarImageOpacity"`
+	PaneOpacity         float32 `json:"paneOpacity"` // how much of the window's background shows in a terminal, 0 to 1
+	PaneBlur            bool    `json:"paneBlur"`    // blur what shows through the terminals
 	// PaneMaterial is the terminal's glass where PaneBlur is on: "glass"
 	// (Liquid Glass) or "glass-clear".
 	PaneMaterial string  `json:"paneMaterial"`
@@ -193,6 +198,10 @@ func (s *Settings) Host(name string) *Host {
 // covers while translucent.
 const DefaultWindowOpacity = 0.82
 
+// DefaultSidebarImageOpacity is how much of the sidebar's picture shows:
+// faintly, as a veil under the sessions.
+const DefaultSidebarImageOpacity = 0.35
+
 // DefaultPaneOpacity is how much of the window's background shows in a
 // terminal while the window is translucent.
 const DefaultPaneOpacity = 0.82
@@ -205,57 +214,58 @@ const PaneBlurRadius = 16
 // Default returns the settings of a new install.
 func Default() Settings {
 	return Settings{
-		NewSessionDir:    "current",
-		SessionName:      proto.NameFocused,
-		SidebarRows:      "detailed",
-		ConfirmClose:     true,
-		RestoreSessions:  true,
-		ResumeAgents:     true,
-		QuitConfirm:      true,
-		AppIcon:          "dock-and-menubar",
-		Appearance:       "system",
-		Language:         "system",
-		Background:       "rex",
-		Vibrancy:         true,
-		WindowOpacity:    DefaultWindowOpacity,
-		WindowBlur:       true,
-		WindowMaterial:   "sidebar",
-		PaneOpacity:      DefaultPaneOpacity,
-		PaneMaterial:     "glass",
-		Pet:              true,
-		PetOffset:        0.5,
-		PetSet:           PetSetHyla,
-		PetSize:          DefaultPetSize,
-		DimUnfocused:     true,
-		FontSize:         13,
-		LineHeight:       1.22,
-		CellWidth:        1,
-		FontWeight:       400,
-		Ligatures:        true,
-		MinContrast:      3,
-		Cursor:           "block",
-		CursorBlink:      true,
-		LightTheme:       "hyla",
-		DarkTheme:        "hyla",
-		Clipboard:        "ask",
-		RightClick:       "menu",
-		ScrollPrecision:  1,
-		ScrollDiscrete:   3,
-		Scrollback:       4,
-		NotifyWaiting:    true,
-		NotifyDone:       true,
-		NotifyFailed:     true,
-		DockBadge:        true,
-		RemoteControl:    true,
-		FeishuCards:      true,
-		FeishuMarkdown:   true,
-		FeishuOpenButton: true,
-		FeishuYolo:       true,
-		GitStatus:        true,
-		DiffLayout:       "auto",
-		WorktreeBase:     "default",
-		BlockAds:         true,
-		AdLists:          slices.Clone(adblock.DefaultLists),
+		NewSessionDir:       "current",
+		SessionName:         proto.NameFocused,
+		SidebarRows:         "detailed",
+		ConfirmClose:        true,
+		RestoreSessions:     true,
+		ResumeAgents:        true,
+		QuitConfirm:         true,
+		AppIcon:             "dock-and-menubar",
+		Appearance:          "system",
+		Language:            "system",
+		Background:          "rex",
+		Vibrancy:            true,
+		WindowOpacity:       DefaultWindowOpacity,
+		WindowBlur:          true,
+		WindowMaterial:      "sidebar",
+		SidebarImageOpacity: DefaultSidebarImageOpacity,
+		PaneOpacity:         DefaultPaneOpacity,
+		PaneMaterial:        "glass",
+		Pet:                 true,
+		PetOffset:           0.5,
+		PetSet:              PetSetHyla,
+		PetSize:             DefaultPetSize,
+		DimUnfocused:        true,
+		FontSize:            13,
+		LineHeight:          1.22,
+		CellWidth:           1,
+		FontWeight:          400,
+		Ligatures:           true,
+		MinContrast:         3,
+		Cursor:              "block",
+		CursorBlink:         true,
+		LightTheme:          "hyla",
+		DarkTheme:           "hyla",
+		Clipboard:           "ask",
+		RightClick:          "menu",
+		ScrollPrecision:     1,
+		ScrollDiscrete:      3,
+		Scrollback:          4,
+		NotifyWaiting:       true,
+		NotifyDone:          true,
+		NotifyFailed:        true,
+		DockBadge:           true,
+		RemoteControl:       true,
+		FeishuCards:         true,
+		FeishuMarkdown:      true,
+		FeishuOpenButton:    true,
+		FeishuYolo:          true,
+		GitStatus:           true,
+		DiffLayout:          "auto",
+		WorktreeBase:        "default",
+		BlockAds:            true,
+		AdLists:             slices.Clone(adblock.DefaultLists),
 	}
 }
 
@@ -554,6 +564,9 @@ func (s *Settings) normalize() {
 	}
 	if s.PaneOpacity < 0 || s.PaneOpacity > 1 {
 		s.PaneOpacity = d.PaneOpacity
+	}
+	if s.SidebarImageOpacity < 0 || s.SidebarImageOpacity > 1 {
+		s.SidebarImageOpacity = d.SidebarImageOpacity
 	}
 	oneOf(&s.AppIcon, d.AppIcon, AppIcons...)
 	known := false
