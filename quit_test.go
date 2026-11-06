@@ -104,3 +104,29 @@ func TestQuitEndsSessionsNotLoaded(t *testing.T) {
 		t.Fatal("the quit the window makes after was taken back")
 	}
 }
+
+// A quit the app lets through closes the quick terminal's window with it,
+// rather than leaving it to hide itself; a quit that asks first lets
+// nothing go until it is answered.
+func TestQuitLeavesTheQuickTerminal(t *testing.T) {
+	a := testApp(t)
+	a.own(a.local(), a.st.Sessions[0])
+	a.local().conn, a.local().loaded = connReady, true
+	if !a.quitRequested() {
+		t.Fatal("a quit was taken back")
+	}
+	if !a.quittingApp {
+		t.Fatal("a quit would leave the quick terminal's window to hide it")
+	}
+
+	a = testApp(t)
+	a.own(a.local(), a.st.Sessions[0])
+	a.local().conn, a.local().loaded = connReady, true
+	a.set.QuitEndsSessions, a.st.Sessions[0].Process = true, "claude"
+	if a.quitRequested() {
+		t.Fatal("a quit that ends a program went ahead unasked")
+	}
+	if a.quittingApp {
+		t.Fatal("a quit still asking would close the quick terminal")
+	}
+}

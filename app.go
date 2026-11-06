@@ -209,7 +209,12 @@ type App struct {
 	// quitting is set while the quit quit-ends-sessions makes ends the
 	// sessions, either while it asks or once its answer does.
 	quitting bool
-	quick    quickTerm // the terminal the global shortcut drops down
+	// quittingApp tells that the app is leaving, which closes the quick
+	// terminal's window rather than hiding it (quick.go); quitTimer
+	// leaves even a quit that does not finish.
+	quittingApp bool
+	quitTimer   *time.Timer
+	quick       quickTerm // the terminal the global shortcut drops down
 }
 
 // confirmation is a question the app asks before something it cannot undo.
@@ -1879,7 +1884,7 @@ func (a *App) quitRequested() bool {
 		// A quit taken back before, or the one its answer makes: either
 		// way it is over.
 		a.quitting = false
-		return true
+		return a.allowQuit()
 	}
 	busy := a.busyCount(a.local())
 	switch {
@@ -1898,7 +1903,7 @@ func (a *App) quitRequested() bool {
 	case busy == 0 && a.hostsLoaded():
 		// Nothing runs that the user could lose: the quit ends the
 		// sessions itself, as it goes.
-		return true
+		return a.allowQuit()
 	case !a.hostsLoaded():
 		// The sessions have not come yet, and with them what runs: take
 		// the quit back while the app shows them, and ask again when the
@@ -1909,8 +1914,30 @@ func (a *App) quitRequested() bool {
 	default:
 		// Nothing runs, and the sessions are not all in sight, as when
 		// the app quits from the Dock while hidden: let it end them.
-		return true
+		return a.allowQuit()
 	}
+}
+
+// quitGrace is how long a quit may take before the app leaves without it:
+// a window that will not close, or a loop that will not stop, must not
+// keep the user waiting on it.
+const quitGrace = 2 * time.Second
+
+// allowQuit lets a quit go, and makes sure it goes: the quick terminal's
+// window closes with it rather than hiding itself, and if the app is still
+// here after quitGrace it exits anyway.
+func (a *App) allowQuit() bool {
+	a.quittingApp = true
+	a.armQuitTimer()
+	return true
+}
+
+// armQuitTimer leaves the app after quitGrace, whatever holds the quit.
+func (a *App) armQuitTimer() {
+	if a.win == nil || a.quitTimer != nil {
+		return
+	}
+	a.quitTimer = time.AfterFunc(quitGrace, func() { os.Exit(0) })
 }
 
 // bringToFront shows the window, and brings it forward, so that the user
@@ -2035,6 +2062,9 @@ func (a *App) quitAndEnd() {
 func (a *App) endSessionsAndQuit() {
 	h := a.local()
 	cl := h.cl
+	// The daemon may take its time ending the sessions: the app leaves
+	// within quitGrace whatever it answers.
+	a.armQuitTimer()
 	go func() {
 		if cl == nil {
 			a.quitEndsSession()

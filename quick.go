@@ -198,8 +198,11 @@ func (a *App) makeQuick() {
 		Height:        400,
 		Content:       ui.View(a.quickView),
 	})
-	// Closing it, as with ⌘W, hides it; quitting destroys it.
+	// Closing it, as with ⌘W, hides it; a quit closes it with the app.
 	q.win.OnClose(func(e *mygo.CloseEvent) {
+		if a.quittingApp {
+			return
+		}
 		e.PreventDefault()
 		a.hideQuick()
 	})
