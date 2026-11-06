@@ -157,6 +157,9 @@ func TestPaneTranslucency(t *testing.T) {
 	if s.PaneOpacity != d.PaneOpacity {
 		t.Errorf("out of range: pane-opacity %v, pane-blur %v", s.PaneOpacity, s.PaneBlur)
 	}
+	if s, probs := parse("pane-material = plastic"); len(probs) != 0 || s.PaneMaterial != "plastic" {
+		t.Errorf("pane-material plastic: %q, %v", s.PaneMaterial, probs)
+	}
 	if _, probs := parse("pane-material = nope"); len(probs) == 0 {
 		t.Error("a terminal material Hyla has not was taken")
 	}
@@ -169,6 +172,9 @@ func TestWindowMaterial(t *testing.T) {
 	s, probs := parse("window-material = glass")
 	if len(probs) != 0 || s.WindowMaterial != "glass" {
 		t.Errorf("window-material glass: %q, %v", s.WindowMaterial, probs)
+	}
+	if s, probs := parse("window-material = plastic"); len(probs) != 0 || s.WindowMaterial != "plastic" {
+		t.Errorf("window-material plastic: %q, %v", s.WindowMaterial, probs)
 	}
 	if d := Default(); d.WindowMaterial != "sidebar" {
 		t.Errorf("default window-material %q", d.WindowMaterial)

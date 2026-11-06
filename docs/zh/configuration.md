@@ -62,10 +62,10 @@ hyla config check             # 报告未知的配置项和无效的值
 | `window-translucent` | `true`   | 让桌面透过窗口显示出来                                          |
 | `window-opacity`     | `0.82`   | 开启半透明时窗口背景的覆盖程度，0 到 1                        |
 | `window-blur`        | `true`   | 模糊半透明背景后的桌面；关闭后是普通透明                      |
-| `window-material`    | `sidebar` | 模糊时窗口背景的材质：`sidebar`、`window`、`popover`、`glass`（Liquid Glass，和 Dock 一样）或 `glass-clear` |
+| `window-material`    | `sidebar` | 模糊时窗口背景的材质：`sidebar`、`window`、`popover`、`plastic`（磨砂内容背景）、`glass`（Liquid Glass，和 Dock 一样）或 `glass-clear` |
 | `pane-opacity`       | `0.82`   | 窗口半透明时，终端中显示多少窗口背景，0 到 1，与 `window-opacity` 相同：为 0 时直接看到桌面；文字始终不透明 |
 | `pane-blur`          | `false`  | 模糊终端背后透出的内容；关闭后是普通透明 |
-| `pane-material`      | `glass`  | 终端模糊开启时玻璃的材质：`glass`（Liquid Glass）或 `glass-clear` |
+| `pane-material`      | `glass`  | 终端模糊开启时玻璃的材质：`glass`（Liquid Glass）、`plastic`（磨砂内容背景）或 `glass-clear` |
 | `pet`                | `true`   | 小树蛙 Hyla：趴在窗口上沿，跟着你的会话                          |
 | `pet-offset`         | `0.5`    | Hyla 站在窗口宽度的哪里，0 到 1；直接拖动即可                    |
 | `pet-set`            | `hyla`   | 窗口上沿显示的宠物：`hyla` 小树蛙、`codex` 表示 Codex 应用当前启用的宠物，或 `~/.codex/pets` 中某个宠物目录的名字

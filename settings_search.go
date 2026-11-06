@@ -43,7 +43,7 @@ func settingsIndex() []searchEntry {
 		{"appearance", locales.SetTranslucent(), "window-translucent vibrancy blur material transparency"},
 		{"appearance", locales.SetWindowOpacity(), "window-opacity opacity translucent transparency see-through dim 透明度 不透明度"},
 		{"appearance", locales.SetWindowBlur(), "window-blur blur frosted vibrancy material transparency 模糊 毛玻璃"},
-		{"appearance", locales.SetWindowMaterial(), "window-material material sidebar popover glass liquid dock blur 窗口材质 材质"},
+		{"appearance", locales.SetWindowMaterial(), "window-material material sidebar popover plastic glass liquid dock blur 窗口材质 材质 塑料"},
 		{"appearance", locales.SetPet(), "pet frog hyla mascot sprite companion agent status drag offset position 小精灵 青蛙 宠物"},
 		{"appearance", locales.SetBackground(), "background wash petal mist meadow plain dock gradient color"},
 
@@ -62,7 +62,7 @@ func settingsIndex() []searchEntry {
 		{"terminal", locales.SetPaneGlass(), "pane-opacity pane-blur terminal panes opacity blur glass frosted see-through 终端 透明 模糊"},
 		{"terminal", locales.SetPaneOpacity(), "pane-opacity desktop window background translucent terminal panes 0% 终端 不透明度 透明"},
 		{"terminal", locales.SetPaneBlur(), "pane-blur plain transparency clear frosted terminal panes 终端 模糊 毛玻璃 普通透明"},
-		{"terminal", locales.SetPaneMaterial(), "pane-material material glass clear liquid terminal panes 终端 材质 玻璃"},
+		{"terminal", locales.SetPaneMaterial(), "pane-material material plastic glass clear liquid terminal panes 终端 材质 玻璃 塑料"},
 		{"terminal", locales.SetPaneGlass(), "pane-opacity pane-blur translucent terminal panes opacity blur glass frosted see-through 终端 透明 模糊"},
 		{"terminal", locales.SetPaneOpacity(), "pane-opacity opacity translucent transparency see-through desktop window background terminal panes 终端 不透明度 透明"},
 		{"terminal", locales.SetPaneBlur(), "pane-blur blur frosted plain transparency terminal panes 终端 模糊 毛玻璃 普通透明"},

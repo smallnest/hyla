@@ -650,6 +650,8 @@ func materialName(id string) string {
 		return locales.SetMaterialWindow()
 	case "popover":
 		return locales.SetMaterialPopover()
+	case "plastic":
+		return locales.SetMaterialPlastic()
 	case "glass":
 		return locales.SetMaterialGlass()
 	case "glass-clear":
@@ -681,7 +683,7 @@ func (a *App) appearancePage(c *ui.Context, pal *palette) {
 			toggle(c.Key("window-blur"), &s.WindowBlur, pal)
 		})
 		settingRow(c, pal, locales.SetWindowMaterial(), locales.SetWindowMaterialDetail(), func() {
-			popup(c, "window-material", &s.WindowMaterial, []string{"sidebar", "window", "popover", "glass", "glass-clear"}, materialName, 200, pal)
+			popup(c, "window-material", &s.WindowMaterial, []string{"sidebar", "window", "popover", "plastic", "glass", "glass-clear"}, materialName, 200, pal)
 		})
 	})
 	settingsGroup(c, pal, locales.SetPetGroup(), "", func() {
@@ -914,7 +916,7 @@ func (a *App) terminalPage(c *ui.Context, pal *palette) {
 			toggle(c.Key("pane-blur"), &s.PaneBlur, pal)
 		})
 		settingRow(c, pal, locales.SetPaneMaterial(), locales.SetPaneMaterialDetail(), func() {
-			popup(c, "pane-material", &s.PaneMaterial, []string{"glass", "glass-clear"}, materialName, 200, pal)
+			popup(c, "pane-material", &s.PaneMaterial, []string{"glass", "plastic", "glass-clear"}, materialName, 200, pal)
 		})
 	})
 	settingsGroup(c, pal, locales.SetCursor(), "", func() {

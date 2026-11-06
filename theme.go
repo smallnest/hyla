@@ -235,6 +235,9 @@ func paneGlass(pal *palette, s settings.Settings) ui.Material {
 	}
 	w := &paneWash{opacity: s.PaneOpacity, background: s.Background, dark: pal.dark}
 	if s.PaneBlur {
+		if s.PaneMaterial == "plastic" {
+			return panePlastic{wash: w}
+		}
 		return paneFrost{wash: w, material: s.PaneMaterial}
 	}
 	return w
@@ -261,6 +264,19 @@ func (f paneFrost) NativeGlass() (ui.NativeGlassSpec, bool) {
 		style = glass.Clear
 	}
 	return ui.NativeGlassSpec{Style: int(style)}, true
+}
+
+// panePlastic is a terminal's card with the plastic material: the wash it
+// paints, over a plain blur of what shows through, as a frosted content
+// background. It draws no system glass; the renderer's blur looks the same
+// on every platform, and a system without Liquid Glass keeps the frost.
+type panePlastic struct {
+	wash *paneWash
+}
+
+func (p panePlastic) PaintMaterial(painter *ui.Painter, box ui.Rect, radii [4]float32) {
+	glass.Blur{Radius: 18}.PaintMaterial(painter, box, radii)
+	p.wash.PaintMaterial(painter, box, radii)
 }
 
 // paneWash paints a card as backdrop paints the window: the background's

@@ -2862,11 +2862,11 @@ func (msgs Messages) SetWindowMaterial() string {
 	return Catalog.Format(msgs.locale, "setWindowMaterial", nil)
 }
 
-// SetWindowMaterialDetail says "What the window's background is made of: Liquid Glass frosts the desktop as the Dock does; the sidebar material light…"
+// SetWindowMaterialDetail says "What the window's background is made of: Liquid Glass frosts the desktop as the Dock does; Plastic is a frosted conte…"
 // in the language the app shows.
 func SetWindowMaterialDetail() string { return In(i18n.Locale()).SetWindowMaterialDetail() }
 
-// SetWindowMaterialDetail says "What the window's background is made of: Liquid Glass frosts the desktop as the Dock does; the sidebar material light…"
+// SetWindowMaterialDetail says "What the window's background is made of: Liquid Glass frosts the desktop as the Dock does; Plastic is a frosted conte…"
 // in the language of msgs.
 func (msgs Messages) SetWindowMaterialDetail() string {
 	return Catalog.Format(msgs.locale, "setWindowMaterialDetail", nil)
@@ -2900,6 +2900,16 @@ func SetMaterialPopover() string { return In(i18n.Locale()).SetMaterialPopover()
 // in the language of msgs.
 func (msgs Messages) SetMaterialPopover() string {
 	return Catalog.Format(msgs.locale, "setMaterialPopover", nil)
+}
+
+// SetMaterialPlastic says "Plastic"
+// in the language the app shows.
+func SetMaterialPlastic() string { return In(i18n.Locale()).SetMaterialPlastic() }
+
+// SetMaterialPlastic says "Plastic"
+// in the language of msgs.
+func (msgs Messages) SetMaterialPlastic() string {
+	return Catalog.Format(msgs.locale, "setMaterialPlastic", nil)
 }
 
 // SetMaterialGlass says "Liquid Glass"
@@ -2982,11 +2992,11 @@ func (msgs Messages) SetPaneMaterial() string {
 	return Catalog.Format(msgs.locale, "setPaneMaterial", nil)
 }
 
-// SetPaneMaterialDetail says "What the terminal's glass is made of when Terminal blur is on: Liquid Glass frosts what shows through; Clear glass ba…"
+// SetPaneMaterialDetail says "What the terminal's glass is made of when Terminal blur is on: Liquid Glass frosts what shows through; Plastic blurs …"
 // in the language the app shows.
 func SetPaneMaterialDetail() string { return In(i18n.Locale()).SetPaneMaterialDetail() }
 
-// SetPaneMaterialDetail says "What the terminal's glass is made of when Terminal blur is on: Liquid Glass frosts what shows through; Clear glass ba…"
+// SetPaneMaterialDetail says "What the terminal's glass is made of when Terminal blur is on: Liquid Glass frosts what shows through; Plastic blurs …"
 // in the language of msgs.
 func (msgs Messages) SetPaneMaterialDetail() string {
 	return Catalog.Format(msgs.locale, "setPaneMaterialDetail", nil)

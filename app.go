@@ -1404,6 +1404,8 @@ func vibrancyFor(s settings.Settings) mygo.Vibrancy {
 		return mygo.VibrancyWindow
 	case "popover":
 		return mygo.VibrancyPopover
+	case "plastic":
+		return mygo.VibrancyContent
 	case "glass":
 		return mygo.VibrancyGlass
 	case "glass-clear":

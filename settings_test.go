@@ -728,6 +728,7 @@ func TestVibrancyFor(t *testing.T) {
 		{true, true, "sidebar", mygo.VibrancySidebar},
 		{true, true, "window", mygo.VibrancyWindow},
 		{true, true, "popover", mygo.VibrancyPopover},
+		{true, true, "plastic", mygo.VibrancyContent},
 		{true, true, "glass", mygo.VibrancyGlass},
 		{true, true, "glass-clear", mygo.VibrancyGlassClear},
 		{true, true, "not-a-material", mygo.VibrancySidebar},

@@ -94,3 +94,17 @@ func TestPaneFrost(t *testing.T) {
 		t.Errorf("without terminal blur, the card is %T", paneGlass(pal, s))
 	}
 }
+
+// Plastic is a plain blur with the wash, not the system's glass.
+func TestPanePlastic(t *testing.T) {
+	pal := &lightPalette
+	s := settings.Settings{Vibrancy: true, PaneOpacity: 0.5, PaneBlur: true, PaneMaterial: "plastic"}
+	m := paneGlass(pal, s)
+	p, ok := m.(panePlastic)
+	if !ok {
+		t.Fatalf("plastic is %T", m)
+	}
+	if _, ok := any(p).(ui.NativeGlassMaterial); ok {
+		t.Error("plastic asks for the system's glass")
+	}
+}
