@@ -189,14 +189,32 @@ func (a *App) connectK8s(i int) {
 	if i < 0 || i >= len(a.prefs.K8sPods) {
 		return
 	}
-	pod := a.prefs.K8sPods[i]
+	a.showOrStartK8s(a.prefs.K8sPods[i])
+}
+
+// showOrStartK8s shows the terminal a pod's row has, if it still runs,
+// else starts one: a row's click.
+func (a *App) showOrStartK8s(pod k8sPod) {
+	if s := a.session(pod.Session); s != nil && s.Status != proto.Exited {
+		a.selectSession(s.ID)
+		return
+	}
+	a.startK8s(pod)
+}
+
+// connectK8sTo connects to a pod again, in the row it was read from,
+// whatever its terminal does: one still open closes, and the new
+// terminal takes its place, so that the command finds the row once it
+// comes.
+func (a *App) connectK8sTo(pod k8sPod) {
 	if s := a.session(pod.Session); s != nil {
-		if s.Status != proto.Exited {
-			a.selectSession(s.ID)
-			return
-		}
 		a.closeSession(s.ID, false)
 	}
+	a.startK8s(pod)
+}
+
+// startK8s starts a pod's terminal, in the K8s project.
+func (a *App) startK8s(pod k8sPod) {
 	args, _, err := k8sCommand(pod.Command)
 	if err != nil {
 		return
@@ -216,8 +234,10 @@ func (a *App) connectK8s(i int) {
 					a.toast(err.Error())
 					return
 				}
-				// The row may have gone as the terminal came.
-				if i >= len(a.prefs.K8sPods) || a.prefs.K8sPods[i].Command != pod.Command {
+				// The row may have gone as the terminal came, and another
+				// may have taken its place: the command finds it.
+				i := slices.IndexFunc(a.prefs.K8sPods, func(p k8sPod) bool { return p.Command == pod.Command })
+				if i < 0 {
 					return
 				}
 				a.prefs.K8sPods[i].Session = s.ID
@@ -352,12 +372,12 @@ func (a *App) k8sPodRow(c *ui.Context, pal *palette, i int) {
 	row.Background(row.AnimateColor("bg", bg, ui.Animation{Duration: 110 * time.Millisecond}))
 	pointerTooltip(c, row, "tip-k8s-"+pod.Command, pod.Command)
 	row.ContextMenu(func(m *ui.Menu) {
-		if s != nil {
-			if m.Item(locales.ActionShowTerminal()).Chosen() {
-				a.selectSession(s.ID)
-			}
-		} else if m.Item(locales.CommonConnect()).Chosen() {
-			a.connectK8s(i)
+		// Reconnecting goes on a terminal that ended, as kubectl's does
+		// when the pod goes, and starts the terminal anew, or replaces one
+		// still open: a click on the row shows that one. The row it read
+		// is the pod's, whatever its terminal's end does to the list.
+		if m.Item(locales.ActionReconnectHost()).Chosen() {
+			a.connectK8sTo(pod)
 		}
 		m.Separator()
 		if m.Item(locales.K8sCopyCommand()).Chosen() {

@@ -23,6 +23,7 @@
   "actionOpenLocation": "打开位置…",
   "actionZoomPane": "放大窗格",
   "actionShowTerminal": "显示终端",
+  "actionReconnectHost": "重连主机",
   "actionFind": "查找…",
   "actionFindNext": "查找下一个",
   "actionFindPrevious": "查找上一个",

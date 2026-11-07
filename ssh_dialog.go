@@ -211,14 +211,33 @@ func (a *App) connectSSH(i int) {
 	if i < 0 || i >= len(a.prefs.SSHHosts) {
 		return
 	}
-	host := a.prefs.SSHHosts[i]
+	a.showOrStart(a.prefs.SSHHosts[i])
+}
+
+// showOrStart shows the terminal a machine's row has, if it still
+// runs, else starts one: a row's click.
+func (a *App) showOrStart(host sshHost) {
+	if s := a.session(host.Session); s != nil && s.Status != proto.Exited {
+		a.selectSession(s.ID)
+		return
+	}
+	a.startSSH(host)
+}
+
+// connectSSHTo connects to a machine again, in the row it was read from,
+// whatever its terminal does: one still open closes, and the new
+// terminal takes its place. The row is the machine's, whatever its
+// terminal's end does to the list, and the address finds it once the new
+// one comes.
+func (a *App) connectSSHTo(host sshHost) {
 	if s := a.session(host.Session); s != nil {
-		if s.Status != proto.Exited {
-			a.selectSession(s.ID)
-			return
-		}
 		a.closeSession(s.ID, false)
 	}
+	a.startSSH(host)
+}
+
+// startSSH starts a machine's terminal, in the SSH project.
+func (a *App) startSSH(host sshHost) {
 	addr, err := remote.ParseAddr(host.Addr)
 	if err != nil {
 		return
@@ -238,8 +257,10 @@ func (a *App) connectSSH(i int) {
 					a.toast(err.Error())
 					return
 				}
-				// The row may have gone as the terminal came.
-				if i >= len(a.prefs.SSHHosts) || a.prefs.SSHHosts[i].Addr != host.Addr {
+				// The row may have gone as the terminal came, and another
+				// may have taken its place: the address finds it.
+				i := slices.IndexFunc(a.prefs.SSHHosts, func(h sshHost) bool { return h.Addr == host.Addr })
+				if i < 0 {
 					return
 				}
 				a.prefs.SSHHosts[i].Session = s.ID
@@ -332,12 +353,13 @@ func (a *App) sshHostRow(c *ui.Context, pal *palette, i int) {
 	row.Background(row.AnimateColor("bg", bg, ui.Animation{Duration: 110 * time.Millisecond}))
 	pointerTooltip(c, row, "tip-ssh-"+h.Addr, h.Addr)
 	row.ContextMenu(func(m *ui.Menu) {
-		if s != nil {
-			if m.Item(locales.ActionShowTerminal()).Chosen() {
-				a.selectSession(s.ID)
-			}
-		} else if m.Item(locales.CommonConnect()).Chosen() {
-			a.connectSSH(i)
+		// Reconnecting goes on a terminal that ended, as ssh's does when
+		// the connection drops, and starts the terminal anew, or replaces
+		// one still open: a click on the row shows that one. The row it
+		// read is the machine's, whatever its terminal's end does to the
+		// list.
+		if m.Item(locales.ActionReconnectHost()).Chosen() {
+			a.connectSSHTo(h)
 		}
 		m.Separator()
 		if m.Item(locales.HostCopyAddress()).Chosen() {

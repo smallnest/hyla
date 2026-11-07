@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"slices"
 	"testing"
 	"time"
@@ -183,6 +184,9 @@ func TestSSHArgs(t *testing.T) {
 // The SSH project lists its machines, each its name over the address ssh
 // runs to; a click opens the machine's terminal or starts one.
 func TestSidebarSSHHost(t *testing.T) {
+	if testing.Short() {
+		t.Skip("a terminal")
+	}
 	a := testApp(t)
 	a.local().conn = connReady
 	a.mergeState(a.local(), proto.State{Projects: []proto.Project{{ID: "p-ssh", Name: locales.SshHostsProject()}}})
@@ -233,6 +237,124 @@ func TestSidebarSSHHost(t *testing.T) {
 		t.Errorf("the machine shows %d times: %q", n, tt.Texts())
 	}
 	shot(t, tt, "sidebar-ssh-host")
+}
+
+// A machine whose terminal ended, as ssh's does when the connection
+// drops, offers to reconnect it, and reconnecting starts a new terminal.
+func TestSSHHostReconnect(t *testing.T) {
+	a := testApp(t)
+	a.local().conn = connReady
+	a.mergeState(a.local(), proto.State{
+		Projects: []proto.Project{{ID: "p-ssh", Name: locales.SshHostsProject()}},
+		Sessions: []proto.Session{{
+			Pane: proto.Pane{Status: proto.Exited, Progress: -1},
+			ID:   "ssh-s", Project: "p-ssh", Name: "example.com",
+			Panes: []proto.Pane{{ID: "sp", Status: proto.Exited, Progress: -1}},
+		}},
+	})
+	a.prefs.SSHProject = "p-ssh"
+	a.prefs.SSHHosts = []sshHost{{Name: "example.com", Addr: "root@example.com:2222", Session: "ssh-s"}}
+	creates := make(chan proto.CreateParams, 1)
+	cl, stop := projectClient(t, func(method string, raw json.RawMessage) (any, error) {
+		if method != "create" {
+			return nil, errors.New("unexpected method " + method)
+		}
+		var p proto.CreateParams
+		if err := json.Unmarshal(raw, &p); err != nil {
+			return nil, err
+		}
+		creates <- p
+		return proto.Session{ID: "ssh-s2", Project: p.Project, Name: p.Name}, nil
+	})
+	defer stop()
+	a.local().cl = cl
+
+	tt := ui.NewTester(a.view, 1100, 700)
+	tt.Frame()
+	if err := tt.RightClick("root@example.com:2222"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	want := []string{locales.ActionReconnectHost(), "-", locales.HostCopyAddress(), locales.HostRemove()}
+	if got := tt.Menu(); !reflect.DeepEqual(got, want) {
+		t.Fatalf("the row's menu shows %q, want %q", got, want)
+	}
+	if err := tt.ChooseMenuItem(locales.ActionReconnectHost()); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case p := <-creates:
+		if want := []string{"ssh", "-p", "2222", "root@example.com"}; !slices.Equal(p.Command, want) {
+			t.Errorf("the new terminal runs %q, want %q", p.Command, want)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("Reconnect Host started no terminal")
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for a.prefs.SSHHosts[0].Session != "ssh-s2" {
+		if time.Now().After(deadline) {
+			t.Fatalf("the row kept %q", a.prefs.SSHHosts[0].Session)
+		}
+		time.Sleep(2 * time.Millisecond)
+	}
+}
+
+// A machine's menu is the same whether its terminal is open or not: a
+// click shows one that is, and reconnecting starts a new one in place of
+// the old, as ssh's does when the connection drops mid-session.
+func TestSSHHostReconnectOpen(t *testing.T) {
+	a := testApp(t)
+	a.local().conn = connReady
+	a.mergeState(a.local(), proto.State{
+		Projects: []proto.Project{{ID: "p-ssh", Name: locales.SshHostsProject()}},
+		Sessions: []proto.Session{{
+			Pane: proto.Pane{Status: proto.Idle, Progress: -1},
+			ID:   "ssh-s", Project: "p-ssh", Name: "example.com",
+			Panes: []proto.Pane{{ID: "sp", Status: proto.Idle, Progress: -1}},
+		}},
+	})
+	a.prefs.SSHProject = "p-ssh"
+	a.prefs.SSHHosts = []sshHost{{Name: "example.com", Addr: "root@example.com:2222", Session: "ssh-s"}}
+	creates := make(chan proto.CreateParams, 1)
+	cl, stop := projectClient(t, func(method string, raw json.RawMessage) (any, error) {
+		if method != "create" {
+			return nil, errors.New("unexpected method " + method)
+		}
+		var p proto.CreateParams
+		if err := json.Unmarshal(raw, &p); err != nil {
+			return nil, err
+		}
+		creates <- p
+		return proto.Session{ID: "ssh-s2", Project: p.Project, Name: p.Name}, nil
+	})
+	defer stop()
+	a.local().cl = cl
+
+	tt := ui.NewTester(a.view, 1100, 700)
+	tt.Frame()
+	if err := tt.RightClick("root@example.com:2222"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	want := []string{locales.ActionReconnectHost(), "-", locales.HostCopyAddress(), locales.HostRemove()}
+	if got := tt.Menu(); !reflect.DeepEqual(got, want) {
+		t.Fatalf("the open row's menu shows %q, want %q", got, want)
+	}
+	if err := tt.ChooseMenuItem(locales.ActionReconnectHost()); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-creates:
+	case <-time.After(2 * time.Second):
+		t.Fatal("Reconnect Host started no terminal")
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for len(a.prefs.SSHHosts) == 0 || a.prefs.SSHHosts[0].Session != "ssh-s2" {
+		if time.Now().After(deadline) {
+			t.Fatalf("the hosts kept %+v", a.prefs.SSHHosts)
+		}
+		time.Sleep(2 * time.Millisecond)
+	}
 }
 
 // An SSH project with no machine yet shows the row that adds one.

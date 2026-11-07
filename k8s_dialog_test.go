@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 	"slices"
 	"testing"
 	"time"
@@ -265,6 +266,79 @@ func TestSidebarK8sPod(t *testing.T) {
 	tt.Frame()
 	if a.k8sAsk == nil || !a.k8sAsk.open {
 		t.Fatal("the row opened no dialog")
+	}
+}
+
+// A pod offers to reconnect whatever its terminal does: one that ended,
+// as kubectl's does when the pod goes, and one still open, which
+// reconnecting replaces. Either way it starts a new terminal, in the
+// row's place.
+func TestK8sPodReconnect(t *testing.T) {
+	for _, open := range []bool{false, true} {
+		a := testApp(t)
+		a.local().conn = connReady
+		st := proto.State{Projects: []proto.Project{{ID: "p-k8s", Name: locales.K8sPodsProject()}}}
+		status := proto.Exited
+		if open {
+			status = proto.Idle
+		}
+		st.Sessions = []proto.Session{{
+			Pane: proto.Pane{Status: status, Progress: -1},
+			ID:   "k8s-s", Project: "p-k8s", Name: "web-0",
+			Panes: []proto.Pane{{ID: "kp", Status: status, Progress: -1}},
+		}}
+		a.mergeState(a.local(), st)
+		a.prefs.K8sProject = "p-k8s"
+		a.prefs.K8sPods = []k8sPod{{Name: "web-0", Command: "kubectl exec -it web-0 -n prod -- /bin/bash", Session: "k8s-s"}}
+		creates := make(chan proto.CreateParams, 1)
+		cl, stop := projectClient(t, func(method string, raw json.RawMessage) (any, error) {
+			if method != "create" {
+				return nil, errors.New("unexpected method " + method)
+			}
+			var p proto.CreateParams
+			if err := json.Unmarshal(raw, &p); err != nil {
+				return nil, err
+			}
+			creates <- p
+			return proto.Session{ID: "k8s-s2", Project: p.Project, Name: p.Name}, nil
+		})
+		a.local().cl = cl
+
+		tt := ui.NewTester(a.view, 1100, 700)
+		tt.Frame()
+		if err := tt.RightClick("web-0"); err != nil {
+			stop()
+			t.Fatal(err)
+		}
+		tt.Frame()
+		want := []string{locales.ActionReconnectHost(), "-", locales.K8sCopyCommand(), locales.HostRemove()}
+		if got := tt.Menu(); !reflect.DeepEqual(got, want) {
+			stop()
+			t.Fatalf("open %v: the menu shows %q, want %q", open, got, want)
+		}
+		if err := tt.ChooseMenuItem(locales.ActionReconnectHost()); err != nil {
+			stop()
+			t.Fatal(err)
+		}
+		select {
+		case p := <-creates:
+			want := []string{"kubectl", "exec", "-it", "web-0", "-n", "prod", "--", "/bin/bash"}
+			if !slices.Equal(p.Command, want) {
+				t.Errorf("open %v: the new terminal runs %q, want %q", open, p.Command, want)
+			}
+		case <-time.After(2 * time.Second):
+			stop()
+			t.Fatalf("open %v: Reconnect Host started no terminal", open)
+		}
+		deadline := time.Now().Add(2 * time.Second)
+		for len(a.prefs.K8sPods) == 0 || a.prefs.K8sPods[0].Session != "k8s-s2" {
+			if time.Now().After(deadline) {
+				stop()
+				t.Fatalf("open %v: the pods kept %+v", open, a.prefs.K8sPods)
+			}
+			time.Sleep(2 * time.Millisecond)
+		}
+		stop()
 	}
 }
 

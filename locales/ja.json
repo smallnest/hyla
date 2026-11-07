@@ -23,6 +23,7 @@
   "actionOpenLocation": "場所を開く…",
   "actionZoomPane": "ペインを拡大",
   "actionShowTerminal": "ターミナルを表示",
+  "actionReconnectHost": "ホストに再接続",
   "actionFind": "検索…",
   "actionFindNext": "次を検索",
   "actionFindPrevious": "前を検索",

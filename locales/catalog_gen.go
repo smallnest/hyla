@@ -266,6 +266,16 @@ func (msgs Messages) ActionShowTerminal() string {
 	return Catalog.Format(msgs.locale, "actionShowTerminal", nil)
 }
 
+// ActionReconnectHost says "Reconnect Host"
+// in the language the app shows.
+func ActionReconnectHost() string { return In(i18n.Locale()).ActionReconnectHost() }
+
+// ActionReconnectHost says "Reconnect Host"
+// in the language of msgs.
+func (msgs Messages) ActionReconnectHost() string {
+	return Catalog.Format(msgs.locale, "actionReconnectHost", nil)
+}
+
 // ActionFind says "Find…"
 // in the language the app shows.
 func ActionFind() string { return In(i18n.Locale()).ActionFind() }

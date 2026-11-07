@@ -23,6 +23,7 @@
   "actionOpenLocation": "Open Location…",
   "actionZoomPane": "Zoom Pane",
   "actionShowTerminal": "Show Terminal",
+  "actionReconnectHost": "Reconnect Host",
   "actionFind": "Find…",
   "actionFindNext": "Find Next",
   "actionFindPrevious": "Find Previous",
