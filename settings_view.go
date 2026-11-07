@@ -672,6 +672,9 @@ func (a *App) appearancePage(c *ui.Context, pal *palette) {
 		settingRow(c, pal, locales.SetTranslucent(), locales.SetTranslucentDetail(), func() {
 			toggle(c.Key("vibrancy"), &s.Vibrancy, pal)
 		})
+		settingRow(c, pal, locales.SetSessionSwitch(), locales.SetSessionSwitchDetail(), func() {
+			popup(c, "session-switch", &s.SessionSwitch, settings.SessionSwitches, sessionSwitchName, 160, pal)
+		})
 		settingRow(c, pal, locales.SetWindowOpacity(), locales.SetWindowOpacityDetail(), func() {
 			v := float64(s.WindowOpacity)
 			slider(c, "window-opacity", &v, 0, 1, 160, pal).OnChange(func() {
@@ -761,6 +764,15 @@ func (a *App) appearancePage(c *ui.Context, pal *palette) {
 
 // languageName names a language in itself, as "简体中文", so that whoever
 // reads it finds theirs; "system" in the language the app shows.
+// sessionSwitchName names how a session shown in place of another comes
+// in, as a slide transition's name does.
+func sessionSwitchName(id string) string {
+	if id == "none" {
+		return locales.SwitchNone()
+	}
+	return locales.SwitchDissolve()
+}
+
 // paneFitName names how a terminal's picture fills its card, as a macOS
 // desktop picture's options do.
 func paneFitName(id string) string {

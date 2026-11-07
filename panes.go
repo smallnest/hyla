@@ -100,12 +100,15 @@ func (a *App) panes(c *ui.Context, pal *palette, bar ui.TitleBar, shown float32,
 	// A session shown over another, as when the user moves from one to the
 	// next: it fades in while the one it leaves, as the frame before showed
 	// it, fades out over it (sessionSwitch).
-	if a.shownSession != s.ID {
-		a.lastSession, a.shownSession = a.shownSession, s.ID
-	}
-	view := ui.Box(c.Key("session-view")).Grow(1).Basis(0).MinWidth(0).MinHeight(0)
-	view.Transition(sessionSwitch)
-	view.Children(func() { a.sessionPanes(c, pal, bar, shown, s, right) })
+	a.shownSession = s.ID
+	view := ui.Box(c.Key("session-view")).Grow(1).Basis(0).MinWidth(0).MinHeight(0).Clip()
+	view.Transition(a.sessionSwitch())
+	view.Children(func() {
+		// Under the session's own key, as its slide and file panes are
+		// keyed by their own: only the frames' wrapper changes.
+		slot := ui.Box(c.Key("slot-" + s.ID)).Absolute().Left(0).Top(0).Right(0).Bottom(0)
+		slot.Children(func() { a.sessionPanes(c, pal, bar, shown, s, right) })
+	})
 }
 
 // sessionPanes lays out a session's panes.

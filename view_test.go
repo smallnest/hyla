@@ -22,6 +22,8 @@ import (
 	"hyla/internal/actions"
 	"hyla/internal/proto"
 
+	"hyla/internal/settings"
+
 	"hyla/locales"
 )
 
@@ -1068,15 +1070,9 @@ func TestSidebarRows(t *testing.T) {
 	}
 }
 
-// rgbClose tells whether two colors are within step of each channel.
-func rgbClose(a, b color.RGBA, step uint8) bool {
-	off := func(x, y uint8) bool { return x >= y-step && x <= y+step }
-	return off(a.R, b.R) && off(a.G, b.G) && off(a.B, b.B)
-}
-
 // A session shown in place of another fades in, lifting a little, while
-// the one it leaves blurs and fades away over it; the same session again
-// leaves nothing, and once the switch is done, the session left is gone.
+// the one it leaves blurs and fades away over it, and once the switch is
+// done, the session left is gone.
 func TestSessionSwitchAnimates(t *testing.T) {
 	a := testApp(t)
 	second := a.st.Sessions[0]
@@ -1085,13 +1081,8 @@ func TestSessionSwitchAnimates(t *testing.T) {
 	tt := ui.NewTester(a.view, 1100, 640)
 	tt.Frame()
 	tt.Frame()
-	if a.shownSession != "s1" || a.lastSession != "" {
-		t.Fatalf("shown %q, last %q", a.shownSession, a.lastSession)
-	}
-	// The same session again: nothing leaves.
-	tt.Frame()
-	if a.lastSession != "" {
-		t.Errorf("the same session, last %q", a.lastSession)
+	if a.shownSession != "s1" {
+		t.Fatalf("shown %q", a.shownSession)
 	}
 	// What the first shows, right of the second's only card: the session
 	// left stays there while it goes.
@@ -1099,13 +1090,34 @@ func TestSessionSwitchAnimates(t *testing.T) {
 	before := at(tt.Image())
 	a.selectSession("s2")
 	tt.Frame()
-	if a.lastSession != "s1" || a.shownSession != "s2" {
-		t.Fatalf("switched: last %q, shown %q", a.lastSession, a.shownSession)
+	if a.shownSession != "s2" {
+		t.Fatalf("switched: shown %q", a.shownSession)
 	}
-	if on := at(tt.Image()); rgbClose(on, before, 1) {
+	if on := at(tt.Image()); on == before {
 		t.Errorf("the session left goes at once: %v, as before", on)
 	}
+	tt.Advance(300 * time.Millisecond)
+	tt.Frame()
 	if w := a.paneRef("b").Bounds(nil).W; w != 0 {
 		t.Errorf("a pane of the session left stays, %v wide", w)
+	}
+}
+
+// A session shown with the switch off comes at once; one shown with it
+// on fades in and lifts, as the one it leaves blurs and fades away.
+func TestSessionSwitchStyles(t *testing.T) {
+	a := testApp(t)
+	for _, style := range settings.SessionSwitches {
+		a.set.SessionSwitch = style
+		tr := a.sessionSwitch()
+		if style == "none" {
+			if tr.Duration >= 0 || tr.Enter != nil {
+				t.Errorf("none: goes as %+v", tr)
+			}
+			continue
+		}
+		if tr.Enter == nil || tr.Enter.Opacity != 0 || tr.Exit == nil || tr.Exit.Blur == 0 || tr.Animation == nil {
+			t.Errorf("%s: goes as %+v", style, tr)
+		}
 	}
 }

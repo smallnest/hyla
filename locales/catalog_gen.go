@@ -3052,6 +3052,46 @@ func (msgs Messages) SetPaneImageFitDetail() string {
 	return Catalog.Format(msgs.locale, "setPaneImageFitDetail", nil)
 }
 
+// SetSessionSwitch says "Session switch"
+// in the language the app shows.
+func SetSessionSwitch() string { return In(i18n.Locale()).SetSessionSwitch() }
+
+// SetSessionSwitch says "Session switch"
+// in the language of msgs.
+func (msgs Messages) SetSessionSwitch() string {
+	return Catalog.Format(msgs.locale, "setSessionSwitch", nil)
+}
+
+// SetSessionSwitchDetail says "How one session gives way to another: the one coming in fades in, lifting a little, as the one it leaves blurs and fa…"
+// in the language the app shows.
+func SetSessionSwitchDetail() string { return In(i18n.Locale()).SetSessionSwitchDetail() }
+
+// SetSessionSwitchDetail says "How one session gives way to another: the one coming in fades in, lifting a little, as the one it leaves blurs and fa…"
+// in the language of msgs.
+func (msgs Messages) SetSessionSwitchDetail() string {
+	return Catalog.Format(msgs.locale, "setSessionSwitchDetail", nil)
+}
+
+// SwitchDissolve says "Dissolve"
+// in the language the app shows.
+func SwitchDissolve() string { return In(i18n.Locale()).SwitchDissolve() }
+
+// SwitchDissolve says "Dissolve"
+// in the language of msgs.
+func (msgs Messages) SwitchDissolve() string {
+	return Catalog.Format(msgs.locale, "switchDissolve", nil)
+}
+
+// SwitchNone says "None"
+// in the language the app shows.
+func SwitchNone() string { return In(i18n.Locale()).SwitchNone() }
+
+// SwitchNone says "None"
+// in the language of msgs.
+func (msgs Messages) SwitchNone() string {
+	return Catalog.Format(msgs.locale, "switchNone", nil)
+}
+
 // SetMaterialSidebar says "Sidebar"
 // in the language the app shows.
 func SetMaterialSidebar() string { return In(i18n.Locale()).SetMaterialSidebar() }

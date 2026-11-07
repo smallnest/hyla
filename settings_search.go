@@ -39,6 +39,7 @@ func settingsIndex() []searchEntry {
 		{"general", locales.SetAutoInstall(), "updates automatic install download"},
 
 		{"appearance", locales.SetAppearance(), "window-theme dark light mode system"},
+		{"appearance", locales.SetSessionSwitch(), "session-switch animation switch session transition dissolve none 切换 动画 溶解"},
 		{"appearance", locales.SetLanguage(), "language locale translation chinese english 语言 中文"},
 		{"appearance", locales.SetTranslucent(), "window-translucent vibrancy blur material transparency"},
 		{"appearance", locales.SetWindowOpacity(), "window-opacity opacity translucent transparency see-through dim 透明度 不透明度"},

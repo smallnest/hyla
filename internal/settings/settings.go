@@ -62,11 +62,14 @@ type Settings struct {
 	PaneBlur         bool    `json:"paneBlur"`    // blur what shows through the terminals
 	// PaneMaterial is the terminal's glass where PaneBlur is on: "glass"
 	// (Liquid Glass) or "glass-clear".
-	PaneMaterial string  `json:"paneMaterial"`
-	Pet          bool    `json:"pet"`       // the frog on the window's top edge
-	PetOffset    float32 `json:"petOffset"` // where it stands, 0 to 1 across the window
-	PetSet       string  `json:"petSet"`    // who: "hyla", a Codex pet's directory name, or "codex" for the active one
-	PetSize      float32 `json:"petSize"`   // how tall a Codex pet shows, against the Codex app's frame
+	PaneMaterial string `json:"paneMaterial"`
+	// SessionSwitch is how a session shown in place of another comes in,
+	// as SessionSwitches.
+	SessionSwitch string  `json:"sessionSwitch"`
+	Pet           bool    `json:"pet"`       // the frog on the window's top edge
+	PetOffset     float32 `json:"petOffset"` // where it stands, 0 to 1 across the window
+	PetSet        string  `json:"petSet"`    // who: "hyla", a Codex pet's directory name, or "codex" for the active one
+	PetSize       float32 `json:"petSize"`   // how tall a Codex pet shows, against the Codex app's frame
 
 	// Terminal
 	FontFamily string `json:"fontFamily"` // "" the font hyla carries; "monospace" the system's
@@ -228,6 +231,16 @@ var PaneImageFits = []string{"fill", "fit", "stretch", "center", "tile"}
 // large as the card covers, its top at the card's.
 const DefaultPaneImageFit = "fill"
 
+// SessionSwitches are how a session shown in place of another comes in, as
+// a slide transition does: "dissolve" fades it in, lifting a little, as
+// the one it leaves blurs and fades away over it; "none" shows it at once.
+var SessionSwitches = []string{"dissolve", "none"}
+
+// DefaultSessionSwitch is how a session shown in place of another comes
+// in: fading in, lifting a little, springing, as the one it leaves blurs
+// and fades away over it.
+const DefaultSessionSwitch = "dissolve"
+
 // PaneBlurRadius is how much a terminal blurs what shows through it, in
 // DIPs, with terminal blur on: a frost that hides what is under it, where
 // the window's own blur, about 10 DIPs, hardly shows in a card.
@@ -264,6 +277,7 @@ func Default() Settings {
 		FontSize:            13,
 		LineHeight:          1.22,
 		CellWidth:           1,
+		SessionSwitch:       DefaultSessionSwitch,
 		FontWeight:          400,
 		Ligatures:           true,
 		MinContrast:         3,
@@ -596,6 +610,7 @@ func (s *Settings) normalize() {
 		s.PaneImageOpacity = d.PaneImageOpacity
 	}
 	oneOf(&s.PaneImageFit, d.PaneImageFit, PaneImageFits...)
+	oneOf(&s.SessionSwitch, d.SessionSwitch, SessionSwitches...)
 	oneOf(&s.AppIcon, d.AppIcon, AppIcons...)
 	known := false
 	for _, b := range Backgrounds {
