@@ -136,9 +136,10 @@ func TestSidebarFlat(t *testing.T) {
 	if !ok || !ok2 || abs32(tag.Y+tag.H/2-(api.Y+api.H/2)) > 1 || tag.X <= api.X {
 		t.Errorf("build's tag %+v is not after its group's name %+v", tag, api)
 	}
-	// A host with no sessions shows its name, and the address it is reached
-	// at under it, to start a session on; so does one connecting first.
-	name, ok := tt.Find("empty")
+	// A host with no sessions shows its name, as a section's title has
+	// it, and the address it is reached at under it, to start a session
+	// on; so does one connecting first.
+	name, ok := tt.Find("Empty")
 	addr, ok2 := tt.Find("me@empty")
 	if !ok || !ok2 {
 		t.Errorf("a host without sessions shows nowhere: %q", tt.Texts())

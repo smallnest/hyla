@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/plugins/updater"
@@ -95,15 +96,21 @@ func (a *App) hostEmpty(c *ui.Context, pal *palette, h *host) {
 
 // hostHeader is a remote host's name, with how the app stands with it: a
 // dot while it connects or failed to, a chip when Hyla there wants
-// updating.
+// updating. It names a part of the sidebar, under the projects of this
+// machine, so it reads as a section does: small, faint, the name's color
+// on its icon to tell the host.
 func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32) {
-	hdr := ui.Row(c.Key("host-"+h.name)).Height(30).Margin(top, 0, 2, 0).Padding(0, 6, 0, 8).Gap(7).AlignItems(ui.Center).Radius(6)
+	hdr := ui.Row(c.Key("host-"+h.name)).Height(28).Margin(top, 0, 3, 0).Padding(0, 6, 0, 8).Gap(6).AlignItems(ui.Center).Radius(6)
 	hovered := hdr.Hovered()
 	pointerTooltip(c, hdr, "tip-host-"+h.name, a.hostTip(h))
 	hdr.ContextMenu(func(m *ui.Menu) { a.hostMenu(m, h) })
+	if hovered {
+		hdr.Background(pal.rowHover)
+	}
 	hdr.Children(func() {
-		ui.Icon(c, hostIcon).Size(14, 14).TextColor(pal.hostColor(h)).Shrink(0)
-		ui.Text(c, h.name).FontSize(13).FontWeight(650).TextColor(pal.text).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
+		ui.Icon(c, hostIcon).Size(12, 12).TextColor(pal.hostColor(h)).Shrink(0)
+		ui.Text(c, sectionName(h.name)).FontSize(11.5).FontWeight(600).TextColor(pal.textFaint).LetterSpacing(0.4).
+			SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 		ui.Spacer(c)
 		a.hostState(c, pal, h)
 		if hovered && h.conn == connReady {
@@ -132,6 +139,20 @@ func (a *App) hostTag(c *ui.Context, pal *palette, h *host) {
 	tag.Children(func() {
 		ui.Text(c, h.name).FontSize(11.5).FontWeight(600).TextColor(col).SingleLine()
 	})
+}
+
+// sectionName is a host's name as a section's title: "dev box" reads
+// "Dev Box".
+func sectionName(name string) string {
+	words := strings.Fields(name)
+	for i, w := range words {
+		r := []rune(strings.ToLower(w))
+		if len(r) > 0 {
+			r[0] = unicode.ToUpper(r[0])
+		}
+		words[i] = string(r)
+	}
+	return strings.Join(words, " ")
 }
 
 // hostState says how the app stands with a host, at the end of its row,
