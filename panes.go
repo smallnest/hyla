@@ -106,15 +106,16 @@ func (a *App) panes(c *ui.Context, pal *palette, bar ui.TitleBar, shown float32,
 		a.switchTo(c)
 		switched = true
 	}
-	// The build after the one a switch comes in shows the session at its
-	// place: a frame built then, as a key's, does not show it back where
-	// it came from.
-	if a.switchIn && !switched {
-		a.switchIn, a.switchFrom = false, ui.Motion{}
-	}
+	a.settle()
 	a.shownSession = s.ID
 	sw := a.sessionSwitch()
 	slot := ui.Box(c.Key("slot-" + s.ID)).Absolute().Left(0).Top(0).Right(0).Bottom(0)
+	// The frames that move a session of the view build it, as those of a
+	// Transition: frames that only paint would show the panes back at
+	// their place, with a copy of their Transition.
+	if a.switchIn {
+		c.AnimationFrame()
+	}
 	slot.AnimatePose(sw.pose(a.switchFrom, a.switchIn), switchSpring)
 	// A session that a switch brings in shows as a new element, where it
 	// comes, as one built for the first time does, and moves from there as
@@ -148,16 +149,28 @@ func (a *App) switchTo(c *ui.Context) {
 		return
 	}
 	a.switchFrom, a.switchIn = sw.motion(), true
-	// A pose that the frame after the switch sets moves from where the
-	// switch has it, at once: its panes move in the building frames, which
-	// a window shows.
-	c.Invalidate()
+	a.switchAt = c.Now()
+	c.After(switchLand)
 }
 
 // switchSpring moves a session as a slide show's page moves: a spring
 // that arrives slowly, settling without a bounce, so that the motion
 // shows, as a page's slide does.
-var switchSpring = ui.Animation{Spring: ui.SpringOptions{Duration: 500 * time.Millisecond}}
+var switchSpring = ui.Animation{Spring: ui.SpringOptions{Duration: 400 * time.Millisecond}}
+
+// switchLand is how long a switch moves before a frame built for another
+// reason, as a key's, shows its session at its place.
+const switchLand = 400 * time.Millisecond
+
+// settle lands a switch once its frames go on: a frame built later, for
+// what the user asks, as a key, shows the panes at their place, and not
+// back where they came from.
+func (a *App) settle() {
+	if !a.switchIn || time.Since(a.switchAt) < switchLand {
+		return
+	}
+	a.switchIn, a.switchFrom = false, ui.Motion{}
+}
 
 // sessionPanes lays out a session's panes.
 func (a *App) sessionPanes(c *ui.Context, pal *palette, bar ui.TitleBar, shown float32, s *proto.Session, right bool) {
