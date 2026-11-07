@@ -706,6 +706,27 @@ func (a *App) appearancePage(c *ui.Context, pal *palette) {
 				ui.Textf(c, "%.0f%%", s.SidebarImageOpacity*100).FontSize(12.5).TextColor(pal.textMuted).Width(40).FontFeatures("tnum")
 			})
 		}
+		detail = locales.SetPaneImageDetail()
+		if s.PaneImage != "" {
+			detail = filepath.Base(s.PaneImage)
+		}
+		settingRow(c, pal, locales.SetPaneImage(), detail, func() {
+			if button(c, "pane-image", locales.SetSidebarImageChoose(), "", false, pal) {
+				a.pickPaneImage()
+			}
+			if s.PaneImage != "" && button(c, "pane-image-clear", locales.CommonRemove(), "", false, pal) {
+				s.PaneImage = ""
+			}
+		})
+		if s.PaneImage != "" {
+			settingRow(c, pal, locales.SetPaneImageOpacity(), locales.SetPaneImageOpacityDetail(), func() {
+				v := float64(s.PaneImageOpacity)
+				slider(c, "pane-image-opacity", &v, 0, 1, 160, pal).OnChange(func() {
+					s.PaneImageOpacity = float32(int(v*100+0.5)) / 100
+				})
+				ui.Textf(c, "%.0f%%", s.PaneImageOpacity*100).FontSize(12.5).TextColor(pal.textMuted).Width(40).FontFeatures("tnum")
+			})
+		}
 	})
 	settingsGroup(c, pal, locales.SetPetGroup(), "", func() {
 		settingRow(c, pal, locales.SetPet(), locales.SetPetDetail(), func() {

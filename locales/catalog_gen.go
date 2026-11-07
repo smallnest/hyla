@@ -2942,6 +2942,46 @@ func (msgs Messages) SetSidebarImageOpacityDetail() string {
 	return Catalog.Format(msgs.locale, "setSidebarImageOpacityDetail", nil)
 }
 
+// SetPaneImage says "Terminal background"
+// in the language the app shows.
+func SetPaneImage() string { return In(i18n.Locale()).SetPaneImage() }
+
+// SetPaneImage says "Terminal background"
+// in the language of msgs.
+func (msgs Messages) SetPaneImage() string {
+	return Catalog.Format(msgs.locale, "setPaneImage", nil)
+}
+
+// SetPaneImageDetail says "A picture in the terminals, under their text, in place of the window's background: it fills each terminal's card."
+// in the language the app shows.
+func SetPaneImageDetail() string { return In(i18n.Locale()).SetPaneImageDetail() }
+
+// SetPaneImageDetail says "A picture in the terminals, under their text, in place of the window's background: it fills each terminal's card."
+// in the language of msgs.
+func (msgs Messages) SetPaneImageDetail() string {
+	return Catalog.Format(msgs.locale, "setPaneImageDetail", nil)
+}
+
+// SetPaneImageOpacity says "Terminal picture opacity"
+// in the language the app shows.
+func SetPaneImageOpacity() string { return In(i18n.Locale()).SetPaneImageOpacity() }
+
+// SetPaneImageOpacity says "Terminal picture opacity"
+// in the language of msgs.
+func (msgs Messages) SetPaneImageOpacity() string {
+	return Catalog.Format(msgs.locale, "setPaneImageOpacity", nil)
+}
+
+// SetPaneImageOpacityDetail says "How much of the picture shows in the terminals: lower keeps the text easy to read."
+// in the language the app shows.
+func SetPaneImageOpacityDetail() string { return In(i18n.Locale()).SetPaneImageOpacityDetail() }
+
+// SetPaneImageOpacityDetail says "How much of the picture shows in the terminals: lower keeps the text easy to read."
+// in the language of msgs.
+func (msgs Messages) SetPaneImageOpacityDetail() string {
+	return Catalog.Format(msgs.locale, "setPaneImageOpacityDetail", nil)
+}
+
 // SetMaterialSidebar says "Sidebar"
 // in the language the app shows.
 func SetMaterialSidebar() string { return In(i18n.Locale()).SetMaterialSidebar() }

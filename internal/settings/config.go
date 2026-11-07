@@ -170,6 +170,8 @@ var keys = append([]key{
 	choiceKey("window-material", "the window's material behind the wash while blurred: sidebar, window, popover, plastic (a frosted content background), glass (Liquid Glass, as the Dock's) or glass-clear", func(s *Settings) *string { return &s.WindowMaterial }, "sidebar", "window", "popover", "plastic", "glass", "glass-clear"),
 	stringKey("sidebar-image", "a picture behind the sidebar, as tall as 80% of it and against its left edge: an image file's path, empty for none", func(s *Settings) *string { return &s.SidebarImage }),
 	float32Key("sidebar-image-opacity", "how much of the sidebar's picture shows, 0 to 1", func(s *Settings) *float32 { return &s.SidebarImageOpacity }),
+	stringKey("pane-image", "a picture in the terminals' cards, under their text, in place of the window's background: an image file's path, empty for none", func(s *Settings) *string { return &s.PaneImage }),
+	float32Key("pane-image-opacity", "how much of the terminals' picture shows, 0 to 1", func(s *Settings) *float32 { return &s.PaneImageOpacity }),
 	float32Key("pane-opacity", "how much of the window's background shows in a terminal while the window is translucent, 0 to 1, as window-opacity; 0 shows the desktop alone, and the terminal's text stays opaque", func(s *Settings) *float32 { return &s.PaneOpacity }),
 	boolKey("pane-blur", "blur what shows through the terminals; off, they are plain transparency, and 0% opacity shows the desktop alone", func(s *Settings) *bool { return &s.PaneBlur }),
 	choiceKey("pane-material", "the terminal's glass while Terminal blur is on: glass (Liquid Glass), plastic (a frosted content background) or glass-clear", func(s *Settings) *string { return &s.PaneMaterial }, "glass", "plastic", "glass-clear"),

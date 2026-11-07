@@ -1,9 +1,9 @@
 package main
 
-// The sidebar's picture, as the Appearance page's Sidebar background
-// chooses it: an image file of this machine, decoded on a goroutine and
-// drawn behind the sessions, as tall as 80% of the sidebar, vertically
-// centred, and against its left edge.
+// Pictures, as the Appearance page chooses them: an image file of this
+// machine, decoded on a goroutine. The sidebar's draws behind its
+// sessions, as tall as 80% of the sidebar, vertically centred, and against
+// its left edge; a terminal's fills its card, under its text.
 
 import (
 	"os"
@@ -24,30 +24,47 @@ const sidebarArtHeight = 0.8
 // ui.DecodeBitmap reads, as peekable names them.
 var sidebarImageTypes = []string{"png", "jpg", "jpeg", "gif", "webp", "bmp"}
 
-// sidebarArt is the picture the sidebar shows, and the file it is of.
+// sidebarArt is a picture, and the file it is of: the sidebar's, or a
+// terminal's.
 type sidebarArt struct {
 	path string     // the file, as the settings name it; "" for none
 	bm   *ui.Bitmap // nil while it comes, or when it is no picture
+	// card is the color of a terminal's card, for its picture to show
+	// over, as the card says it: dimmed when the user is in another
+	// pane. Nil for the sidebar's picture.
+	card *ui.Color
 }
 
-// pickSidebarImage asks for a picture of this machine with the system's
-// dialog, and keeps its path in the settings.
+// pickSidebarImage asks for a picture of this machine for the sidebar,
+// with the system's dialog, and keeps its path in the settings.
 func (a *App) pickSidebarImage() {
+	a.pickImage(&a.set.SidebarImage, locales.SetSidebarImage(), locales.SetSidebarImageDetail())
+}
+
+// pickPaneImage asks for a picture of this machine for the terminals,
+// with the system's dialog, and keeps its path in the settings.
+func (a *App) pickPaneImage() {
+	a.pickImage(&a.set.PaneImage, locales.SetPaneImage(), locales.SetPaneImageDetail())
+}
+
+// pickImage asks for a picture of this machine with the system's dialog,
+// and keeps its path where set points.
+func (a *App) pickImage(set *string, title, detail string) {
 	win := a.setWin
 	if win == nil {
 		win = a.win
 	}
 	go func() {
 		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{
-			Parent: win, Title: locales.SetSidebarImage(), ButtonLabel: locales.CommonOpen(),
-			Message: locales.SetSidebarImageDetail(),
+			Parent: win, Title: title, ButtonLabel: locales.CommonOpen(),
+			Message: detail,
 			Filters: []mygo.FileFilter{{Name: locales.SetSidebarImageFilter(), Extensions: sidebarImageTypes}},
 		})
 		if err != nil || len(paths) == 0 {
 			return
 		}
 		a.update(func() {
-			a.set.SidebarImage = paths[0]
+			*set = paths[0]
 			if a.setWin != nil {
 				a.setWin.Invalidate()
 			}
@@ -110,6 +127,29 @@ func (a *App) loadSidebarArt(path string) {
 				return // another picture chosen while this was read
 			}
 			a.art.bm = bm
+		})
+	}()
+}
+
+// loadPaneArt reads and decodes a terminal's picture, as loadSidebarArt
+// does the sidebar's.
+func (a *App) loadPaneArt(path string) {
+	s := &a.paneArt
+	s.path, s.bm = path, nil
+	if path == "" {
+		return
+	}
+	if a.win == nil {
+		s.bm = decodeSidebarArt(path)
+		return
+	}
+	go func() {
+		bm := decodeSidebarArt(path)
+		a.update(func() {
+			if a.paneArt.path != path {
+				return // another picture chosen while this was read
+			}
+			a.paneArt.bm = bm
 		})
 	}()
 }

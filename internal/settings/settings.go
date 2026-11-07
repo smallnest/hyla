@@ -51,8 +51,14 @@ type Settings struct {
 	// "" for none. SidebarImageOpacity is how much of it shows, 0 to 1.
 	SidebarImage        string  `json:"sidebarImage"`
 	SidebarImageOpacity float32 `json:"sidebarImageOpacity"`
-	PaneOpacity         float32 `json:"paneOpacity"` // how much of the window's background shows in a terminal, 0 to 1
-	PaneBlur            bool    `json:"paneBlur"`    // blur what shows through the terminals
+	// PaneImage is a picture of this machine shown in the terminals'
+	// cards, under their text, in place of the window's background: an
+	// image file's path, "" for none. PaneImageOpacity is how much of it
+	// shows, 0 to 1.
+	PaneImage        string  `json:"paneImage"`
+	PaneImageOpacity float32 `json:"paneImageOpacity"`
+	PaneOpacity      float32 `json:"paneOpacity"` // how much of the window's background shows in a terminal, 0 to 1
+	PaneBlur         bool    `json:"paneBlur"`    // blur what shows through the terminals
 	// PaneMaterial is the terminal's glass where PaneBlur is on: "glass"
 	// (Liquid Glass) or "glass-clear".
 	PaneMaterial string  `json:"paneMaterial"`
@@ -206,6 +212,10 @@ const DefaultSidebarImageOpacity = 0.35
 // terminal while the window is translucent.
 const DefaultPaneOpacity = 0.82
 
+// DefaultPaneImageOpacity is how much of a terminal's picture shows:
+// faintly, as a veil under the text.
+const DefaultPaneImageOpacity = 0.6
+
 // PaneBlurRadius is how much a terminal blurs what shows through it, in
 // DIPs, with terminal blur on: a frost that hides what is under it, where
 // the window's own blur, about 10 DIPs, hardly shows in a card.
@@ -230,6 +240,7 @@ func Default() Settings {
 		WindowBlur:          true,
 		WindowMaterial:      "sidebar",
 		SidebarImageOpacity: DefaultSidebarImageOpacity,
+		PaneImageOpacity:    DefaultPaneImageOpacity,
 		PaneOpacity:         DefaultPaneOpacity,
 		PaneMaterial:        "glass",
 		Pet:                 true,
@@ -567,6 +578,9 @@ func (s *Settings) normalize() {
 	}
 	if s.SidebarImageOpacity < 0 || s.SidebarImageOpacity > 1 {
 		s.SidebarImageOpacity = d.SidebarImageOpacity
+	}
+	if s.PaneImageOpacity < 0 || s.PaneImageOpacity > 1 {
+		s.PaneImageOpacity = d.PaneImageOpacity
 	}
 	oneOf(&s.AppIcon, d.AppIcon, AppIcons...)
 	known := false

@@ -46,6 +46,8 @@ func settingsIndex() []searchEntry {
 		{"appearance", locales.SetWindowMaterial(), "window-material material sidebar popover plastic glass liquid dock blur 窗口材质 材质 塑料"},
 		{"appearance", locales.SetSidebarImage(), "sidebar-image background picture photo image left panel 左边栏 侧栏 背景图 图片"},
 		{"appearance", locales.SetSidebarImageOpacity(), "sidebar-image-opacity opacity translucent fade picture image 背景图 不透明度 透明度"},
+		{"appearance", locales.SetPaneImage(), "pane-image terminal panes background picture photo image wallpaper 终端 背景图 图片 壁纸"},
+		{"appearance", locales.SetPaneImageOpacity(), "pane-image-opacity opacity translucent fade picture image terminal 终端 背景图 不透明度 透明度"},
 		{"appearance", locales.SetPet(), "pet frog hyla mascot sprite companion agent status drag offset position 小精灵 青蛙 宠物"},
 		{"appearance", locales.SetBackground(), "background wash petal mist meadow plain dock gradient color"},
 

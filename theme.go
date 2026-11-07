@@ -1,6 +1,8 @@
 package main
 
 import (
+	"math"
+
 	"github.com/egoist/mygo/plugins/glass"
 	"github.com/egoist/mygo/plugins/terminal"
 	"github.com/egoist/mygo/ui"
@@ -223,13 +225,25 @@ func backdrop(c *ui.Context, pal *palette, row ui.Element, s settings.Settings) 
 	row.LinearGradient(glow)
 }
 
-// paneGlass is what a terminal's card shows in place of its background,
-// while the terminals are translucent: the window's background at the
-// terminal opacity, so that 0% shows the desktop alone, as the window's 0%
-// does. The card is not glass, which fogs what it covers and would leave a
-// card opaque whatever its opacity. An opaque card, or one in a window that
-// is not translucent, is the card's background.
-func paneGlass(pal *palette, s settings.Settings) ui.Material {
+// paneGlass is what a terminal's card shows in place of its background:
+// the terminal's picture over the card's color, when it has one, else while
+// the terminals are translucent, the window's background at the terminal
+// opacity, so that 0% shows the desktop alone, as the window's 0% does. The
+// card is not glass, which fogs what it covers and would leave a card
+// opaque whatever its opacity. An opaque card, or one in a window that is
+// not translucent, is the card's background. The picture's bitmap is nil
+// while it comes, or when it is no picture.
+func paneGlass(pal *palette, s settings.Settings, art *sidebarArt) ui.Material {
+	if s.PaneImage != "" {
+		m := &panePicture{opacity: s.PaneImageOpacity, base: pal.card}
+		if art != nil {
+			m.bm = art.bm
+			if art.card != nil {
+				m.base = *art.card
+			}
+		}
+		return m
+	}
 	if !s.Vibrancy || s.PaneOpacity >= 1 {
 		return nil
 	}
@@ -241,6 +255,57 @@ func paneGlass(pal *palette, s settings.Settings) ui.Material {
 		return paneFrost{wash: w, material: s.PaneMaterial}
 	}
 	return w
+}
+
+// panePicture is a terminal's card showing the terminal's picture, pane
+// image, in place of its background: the picture as wide as the card, and
+// on from its top, in bands of the card's height (see PaintMaterial), as
+// faint as the picture shows, over the card's color at the rest, so that
+// the text stays legible. It leaves the glass out, as a window's own
+// picture does: a frosted card under the picture would hide it.
+type panePicture struct {
+	bm      *ui.Bitmap
+	opacity float32
+	base    ui.Color // the card's color under the picture
+}
+
+// PaintMaterial draws the picture as wide as the card, from the card's top
+// down, in bands each as tall as the card takes one: the scene draws an
+// image whole where its first pixels fall in the view, and no further than
+// the view is large, so a picture taller than the view would show its top
+// stretched, where a band no taller than the card shows where it lies.
+// Then the card's color, at the rest: as faint as the picture shows, and
+// the text legible whatever the picture.
+func (m *panePicture) PaintMaterial(p *ui.Painter, box ui.Rect, radii [4]float32) {
+	p.Fill(box, m.base, radii[0])
+	if m.bm == nil {
+		return
+	}
+	nw, nh := ui.ImageSize(m.bm)
+	if m.opacity <= 0 || nw <= 0 || nh <= 0 || box.W <= 0 || box.H <= 0 {
+		return
+	}
+	k := box.W / nw // a pixel of the picture, in the card's
+	lines := max(int(math.Ceil(float64(nh/(box.H/k)))), 1)
+	band := nh / float32(lines)
+	at := box.Y
+	p.Clip(box, radii[0], func() {
+		for i := range lines {
+			src := ui.Rect{Y: float32(i) * band, W: nw, H: band}
+			high := band * k
+			if at+high > box.Y+box.H {
+				// The card's bottom crops the last band.
+				high = box.Y + box.H - at
+				src.H = min(src.H, high/k)
+			}
+			if src.H <= 0 {
+				continue
+			}
+			p.ImageRegion(m.bm, src, ui.Rect{X: box.X, Y: at, W: box.W, H: high}, ui.ImageOptions{})
+			at += high
+		}
+	})
+	p.Fill(box, m.base.Alpha(1-m.opacity), radii[0])
 }
 
 // paneFrost is a terminal's card with the terminal blur on: the wash it

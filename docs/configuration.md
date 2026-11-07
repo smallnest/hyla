@@ -65,6 +65,8 @@ hyla config check             # report unknown keys and bad values
 | `window-material`    | `sidebar` | The window's material behind the wash while blurred: `sidebar`, `window`, `popover`, `plastic` (a frosted content background), `glass` (Liquid Glass, as the Dock's) or `glass-clear` |
 | `sidebar-image`      |          | A picture behind the sidebar's sessions: as tall as 80% of the sidebar, centred vertically and against its left edge; empty for none |
 | `sidebar-image-opacity` | `0.35` | How much of the sidebar's picture shows, 0 (none) to 1 (whole) |
+| `pane-image`        |          | A picture in the terminals' cards, under their text, in place of the window's background: as wide as the card, from its top; empty for none |
+| `pane-image-opacity` | `0.6`   | How much of the terminals' picture shows, 0 (none) to 1 (whole) |
 | `pane-opacity`       | `0.82`   | How much of the window's background shows in a terminal while the window is translucent, 0 to 1, as `window-opacity`: 0 shows the desktop alone; the text stays opaque |
 | `pane-blur`          | `false`  | Blur what shows through the terminals; off is plain transparency |
 | `pane-material`      | `glass`  | The terminal's glass while `pane-blur` is on: `glass` (Liquid Glass), `plastic` (a frosted content background) or `glass-clear` |

@@ -4,6 +4,13 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## Unreleased
+
+- A terminal can show its own background picture, apart from the window's:
+  **设置 › 外观 › 终端背景图**, or `pane-image` and `pane-image-opacity`.
+  The picture fills each terminal's card as wide as it, from its top,
+  under the text, in place of the window's background.
+
 ## 3.5.2
 
 - **SSH 主机** and **K8s Pods** rows offer **重连主机** in their menu: it

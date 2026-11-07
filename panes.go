@@ -224,7 +224,7 @@ func (a *App) paneCard(c *ui.Context, pal *palette, bar ui.TitleBar, shown float
 	// A terminal's card is translucent with the window: the others, a
 	// browser's and a file's, are opaque.
 	bgNow := card.AnimateColor("bg", bg, ui.Animation{Duration: 140 * time.Millisecond})
-	if w := paneGlass(pal, a.set); w != nil && !p.Browser() && !p.FilePane() {
+	if w := a.paneBackground(pal, bg, p); w != nil {
 		card.Material(w)
 		if pal.dark {
 			darkShadow(litEdge(card, pal))
@@ -311,6 +311,25 @@ func (a *App) paneCard(c *ui.Context, pal *palette, bar ui.TitleBar, shown float
 		c.Invalidate()
 	}
 	card.AnimatePose(pose, ui.Animation{Spring: ui.SpringOptions{Duration: 420 * time.Millisecond, Bounce: 0.18}})
+}
+
+// paneBackground is what a terminal's card shows in place of its
+// background, bg being the card's color: the terminal's picture, when the
+// user chose one, else the translucent glass while there is one. A
+// browser's page and a file's pane keep their own.
+func (a *App) paneBackground(pal *palette, bg ui.Color, p *proto.Pane) ui.Material {
+	if p.Browser() || p.FilePane() {
+		return nil
+	}
+	if a.set.PaneImage != "" {
+		if a.paneArt.path != a.set.PaneImage {
+			a.loadPaneArt(a.set.PaneImage)
+		}
+		art := a.paneArt
+		art.card = &bg
+		return paneGlass(pal, a.set, &art)
+	}
+	return paneGlass(pal, a.set, nil)
 }
 
 // followMouse focuses the pane the pointer moves into. Only the pointer
