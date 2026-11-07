@@ -19,6 +19,6 @@ Hyla app running on this machine (`macOS`, light appearance). They show the
 Settings window only: no session, pane or Feishu content is in either image.
 The rest of the page's window is a labelled HTML/CSS illustration.
 
-`evidence/before-after.webp` compares the old `kero.sh` landing (dark) with
-`docs/index.html` (light); `after-features.webp` and `after-shots.webp` show
+`evidence/before-after.jpg` compares the old `kero.sh` landing (dark) with
+`docs/index.html` (light); `after-features.jpg` and `after-shots.jpg` show
 the new page's feature grid and screenshot section.
