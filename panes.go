@@ -111,7 +111,7 @@ func (a *App) panes(c *ui.Context, pal *palette, bar ui.TitleBar, shown float32,
 	a.shownSession = s.ID
 	sw := a.sessionSwitch()
 	slot := ui.Box(c.Key("slot-" + s.ID)).Absolute().Left(0).Top(0).Right(0).Bottom(0)
-	slot.AnimatePose(sw.pose(a.switchFrom, a.switchIn), switchSpring)
+	slot.AnimatePose(sw.pose(a.switchFrom, a.switchIn && a.landed), switchSpring)
 	// A session that a switch brings in shows as a new element, where it
 	// comes, as one built for the first time does, and moves from there as
 	// poses do: one that the frames build before has the place its poses
@@ -131,6 +131,10 @@ func (a *App) panes(c *ui.Context, pal *palette, bar ui.TitleBar, shown float32,
 			view.Children(func() { a.sessionPanes(c, pal, bar, shown, s, right) })
 		})
 	})
+	if a.landed {
+		c.Invalidate()
+		a.rearm()
+	}
 }
 
 // switchTo tells that the frame about to build shows a session in place
@@ -143,21 +147,23 @@ func (a *App) switchTo(c *ui.Context) {
 		return
 	}
 	a.switchFrom, a.switchIn = sw.motion(), true
-	// The session shown at its place in a frame that goes on, as a key's,
-	// after the frames that move it: mygo asks for the frames that move a
-	// pose in a frame that paints, and shows a pose at once in a frame
-	// that builds.
+	// The frames after the one that brings the session in show it where it
+	// goes at once, as mygo shows a pose set anew there, while a pose the
+	// frame before set moves from where it was. They move it in frames
+	// that paint, which copy an element that a Transition gives an
+	// animation, as a blend of its two places: the switch lands it, and
+	// the frame after takes the blend away.
 	c.After(switchLand)
 }
 
 // switchSpring moves a session as a slide show's page moves: a spring
 // that arrives slowly, settling without a bounce, so that the motion
 // shows, as a page's slide does.
-var switchSpring = ui.Animation{Spring: ui.SpringOptions{Duration: 450 * time.Millisecond}}
+var switchSpring = ui.Animation{Spring: ui.SpringOptions{Duration: 200 * time.Millisecond}}
 
 // switchLand is how long a switch moves before a frame built for another
 // reason, as a key's, shows its session at its place.
-const switchLand = 450 * time.Millisecond
+const switchLand = 200 * time.Millisecond
 
 // settle lands a switch once its frames go on: a frame built later, for
 // what the user asks, as a key, shows the panes at their place, and not
@@ -166,7 +172,14 @@ func (a *App) settle() {
 	if !a.switchIn || time.Since(a.switchAt) < switchLand {
 		return
 	}
-	a.switchIn, a.switchFrom = false, ui.Motion{}
+	a.switchIn, a.landed = false, true
+}
+
+// rearm lets a switch move again in the frame after the one that landed
+// it: a pose that the frame before set moves from where it was, and one
+// set at its place again would keep it there.
+func (a *App) rearm() {
+	a.landed = false
 }
 
 // sessionPanes lays out a session's panes.
