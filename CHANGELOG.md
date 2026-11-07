@@ -6,6 +6,13 @@ number; the notes of the upstream releases it includes follow its own.
 
 ## Unreleased
 
+- Files and folders dragged from this machine onto the pane of another
+  machine go to the directory the pane's program runs in, as scp puts
+  them: where the shell is, or where an agent in it went. Their paths
+  there are pasted into the program, which reads them as a drop there's.
+  A file of a name that is there already goes beside it, as a Finder's
+  save does.
+
 - A terminal can show its own background picture, apart from the window's:
   **设置 › 外观 › 终端背景图**, or `pane-image` and `pane-image-opacity`.
   The picture shows under the text, in place of the window's background,

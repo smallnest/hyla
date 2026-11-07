@@ -26,7 +26,7 @@ import (
 // can't ignore: a client refuses a daemon of another version, which it
 // offers to restart. A new optional field, which the other side leaves
 // out or skips, doesn't change it.
-const Version = 3
+const Version = 4
 
 // Hello opens a connection.
 type Hello struct {
@@ -1166,6 +1166,24 @@ type (
 	// the shell of PID.
 	ProcessesParams struct {
 		PID int `json:"pid"`
+	}
+	// PaneDirParams asks where a pane's program runs, for files that the
+	// user drops on it: the shell's directory, and that of the program in
+	// the foreground, as an agent that went into a worktree.
+	PaneDirParams struct {
+		Pane string `json:"pane"`
+	}
+	PaneDir struct {
+		Dir   string `json:"dir"`
+		Shell string `json:"shell,omitempty"` // Dir, the shell's
+	}
+	// PasteTextParams writes text into a pane's program, as a paste does:
+	// the paths of the files that the user dropped on the pane, from dir,
+	// the directory they go in.
+	PasteTextParams struct {
+		Pane string `json:"pane"`
+		Text string `json:"text"`
+		Dir  string `json:"dir,omitempty"`
 	}
 	// AgentSessionResult is the pane told of, and its session; Away: the
 	// agent runs under none of hyla's shells, and so do its commands.

@@ -328,6 +328,9 @@ type Server struct {
 	// PairCode answers proto.KindPairCode: the address of hylad's tailcat
 	// listener.
 	PairCode func() (string, error)
+	// SFTP, when set, serves SFTP on the streams that ask for it
+	// (proto.KindSFTP); nil refuses them.
+	SFTP func(net.Conn) error
 	// Closed, when set, runs as the connection ends.
 	Closed func()
 	// Peer tells who connects, for hylad's tailcat listener, from the
@@ -440,6 +443,14 @@ func (s *Server) stream(st *yamux.Stream, mux proto.MuxHello) {
 		code, err := s.PairCode()
 		replyAsync(proto.HostReply{OK: err == nil, PairCode: code, Error: errString(err)})
 		return
+	case proto.KindSFTP:
+		if s.SFTP == nil {
+			reply(errors.New("this host serves no SFTP"))
+			return
+		}
+		st.Write(append(okReply(), '\n'))
+		go s.SFTP(stream{st})
+		return
 	case proto.KindUpdate:
 		if s.Update == nil {
 			reply(errors.New("Hyla on this host updates as it was installed: update it there"))
@@ -449,6 +460,13 @@ func (s *Server) stream(st *yamux.Stream, mux proto.MuxHello) {
 	default:
 		s.Stream(&streamConn{stream: stream{st}, r: br}, line, mux)
 	}
+}
+
+// okReply is a HostReply that says the stream goes on with what it asked
+// for.
+func okReply() []byte {
+	b, _ := json.Marshal(proto.HostReply{OK: true})
+	return b
 }
 
 // streamConn is a stream whose first line was read already, through r.

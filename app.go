@@ -204,6 +204,9 @@ type App struct {
 	// switchFrom posed, on its way in: the one after, posing its place.
 	switchIn   bool
 	switchFrom ui.Motion
+	// uploading are the panes that files are dropping on now, and their
+	// directories (drop_upload.go).
+	uploading []paneUpload
 	// switchAt is when a switch came in, which lands switchLand after.
 	switchAt time.Time
 	// from is the host whose program asked for the action being run (hyla

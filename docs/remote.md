@@ -187,7 +187,7 @@ On Linux this first enables lingering (`loginctl enable-linger`), which keeps yo
 - **New sessions.** <kbd>⌘</kbd> <kbd>T</kbd> and **New Session** start a session on the host of the session you're looking at. A project's **+** starts one in it, on its machine.
 - **Open Project.** With hosts added, <kbd>⌘</kbd> <kbd>O</kbd> lists folders in Hyla instead of your computer's dialog, starting on the machine of the session you're looking at; the switch at its top lists another's. Type to filter, or type a path such as `~/code`. <kbd>↩</kbd> goes into a folder, and <kbd>⌘</kbd> <kbd>↩</kbd> or **Open** opens it as a project.
 - **Paths.** <kbd>⌘</kbd>-clicking a file path in a remote pane opens the file in the host's `$EDITOR`, in a pane below. A folder opens in a new session there. Hyla never opens a file of your computer that happens to have the same path. Hovering an image's path with <kbd>⌘</kbd> previews the host's image.
-- **Pasting images and files.** Pasting an image or files into a remote pane copies them to a private temporary folder on the host and pastes their paths there, so agents that read image paths, such as Claude Code, keep working. Dragging files onto a remote pane still pastes your computer's paths.
+- **Pasting images and files.** Pasting an image or files into a remote pane copies them to a private temporary folder on the host and pastes their paths there, so agents that read image paths, such as Claude Code, keep working. Dragging files and folders from this computer onto a remote pane copies them into the directory the pane's program runs in on the host, as `scp` does, and pastes their paths there; a name already there gets a number, as a save in Finder does. An agent that runs in a worktree reads them from the shell's directory, not the worktree's.
 - **Agents.** Inside a remote pane, `hyla` talks to that host's hylad, so the agent skill works there unchanged. Run `hyla skill setup` on the host.
 - **Notifications.** A host's notifications and the window's title carry the host's name, so a remote program can't pass for a local one.
 
@@ -263,5 +263,4 @@ host = ubuntu=wsl://Ubuntu
 ## Limits
 
 - The server build is for Linux, with glibc 2.28 or later, macOS and Windows 10 (1809) or later, on x86-64 and ARM64. A machine with the Hyla app needs no server build.
-- Dragging files onto a remote pane pastes your computer's paths. Paste them instead.
 - One host has one account. Login servers, where several people reach their own accounts on one machine, are planned.

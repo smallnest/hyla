@@ -26,6 +26,9 @@ const (
 	// restart hylad into the Hyla installed: its sessions start again, as
 	// after a reboot. A HostReply answers it.
 	KindRestart = "host.restart"
+	// KindSFTP opens a stream on which the host serves SFTP, for the files
+	// the user drops on a pane (remote.ServeSFTP).
+	KindSFTP = "sftp"
 	// KindUpdate asks a server build of Hyla on the host to update itself
 	// to App's version (Hello.App), signed as the app's own updates are. A
 	// HostReply answers it; a restart then runs the new version.

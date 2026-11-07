@@ -464,6 +464,43 @@ func (s *pane) screen() string {
 }
 
 // input writes what the user typed to the program.
+// write sends p to the pane's program, as the terminal's paste does, a
+// bracketed paste, which the programs that ask for those unwrap and the
+// others read as lines typed.
+func (s *pane) write(p []byte) {
+	const esc = "\x1b[200~"
+	s.input(append(append([]byte(esc), p...), 0x1b, '[', '2', '0', '1', '~'))
+}
+
+// cutPrefix returns what of s follows p, when p is a directory that s is
+// in, as "/api" for "/repo/api" and "/repo": every component of p, never
+// a part of one, as "/rep" of "/repo/api".
+func cutPrefix(s, p string) (string, bool) {
+	p = strings.TrimSuffix(p, "/")
+	if s == p {
+		return "", true
+	}
+	if strings.HasPrefix(s, p+"/") {
+		return s[len(p):], true
+	}
+	return "", false
+}
+
+// writeRelative writes text into the pane's program, with dir, a
+// directory that the paths in it go from, in place of the program's if it
+// went elsewhere since: a shell two directories down reads the paths as
+// ones of its own directory.
+func (s *pane) writeRelative(text, dir string) {
+	if dir != "" {
+		if now := paneDirOf(s); now.Dir != dir {
+			if rest, ok := cutPrefix(now.Dir, dir); ok {
+				text = strings.Repeat("cd ..\n", strings.Count(rest, "/")) + text
+			}
+		}
+	}
+	s.write([]byte(text))
+}
+
 func (s *pane) input(p []byte) {
 	s.mu.Lock()
 	proc := s.proc

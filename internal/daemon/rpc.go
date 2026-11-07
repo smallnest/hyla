@@ -774,6 +774,25 @@ func (d *Daemon) call(c *controlConn, method string, raw json.RawMessage) (any, 
 		}
 		return processes(p)
 
+	case "paste.text":
+		var p proto.PasteTextParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		pane := d.findPane(p.Pane)
+		if pane == nil {
+			return nil, os.ErrNotExist
+		}
+		pane.writeRelative(p.Text, p.Dir)
+		return nil, nil
+
+	case "pane.dir":
+		var p proto.PaneDirParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return d.paneDir(p)
+
 	case "paste.file":
 		var p proto.PasteFileParams
 		if err := decode(&p); err != nil {

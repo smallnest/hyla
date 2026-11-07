@@ -466,6 +466,7 @@ func (d *Daemon) remoteServer(id identity) *remote.Server {
 			d.serveHello(conn, bufio.NewReaderSize(conn, 64<<10), hello, sid)
 		},
 		Restart: d.restart,
+		SFTP:    remote.ServeSFTP,
 		Log:     d.log,
 	}
 	// A tailcat listener's address, for Hyla elsewhere: the pair code of

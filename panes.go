@@ -374,6 +374,21 @@ func (a *App) paneCard(c *ui.Context, pal *palette, bar ui.TitleBar, shown float
 		if zone != zoneNone {
 			a.dropPreview(c, pal, p.ID, zone)
 		}
+		// Files dragged from this machine onto the card of another
+		// machine's pane go to where its program runs, and their paths
+		// there are pasted into it (drop_upload.go).
+		if !chat && a.hostOf(p.ID).remote() {
+			if files := card.DroppedFiles(); len(files) > 0 {
+				if h := a.hostOf(p.ID); h.remote() {
+					a.defer_(func() { a.dropUpload(p.ID, files) })
+				}
+			}
+			if card.FileDragOver() || a.droppedNow(p.ID) {
+				card.Draw(func(pr *ui.Painter, r ui.Rect) {
+					pr.Stroke(ui.Rect{X: r.X + 1.5, Y: r.Y + 1.5, W: r.W - 3, H: r.H - 3}, pal.accent.Alpha(0.65), 12, 2)
+				})
+			}
+		}
 	})
 
 	// The pane dragged sinks back where it was; one just moved springs in
