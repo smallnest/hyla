@@ -365,6 +365,79 @@ func TestSidebarFooter(t *testing.T) {
 	}
 }
 
+// The status of a session gives way, while the pointer is on its row, to a
+// close button of the same size, so that hovering moves no text; a click
+// closes the session at once, without the menu's question.
+func TestSessionHoverClose(t *testing.T) {
+	for _, mode := range []string{"compact", "detailed"} {
+		for _, selected := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/selected=%t", mode, selected), func(t *testing.T) {
+				a := testApp(t)
+				a.set.SidebarRows, a.set.ConfirmClose = mode, true
+				other := a.st.Sessions[0]
+				other.ID, other.Name = "s2", "other session"
+				other.Panes = []proto.Pane{{ID: "c", Shell: "fish", Progress: -1}}
+				other.Layout, other.Focus = nil, "c"
+				a.st.Sessions = append(a.st.Sessions, other)
+				id, remaining := "s2", "s1"
+				if selected {
+					id, remaining = remaining, id
+				}
+				s := a.session(id)
+				s.Name, s.Process, s.Status = "hover target", "claude", proto.Working
+				tt := ui.NewTester(a.view, 1100, 640)
+				tt.Frame()
+				tt.Advance(time.Second)
+				tt.Frame()
+				label := locales.ActionCloseSession()
+				if _, ok := tt.Find(label); ok {
+					t.Fatal("close button shown without hover")
+				}
+				before, ok := tt.Find("hover target")
+				if !ok {
+					t.Fatalf("no session title; texts %q", tt.Texts())
+				}
+				for range 2 {
+					tt.Move(before.X+before.W/2, before.Y+before.H/2)
+					tt.Frame()
+					if _, ok := tt.Find(label); !ok {
+						t.Fatal("hover did not show close button")
+					}
+					if after, _ := tt.Find("hover target"); after != before {
+						t.Fatalf("hover moved title: %v → %v", before, after)
+					}
+					tt.Move(1000, 600)
+					tt.Frame()
+					if _, ok := tt.Find(label); ok {
+						t.Fatal("close button remained after pointer left")
+					}
+				}
+				tt.Move(before.X+before.W/2, before.Y+before.H/2)
+				tt.Frame()
+				button, ok := tt.Find(label)
+				if !ok {
+					t.Fatal("close button did not return")
+				}
+				shot(t, tt, fmt.Sprintf("session-close-%s-%t", mode, selected))
+				tt.Move(button.X+button.W/2, button.Y+button.H/2)
+				tt.Frame()
+				tt.Press(button.X+button.W/2, button.Y+button.H/2)
+				tt.Frame()
+				tt.Release(button.X+button.W/2, button.Y+button.H/2)
+				tt.Frame()
+				// A busy session goes without a question, as the menu
+				// asks one (confirm-close).
+				if a.confirm != nil && a.confirm.open {
+					t.Fatal("closing from the row asked first")
+				}
+				if a.session(id) != nil || len(a.st.Sessions) != 1 || a.selected != remaining {
+					t.Fatalf("wrong session closed: selected=%q sessions=%v", a.selected, a.st.Sessions)
+				}
+			})
+		}
+	}
+}
+
 // A session's tooltip shows below the pointer where it rested, as macOS
 // shows tooltips, not centered over the row ($HYLA_SHOTS).
 func TestSessionTooltipAtPointer(t *testing.T) {

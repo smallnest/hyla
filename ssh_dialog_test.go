@@ -401,3 +401,45 @@ func TestSSHSessionRowShowsAddress(t *testing.T) {
 	}
 	shot(t, tt, "sidebar-ssh-session")
 }
+
+// A machine's row gives its terminal's status up, under the pointer, to a
+// close button of the same size, which ends the terminal and the machine
+// with it, as Remove does, without its question.
+func TestSSHHostHoverClose(t *testing.T) {
+	a := testApp(t)
+	a.prefs.SSHProject = "ssh-p"
+	a.prefs.SSHHosts = []sshHost{{Name: "box", Addr: "me@box", Session: "ssh-s"}}
+	a.st.Projects = append(a.st.Projects, proto.Project{ID: "ssh-p", Name: locales.SshHostsProject()})
+	base := a.st.Sessions[0]
+	base.ID, base.Name, base.Project, base.Process, base.Status = "ssh-s", "box", "ssh-p", "ssh", proto.Working
+	a.st.Sessions = append(a.st.Sessions, base)
+	a.prefs.SSHHosts[0].Session = "ssh-s"
+	tt := ui.NewTester(a.view, 1100, 640)
+	tt.Frame()
+	tt.Advance(time.Second)
+	tt.Frame()
+	title, ok := tt.Find("box")
+	if !ok {
+		t.Fatalf("no machine's row; texts %q", tt.Texts())
+	}
+	label := locales.ActionCloseSession()
+	tt.Move(title.X+title.W/2, title.Y+title.H/2)
+	tt.Frame()
+	button, ok := tt.Find(label)
+	if !ok {
+		t.Fatal("hover did not show close button")
+	}
+	if after, _ := tt.Find("box"); after != title {
+		t.Fatalf("hover moved the name: %v → %v", title, after)
+	}
+	tt.Press(button.X+button.W/2, button.Y+button.H/2)
+	tt.Frame()
+	tt.Release(button.X+button.W/2, button.Y+button.H/2)
+	tt.Frame()
+	if a.confirm != nil && a.confirm.open {
+		t.Fatal("closing from the row asked first")
+	}
+	if len(a.prefs.SSHHosts) != 0 || a.session("ssh-s") != nil {
+		t.Errorf("the machine stays: %+v, %+v", a.prefs.SSHHosts, a.st.Sessions)
+	}
+}

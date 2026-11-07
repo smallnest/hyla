@@ -367,3 +367,44 @@ func TestK8sSessionRowShowsCommand(t *testing.T) {
 	}
 	shot(t, tt, "sidebar-k8s-session")
 }
+
+// A pod's row gives its terminal's status up, under the pointer, to a
+// close button of the same size, which ends the terminal and the pod with
+// it, as Remove does, without its question.
+func TestK8sPodHoverClose(t *testing.T) {
+	a := testApp(t)
+	a.prefs.K8sProject = "k8s-p"
+	a.prefs.K8sPods = []k8sPod{{Name: "web-0", Command: "kubectl exec -it web-0 -- bash", Session: "k8s-s"}}
+	a.st.Projects = append(a.st.Projects, proto.Project{ID: "k8s-p", Name: locales.K8sPodsProject()})
+	base := a.st.Sessions[0]
+	base.ID, base.Name, base.Project, base.Process, base.Status = "k8s-s", "web-0", "k8s-p", "kubectl", proto.Working
+	a.st.Sessions = append(a.st.Sessions, base)
+	tt := ui.NewTester(a.view, 1100, 640)
+	tt.Frame()
+	tt.Advance(time.Second)
+	tt.Frame()
+	title, ok := tt.Find("web-0")
+	if !ok {
+		t.Fatalf("no pod's row; texts %q", tt.Texts())
+	}
+	label := locales.ActionCloseSession()
+	tt.Move(title.X+title.W/2, title.Y+title.H/2)
+	tt.Frame()
+	button, ok := tt.Find(label)
+	if !ok {
+		t.Fatal("hover did not show close button")
+	}
+	if after, _ := tt.Find("web-0"); after != title {
+		t.Fatalf("hover moved the name: %v → %v", title, after)
+	}
+	tt.Press(button.X+button.W/2, button.Y+button.H/2)
+	tt.Frame()
+	tt.Release(button.X+button.W/2, button.Y+button.H/2)
+	tt.Frame()
+	if a.confirm != nil && a.confirm.open {
+		t.Fatal("closing from the row asked first")
+	}
+	if len(a.prefs.K8sPods) != 0 || a.session("k8s-s") != nil {
+		t.Errorf("the pod stays: %+v, %+v", a.prefs.K8sPods, a.st.Sessions)
+	}
+}

@@ -386,9 +386,17 @@ func (a *App) sshHostRow(c *ui.Context, pal *palette, i int) {
 			ui.Text(c, h.Name).FontSize(13.5).TextColor(pal.text).SingleLine().Ellipsis("…")
 			ui.Text(c, h.Addr).Font("monospace").FontSize(12).TextColor(pal.textFaint).SingleLine().Ellipsis("…").MinWidth(0)
 		})
-		if s != nil {
-			statusIconP(c, pal, s.Status, s.Unread, s.Progress, 15)
+		if s == nil {
+			// A machine with no terminal yet keeps the slot the status
+			// (or, under the pointer, the close button) takes.
+			ui.Box(c).Size(20, 20).Shrink(0)
+			return
 		}
+		// Close ends the terminal, as Remove does, without its question.
+		statusSlot(c, pal, row.Hovered(), s.Status, s.Unread, s.Progress, func() {
+			addr := h.Addr
+			a.defer_(func() { a.removeSSHHost(addr) })
+		})
 	})
 }
 

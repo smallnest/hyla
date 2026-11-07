@@ -805,6 +805,12 @@ func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int, 
 			// The name gives way to these, never they to the name.
 			ui.Text(c, ago(s.Since, c.Now())).FontSize(12.5).TextColor(pal.textFaint).FontFeatures("tnum").SingleLine().Shrink(0)
 		}
+		// A session goes at once, as Close Pane goes (^D), without the
+		// menu's asking; after the frame, which its end reshapes.
+		trailing := func() {
+			id := s.ID
+			statusSlot(c, pal, hovered, s.Status, s.Unread, s.Progress, func() { a.defer_(func() { a.closeSession(id, false) }) })
+		}
 		if detailed {
 			// The name, the time and the status over the line of what the
 			// session is at, on the row's whole width, so that a long
@@ -814,7 +820,7 @@ func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int, 
 					name()
 					ui.Spacer(c)
 					when()
-					statusIconP(c, pal, s.Status, s.Unread, s.Progress, 15)
+					trailing()
 				})
 				line, msg := rowDetail(s, g, a.hostOf(s.ID).shortDir(s.WorkDir()))
 				switch {
@@ -860,7 +866,28 @@ func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int, 
 		}
 		ui.Spacer(c)
 		when()
-		statusIconP(c, pal, s.Status, s.Unread, s.Progress, 15)
+		trailing()
+	})
+}
+
+// statusSlot ends a row that stands for a terminal: its status, or, while
+// the pointer is on the row, a close button in the status's fixed slot, so
+// that hovering moves no text. close ends what the row's terminal runs.
+func statusSlot(c *ui.Context, pal *palette, hovered bool, st proto.Status, unread bool, progress int, close func()) {
+	ui.Box(c.Key("trailing")).Size(20, 20).Shrink(0).Center().Children(func() {
+		if !hovered {
+			statusIconP(c, pal, st, unread, progress, 15)
+			return
+		}
+		b := ui.ButtonBase(c.Key("close")).Size(20, 20).Radius(5).Center().TextColor(pal.textMuted).
+			Label(locales.ActionCloseSession()).Tooltip(locales.ActionCloseSession())
+		if b.Hovered() {
+			b.Background(pal.rowHover).TextColor(pal.text)
+		}
+		b.Children(func() { ui.Icon(c, closeIcon).Size(13, 13) })
+		if b.Clicked() {
+			close()
+		}
 	})
 }
 

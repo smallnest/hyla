@@ -404,9 +404,17 @@ func (a *App) k8sPodRow(c *ui.Context, pal *palette, i int) {
 			ui.Text(c, pod.Name).FontSize(13.5).TextColor(pal.text).SingleLine().Ellipsis("…")
 			ui.Text(c, pod.Command).Font("monospace").FontSize(12).TextColor(pal.textFaint).SingleLine().Ellipsis("…").MinWidth(0)
 		})
-		if s != nil {
-			statusIconP(c, pal, s.Status, s.Unread, s.Progress, 15)
+		if s == nil {
+			// A pod with no terminal yet keeps the slot the status (or,
+			// under the pointer, the close button) takes.
+			ui.Box(c).Size(20, 20).Shrink(0)
+			return
 		}
+		// Close ends the terminal, as Remove does, without its question.
+		statusSlot(c, pal, row.Hovered(), s.Status, s.Unread, s.Progress, func() {
+			cmd := pod.Command
+			a.defer_(func() { a.removeK8sPod(cmd) })
+		})
 	})
 }
 
