@@ -6,13 +6,23 @@ number; the notes of the upstream releases it includes follow its own.
 
 ## Unreleased
 
+## 3.5.3
+
 - Files and folders dragged from this machine onto the pane of another
   machine go to the directory the pane's program runs in, as scp puts
   them: where the shell is, or where an agent in it went. Their paths
   there are pasted into the program, which reads them as a drop there's.
   A file of a name that is there already goes beside it, as a Finder's
-  save does.
-
+  save does. Hyla on the host must be updated for it.
+- Files dropped on a pane of this machine paste their paths into the
+  program in it, as a drop on a terminal window does: the file stays
+  where it is.
+- A session, an SSH host's row or a K8s pod's row shows a close button
+  under the pointer, in place of its status: it ends the terminal at
+  once.
+- A project that holds a session waiting on you wears the color of
+  attention in the sidebar, even folded away.
+- A host's name reads as a section's title: "Dev Box" for "dev box".
 - A terminal can show its own background picture, apart from the window's:
   **设置 › 外观 › 终端背景图**, or `pane-image` and `pane-image-opacity`.
   The picture shows under the text, in place of the window's background,
