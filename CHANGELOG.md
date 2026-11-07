@@ -12,6 +12,8 @@ number; the notes of the upstream releases it includes follow its own.
   as wide as the card from its top; **铺放方式**, or `pane-image-fit`, fills
   a card as a macOS desktop picture's options do: fill, fit, stretch,
   center or tile.
+- Switching sessions animates: the session coming in fades in and lifts a
+  little, springing, while the one it leaves blurs and fades away over it.
 
 ## 3.5.2
 

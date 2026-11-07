@@ -97,6 +97,19 @@ func (a *App) focusTerminal() {
 // right tells that they reach the window's right edge, which the side
 // panel takes while it shows.
 func (a *App) panes(c *ui.Context, pal *palette, bar ui.TitleBar, shown float32, s *proto.Session, right bool) {
+	// A session shown over another, as when the user moves from one to the
+	// next: it fades in while the one it leaves, as the frame before showed
+	// it, fades out over it (sessionSwitch).
+	if a.shownSession != s.ID {
+		a.lastSession, a.shownSession = a.shownSession, s.ID
+	}
+	view := ui.Box(c.Key("session-view")).Grow(1).Basis(0).MinWidth(0).MinHeight(0)
+	view.Transition(sessionSwitch)
+	view.Children(func() { a.sessionPanes(c, pal, bar, shown, s, right) })
+}
+
+// sessionPanes lays out a session's panes.
+func (a *App) sessionPanes(c *ui.Context, pal *palette, bar ui.TitleBar, shown float32, s *proto.Session, right bool) {
 	// One pane shows its chat in place of its terminal, alone, so that
 	// the chat has the room side by side would leave it.
 	if len(s.Zoomed) == 0 || s.Zoomed == a.focusOf(s) {

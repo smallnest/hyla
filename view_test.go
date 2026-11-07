@@ -1067,3 +1067,45 @@ func TestSidebarRows(t *testing.T) {
 		t.Errorf("a compact row lost its branch; texts %q", tt.Texts())
 	}
 }
+
+// rgbClose tells whether two colors are within step of each channel.
+func rgbClose(a, b color.RGBA, step uint8) bool {
+	off := func(x, y uint8) bool { return x >= y-step && x <= y+step }
+	return off(a.R, b.R) && off(a.G, b.G) && off(a.B, b.B)
+}
+
+// A session shown in place of another fades in, lifting a little, while
+// the one it leaves blurs and fades away over it; the same session again
+// leaves nothing, and once the switch is done, the session left is gone.
+func TestSessionSwitchAnimates(t *testing.T) {
+	a := testApp(t)
+	second := a.st.Sessions[0]
+	second.ID, second.Name, second.Panes, second.Layout = "s2", "second", second.Panes[:1], nil
+	a.st.Sessions = append(a.st.Sessions, second)
+	tt := ui.NewTester(a.view, 1100, 640)
+	tt.Frame()
+	tt.Frame()
+	if a.shownSession != "s1" || a.lastSession != "" {
+		t.Fatalf("shown %q, last %q", a.shownSession, a.lastSession)
+	}
+	// The same session again: nothing leaves.
+	tt.Frame()
+	if a.lastSession != "" {
+		t.Errorf("the same session, last %q", a.lastSession)
+	}
+	// What the first shows, right of the second's only card: the session
+	// left stays there while it goes.
+	at := func(img *image.RGBA) color.RGBA { return img.RGBAAt(1050, 300) }
+	before := at(tt.Image())
+	a.selectSession("s2")
+	tt.Frame()
+	if a.lastSession != "s1" || a.shownSession != "s2" {
+		t.Fatalf("switched: last %q, shown %q", a.lastSession, a.shownSession)
+	}
+	if on := at(tt.Image()); rgbClose(on, before, 1) {
+		t.Errorf("the session left goes at once: %v, as before", on)
+	}
+	if w := a.paneRef("b").Bounds(nil).W; w != 0 {
+		t.Errorf("a pane of the session left stays, %v wide", w)
+	}
+}

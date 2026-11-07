@@ -197,6 +197,9 @@ type App struct {
 	peek         peek       // the image a path Command hovers shows
 	art          sidebarArt // the picture behind the sidebar
 	paneArt      sidebarArt // the picture in the terminals
+	// shownSession is the session whose panes the last frame showed, and
+	// lastSession the one before it, which goes while it comes.
+	shownSession, lastSession string
 	// from is the host whose program asked for the action being run (hyla
 	// do), nil for the user's.
 	from   *host

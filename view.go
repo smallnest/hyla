@@ -1139,7 +1139,23 @@ func statusIconP(c *ui.Context, pal *palette, st proto.Status, unread bool, prog
 
 // --- the card ---
 
+// sessionSwitch is the transition of a session shown in place of another,
+// as when the user moves from one session to the next: it fades in and
+// up, a little smaller at first, springing, while the session it leaves,
+// as the frame before showed it, blurs and fades away over it.
+//
+// The copy leaving takes neither the pointer nor the focus, but it stays
+// in the chain a press goes down, so a moving session fades under a still
+// pointer alone where the pointer is not.
+var sessionSwitch = ui.ElementTransition{
+	Animation:    &ui.Snappy,
+	ExitDuration: 200 * time.Millisecond,
+	Enter:        &ui.Motion{Opacity: 0, Y: 6, Scale: 0.985},
+	Exit:         &ui.Motion{Opacity: 0, Blur: 8},
+}
+
 func (a *App) card(c *ui.Context, pal *palette, bar ui.TitleBar, shown float32) {
+	c = c.Key("session-" + a.selected)
 	s := a.session(a.selected)
 	h := a.local()
 	if s != nil {
