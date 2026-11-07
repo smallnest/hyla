@@ -457,6 +457,10 @@ func (a *App) groupView(c *ui.Context, pal *palette, g group, gi int, n *int) {
 			needs++
 		}
 	}
+	// A group with a session that needs you wears attention's color, as
+	// the session's status icon does, so that a project folded away still
+	// tells that it holds one.
+	urgent := needs > 0
 	top := float32(18)
 	if gi == 0 {
 		top = 2
@@ -564,8 +568,12 @@ func (a *App) groupView(c *ui.Context, pal *palette, g group, gi int, n *int) {
 		}
 	})
 	hdr.Children(func() {
+		badgeColor := a.projectBadgeColor(g.project)
+		if urgent {
+			badgeColor = pal.attention
+		}
 		badge := ui.Box(c.Key("project-icon-"+key)).Size(projectBadge, projectBadge).Radius(5).Center().Shrink(0).
-			Background(a.projectBadgeColor(g.project)).Children(func() {
+			Background(badgeColor).Children(func() {
 			if ssh || k8s {
 				icon := hostIcon
 				if k8s {
@@ -578,13 +586,18 @@ func (a *App) groupView(c *ui.Context, pal *palette, g group, gi int, n *int) {
 		})
 		if collapsed && current {
 			// The project's sessions are folded away, the one in the card
-			// too: a red dot over the badge's corner says it is still this
-			// project's; its white ring lifts it off any badge color.
+			// too: a dot over the badge's corner says it is still this
+			// project's; its white ring lifts it off any badge color. It is
+			// the badge's own color, which attention's would hide.
+			dot := pal.danger
+			if urgent {
+				dot = a.projectBadgeColor(g.project)
+			}
 			badge.DrawOver(func(p *ui.Painter, r ui.Rect) {
 				cx, cy := r.X+r.W-1, r.Y+r.H-1
 				outer, inner := float32(9), float32(5)
 				p.Fill(ui.Rect{X: cx - outer/2, Y: cy - outer/2, W: outer, H: outer}, ui.Hex("#ffffff"), outer/2)
-				p.Fill(ui.Rect{X: cx - inner/2, Y: cy - inner/2, W: inner, H: inner}, pal.danger, inner/2)
+				p.Fill(ui.Rect{X: cx - inner/2, Y: cy - inner/2, W: inner, H: inner}, dot, inner/2)
 			})
 		}
 		if renaming {

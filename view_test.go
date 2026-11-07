@@ -881,6 +881,58 @@ func TestProjectOrder(t *testing.T) {
 	}
 }
 
+// A project with a session that needs you wears attention's color, as the
+// session's status icon does, so that a folded project still tells it;
+// while it has none, it keeps its own color.
+func TestProjectBadgeAttention(t *testing.T) {
+	a := testApp(t)
+	a.st.Projects = append(a.st.Projects, proto.Project{ID: "p2", Name: "two"})
+	base := a.st.Sessions[0]
+	waiting := base
+	waiting.ID, waiting.Name, waiting.Project, waiting.Status, waiting.Unread = "s2", "deploy", "p2", proto.Waiting, false
+	a.st.Sessions = append(a.st.Sessions, waiting)
+	// The sidebar's width, and its first rows below the header.
+	tt := ui.NewTester(a.view, 1100, 640)
+	tt.Frame()
+	row := func(name string) ui.Rect {
+		r, ok := tt.Find(name)
+		if !ok {
+			t.Fatalf("no %q project; texts %q", name, tt.Texts())
+		}
+		return r
+	}
+	// The badge of a project is the square left of its name.
+	badge := func(name string) color.RGBA {
+		r := row(name)
+		img := tt.Image()
+		x, y := int(r.X)-10, int(r.Y+r.H/2)
+		return img.RGBAAt(x, y)
+	}
+	attention, plain := badge("two"), badge("demo")
+	if attention == plain {
+		t.Fatalf("the badge of the project that needs you is %v, as the other's", attention)
+	}
+	// Folded, it keeps attention's color: its sessions are out of sight.
+	a.prefs.Collapsed["demo"] = true
+	tt.Frame()
+	if folded := badge("two"); folded != attention {
+		t.Errorf("the folded badge is %v, was %v", folded, attention)
+	}
+	// Its color was its place among the projects, which the waiting
+	// takes: answered, it takes it back.
+	own := color.RGBA{79, 138, 106, 255} // projectBadges[1], p2's place
+	for i := range a.st.Sessions {
+		if a.st.Sessions[i].ID == "s2" {
+			a.st.Sessions[i].Status = proto.Working
+		}
+	}
+	a.prefs.Collapsed = map[string]bool{}
+	tt.Frame()
+	if got := badge("two"); got != own {
+		t.Errorf("the badge of the project answered is %v, its own %v", got, own)
+	}
+}
+
 // A project's name dragged onto another project's lower half puts it
 // after that project.
 func TestProjectDrag(t *testing.T) {
