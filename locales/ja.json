@@ -798,5 +798,6 @@
   "switchSlide": "スライド",
   "switchPush": "プッシュ",
   "switchCover": "カバー",
-  "switchZoom": "ズーム"
+  "switchZoom": "ズーム",
+  "dropDirUnknown": "ペインのディレクトリが不明です"
 }

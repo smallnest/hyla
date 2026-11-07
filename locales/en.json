@@ -1373,5 +1373,6 @@
   "switchSlide": "Slide",
   "switchPush": "Push",
   "switchCover": "Cover",
-  "switchZoom": "Zoom"
+  "switchZoom": "Zoom",
+  "dropDirUnknown": "The pane's directory is unknown"
 }

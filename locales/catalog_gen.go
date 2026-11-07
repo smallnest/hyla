@@ -8105,3 +8105,13 @@ func SwitchZoom() string { return In(i18n.Locale()).SwitchZoom() }
 func (msgs Messages) SwitchZoom() string {
 	return Catalog.Format(msgs.locale, "switchZoom", nil)
 }
+
+// DropDirUnknown says "The pane's directory is unknown"
+// in the language the app shows.
+func DropDirUnknown() string { return In(i18n.Locale()).DropDirUnknown() }
+
+// DropDirUnknown says "The pane's directory is unknown"
+// in the language of msgs.
+func (msgs Messages) DropDirUnknown() string {
+	return Catalog.Format(msgs.locale, "dropDirUnknown", nil)
+}

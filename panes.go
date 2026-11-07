@@ -491,21 +491,25 @@ func (z dropZone) side() string {
 
 // dropFiles takes the files dropped on the body of the pane p, from this
 // machine: one of another machine's puts them where its program runs, and
-// pastes their paths there (drop_upload.go). It reports whether files are
-// dropping there now, for the pane to show.
+// pastes their paths there; one of this machine's pastes their paths, as
+// they are (drop_upload.go). It reports whether the pane shows a drop.
 func (a *App) dropFiles(c *ui.Context, pal *palette, s *proto.Session, p *proto.Pane) bool {
 	h := a.hostOf(p.ID)
-	remote := h.remote()
 	body := ui.Box(c.Key("drop")).Absolute().Fill().PassThrough()
 	files := body.DroppedFiles()
-	over := remote && body.FileDragOver()
-	if len(files) > 0 && remote {
-		if h.conn != connReady {
+	over := body.FileDragOver()
+	if len(files) > 0 {
+		if h.remote() && h.conn != connReady {
 			a.toast(locales.HostNotConnected(h.label()))
-		} else {
-			a.defer_(func() { a.dropUpload(p.ID, files) })
-			over = true
+			return a.droppedNow(p.ID)
 		}
+		a.defer_(func() {
+			if h.remote() {
+				a.dropUpload(p.ID, files)
+			} else {
+				a.pasteDrop(p.ID, files)
+			}
+		})
 	}
 	return over || a.droppedNow(p.ID)
 }

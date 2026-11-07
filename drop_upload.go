@@ -112,47 +112,111 @@ func uploadable(dialer client.Dialer, id string) (proto.PaneDir, error) {
 // uploadDrop copies what was dropped to dir of the host, the pane's
 // program's directory, and pastes the paths there into the pane.
 func (a *App) uploadDrop(dialer client.Dialer, id, dir string, dropped []string) error {
-	files, dirs, total, err := dropFiles(dropped)
+	list, err := droppedFiles(dropped)
 	if err != nil {
 		return err
-	}
-	if total > maxUpload {
-		return errors.New(locales.PasteTooLarge(maxUpload >> 20))
 	}
 	s, err := newSFTP(dialer)
 	if err != nil {
 		return err
 	}
 	defer s.Close()
-	if total > 1<<20 {
+	if list.total > 1<<20 {
 		a.main(func() { a.toast(locales.PasteUploading(a.hostOf(id).label())) })
 	}
+	names, err := list.put(s, dir)
+	if err != nil {
+		return err
+	}
 	h := a.hostOf(id)
-	var names []string
-	for _, f := range files {
-		name, err := putFile(s, dir, filepath.Base(f), f)
-		if err != nil {
-			return fmt.Errorf("%s: %v", filepath.Base(f), err)
-		}
-		names = append(names, name)
-	}
-	for _, d := range dirs {
-		name, err := putDir(s, dir, d)
-		if err != nil {
-			return fmt.Errorf("%s: %v", filepath.Base(d), err)
-		}
-		names = append(names, name)
-	}
-	var words []string
-	for _, n := range names {
-		words = append(words, pastedPath(h, path.Join(dir, n)))
-	}
-	line := strings.Join(words, " ")
 	if h.cl == nil {
 		return errors.New(locales.HostNotConnected(h.label()))
 	}
-	h.cl.Go("paste.text", proto.PasteTextParams{Pane: id, Text: line}, nil)
+	h.cl.Go("paste.text", proto.PasteTextParams{Pane: id, Text: pastedLine(h, dir, names), Dir: dir}, nil)
 	return nil
+}
+
+// pasteDrop puts what was dropped on the local pane id in the directory
+// of its program—where the drop came from—and pastes its paths there into
+// the program, as a drop on it in Finder does. The host tells the
+// directory off the main thread; what it says comes back through a.main.
+func (a *App) pasteDrop(id string, dropped []string) {
+	h := a.hostOf(id)
+	cl := h.cl
+	if cl == nil {
+		a.toast(locales.HostNotConnected(h.label()))
+		return
+	}
+	go func() {
+		var pd proto.PaneDir
+		if err := cl.Call("pane.dir", proto.PaneDirParams{Pane: id}, &pd); err != nil {
+			a.main(func() { a.toast(err.Error()) })
+			return
+		}
+		if !h.windows() && !filepath.IsAbs(pd.Dir) {
+			a.main(func() { a.toast(locales.DropDirUnknown()) })
+			return
+		}
+		names := make([]string, len(dropped))
+		for i, f := range dropped {
+			names[i] = filepath.Base(f)
+		}
+		if err := cl.Call("paste.text", proto.PasteTextParams{Pane: id, Text: pastedLine(h, pd.Dir, names), Dir: pd.Dir}, nil); err != nil {
+			a.main(func() { a.toast(err.Error()) })
+		}
+	}()
+}
+
+// droppedFiles lists what was dropped, as its host takes it, bounded.
+func droppedFiles(dropped []string) (droppedList, error) {
+	files, dirs, total, err := dropFiles(dropped)
+	if err != nil {
+		return droppedList{}, err
+	}
+	if total > maxUpload {
+		return droppedList{}, errors.New(locales.PasteTooLarge(maxUpload >> 20))
+	}
+	return droppedList{files: files, dirs: dirs, total: total}, nil
+}
+
+// droppedList is what the user dropped: the files, the folders, and their
+// size all.
+type droppedList struct {
+	files, dirs []string
+	total       int64
+}
+
+// put puts a dropped list in dir of the files s, and returns the names
+// they take there: free ones, so that a drop does not write over what is
+// there.
+func (l droppedList) put(s sftpFS, dir string) ([]string, error) {
+	var names []string
+	for _, f := range l.files {
+		name, err := putFile(s, dir, filepath.Base(f), f)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %v", filepath.Base(f), err)
+		}
+		names = append(names, name)
+	}
+	for _, d := range l.dirs {
+		name, err := putDir(s, dir, d)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %v", filepath.Base(d), err)
+		}
+		names = append(names, name)
+	}
+	return names, nil
+}
+
+// pastedLine writes the names of what was dropped in dir of the host as
+// the words a program takes: their paths there, escaped for its shell,
+// a space apart.
+func pastedLine(h *host, dir string, names []string) string {
+	words := make([]string, len(names))
+	for i, n := range names {
+		words[i] = pastedPath(h, path.Join(dir, n))
+	}
+	return strings.Join(words, " ")
 }
 
 // newSFTP opens an SFTP connection to a host, over a remote connection of

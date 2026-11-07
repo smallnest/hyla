@@ -798,5 +798,6 @@
   "switchSlide": "滑动",
   "switchPush": "推移",
   "switchCover": "覆盖",
-  "switchZoom": "缩放"
+  "switchZoom": "缩放",
+  "dropDirUnknown": "窗格的目录未知"
 }

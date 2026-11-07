@@ -1,9 +1,16 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
+
+	"github.com/egoist/mygo/ui"
+
+	"hyla/internal/proto"
 )
 
 // TestDropFiles lists what a drop holds: files, and folders with their
@@ -133,5 +140,44 @@ func TestPutFileAndDir(t *testing.T) {
 	names, _ := os.ReadDir(dst)
 	if len(names) != 3 {
 		t.Errorf("dst holds %v", names)
+	}
+}
+
+// Dropping a file on a pane of this machine pastes its path into the
+// program, as it is, escaped for the shell, with no copy made.
+func TestPasteDropLocal(t *testing.T) {
+	a := testDropApp(t)
+	pasted := make(chan proto.PasteTextParams, 1)
+	cl, stop := projectClient(t, func(method string, raw json.RawMessage) (any, error) {
+		switch method {
+		case "pane.dir":
+			return proto.PaneDir{Dir: "/work"}, nil
+		case "paste.text":
+			var p proto.PasteTextParams
+			json.Unmarshal(raw, &p)
+			pasted <- p
+			return nil, nil
+		}
+		return nil, fmt.Errorf("test daemon rejected %s", method)
+	})
+	defer stop()
+	a.local().cl = cl
+	dir := t.TempDir()
+	file := filepath.Join(dir, "my notes.txt")
+	if err := os.WriteFile(file, []byte("dropped"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	tt := ui.NewTester(a.view, 1100, 640)
+	tt.Frame()
+	if !tt.DropFiles(400, 340, file) {
+		t.Fatal("the pane took no drop")
+	}
+	select {
+	case p := <-pasted:
+		if want := "/work/my\\ notes.txt"; p.Text != want || p.Dir != "/work" {
+			t.Errorf("pasted %q from %q, want %q", p.Text, p.Dir, want)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("no paste")
 	}
 }

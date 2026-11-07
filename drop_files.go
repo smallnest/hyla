@@ -1,9 +1,6 @@
 package main
 
 import (
-	"os/exec"
-	"runtime"
-
 	"hyla/internal/proto"
 
 	"hyla/locales"
@@ -11,9 +8,9 @@ import (
 
 // Files dragged from this machine onto what a session shows, its panes or
 // the panel beside them, go to the session's panes: those of another
-// machine's put them where their programs run, and paste their paths there
-// (drop_upload.go); those of this machine show a file of theirs in Finder,
-// as dropping it on a desktop would.
+// machine's put them where their programs run, and paste their paths there;
+// those of this machine stay where they are, and paste their paths into
+// their programs (drop_upload.go).
 //
 // A window's content floats the files a drag carries over it, and the app
 // fades a file dragged over a page where a terminal is drawn, the page
@@ -38,7 +35,9 @@ func (a *App) cardDrop(s *proto.Session, files []string) {
 		a.dropUpload(p.ID, files)
 		return
 	}
-	revealFile(files[0])
+	// The file stays where it is, of this machine, and its path goes into
+	// the program there, as it is.
+	a.pasteDrop(p.ID, files)
 }
 
 // dropPane returns the pane of the session s that files dropped on its
@@ -48,14 +47,4 @@ func (a *App) dropPane(s *proto.Session) *proto.Pane {
 		return p
 	}
 	return s.FocusPane()
-}
-
-// revealFile shows a file of this machine in Finder, as dropping it on a
-// desktop would.
-func revealFile(path string) {
-	if runtime.GOOS == "darwin" {
-		exec.Command("open", "-R", path).Start()
-		return
-	}
-	exec.Command("explorer", "/select,"+path).Start()
 }
