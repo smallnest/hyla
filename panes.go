@@ -99,13 +99,14 @@ func (a *App) focusTerminal() {
 func (a *App) panes(c *ui.Context, pal *palette, bar ui.TitleBar, shown float32, s *proto.Session, right bool) {
 	// A session shown over another, as when the user moves from one to the
 	// next, comes in as sessionSwitch says, and its panes move to their
-	// place in the frames that come after: it shows at their place as
-	// soon as it built.
+	// place in the frames that come after: it shows at their place as soon
+	// as it built, on the frame after the one that brings it in.
 	switched := false
 	if a.shownSession != "" && a.shownSession != s.ID {
 		a.switchTo(c)
 		switched = true
 	}
+	a.settle()
 	a.shownSession = s.ID
 	sw := a.sessionSwitch()
 	slot := ui.Box(c.Key("slot-" + s.ID)).Absolute().Left(0).Top(0).Right(0).Bottom(0)
@@ -141,6 +142,17 @@ func (a *App) switchTo(c *ui.Context) {
 		return
 	}
 	a.switchFrom, a.switchIn = sw.motion(), true
+	c.After(60 * time.Millisecond)
+}
+
+// settle lands a switch once its frames go on: a frame built later, for
+// what the user asks, as a key, shows the panes at their place, and not
+// back where they came from.
+func (a *App) settle() {
+	if !a.switchIn {
+		return
+	}
+	a.switchIn, a.switchFrom = false, ui.Motion{}
 }
 
 // sessionPanes lays out a session's panes.

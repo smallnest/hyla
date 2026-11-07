@@ -1150,7 +1150,8 @@ func statusIconP(c *ui.Context, pal *palette, st proto.Status, unread bool, prog
 // neither the pointer nor the focus, but it stays in the chain a press
 // goes down, so a moving session fades under a still pointer alone where
 // the pointer is not. The others move the panes as their poses go, from
-// where the switch brings them, to their place (switchTo, panes).
+// where the switch brings them, to their place, which the frames after
+// the one that brings them in pose (switchTo, settle, panes).
 type sessionSwitch int
 
 const (
