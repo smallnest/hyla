@@ -4,6 +4,12 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.5.2
+
+- **SSH 主机** and **K8s Pods** rows offer **重连主机** in their menu: it
+  opens a new terminal in place of the one the row had, whether it still
+  runs or has ended, as when ssh or kubectl exits with the connection.
+
 ## 3.5.1
 
 - Hyla's Feishu bot keeps a chat's coding-agent conversation across a
