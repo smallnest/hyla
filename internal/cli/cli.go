@@ -1153,7 +1153,7 @@ func remoteDaemonCmd(sub string, args []string, host string) error {
 	defer cancel()
 	switch sub {
 	case "status":
-		h := rc.Welcome.Host
+		h := rc.Welcome().Host
 		fmt.Printf("%s: %s (%s/%s), Hyla %s (protocol %d)\n", host, h.Hostname, h.OS, h.Arch, orDash(h.Hyla), h.Version)
 		c, err := client.ConnectVia(rc)
 		if err != nil {

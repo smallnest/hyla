@@ -52,9 +52,10 @@ func (a *App) dropUpload(id string, dropped []string) {
 		a.toast(locales.HostNotConnected(h.label()))
 		return
 	}
-	// The pane's slot is taken now, so that a pane shows its program first
-	// once its upload ends (droppedNow).
-	a.uploading = append(a.uploading, paneUpload{id: id})
+	// The pane's slot shows the upload on the next frame (droppedNow),
+	// and comes off with its end.
+	up := paneUpload{id: id}
+	a.uploading = append(a.uploading, up)
 	dialer := h.dialer()
 	go func() {
 		pd, err := uploadable(dialer, id)
@@ -62,29 +63,29 @@ func (a *App) dropUpload(id string, dropped []string) {
 		if err == nil {
 			dir = pd.Dir
 		}
-		a.update(func() { a.uploadDir(id, dir) })
+		a.main(func() {
+			up.dir = dir
+			a.uploadDir(up)
+		})
 		if err == nil {
 			err = a.uploadDrop(dialer, id, dir, dropped)
 		}
-		a.update(func() { a.dropDone(id, err) })
+		// The end comes with its own frame, which takes the slot up, if
+		// none was built while the upload was under way (uploadDir).
+		a.main(func() { a.dropDone(up, err) })
 	}()
 }
 
-// uploadDir sets the directory of the upload of a pane, once its host
-// told it.
-func (a *App) uploadDir(id, dir string) {
-	for i := range a.uploading {
-		if a.uploading[i].id == id {
-			a.uploading[i].dir = dir
-		}
-	}
+// uploadDir sets the directory of an upload, once its host told it.
+func (a *App) uploadDir(up paneUpload) {
+	a.uploading = append(slices.DeleteFunc(a.uploading, func(u paneUpload) bool { return u.id == up.id }), up)
 }
 
-// dropDone ends the upload of a pane, and says what went wrong, if
-// anything; a pane that shows first, once its upload is done, shows with
-// the paths pasted.
-func (a *App) dropDone(id string, err error) {
-	a.uploading = slices.DeleteFunc(a.uploading, func(u paneUpload) bool { return u.id == id })
+// dropDone ends an upload, and says what went wrong, if anything; a pane
+// that shows first, once its upload is done, shows with the paths
+// pasted.
+func (a *App) dropDone(up paneUpload, err error) {
+	a.uploading = slices.DeleteFunc(a.uploading, func(u paneUpload) bool { return u == up })
 	if err != nil {
 		a.toast(err.Error())
 	}
@@ -118,18 +119,13 @@ func (a *App) uploadDrop(dialer client.Dialer, id, dir string, dropped []string)
 	if total > maxUpload {
 		return errors.New(locales.PasteTooLarge(maxUpload >> 20))
 	}
-	cl, err := client.ConnectVia(dialer)
-	if err != nil {
-		return err
-	}
-	defer cl.Close()
 	s, err := newSFTP(dialer)
 	if err != nil {
 		return err
 	}
 	defer s.Close()
 	if total > 1<<20 {
-		a.update(func() { a.toast(locales.PasteUploading(a.hostOf(id).label())) })
+		a.main(func() { a.toast(locales.PasteUploading(a.hostOf(id).label())) })
 	}
 	h := a.hostOf(id)
 	var names []string
@@ -152,6 +148,9 @@ func (a *App) uploadDrop(dialer client.Dialer, id, dir string, dropped []string)
 		words = append(words, pastedPath(h, path.Join(dir, n)))
 	}
 	line := strings.Join(words, " ")
+	if h.cl == nil {
+		return errors.New(locales.HostNotConnected(h.label()))
+	}
 	h.cl.Go("paste.text", proto.PasteTextParams{Pane: id, Text: line}, nil)
 	return nil
 }
@@ -160,11 +159,11 @@ func (a *App) uploadDrop(dialer client.Dialer, id, dir string, dropped []string)
 // its own: as scp's, which puts files on the host from the user's
 // namespaces there. A var for tests.
 var newSFTP = func(dialer client.Dialer) (sftpFS, error) {
-	r, ok := dialer.(*remote.Conn)
+	r, ok := dialer.(remote.Opener)
 	if !ok {
 		return nil, errors.New("the host is this machine's")
 	}
-	conn, err := r.SFTP()
+	conn, err := remote.OpenSFTP(r)
 	if err != nil {
 		return nil, err
 	}

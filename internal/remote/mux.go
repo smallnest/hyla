@@ -89,7 +89,7 @@ type Options struct {
 // Conn is a remote connection: streams to hylad on a host.
 type Conn struct {
 	Addr    Addr
-	Welcome proto.MuxWelcome
+	welcome proto.MuxWelcome
 	sess    *yamux.Session
 	tr      io.Closer
 	// tc is the client a tailcat connection runs over, which counts
@@ -184,7 +184,7 @@ func handshake(ctx context.Context, tr io.ReadWriteCloser, a Addr, o Options) (*
 		tr.Close()
 		return nil, err
 	}
-	out := &Conn{Addr: a, Welcome: w, sess: sess, tr: tr}
+	out := &Conn{Addr: a, welcome: w, sess: sess, tr: tr}
 	out.tc, _ = tr.(*tailcatTransport)
 	return out, nil
 }
@@ -213,6 +213,9 @@ func readWelcome(br *bufio.Reader) (proto.MuxWelcome, error) {
 	}
 	return w, fmt.Errorf("the host answered what is not Hyla: %q", bytes.TrimSpace(junk[:min(len(junk), 200)]))
 }
+
+// Welcome is what the host said as the connection opened.
+func (c *Conn) Welcome() proto.MuxWelcome { return c.welcome }
 
 // Open opens a stream: a connection to hylad, as the local socket gives.
 func (c *Conn) Open() (net.Conn, error) {

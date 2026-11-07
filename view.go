@@ -1227,34 +1227,48 @@ func (sw sessionSwitch) pose(from ui.Motion, in bool) ui.Pose {
 }
 
 func (a *App) card(c *ui.Context, pal *palette, bar ui.TitleBar, shown float32) {
-	c = c.Key("session-" + a.selected)
-	s := a.session(a.selected)
+	a.cardFor(c, pal, bar, shown, a.selected)
+}
+
+// cardFor shows the card of the session id: its panes, and the side panel,
+// when the window is wide enough for both.
+func (a *App) cardFor(c *ui.Context, pal *palette, bar ui.TitleBar, shown float32, selected string) {
+	c = c.Key("session-" + selected)
+	s := a.session(selected)
 	h := a.local()
 	if s != nil {
 		h = a.hostOf(s.ID)
 	}
 	if s != nil && h.conn != connVersion && a.loaded {
-		if !a.rightShown() {
-			a.panes(c, pal, bar, shown, s, true)
-			return
+		// Files dropped on the content go to the session's panes, on them,
+		// between them or on the panel beside them (drop_files.go).
+		box := ui.Column(c.Key("card")).Grow(1).Basis(0).MinWidth(0).MinHeight(0)
+		if files := box.DroppedFiles(); len(files) > 0 {
+			a.cardDrop(s, files)
 		}
-		// The panes, then the side panel, which takes the window's
-		// right edge.
-		row := ui.Row(c.Key("with-side")).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Bind(a.paneRef("with-side"))
-		w := a.side.rowW
-		if a.side.rowW == 0 {
-			w = a.paneRef("with-side").Bounds(c).W
-		}
-		row.Children(func() {
-			// The gap between the panes and the side panel is this
-			// column's end margin, which the panel's edge drags (side.go).
-			ui.Column(c.Key("panes")).Grow(1).Basis(0).MinWidth(0).AlignItems(ui.Stretch).Padding(0, sideGap, 0, 0).Children(func() {
-				a.panes(c, pal, bar, shown, s, false)
-			})
-			a.sideEdge(c, pal, w)
-			if a.rightShown() {
-				a.sidePanel(c, pal, s, a.sideWidth(w), true)
+		box.Children(func() {
+			if !a.rightShown() {
+				a.panes(c, pal, bar, shown, s, true)
+				return
 			}
+			// The panes, then the side panel, which takes the window's
+			// right edge.
+			row := ui.Row(c.Key("with-side")).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Bind(a.paneRef("with-side"))
+			w := a.side.rowW
+			if a.side.rowW == 0 {
+				w = a.paneRef("with-side").Bounds(c).W
+			}
+			row.Children(func() {
+				// The gap between the panes and the side panel is this
+				// column's end margin, which the panel's edge drags (side.go).
+				ui.Column(c.Key("panes")).Grow(1).Basis(0).MinWidth(0).AlignItems(ui.Stretch).Padding(0, sideGap, 0, 0).Children(func() {
+					a.panes(c, pal, bar, shown, s, false)
+				})
+				a.sideEdge(c, pal, w)
+				if a.rightShown() {
+					a.sidePanel(c, pal, s, a.sideWidth(w), true)
+				}
+			})
 		})
 		return
 	}

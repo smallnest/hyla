@@ -82,7 +82,7 @@ func versionCmd(host string) error {
 		return err
 	}
 	defer rc.Close()
-	h := rc.Welcome.Host
+	h := rc.Welcome().Host
 	fmt.Printf("%s: hyla %s (protocol %d) on %s/%s\n", host, orDash(h.Hyla), h.Version, h.OS, h.Arch)
 	return nil
 }
@@ -162,7 +162,7 @@ func connectWithin(host string, d time.Duration) (*client.Client, func(), error)
 	if err != nil {
 		rc.Close()
 		if errors.Is(err, client.ErrVersion) {
-			return nil, nil, fmt.Errorf("%w: hylad on %s runs Hyla %s: update it, or this one (hyla -H %s daemon update)", errUnreachable, host, rc.Welcome.Host.Hyla, host)
+			return nil, nil, fmt.Errorf("%w: hylad on %s runs Hyla %s: update it, or this one (hyla -H %s daemon update)", errUnreachable, host, rc.Welcome().Host.Hyla, host)
 		}
 		return nil, nil, fmt.Errorf("%w: %s: %v", errUnreachable, host, err)
 	}
@@ -326,8 +326,8 @@ func hostsCmd(args []string) error {
 			return err
 		}
 		defer rc.Close()
-		h := rc.Welcome.Host
-		fmt.Printf("%s: connected in %s, compression %s\n", f.pos[1], time.Since(start).Round(time.Millisecond), orDash(rc.Welcome.Compress))
+		h := rc.Welcome().Host
+		fmt.Printf("%s: connected in %s, compression %s\n", f.pos[1], time.Since(start).Round(time.Millisecond), orDash(rc.Welcome().Compress))
 		fmt.Printf("host: %s (%s/%s), as %s, home %s\n", h.Hostname, h.OS, h.Arch, h.User, h.Home)
 		kind := "the desktop app"
 		if h.Server {

@@ -146,8 +146,8 @@ func TestTailnetListener(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer rc.Close()
-	if rc.Welcome.Host.Peer != "alice@example.com" || rc.Welcome.Host.Version != proto.Version {
-		t.Errorf("welcome %+v", rc.Welcome)
+	if rc.Welcome().Host.Peer != "alice@example.com" || rc.Welcome().Host.Version != proto.Version {
+		t.Errorf("welcome %+v", rc.Welcome())
 	}
 	c, err := hylaclient.ConnectVia(rc)
 	if err != nil {

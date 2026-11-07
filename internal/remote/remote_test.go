@@ -320,8 +320,8 @@ func dialPipe(t *testing.T, s *Server, junk string) (*Conn, chan error) {
 
 func TestMuxStreams(t *testing.T) {
 	c, done := dialPipe(t, echoServer(t), "Welcome to the box!\nlast login: today")
-	if c.Welcome.Host.Hostname != "box" || c.Welcome.Compress != deflate {
-		t.Fatalf("welcome %+v", c.Welcome)
+	if c.Welcome().Host.Hostname != "box" || c.Welcome().Compress != deflate {
+		t.Fatalf("welcome %+v", c.Welcome())
 	}
 	var wg sync.WaitGroup
 	for i := range 20 {

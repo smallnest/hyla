@@ -33,7 +33,7 @@ type host struct {
 	tc   bool          // reached over tailcat, whose list it is of
 	addr remote.Addr
 
-	rc        *remote.Conn // a remote host's connection, nil while there is none
+	rc        remoteLink // a remote host's connection, nil while there is none
 	cl        *client.Client
 	conn      connState
 	err       string // why the last connection failed
@@ -72,6 +72,18 @@ func (h *host) dialer() client.Dialer {
 		return lostDialer(h.name)
 	}
 	return client.Local{NoStart: true}
+}
+
+// remoteLink is what the app needs of a remote connection
+// (remote.Conn): streams to the host, and its end, which comes once.
+type remoteLink interface {
+	client.Dialer
+	remote.Opener
+	Close() error
+	Done() <-chan struct{}
+	// Host asks hylad to restart or update (remote.Conn.Host).
+	Host(ctx context.Context, req proto.HostRequest) error
+	Welcome() proto.MuxWelcome
 }
 
 // lostDialer is the dialer of a host the app has no connection to.
@@ -383,7 +395,7 @@ func appClientName() string {
 }
 
 // connected takes the result of connectHost.
-func (a *App) connected(h *host, gen int, rc *remote.Conn, cl *client.Client, err error) {
+func (a *App) connected(h *host, gen int, rc remoteLink, cl *client.Client, err error) {
 	if h.gen != gen || !slices.Contains(a.hosts, h) {
 		if cl != nil {
 			go cl.Close()
@@ -406,7 +418,7 @@ func (a *App) connected(h *host, gen int, rc *remote.Conn, cl *client.Client, er
 		}
 	}
 	if rc != nil && rc != h.rc {
-		h.rc, h.info = rc, rc.Welcome.Host
+		h.rc, h.info = rc, rc.Welcome().Host
 		go func() {
 			<-rc.Done()
 			a.update(func() { a.lost(h, rc) })
@@ -479,7 +491,7 @@ func (a *App) retryLater(h *host) {
 // lost follows a remote connection that ended, as on a network gone, or
 // a laptop that slept: the host's terminals and hylad are reached again
 // through a new one.
-func (a *App) lost(h *host, rc *remote.Conn) {
+func (a *App) lost(h *host, rc remoteLink) {
 	if h.rc != rc {
 		return
 	}
@@ -645,10 +657,10 @@ func hyladID(h *host, cl *client.Client) string {
 // sameHylad returns the host whose hylad a connection reaches already,
 // as this machine's over ssh://localhost, or one host added twice; nil
 // for none.
-func (a *App) sameHylad(h *host, rc *remote.Conn, cl *client.Client) *host {
+func (a *App) sameHylad(h *host, rc remoteLink, cl *client.Client) *host {
 	name := h.info.Hostname
 	if rc != nil {
-		name = rc.Welcome.Host.Hostname
+		name = rc.Welcome().Host.Hostname
 	}
 	id := fmt.Sprintf("%s/%d/%d", name, cl.Welcome.PID, cl.Welcome.Started)
 	for _, o := range a.hosts {

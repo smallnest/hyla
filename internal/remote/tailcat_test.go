@@ -118,8 +118,8 @@ func TestTailcatMux(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer c.Close()
-	if c.Welcome.Mux != proto.MuxVersion || c.Welcome.Host.Hostname != "box" {
-		t.Fatalf("welcome %+v", c.Welcome)
+	if c.Welcome().Mux != proto.MuxVersion || c.Welcome().Host.Hostname != "box" {
+		t.Fatalf("welcome %+v", c.Welcome())
 	}
 	st, err := c.Open()
 	if err != nil {

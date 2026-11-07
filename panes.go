@@ -349,6 +349,10 @@ func (a *App) paneCard(c *ui.Context, pal *palette, bar ui.TitleBar, shown float
 	}
 
 	dragging := false
+	// dropping tells that files are dropping on the body of the pane, from
+	// this machine or another Hyla, which it takes: a remote one puts them
+	// where its program runs (drop_upload.go).
+	dropping := false
 	card.Children(func() {
 		if p.FilePane() {
 			dragging = a.paneHeader(c, pal, bar, shown, s, p, top, left, right, multi, focused, hovered)
@@ -356,13 +360,16 @@ func (a *App) paneCard(c *ui.Context, pal *palette, bar ui.TitleBar, shown float
 		} else if p.Browser() {
 			// A browser's address bar is its header.
 			dragging = a.paneBrowser(c, pal, bar, shown, s, p, top, left, right, multi, focused, hovered)
+			dropping = a.dropFiles(c, pal, s, p)
 		} else {
 			dragging = a.paneHeader(c, pal, bar, shown, s, p, top, left, right, multi, focused, hovered)
 			if chat {
 				// The session's conversation, as a chat, in the terminal's
 				// place (chat.go).
+				dropping = a.dropFiles(c, pal, s, p)
 				a.chatBody(c, pal, s)
 			} else {
+				dropping = a.dropFiles(c, pal, s, p)
 				a.paneTerminal(c, pal, s, p)
 			}
 		}
@@ -373,21 +380,6 @@ func (a *App) paneCard(c *ui.Context, pal *palette, bar ui.TitleBar, shown float
 		}
 		if zone != zoneNone {
 			a.dropPreview(c, pal, p.ID, zone)
-		}
-		// Files dragged from this machine onto the card of another
-		// machine's pane go to where its program runs, and their paths
-		// there are pasted into it (drop_upload.go).
-		if !chat && a.hostOf(p.ID).remote() {
-			if files := card.DroppedFiles(); len(files) > 0 {
-				if h := a.hostOf(p.ID); h.remote() {
-					a.defer_(func() { a.dropUpload(p.ID, files) })
-				}
-			}
-			if card.FileDragOver() || a.droppedNow(p.ID) {
-				card.Draw(func(pr *ui.Painter, r ui.Rect) {
-					pr.Stroke(ui.Rect{X: r.X + 1.5, Y: r.Y + 1.5, W: r.W - 3, H: r.H - 3}, pal.accent.Alpha(0.65), 12, 2)
-				})
-			}
 		}
 	})
 
@@ -403,6 +395,12 @@ func (a *App) paneCard(c *ui.Context, pal *palette, bar ui.TitleBar, shown float
 		c.Invalidate()
 	}
 	card.AnimatePose(pose, ui.Animation{Spring: ui.SpringOptions{Duration: 420 * time.Millisecond, Bounce: 0.18}})
+	if dropping {
+		// Files go in where its program runs.
+		card.Draw(func(pr *ui.Painter, r ui.Rect) {
+			pr.Stroke(ui.Rect{X: r.X + 1.5, Y: r.Y + 1.5, W: r.W - 3, H: r.H - 3}, pal.accent.Alpha(0.65), 12, 2)
+		})
+	}
 }
 
 // paneBackground is what a terminal's card shows in place of its
@@ -491,6 +489,27 @@ func (z dropZone) side() string {
 	return [...]string{"", "left", "right", "up", "down", ""}[z]
 }
 
+// dropFiles takes the files dropped on the body of the pane p, from this
+// machine: one of another machine's puts them where its program runs, and
+// pastes their paths there (drop_upload.go). It reports whether files are
+// dropping there now, for the pane to show.
+func (a *App) dropFiles(c *ui.Context, pal *palette, s *proto.Session, p *proto.Pane) bool {
+	h := a.hostOf(p.ID)
+	remote := h.remote()
+	body := ui.Box(c.Key("drop")).Absolute().Fill().PassThrough()
+	files := body.DroppedFiles()
+	over := remote && body.FileDragOver()
+	if len(files) > 0 && remote {
+		if h.conn != connReady {
+			a.toast(locales.HostNotConnected(h.label()))
+		} else {
+			a.defer_(func() { a.dropUpload(p.ID, files) })
+			over = true
+		}
+	}
+	return over || a.droppedNow(p.ID)
+}
+
 // dropPreview shows, over the pane under the pointer, the room the
 // dragged pane would take, gliding from zone to zone, with what dropping
 // does.
@@ -522,7 +541,7 @@ func (a *App) dropPreview(c *ui.Context, pal *palette, target string, zone dropZ
 		c.AnimationFrame()
 	}
 	spring := ui.Animation{Spring: ui.SpringOptions{Duration: 300 * time.Millisecond, Bounce: 0.12}}
-	o := ui.Column(c.Key("drop")).Absolute().PassThrough().Padding(8).Opacity(fadeIn)
+	o := ui.Column(c).Key("drop-preview").Absolute().PassThrough().Padding(8).Opacity(fadeIn)
 	o.LeftPercent(o.AnimateTo("l", r[0], spring)).TopPercent(o.AnimateTo("t", r[1], spring)).
 		WidthPercent(o.AnimateTo("w", r[2], spring)).HeightPercent(o.AnimateTo("h", r[3], spring))
 	o.Children(func() {
