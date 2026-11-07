@@ -204,10 +204,6 @@ type App struct {
 	// switchFrom posed, on its way in: the one after, posing its place.
 	switchIn   bool
 	switchFrom ui.Motion
-	// switchAt is when a switch came in, which lands switchLand after:
-	// landed tells that the frame after that shows it at its place.
-	switchAt time.Time
-	landed   bool
 	// from is the host whose program asked for the action being run (hyla
 	// do), nil for the user's.
 	from   *host
