@@ -8,8 +8,10 @@ number; the notes of the upstream releases it includes follow its own.
 
 - A terminal can show its own background picture, apart from the window's:
   **设置 › 外观 › 终端背景图**, or `pane-image` and `pane-image-opacity`.
-  The picture fills each terminal's card as wide as it, from its top,
-  under the text, in place of the window's background.
+  The picture shows under the text, in place of the window's background,
+  as wide as the card from its top; **铺放方式**, or `pane-image-fit`, fills
+  a card as a macOS desktop picture's options do: fill, fit, stretch,
+  center or tile.
 
 ## 3.5.2
 

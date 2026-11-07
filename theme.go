@@ -235,7 +235,7 @@ func backdrop(c *ui.Context, pal *palette, row ui.Element, s settings.Settings) 
 // while it comes, or when it is no picture.
 func paneGlass(pal *palette, s settings.Settings, art *sidebarArt) ui.Material {
 	if s.PaneImage != "" {
-		m := &panePicture{opacity: s.PaneImageOpacity, base: pal.card}
+		m := &panePicture{opacity: s.PaneImageOpacity, fit: s.PaneImageFit, base: pal.card}
 		if art != nil {
 			m.bm = art.bm
 			if art.card != nil {
@@ -258,54 +258,81 @@ func paneGlass(pal *palette, s settings.Settings, art *sidebarArt) ui.Material {
 }
 
 // panePicture is a terminal's card showing the terminal's picture, pane
-// image, in place of its background: the picture as wide as the card, and
-// on from its top, in bands of the card's height (see PaintMaterial), as
-// faint as the picture shows, over the card's color at the rest, so that
-// the text stays legible. It leaves the glass out, as a window's own
-// picture does: a frosted card under the picture would hide it.
+// image, in place of its background: the picture as fit says, as faint as
+// the picture shows, over the card's color at the rest, so that the text
+// stays legible. It leaves the glass out, as a window's own picture does:
+// a frosted card under the picture would hide it.
 type panePicture struct {
 	bm      *ui.Bitmap
 	opacity float32
+	fit     string   // pane image fit: "fill", "fit", "stretch", "center" or "tile"
 	base    ui.Color // the card's color under the picture
 }
 
-// PaintMaterial draws the picture as wide as the card, from the card's top
-// down, in bands each as tall as the card takes one: the scene draws an
-// image whole where its first pixels fall in the view, and no further than
-// the view is large, so a picture taller than the view would show its top
-// stretched, where a band no taller than the card shows where it lies.
-// Then the card's color, at the rest: as faint as the picture shows, and
-// the text legible whatever the picture.
+// PaintMaterial draws the picture as fit says, then the card's color over
+// it, at the rest: as faint as the picture shows, and the text legible
+// whatever the picture.
 func (m *panePicture) PaintMaterial(p *ui.Painter, box ui.Rect, radii [4]float32) {
 	p.Fill(box, m.base, radii[0])
-	if m.bm == nil {
-		return
+	if nw, nh := ui.ImageSize(m.bm); m.bm != nil && m.opacity > 0 && nw > 0 && nh > 0 && box.W > 0 && box.H > 0 {
+		m.paint(p, box, radii, nw, nh)
 	}
-	nw, nh := ui.ImageSize(m.bm)
-	if m.opacity <= 0 || nw <= 0 || nh <= 0 || box.W <= 0 || box.H <= 0 {
-		return
-	}
-	k := box.W / nw // a pixel of the picture, in the card's
-	lines := max(int(math.Ceil(float64(nh/(box.H/k)))), 1)
-	band := nh / float32(lines)
-	at := box.Y
+	// The card's color over it, at the rest, as faint as the picture
+	// shows: the text stays legible whatever the picture.
+	p.Fill(box, m.base.Alpha(1-m.opacity), radii[0])
+}
+
+// paint draws the picture as fit says: "fill" as wide as the card, from
+// its top; "fit" all of it within the card; "stretch" to its edges;
+// "center" its own size at its middle; and "tile" its own size from there.
+func (m *panePicture) paint(p *ui.Painter, box ui.Rect, radii [4]float32, nw, nh float32) {
 	p.Clip(box, radii[0], func() {
-		for i := range lines {
-			src := ui.Rect{Y: float32(i) * band, W: nw, H: band}
-			high := band * k
-			if at+high > box.Y+box.H {
-				// The card's bottom crops the last band.
-				high = box.Y + box.H - at
-				src.H = min(src.H, high/k)
+		switch m.fit {
+		case "stretch":
+			p.ImageRegion(m.bm, ui.Rect{}, box, ui.ImageOptions{})
+		case "fit":
+			scale := min(box.W/nw, box.H/nh)
+			picture(p, m.bm, ui.Rect{X: box.X + (box.W-nw*scale)/2, Y: box.Y + (box.H-nh*scale)/2, W: nw * scale, H: nh * scale}, box)
+		case "center":
+			picture(p, m.bm, ui.Rect{X: box.X + (box.W-nw)/2, Y: box.Y + (box.H-nh)/2, W: nw, H: nh}, box)
+		case "tile":
+			x0, y0 := box.X+(box.W-nw)/2, box.Y+(box.H-nh)/2
+			for ty := y0 - float32(math.Ceil(float64((y0-box.Y)/nh)))*nh; ty < box.Y+box.H; ty += nh {
+				for tx := x0 - float32(math.Ceil(float64((x0-box.X)/nw)))*nw; tx < box.X+box.W; tx += nw {
+					picture(p, m.bm, ui.Rect{X: tx, Y: ty, W: nw, H: nh}, box)
+				}
 			}
-			if src.H <= 0 {
-				continue
-			}
-			p.ImageRegion(m.bm, src, ui.Rect{X: box.X, Y: at, W: box.W, H: high}, ui.ImageOptions{})
-			at += high
+		default: // "fill"
+			picture(p, m.bm, ui.Rect{X: box.X, Y: box.Y, W: box.W, H: nh * box.W / nw}, box)
 		}
 	})
-	p.Fill(box, m.base.Alpha(1-m.opacity), radii[0])
+}
+
+// picture draws the bitmap at place in the card, cropped by it, in bands
+// of the card's height: the scene draws an image whole where its first
+// pixels fall in the view, and no further than the view is large, so an
+// image larger than the view would show its top stretched, where a band
+// no larger than it shows where it lies.
+func picture(p *ui.Painter, bm *ui.Bitmap, place, box ui.Rect) {
+	left, top := max(place.X, box.X), max(place.Y, box.Y)
+	right, bottom := min(place.X+place.W, box.X+box.W), min(place.Y+place.H, box.Y+box.H)
+	if right <= left || bottom <= top {
+		return
+	}
+	nw, nh := ui.ImageSize(bm)
+	// The part of the picture that shows, in its pixels.
+	src := ui.Rect{
+		X: (left - place.X) / place.W * nw, Y: (top - place.Y) / place.H * nh,
+		W: (right - left) / place.W * nw, H: (bottom - top) / place.H * nh,
+	}
+	// Eight rows of the card a band, at most.
+	cardBands := 8
+	lines := max(int(math.Ceil(float64(src.H/((bottom-top)/float32(cardBands))))), 1)
+	band, high := src.H/float32(lines), (bottom-top)/float32(lines)
+	for i := range lines {
+		p.ImageRegion(bm, ui.Rect{X: src.X, Y: src.Y + float32(i)*band, W: src.W, H: band},
+			ui.Rect{X: left, Y: top + float32(i)*high, W: right - left, H: high}, ui.ImageOptions{})
+	}
 }
 
 // paneFrost is a terminal's card with the terminal blur on: the wash it

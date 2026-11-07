@@ -54,9 +54,10 @@ type Settings struct {
 	// PaneImage is a picture of this machine shown in the terminals'
 	// cards, under their text, in place of the window's background: an
 	// image file's path, "" for none. PaneImageOpacity is how much of it
-	// shows, 0 to 1.
+	// shows, 0 to 1. PaneImageFit is how it fills the card, as PaneImageFits.
 	PaneImage        string  `json:"paneImage"`
 	PaneImageOpacity float32 `json:"paneImageOpacity"`
+	PaneImageFit     string  `json:"paneImageFit"`
 	PaneOpacity      float32 `json:"paneOpacity"` // how much of the window's background shows in a terminal, 0 to 1
 	PaneBlur         bool    `json:"paneBlur"`    // blur what shows through the terminals
 	// PaneMaterial is the terminal's glass where PaneBlur is on: "glass"
@@ -216,6 +217,17 @@ const DefaultPaneOpacity = 0.82
 // faintly, as a veil under the text.
 const DefaultPaneImageOpacity = 0.6
 
+// PaneImageFits are how a terminal's picture fills its card, as a macOS
+// desktop picture's options: "fill" as wide as the card, from its top;
+// "fit" all of it, its shape kept; "stretch" to the card's edges;
+// "center" its own size at the card's middle; "tile" its own size from
+// there.
+var PaneImageFits = []string{"fill", "fit", "stretch", "center", "tile"}
+
+// DefaultPaneImageFit is how a terminal's picture fills its card: as
+// large as the card covers, its top at the card's.
+const DefaultPaneImageFit = "fill"
+
 // PaneBlurRadius is how much a terminal blurs what shows through it, in
 // DIPs, with terminal blur on: a frost that hides what is under it, where
 // the window's own blur, about 10 DIPs, hardly shows in a card.
@@ -241,6 +253,7 @@ func Default() Settings {
 		WindowMaterial:      "sidebar",
 		SidebarImageOpacity: DefaultSidebarImageOpacity,
 		PaneImageOpacity:    DefaultPaneImageOpacity,
+		PaneImageFit:        DefaultPaneImageFit,
 		PaneOpacity:         DefaultPaneOpacity,
 		PaneMaterial:        "glass",
 		Pet:                 true,
@@ -582,6 +595,7 @@ func (s *Settings) normalize() {
 	if s.PaneImageOpacity < 0 || s.PaneImageOpacity > 1 {
 		s.PaneImageOpacity = d.PaneImageOpacity
 	}
+	oneOf(&s.PaneImageFit, d.PaneImageFit, PaneImageFits...)
 	oneOf(&s.AppIcon, d.AppIcon, AppIcons...)
 	known := false
 	for _, b := range Backgrounds {

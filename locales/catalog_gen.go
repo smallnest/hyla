@@ -2982,6 +2982,76 @@ func (msgs Messages) SetPaneImageOpacityDetail() string {
 	return Catalog.Format(msgs.locale, "setPaneImageOpacityDetail", nil)
 }
 
+// PaneFill says "Fill"
+// in the language the app shows.
+func PaneFill() string { return In(i18n.Locale()).PaneFill() }
+
+// PaneFill says "Fill"
+// in the language of msgs.
+func (msgs Messages) PaneFill() string {
+	return Catalog.Format(msgs.locale, "paneFill", nil)
+}
+
+// PaneFit says "Fit"
+// in the language the app shows.
+func PaneFit() string { return In(i18n.Locale()).PaneFit() }
+
+// PaneFit says "Fit"
+// in the language of msgs.
+func (msgs Messages) PaneFit() string {
+	return Catalog.Format(msgs.locale, "paneFit", nil)
+}
+
+// PaneStretch says "Stretch"
+// in the language the app shows.
+func PaneStretch() string { return In(i18n.Locale()).PaneStretch() }
+
+// PaneStretch says "Stretch"
+// in the language of msgs.
+func (msgs Messages) PaneStretch() string {
+	return Catalog.Format(msgs.locale, "paneStretch", nil)
+}
+
+// PaneCenter says "Center"
+// in the language the app shows.
+func PaneCenter() string { return In(i18n.Locale()).PaneCenter() }
+
+// PaneCenter says "Center"
+// in the language of msgs.
+func (msgs Messages) PaneCenter() string {
+	return Catalog.Format(msgs.locale, "paneCenter", nil)
+}
+
+// PaneTile says "Tile"
+// in the language the app shows.
+func PaneTile() string { return In(i18n.Locale()).PaneTile() }
+
+// PaneTile says "Tile"
+// in the language of msgs.
+func (msgs Messages) PaneTile() string {
+	return Catalog.Format(msgs.locale, "paneTile", nil)
+}
+
+// SetPaneImageFit says "Fill"
+// in the language the app shows.
+func SetPaneImageFit() string { return In(i18n.Locale()).SetPaneImageFit() }
+
+// SetPaneImageFit says "Fill"
+// in the language of msgs.
+func (msgs Messages) SetPaneImageFit() string {
+	return Catalog.Format(msgs.locale, "setPaneImageFit", nil)
+}
+
+// SetPaneImageFitDetail says "How the picture fills each terminal: as wide as the card, from its top; all of it; stretched; its own size at the mid…"
+// in the language the app shows.
+func SetPaneImageFitDetail() string { return In(i18n.Locale()).SetPaneImageFitDetail() }
+
+// SetPaneImageFitDetail says "How the picture fills each terminal: as wide as the card, from its top; all of it; stretched; its own size at the mid…"
+// in the language of msgs.
+func (msgs Messages) SetPaneImageFitDetail() string {
+	return Catalog.Format(msgs.locale, "setPaneImageFitDetail", nil)
+}
+
 // SetMaterialSidebar says "Sidebar"
 // in the language the app shows.
 func SetMaterialSidebar() string { return In(i18n.Locale()).SetMaterialSidebar() }

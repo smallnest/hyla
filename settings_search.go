@@ -48,6 +48,7 @@ func settingsIndex() []searchEntry {
 		{"appearance", locales.SetSidebarImageOpacity(), "sidebar-image-opacity opacity translucent fade picture image 背景图 不透明度 透明度"},
 		{"appearance", locales.SetPaneImage(), "pane-image terminal panes background picture photo image wallpaper 终端 背景图 图片 壁纸"},
 		{"appearance", locales.SetPaneImageOpacity(), "pane-image-opacity opacity translucent fade picture image terminal 终端 背景图 不透明度 透明度"},
+		{"appearance", locales.SetPaneImageFit(), "pane-image-fit fill fit stretch center tile cover contain wallpaper picture terminal 终端 背景图 填充 适合 拉伸 居中 拼贴"},
 		{"appearance", locales.SetPet(), "pet frog hyla mascot sprite companion agent status drag offset position 小精灵 青蛙 宠物"},
 		{"appearance", locales.SetBackground(), "background wash petal mist meadow plain dock gradient color"},
 

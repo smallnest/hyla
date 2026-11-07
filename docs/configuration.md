@@ -67,6 +67,7 @@ hyla config check             # report unknown keys and bad values
 | `sidebar-image-opacity` | `0.35` | How much of the sidebar's picture shows, 0 (none) to 1 (whole) |
 | `pane-image`        |          | A picture in the terminals' cards, under their text, in place of the window's background: as wide as the card, from its top; empty for none |
 | `pane-image-opacity` | `0.6`   | How much of the terminals' picture shows, 0 (none) to 1 (whole) |
+| `pane-image-fit`    | `fill`   | How the terminals' picture fills a card, as a macOS desktop picture's options: `fill`, as wide as the card from its top; `fit`, all of it; `stretch`, to the card's edges; `center`, its own size at the middle; or `tile` |
 | `pane-opacity`       | `0.82`   | How much of the window's background shows in a terminal while the window is translucent, 0 to 1, as `window-opacity`: 0 shows the desktop alone; the text stays opaque |
 | `pane-blur`          | `false`  | Blur what shows through the terminals; off is plain transparency |
 | `pane-material`      | `glass`  | The terminal's glass while `pane-blur` is on: `glass` (Liquid Glass), `plastic` (a frosted content background) or `glass-clear` |

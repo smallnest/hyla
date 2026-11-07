@@ -726,6 +726,9 @@ func (a *App) appearancePage(c *ui.Context, pal *palette) {
 				})
 				ui.Textf(c, "%.0f%%", s.PaneImageOpacity*100).FontSize(12.5).TextColor(pal.textMuted).Width(40).FontFeatures("tnum")
 			})
+			settingRow(c, pal, locales.SetPaneImageFit(), locales.SetPaneImageFitDetail(), func() {
+				popup(c, "pane-image-fit", &s.PaneImageFit, settings.PaneImageFits, paneFitName, 200, pal)
+			})
 		}
 	})
 	settingsGroup(c, pal, locales.SetPetGroup(), "", func() {
@@ -758,6 +761,22 @@ func (a *App) appearancePage(c *ui.Context, pal *palette) {
 
 // languageName names a language in itself, as "简体中文", so that whoever
 // reads it finds theirs; "system" in the language the app shows.
+// paneFitName names how a terminal's picture fills its card, as a macOS
+// desktop picture's options do.
+func paneFitName(id string) string {
+	switch id {
+	case "fit":
+		return locales.PaneFit()
+	case "stretch":
+		return locales.PaneStretch()
+	case "center":
+		return locales.PaneCenter()
+	case "tile":
+		return locales.PaneTile()
+	}
+	return locales.PaneFill()
+}
+
 func languageName(tag string) string {
 	if tag == "system" {
 		return locales.SetLanguageSystem()
