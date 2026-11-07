@@ -104,13 +104,14 @@ func (a *App) panes(c *ui.Context, pal *palette, bar ui.TitleBar, shown float32,
 	switched := false
 	if a.shownSession != "" && a.shownSession != s.ID {
 		a.switchTo(c)
+		a.switchAt = c.Now()
 		switched = true
 	}
 	a.settle()
 	a.shownSession = s.ID
 	sw := a.sessionSwitch()
 	slot := ui.Box(c.Key("slot-" + s.ID)).Absolute().Left(0).Top(0).Right(0).Bottom(0)
-	slot.AnimatePose(sw.pose(a.switchFrom, a.switchIn), ui.Snappy)
+	slot.AnimatePose(sw.pose(a.switchFrom, a.switchIn), switchSpring)
 	// A session that a switch brings in shows as a new element, where it
 	// comes, as one built for the first time does, and moves from there as
 	// poses do: one that the frames build before has the place its poses
@@ -121,7 +122,7 @@ func (a *App) panes(c *ui.Context, pal *palette, bar ui.TitleBar, shown float32,
 	}
 	slot.Children(func() {
 		show := ui.Box(c.Key("show-" + s.ID)).Absolute().Left(0).Top(0).Right(0).Bottom(0)
-		show.AnimatePose(sw.pose(from, true), ui.Snappy)
+		show.AnimatePose(sw.pose(from, true), switchSpring)
 		show.Children(func() {
 			// The frames' wrapper, which the session that leaves goes away
 			// with, in the dissolve: shown in full.
@@ -142,14 +143,27 @@ func (a *App) switchTo(c *ui.Context) {
 		return
 	}
 	a.switchFrom, a.switchIn = sw.motion(), true
-	c.After(60 * time.Millisecond)
+	// The session shown at its place in a frame that goes on, as a key's,
+	// after the frames that move it: mygo asks for the frames that move a
+	// pose in a frame that paints, and shows a pose at once in a frame
+	// that builds.
+	c.After(switchLand)
 }
+
+// switchSpring moves a session as a slide show's page moves: a spring
+// that arrives slowly, settling without a bounce, so that the motion
+// shows, as a page's slide does.
+var switchSpring = ui.Animation{Spring: ui.SpringOptions{Duration: 450 * time.Millisecond}}
+
+// switchLand is how long a switch moves before a frame built for another
+// reason, as a key's, shows its session at its place.
+const switchLand = 450 * time.Millisecond
 
 // settle lands a switch once its frames go on: a frame built later, for
 // what the user asks, as a key, shows the panes at their place, and not
 // back where they came from.
 func (a *App) settle() {
-	if !a.switchIn {
+	if !a.switchIn || time.Since(a.switchAt) < switchLand {
 		return
 	}
 	a.switchIn, a.switchFrom = false, ui.Motion{}
