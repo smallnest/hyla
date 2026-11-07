@@ -6,9 +6,10 @@ tool github.com/egoist/mygo/cmd/mygo
 
 require (
 	github.com/BurntSushi/toml v1.6.0
+	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be
 	github.com/coder/websocket v1.8.15
 	github.com/ebitengine/purego v0.11.1
-	github.com/egoist/mygo v0.7.5-0.20261104231439-080d2d242ba7
+	github.com/egoist/mygo v0.8.1
 	github.com/hashicorp/yamux v0.1.2
 	github.com/larksuite/oapi-sdk-go/v3 v3.12.2
 	github.com/tailscale/tailcat v0.7.0
@@ -21,7 +22,6 @@ require (
 require (
 	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/akutz/memconn v0.1.0 // indirect
-	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
 	github.com/creachadair/msync v0.10.1 // indirect
 	github.com/creack/pty v1.1.24 // indirect
 	github.com/dblohm7/wingoes v0.0.0-20260526185140-fb298caac7ca // indirect

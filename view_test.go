@@ -93,6 +93,7 @@ func TestSidebarReceivesFolderDrops(t *testing.T) {
 	}
 	shot(t, tt, "sidebar-folder-drop-light")
 	tt.SetDark(true)
+	shot(t, tt, "switch-slide-in")
 	tt.Advance(time.Second)
 	tt.Frame()
 	shot(t, tt, "sidebar-folder-drop-dark")
@@ -196,6 +197,7 @@ func TestDragPaneToSide(t *testing.T) {
 
 	tt.Release(ar.X+120, 340)
 	tt.Frame()
+	shot(t, tt, "switch-slide-in")
 	tt.Advance(time.Second)
 	tt.Frame()
 	if got := a.st.Sessions[0].Layout.Panes(); !slices.Equal(got, []string{"b", "a"}) {
@@ -265,6 +267,7 @@ func TestHeaderPadBelowTopLeft(t *testing.T) {
 	a.st.Sessions[0].Layout = l.Split("a", "b", "down", 0)
 	tt := ui.NewTester(a.view, 1100, 640)
 	tt.Frame()
+	shot(t, tt, "switch-slide-in")
 	tt.Advance(time.Second)
 	tt.Frame()
 	top, ok1 := tt.Find("fish")
@@ -344,6 +347,7 @@ func TestSidebarFooter(t *testing.T) {
 	add("s4", "tests", proto.Working, false)
 	add("s5", "docs", proto.Idle, true)
 	tt.Frame()
+	shot(t, tt, "switch-slide-in")
 	tt.Advance(time.Second)
 	tt.Frame()
 	shot(t, tt, "sidebar-footer")
@@ -718,9 +722,11 @@ func TestFocusFollowsMouse(t *testing.T) {
 	// The panes swap places under the pointer standing still, and back.
 	var l *proto.Layout
 	s.Layout = l.Split("b", "a", "right", 0)
+	shot(t, tt, "switch-slide-in")
 	tt.Advance(time.Second)
 	tt.Frame()
 	s.Layout = l.Split("a", "b", "right", 0)
+	shot(t, tt, "switch-slide-in")
 	tt.Advance(time.Second)
 	tt.Frame()
 	if got := a.focusOf(s); got != "a" {
@@ -1103,21 +1109,35 @@ func TestSessionSwitchAnimates(t *testing.T) {
 	}
 }
 
-// A session shown with the switch off comes at once; one shown with it
-// on fades in and lifts, as the one it leaves blurs and fades away.
+// A session shown with the switch off comes at once; one shown with the
+// dissolve fades in as the one it leaves blurs away; and one shown
+// sliding, pushing, covering or zooming (as with a video) comes in from
+// off its place, moving there as the frames that come after show it.
+//
+// A test of the app shows the panes of a session in their place on the
+// frame after the one that brings them in (panes), and so cannot see
+// them come in: it checks the poses the switch asks for.
 func TestSessionSwitchStyles(t *testing.T) {
 	a := testApp(t)
 	for _, style := range settings.SessionSwitches {
 		a.set.SessionSwitch = style
-		tr := a.sessionSwitch()
+		sw := a.sessionSwitch()
 		if style == "none" {
-			if tr.Duration >= 0 || tr.Enter != nil {
-				t.Errorf("none: goes as %+v", tr)
+			if sw != switchNone || sw.transition().Duration >= 0 || sw.transition().Exit != nil {
+				t.Errorf("none: goes as %v, %+v", sw, sw.transition())
 			}
 			continue
 		}
-		if tr.Enter == nil || tr.Enter.Opacity != 0 || tr.Exit == nil || tr.Exit.Blur == 0 || tr.Animation == nil {
-			t.Errorf("%s: goes as %+v", style, tr)
+		if style == "dissolve" {
+			tr := sw.transition()
+			if tr.Exit == nil || tr.Exit.Blur == 0 || tr.Animation == nil {
+				t.Errorf("dissolve: goes as %+v", tr)
+			}
+			continue
+		}
+		from := sw.pose(sw.motion(), true)
+		if from.XPercent == 0 && from.Scale == 1 {
+			t.Errorf("%s: comes in from its place, %+v", style, from)
 		}
 	}
 }

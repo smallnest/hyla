@@ -232,9 +232,13 @@ var PaneImageFits = []string{"fill", "fit", "stretch", "center", "tile"}
 const DefaultPaneImageFit = "fill"
 
 // SessionSwitches are how a session shown in place of another comes in, as
-// a slide transition does: "dissolve" fades it in, lifting a little, as
-// the one it leaves blurs and fades away over it; "none" shows it at once.
-var SessionSwitches = []string{"dissolve", "none"}
+// a slide transition does: "dissolve" fades it in as the one it leaves
+// blurs and fades away over it; "slide" brings it in from the right;
+// "push" slides it in from the right, pushing the one it leaves out to the
+// left; "cover" brings it in from the right, over the one it leaves, which
+// stays; "zoom" grows it into place from a little smaller, fading in; and
+// "none" shows it at once.
+var SessionSwitches = []string{"dissolve", "slide", "push", "cover", "zoom", "none"}
 
 // DefaultSessionSwitch is how a session shown in place of another comes
 // in: fading in, lifting a little, springing, as the one it leaves blurs

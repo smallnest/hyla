@@ -767,8 +767,17 @@ func (a *App) appearancePage(c *ui.Context, pal *palette) {
 // sessionSwitchName names how a session shown in place of another comes
 // in, as a slide transition's name does.
 func sessionSwitchName(id string) string {
-	if id == "none" {
+	switch id {
+	case "none":
 		return locales.SwitchNone()
+	case "slide":
+		return locales.SwitchSlide()
+	case "push":
+		return locales.SwitchPush()
+	case "cover":
+		return locales.SwitchCover()
+	case "zoom":
+		return locales.SwitchZoom()
 	}
 	return locales.SwitchDissolve()
 }

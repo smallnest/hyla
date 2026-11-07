@@ -198,8 +198,12 @@ type App struct {
 	art          sidebarArt // the picture behind the sidebar
 	paneArt      sidebarArt // the picture in the terminals
 	// shownSession is the session whose panes the last frame showed: one
-	// shown in place of it fades in (sessionSwitch).
+	// shown in place of another comes in as sessionSwitch says.
 	shownSession string
+	// switchIn tells that the frame about to build shows a session that
+	// switchFrom posed, on its way in: the one after, posing its place.
+	switchIn   bool
+	switchFrom ui.Motion
 	// from is the host whose program asked for the action being run (hyla
 	// do), nil for the user's.
 	from   *host

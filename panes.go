@@ -98,17 +98,49 @@ func (a *App) focusTerminal() {
 // panel takes while it shows.
 func (a *App) panes(c *ui.Context, pal *palette, bar ui.TitleBar, shown float32, s *proto.Session, right bool) {
 	// A session shown over another, as when the user moves from one to the
-	// next: it fades in while the one it leaves, as the frame before showed
-	// it, fades out over it (sessionSwitch).
+	// next, comes in as sessionSwitch says, and its panes move to their
+	// place in the frames that come after: it shows at their place as
+	// soon as it built.
+	switched := false
+	if a.shownSession != "" && a.shownSession != s.ID {
+		a.switchTo(c)
+		switched = true
+	}
 	a.shownSession = s.ID
-	view := ui.Box(c.Key("session-view")).Grow(1).Basis(0).MinWidth(0).MinHeight(0).Clip()
-	view.Transition(a.sessionSwitch())
-	view.Children(func() {
-		// Under the session's own key, as its slide and file panes are
-		// keyed by their own: only the frames' wrapper changes.
-		slot := ui.Box(c.Key("slot-" + s.ID)).Absolute().Left(0).Top(0).Right(0).Bottom(0)
-		slot.Children(func() { a.sessionPanes(c, pal, bar, shown, s, right) })
+	sw := a.sessionSwitch()
+	slot := ui.Box(c.Key("slot-" + s.ID)).Absolute().Left(0).Top(0).Right(0).Bottom(0)
+	slot.AnimatePose(sw.pose(a.switchFrom, a.switchIn), ui.Snappy)
+	// A session that a switch brings in shows as a new element, where it
+	// comes, as one built for the first time does, and moves from there as
+	// poses do: one that the frames build before has the place its poses
+	// had, and would jump there.
+	from := ui.Motion{}
+	if switched {
+		from = a.switchFrom
+	}
+	slot.Children(func() {
+		show := ui.Box(c.Key("show-" + s.ID)).Absolute().Left(0).Top(0).Right(0).Bottom(0)
+		show.AnimatePose(sw.pose(from, true), ui.Snappy)
+		show.Children(func() {
+			// The frames' wrapper, which the session that leaves goes away
+			// with, in the dissolve: shown in full.
+			view := ui.Box(c.Key("session-view")).Absolute().Left(0).Top(0).Right(0).Bottom(0)
+			view.Transition(sw.transition())
+			view.Children(func() { a.sessionPanes(c, pal, bar, shown, s, right) })
+		})
 	})
+}
+
+// switchTo tells that the frame about to build shows a session in place
+// of the one before (shownSession): the session comes in as sessionSwitch
+// says, at once, from switchFrom, and shows at its place in the next.
+func (a *App) switchTo(c *ui.Context) {
+	sw := a.sessionSwitch()
+	a.switchIn = false
+	if sw == switchNone {
+		return
+	}
+	a.switchFrom, a.switchIn = sw.motion(), true
 }
 
 // sessionPanes lays out a session's panes.

@@ -3062,11 +3062,11 @@ func (msgs Messages) SetSessionSwitch() string {
 	return Catalog.Format(msgs.locale, "setSessionSwitch", nil)
 }
 
-// SetSessionSwitchDetail says "How one session gives way to another: the one coming in fades in, lifting a little, as the one it leaves blurs and fa…"
+// SetSessionSwitchDetail says "How one session gives way to another, as a slide show does from one page to the next: the one coming in fades in as t…"
 // in the language the app shows.
 func SetSessionSwitchDetail() string { return In(i18n.Locale()).SetSessionSwitchDetail() }
 
-// SetSessionSwitchDetail says "How one session gives way to another: the one coming in fades in, lifting a little, as the one it leaves blurs and fa…"
+// SetSessionSwitchDetail says "How one session gives way to another, as a slide show does from one page to the next: the one coming in fades in as t…"
 // in the language of msgs.
 func (msgs Messages) SetSessionSwitchDetail() string {
 	return Catalog.Format(msgs.locale, "setSessionSwitchDetail", nil)
@@ -8064,4 +8064,44 @@ func InfoMagpieDown() string { return In(i18n.Locale()).InfoMagpieDown() }
 // in the language of msgs.
 func (msgs Messages) InfoMagpieDown() string {
 	return Catalog.Format(msgs.locale, "infoMagpieDown", nil)
+}
+
+// SwitchSlide says "Slide"
+// in the language the app shows.
+func SwitchSlide() string { return In(i18n.Locale()).SwitchSlide() }
+
+// SwitchSlide says "Slide"
+// in the language of msgs.
+func (msgs Messages) SwitchSlide() string {
+	return Catalog.Format(msgs.locale, "switchSlide", nil)
+}
+
+// SwitchPush says "Push"
+// in the language the app shows.
+func SwitchPush() string { return In(i18n.Locale()).SwitchPush() }
+
+// SwitchPush says "Push"
+// in the language of msgs.
+func (msgs Messages) SwitchPush() string {
+	return Catalog.Format(msgs.locale, "switchPush", nil)
+}
+
+// SwitchCover says "Cover"
+// in the language the app shows.
+func SwitchCover() string { return In(i18n.Locale()).SwitchCover() }
+
+// SwitchCover says "Cover"
+// in the language of msgs.
+func (msgs Messages) SwitchCover() string {
+	return Catalog.Format(msgs.locale, "switchCover", nil)
+}
+
+// SwitchZoom says "Zoom"
+// in the language the app shows.
+func SwitchZoom() string { return In(i18n.Locale()).SwitchZoom() }
+
+// SwitchZoom says "Zoom"
+// in the language of msgs.
+func (msgs Messages) SwitchZoom() string {
+	return Catalog.Format(msgs.locale, "switchZoom", nil)
 }

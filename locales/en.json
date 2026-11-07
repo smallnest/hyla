@@ -448,7 +448,7 @@
   "setPaneImageFit": "Fill",
   "setPaneImageFitDetail": "How the picture fills each terminal: as wide as the card, from its top; all of it; stretched; its own size at the middle; or tiled from there.",
   "setSessionSwitch": "Session switch",
-  "setSessionSwitchDetail": "How one session gives way to another: the one coming in fades in, lifting a little, as the one it leaves blurs and fades away. The animation lasts about a third of a second.",
+  "setSessionSwitchDetail": "How one session gives way to another, as a slide show does from one page to the next: the one coming in fades in as the one it leaves blurs and fades away (dissolve); comes in from the right (slide); slides in from the right, pushing the one it leaves out to the left (push); comes in from the right, over the one it leaves, which stays (cover); grows into place, fading in (zoom); or shows at once (none).",
   "switchDissolve": "Dissolve",
   "switchNone": "None",
   "setMaterialSidebar": "Sidebar",
@@ -1369,5 +1369,9 @@
   "infoMagpieLatest": "Latest",
   "infoMagpieSession": "This conversation",
   "infoMagpieCache": "cached",
-  "infoMagpieDown": "Magpie is not running"
+  "infoMagpieDown": "Magpie is not running",
+  "switchSlide": "Slide",
+  "switchPush": "Push",
+  "switchCover": "Cover",
+  "switchZoom": "Zoom"
 }

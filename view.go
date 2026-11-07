@@ -1139,25 +1139,90 @@ func statusIconP(c *ui.Context, pal *palette, st proto.Status, unread bool, prog
 
 // --- the card ---
 
-// sessionSwitch is the transition of a session shown in place of another,
-// as when the user moves from one session to the next: it fades in and
-// up, a little smaller at first, springing, while the session it leaves,
-// as the frame before showed it, blurs and fades away over it; or it
-// shows at once, with none.
+// sessionSwitch is how a session shown in place of another, as when the
+// user moves from one session to the next, comes, as a slide show's
+// transitions do: it fades in as the session it leaves, as the frame
+// before showed it, blurs and fades away over it (dissolve); it slides in
+// from the right (slide, push, cover); it grows into place (zoom); or it
+// shows at once (none).
 //
-// The copy leaving takes neither the pointer nor the focus, but it stays
-// in the chain a press goes down, so a moving session fades under a still
-// pointer alone where the pointer is not.
-func (a *App) sessionSwitch() ui.ElementTransition {
-	if a.set.SessionSwitch == "none" {
+// The dissolve is a transition of the mygo view: the copy leaving takes
+// neither the pointer nor the focus, but it stays in the chain a press
+// goes down, so a moving session fades under a still pointer alone where
+// the pointer is not. The others move the panes as their poses go, from
+// where the switch brings them, to their place (switchTo, panes).
+type sessionSwitch int
+
+const (
+	switchNone sessionSwitch = iota
+	switchDissolve
+	switchSlide
+	switchPush
+	switchCover
+	switchZoom
+)
+
+// sessionSwitch returns how a session comes in place of another, as the
+// settings say (session-switch).
+func (a *App) sessionSwitch() sessionSwitch {
+	switch a.set.SessionSwitch {
+	case "slide":
+		return switchSlide
+	case "push":
+		return switchPush
+	case "cover":
+		return switchCover
+	case "zoom":
+		return switchZoom
+	case "none":
+		return switchNone
+	}
+	return switchDissolve
+}
+
+// transition returns the transition of the frame that holds a session's
+// panes: the dissolve fades one in as the one it leaves, as the frame
+// before showed it, blurs and fades away over it.
+func (sw sessionSwitch) transition() ui.ElementTransition {
+	if sw != switchDissolve {
 		return ui.ElementTransition{Duration: -1}
 	}
 	return ui.ElementTransition{
 		Animation:    &ui.Snappy,
 		ExitDuration: 200 * time.Millisecond,
-		Enter:        &ui.Motion{Opacity: 0, Y: 6, Scale: 0.985},
+		Enter:        &ui.Motion{},
 		Exit:         &ui.Motion{Opacity: 0, Blur: 8},
 	}
+}
+
+// motion returns where a session comes in from: as it slides in from the
+// right, or grows into place.
+func (sw sessionSwitch) motion() ui.Motion {
+	switch sw {
+	case switchSlide, switchPush, switchCover:
+		return ui.Motion{XPercent: 100}
+	case switchZoom:
+		return ui.Motion{Opacity: 1, Scale: 0.9}
+	}
+	return ui.Motion{}
+}
+
+// pose returns where the panes show as a switch comes: if in, away from
+// their place, as from says, faded out where from fades them in, as a
+// Pose's Fade of 1 does; else where they go, there.
+func (sw sessionSwitch) pose(from ui.Motion, in bool) ui.Pose {
+	if !in {
+		return ui.Pose{}
+	}
+	p := ui.Pose{X: from.X, Y: from.Y, XPercent: from.XPercent, YPercent: from.YPercent, Rotate: from.Rotate}
+	if from.Opacity != 0 {
+		// A pose's Fade goes from 0, opaque, to 1: as a motion's Opacity.
+		p.Fade = from.Opacity
+	}
+	if from.Scale != 0 {
+		p.Scale = from.Scale
+	}
+	return p
 }
 
 func (a *App) card(c *ui.Context, pal *palette, bar ui.TitleBar, shown float32) {

@@ -68,7 +68,7 @@ hyla config check             # 报告未知的配置项和无效的值
 | `pane-image`        |          | 终端卡片里的图片，在文字后面，替代窗口背景：与终端同宽，从顶部开始；留空则不显示 |
 | `pane-image-opacity` | `0.6`   | 终端背景图的可见程度，0（不显示）到 1（完全不透明） |
 | `pane-image-fit`    | `fill`   | 终端背景图如何铺满卡片，与 macOS 桌面图片的选项相同：`fill` 与卡片同宽、从顶部开始；`fit` 完整显示；`stretch` 拉伸到边缘；`center` 按原始大小居中；`tile` 以原始大小拼贴 |
-| `session-switch`      | `dissolve` | 一个会话替换另一个时的进入效果，与幻灯片切换相同：`dissolve` 淡入、旧会话淡出，或 `none` 立即显示 |
+| `session-switch`      | `dissolve` | 一个会话替换另一个时的进入效果，与幻灯片切换相同：`dissolve` 淡入、旧会话淡出；`slide` 从右侧滑入；`push`、`cover` 也是从右侧滑入；`zoom` 由小放大到位；`none` 立即显示|
 | `pane-opacity`       | `0.82`   | 窗口半透明时，终端中显示多少窗口背景，0 到 1，与 `window-opacity` 相同：为 0 时直接看到桌面；文字始终不透明 |
 | `pane-blur`          | `false`  | 模糊终端背后透出的内容；关闭后是普通透明 |
 | `pane-material`      | `glass`  | 终端模糊开启时玻璃的材质：`glass`（Liquid Glass）、`plastic`（磨砂内容背景）或 `glass-clear` |

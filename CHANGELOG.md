@@ -15,7 +15,8 @@ number; the notes of the upstream releases it includes follow its own.
 - Switching sessions animates: the session coming in fades in and lifts a
   little, springing, while the one it leaves blurs and fades away over it.
   **设置 › 外观 › 切换会话动画**, or `session-switch`, chooses the
-  animation, as a slide transition's: dissolve (the default) or none.
+  animation, as a slide transition's: dissolve (the default), slide from
+  the right, push, cover, zoom, or none.
 
 ## 3.5.2
 

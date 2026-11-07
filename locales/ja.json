@@ -478,7 +478,7 @@
   "setPaneImageFit": "表示方法",
   "setPaneImageFitDetail": "ターミナルの画像をカードにどのように合わせるか: 幅いっぱいに上から並べる、全体を表示、引き伸ばす、中央に実寸で表示、または実寸でタイル表示。",
   "setSessionSwitch": "セッション切り替えのアニメーション",
-  "setSessionSwitchDetail": "あるセッションが次のセッションに切り替わるときの動き: 新しいセッションは少し浮き上がりながらフェードインし、前のセッションはぼかされながらフェードアウトします。アニメーションは約 3 分の 1 秒です。",
+  "setSessionSwitchDetail": "あるセッションが次のセッションに切り替わるときの動き（スライドショーの画面切り替えのよう）: 新しいセッションがフェードインし、前のセッションはぼかされながらフェードアウト（ディゾルブ）。右から入る（スライド）。右から入り、前のセッションを左へ押し出す（プッシュ）。右から前のセッションの上に重なって入る（カバー）。少し小さい状態から拡大しながらフェードイン（ズーム）。すぐに表示（なし）。",
   "switchDissolve": "ディゾルブ",
   "switchNone": "なし",
   "setMaterialSidebar": "サイドバー",
@@ -794,5 +794,9 @@
   "infoMagpieLatest": "最新",
   "infoMagpieSession": "この会話",
   "infoMagpieCache": "キャッシュ",
-  "infoMagpieDown": "Magpie は動作していません"
+  "infoMagpieDown": "Magpie は動作していません",
+  "switchSlide": "スライド",
+  "switchPush": "プッシュ",
+  "switchCover": "カバー",
+  "switchZoom": "ズーム"
 }
