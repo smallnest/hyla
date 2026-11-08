@@ -133,7 +133,9 @@ func stopUnanswering(pid int) error {
 	if Running(pid) {
 		return kill(pid)
 	}
-	ClearDaemon()
+	// The hylad that stopped took its socket and lock with it: they are
+	// not cleared here, where a hylad another client started could have
+	// them by now.
 	return nil
 }
 
