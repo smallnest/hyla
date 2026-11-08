@@ -6,6 +6,17 @@ number; the notes of the upstream releases it includes follow its own.
 
 ## Unreleased
 
+## 3.5.4
+
+- Hyla starts hylad when it finds none answering, as after **hyla daemon
+  stop**, a crash, or a login that opens Hyla before its daemon: it shows
+  the sessions instead of a host that needs starting, and keeps trying
+  while a slow start takes.
+- A hylad whose socket went but still holds its lock answers nothing, and
+  Hyla starts none beside it: it stops that hylad, which saves its
+  sessions for the one that starts in its place. A process that holds the
+  lock and is not hylad is left alone, and Hyla says which pid it is.
+
 ## 3.5.3
 
 - Files and folders dragged from this machine onto the pane of another
