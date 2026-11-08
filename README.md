@@ -51,7 +51,7 @@ way:
 
 | Feature | What it does |
 |---|---|
-| **Feishu and Lark** | One Feishu app, one machine's `hylad`: a chat runs an agent's turns in Hyla's own sessions, with cards, permission buttons, choices and transcripts, and a footer of what each turn used. |
+| **Feishu and Lark** | One Feishu app, one machine's `hylad`: a chat runs an agent's turns in Hyla's own sessions, with cards, permission buttons, choices and transcripts, and a footer of what each turn used — tested from Feishu. |
 | **Tailcat** | Reach a host with a pair code through a relay, with no Tailscale account on either side. Off until you turn it on. |
 | **Files view** | A Files tab in the side panel shows the session's folder as a tree, and shows the file you pick, without leaving the window. |
 | **Sidebar order** | Group the sidebar by project or by date, or list it flat; order it by creation or last use; give each project a colored badge; and fold its sessions. |
