@@ -3,6 +3,8 @@
 package client
 
 import (
+	"bufio"
+	"io"
 	"net"
 	"os"
 	"os/exec"
@@ -29,6 +31,7 @@ type daemon struct {
 	mu          sync.Mutex
 	conns       []net.Conn
 	interrupted bool
+	version     int // of the welcome it answers with, proto.Version if 0
 }
 
 // fakeDaemon starts command as a process named in hylad's lock, as
@@ -37,7 +40,14 @@ type daemon struct {
 func fakeDaemon(t *testing.T, command string) *daemon {
 	t.Helper()
 	t.Setenv("HYLA_HOME", t.TempDir())
-	t.Setenv("HYLA_SOCKET", filepath.Join(t.TempDir(), "s"))
+	// A Unix socket's address holds 104 bytes, and a test's temporary
+	// directory is longer: the socket goes under /tmp, which is short.
+	dir, err := os.MkdirTemp("/tmp", "hyla-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.RemoveAll(dir) })
+	t.Setenv("HYLA_SOCKET", filepath.Join(dir, "s"))
 	quiet, err := os.Open(os.DevNull)
 	if err != nil {
 		t.Fatal(err)
@@ -83,8 +93,20 @@ func (d *daemon) accept() {
 		go func() {
 			defer d.wg.Done()
 			defer c.Close()
-			welcome := `{"version":3,"pid":` + strconv.Itoa(d.cmd.Process.Pid) + `,"started":1}` + "\n"
+			// As hylad: the client says hello, and the welcome follows.
+			r := bufio.NewReader(c)
+			if _, err := r.ReadString('\n'); err != nil {
+				return
+			}
+			d.mu.Lock()
+			v := d.version
+			d.mu.Unlock()
+			if v == 0 {
+				v = proto.Version
+			}
+			welcome := `{"version":` + strconv.Itoa(v) + `,"pid":` + strconv.Itoa(d.cmd.Process.Pid) + `,"started":1}` + "\n"
 			c.Write([]byte(welcome))
+			io.Copy(io.Discard, r) // until the client goes
 		}()
 	}
 }

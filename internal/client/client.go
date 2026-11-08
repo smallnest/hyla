@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/egoist/mygo/plugins/terminal"
@@ -42,6 +43,11 @@ type Local struct{ NoStart bool }
 
 func (l Local) Dial() (net.Conn, error) { return dial(l.NoStart, false) }
 
+// startWait is how long a hylad that starts has to listen on its socket:
+// one already at it takes that long only if it is stuck. A test shortens
+// it, as a hylad of its own answers at once.
+var startWait = 5 * time.Second
+
 // dial connects to the daemon, starting it unless noStart: as a client of
 // hylad 3 does when v3, which a daemon forces answers as it listens.
 func dial(noStart, v3 bool) (net.Conn, error) {
@@ -53,20 +59,84 @@ func dial(noStart, v3 bool) (net.Conn, error) {
 	if noStart {
 		return nil, fmt.Errorf("hylad is not running: %w", err)
 	}
-	if err := StartDaemon(); err != nil {
+	// A hylad that holds its lock runs, and one whose socket went answers
+	// nothing: no hylad starts beside it, which would wait on that lock
+	// and never listen, so it is asked to stop, saving its sessions for
+	// the hylad that starts in its place. One that is only starting
+	// listens within the wait, as the app's launch comes before it does.
+	if pid, _ := LockedPID(); pid != 0 {
+		if !socketDead(sock, err) {
+			return nil, fmt.Errorf("hylad (pid %d) runs, and its socket answers nothing: %w", pid, err)
+		}
+		if conn, err := waitDial(sock, startWait); err == nil {
+			return conn, nil
+		}
+		if err := stopUnanswering(pid); err != nil {
+			return nil, err
+		}
+	}
+	if err := startOne(); err != nil {
 		return nil, err
 	}
-	deadline := time.Now().Add(5 * time.Second)
+	conn, err = waitDial(sock, startWait)
+	if err != nil {
+		return nil, fmt.Errorf("hylad did not start: %w (see %s)", err, filepath.Join(proto.Dir(), "hylad.log"))
+	}
+	return conn, nil
+}
+
+// socketDead reports whether nothing listens on the socket at sock: its
+// file went, as a hylad killed left none, it is none of a socket's, or the
+// socket refuses connections. A socket this user may not connect to is
+// not dead, as a hylad that runs would answer once the user may.
+func socketDead(sock string, err error) bool {
+	st, serr := os.Lstat(sock)
+	if serr != nil {
+		return errors.Is(serr, os.ErrNotExist)
+	}
+	return st.Mode()&os.ModeSocket == 0 || errors.Is(err, syscall.ECONNREFUSED)
+}
+
+// waitDial dials the socket until a connection is made, or wait is over:
+// one that started has to listen, which takes a moment.
+func waitDial(sock string, wait time.Duration) (net.Conn, error) {
+	deadline := time.Now().Add(wait)
 	for {
 		time.Sleep(20 * time.Millisecond)
-		conn, err = net.Dial("unix", sock)
+		conn, err := net.Dial("unix", sock)
 		if err == nil {
 			return conn, nil
 		}
 		if time.Now().After(deadline) {
-			return nil, fmt.Errorf("hylad did not start: %w (see %s)", err, filepath.Join(proto.Dir(), "hylad.log"))
+			return nil, err
 		}
 	}
+}
+
+// stopUnanswering stops the hylad of pid, which holds hylad's lock but
+// answers nothing, as its socket went: SIGTERM, on which it saves its
+// sessions, then a kill, as hyla daemon stop --force, when it does not go.
+// A process named in the lock that is not hylad is left alone, as a
+// killed one of an unrelated program would be.
+func stopUnanswering(pid int) error {
+	if !namedByHylad(pid) {
+		return fmt.Errorf("the process (pid %d) that holds hylad's lock answers none, and is not hylad: hyla daemon stop --force", pid)
+	}
+	if err := Terminate(pid); err != nil && Running(pid) {
+		// Windows has no signal that hylad stops on: it is killed, as one
+		// that does not answer is.
+		return kill(pid)
+	}
+	for end := time.Now().Add(2 * stopTimeout); Running(pid) && time.Now().Before(end); {
+		time.Sleep(20 * time.Millisecond)
+	}
+	if Running(pid) {
+		return kill(pid)
+	}
+	// The hylad that stopped took its socket and lock with it: they are
+	// not cleared here, where a hylad another client started could have
+	// them by now.
+	return nil
 }
 
 // Exe is the executable StartDaemon runs, os.Executable's when empty: the
@@ -77,7 +147,17 @@ var Exe string
 // StartDaemon starts hylad in the background: the service, when hylad
 // runs as one (hyla daemon install-service), else this executable (Exe),
 // in a session of its own, so that it outlives whoever started it.
-func StartDaemon() error {
+//
+// A hylad that already runs takes the lock first: the one started here
+// waits on it, and exits as it cannot have it, leaving the one that runs.
+func StartDaemon() error { return startOne() }
+
+// startOne starts a hylad as StartDaemon does, which a test makes its own:
+// hylad is this executable, which a test binary is not.
+var startOne = startHylad
+
+// startHylad starts the hylad StartDaemon names.
+func startHylad() error {
 	// The service's, or none: a hylad beside it would hold the lock its
 	// manager starts the service's for, again and again. But Task
 	// Scheduler's, which starts none while no one is logged on to the
