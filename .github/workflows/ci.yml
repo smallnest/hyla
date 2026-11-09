@@ -78,7 +78,18 @@ jobs:
       - id: lib
         run: |
           set -eu
-          dir="$(go list -m -f '{{.Dir}}' github.com/egoist/mygo)/plugins/terminal"
+          # A module of the proxy that a commit names, its directory once
+          # there: the proxy has it soon, and none of it until then.
+          for i in 0 10 20 40 80; do
+            sleep "$i"
+            mod="$(GOFLAGS=-mod=mod go list -m -f '{{.Dir}}' github.com/egoist/mygo 2>/dev/null || true)"
+            [ -n "$mod" ] && break
+          done
+          if [ -z "$mod" ]; then
+            GOFLAGS=-mod=mod go list -m -f '{{.Dir}}' github.com/egoist/mygo
+            exit 1
+          fi
+          dir="$mod/plugins/terminal"
           jq -r '.libraries[] | select(.name == "libghostty-vt") | .files["linux-amd64"].sha256' "$dir/mygo-plugin.json" > "$RUNNER_TEMP/sha"
           # The file's name in the release, which gh matches: the manifest
           # names the file the program loads, which the release names by
