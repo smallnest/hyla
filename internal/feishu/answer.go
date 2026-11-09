@@ -100,9 +100,9 @@ func (b *Bot) replyWithAnswer(r *run, head, answer string) string {
 // runs in the pane goes first: fallback, the agent of a session just
 // started, then the pane's agent, then the app's agent, then the
 // settings'. A prompt's agent that is none of them runs no hook.
-func (b *Bot) conversationAgent(c *chat, fallback, session string) string {
-	if c.agent != "" {
-		return c.agent
+func (b *Bot) conversationAgent(chatID, fallback, session string) string {
+	if bnd := b.bindingOf(bindingKey(chatID)); bnd.Agent != "" {
+		return bnd.Agent
 	}
 	if fallback != "" {
 		return fallback

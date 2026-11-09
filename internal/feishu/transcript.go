@@ -253,19 +253,9 @@ type turnTimes struct {
 type chatsFile struct {
 	Turns map[string]turnTimes `json:"turns,omitempty"`
 	Pins  map[string]string    `json:"pins,omitempty"` // chats, by session
-	// Chats is what each chat's turns continue, across a restart of the
-	// bot: a chat's bound session outlives one, but what the agent went on
-	// with is the bot's alone, and would start anew without it.
-	Chats map[string]chatMemory `json:"chats,omitempty"`
-}
-
-// chatMemory is what a chat's next turn continues: the agent, the
-// directory its command runs in, and the conversation, as the agent names
-// it.
-type chatMemory struct {
-	Agent string `json:"agent,omitempty"`
-	Dir   string `json:"dir,omitempty"`
-	Sid   string `json:"sid,omitempty"`
+	// Bindings is each chat's binding, by chat key: the one copy of what
+	// its turns go on with, which save writes whole and load reads whole.
+	Bindings map[string]binding `json:"bindings,omitempty"`
 }
 
 // ChatsList lists the app's chats, with the sessions the bot's turns of
@@ -281,7 +271,7 @@ func (b *Bot) ChatsList(ctx context.Context) (proto.FeishuChats, error) {
 	b.mu.Lock()
 	for i := range chats {
 		key := chatKey(chats[i].ID, "")
-		chats[i].Session = b.chatLocked(key).id
+		chats[i].Session = b.bindings[key].Session
 		if t, ok := b.times[key]; ok {
 			chats[i].Turns, chats[i].Last = t.Turns, t.Last
 		}
@@ -334,8 +324,8 @@ func (b *Bot) Feed(p proto.FeishuFeedParams) (proto.FeishuFeed, error) {
 	// turn's, which only its events name: the chat keeps the one its
 	// next turn continues, and the window shows the turns it kept.
 	if f.Conversation == "" && f.Chat != "" {
-		if c := b.chat(f.Chat); c.sid != "" && c.agent != "" && c.agent != "claude" {
-			f.Conversation, f.Agent = c.sid, c.agent
+		if bnd := b.bindingOf(chatKey(f.Chat, "")); bnd.Conversation != "" && bnd.Agent != "" && bnd.Agent != "claude" {
+			f.Conversation, f.Agent = bnd.Conversation, bnd.Agent
 		}
 	}
 	if f.Chat != "" {
@@ -352,15 +342,15 @@ func (b *Bot) chatAgent(chat string) string {
 	}
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	return b.chatLocked(chatKey(chat, "")).agent
+	return b.bindings[chatKey(chat, "")].Agent
 }
 
 // boundChat is the chat a session's turns go to, "" for none.
 func (b *Bot) boundChat(session string) string {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	for key, id := range b.binds {
-		if id == session {
+	for key, bnd := range b.bindings {
+		if bnd.Session == session {
 			return key
 		}
 	}

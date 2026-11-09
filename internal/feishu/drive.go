@@ -68,8 +68,8 @@ type run struct {
 // replies with what the turn printed once the agent stops working, or
 // with the answer the agent's hook writes.
 func (b *Bot) prompt(key, chatID, response, text string, t turnInfo) {
-	c := b.chat(key)
-	if c.id == "" {
+	bnd := b.bindingOf(bindingKey(chatID))
+	if bnd.Session == "" {
 		b.reply(chatID, "This chat has no session yet. /new starts one, or /use an open one.")
 		return
 	}
@@ -77,7 +77,7 @@ func (b *Bot) prompt(key, chatID, response, text string, t turnInfo) {
 		b.reply(chatID, "Hyla is unreachable: "+err.Error())
 		return
 	}
-	s, err := b.session(c.id)
+	s, err := b.session(bnd.Session)
 	if err != nil {
 		// The session, closed from the app or another host, binds no
 		// longer.
@@ -90,7 +90,7 @@ func (b *Bot) prompt(key, chatID, response, text string, t turnInfo) {
 		card = b.newTurnCard(chatID, t.event, langOf(text))
 		b.card(card, "working", "", "")
 	}
-	agent := b.conversationAgent(c, "", c.id)
+	agent := b.conversationAgent(chatID, "", bnd.Session)
 	r, err := b.drive(s, text, card, t, agent, "")
 	if err != nil {
 		b.replyAt(key, response, chatID, err.Error())
@@ -104,11 +104,10 @@ func (b *Bot) prompt(key, chatID, response, text string, t turnInfo) {
 		// and the conversation is the hook's.
 		b.card(card, "done", r.answer, "")
 		b.drop(card)
+		b.setBinding(bindingKey(chatID), binding{Conversation: r.conversation})
 		b.mu.Lock()
-		c := b.chatLocked(key)
-		c.sid, c.card = r.conversation, cardMsg{}
+		b.chatLocked(key).card = cardMsg{}
 		b.mu.Unlock()
-		b.save()
 	}
 	reply := b.replyWith(r)
 	// The conversation a chat window shows keeps the turn, which the
@@ -118,7 +117,7 @@ func (b *Bot) prompt(key, chatID, response, text string, t turnInfo) {
 		conv = r.status.AgentSessionID
 	}
 	if conv == "" {
-		conv = c.sid
+		conv = bnd.Conversation
 	}
 	b.keepTurn(agent, conv, text, reply)
 	state := "done"

@@ -444,6 +444,17 @@ func newBot(t *testing.T) (*Bot, *fakeLuna, *fakeMessages) {
 	return b, luna, msgs
 }
 
+// bindChat gives a chat a binding in a test, as a turn of it would, and
+// the chat state a turn leaves.
+func bindChat(b *Bot, key string, bnd binding) {
+	b.mu.Lock()
+	if bnd != (binding{}) {
+		b.bindings[key] = bnd
+	}
+	b.chatLocked(key)
+	b.mu.Unlock()
+}
+
 func session() proto.Session {
 	s := proto.Session{ID: "s1", Name: "api"}
 	s.Panes = []proto.Pane{{ID: "p1", Status: proto.Idle, Dir: "/tmp/api"}}
@@ -505,7 +516,7 @@ func TestPrompt(t *testing.T) {
 	if len(luna.created) != 1 || !strings.Contains(last(t, msgs), `"review" is ready`) {
 		t.Fatalf("created %+v, replied %q", luna.created, last(t, msgs))
 	}
-	if got := b.chat("c1").id; got != "s-new" {
+	if got := b.bindingOf("c1").Session; got != "s-new" {
 		t.Fatalf("the chat is bound to %q", got)
 	}
 
@@ -533,7 +544,7 @@ func TestPrompt(t *testing.T) {
 func TestPromptWaitsItsTurn(t *testing.T) {
 	defer shortWaits()()
 	b, luna, msgs := newBot(t)
-	b.chats["c1"] = &chat{id: "s1"}
+	bindChat(b, "c1", binding{Session: "s1"})
 	b.leave("c1")
 	luna.screen = "old\n$ "
 	// The turn another message started, which the chat still runs.
@@ -581,7 +592,8 @@ func TestPromptWaitsItsTurn(t *testing.T) {
 // it, whose card goes too.
 func TestStopDropsTheWaitingPrompt(t *testing.T) {
 	b, luna, msgs := newBot(t)
-	b.chats["c1"] = &chat{id: "s1", chat: "c1"}
+	bindChat(b, "c1", binding{Session: "s1"})
+	b.chat("c1").chat = "c1"
 	b.leave("c1")
 	b.enter("c1")
 	b.onMessage(nil, textMsg("c1", "ou_me", "second"))
@@ -615,7 +627,8 @@ func TestStopDropsAThreadsWaitingPrompt(t *testing.T) {
 		m.Event.Message.Mentions = []*larkim.MentionEvent{{Key: str("@_user_1"), MentionedType: str("bot")}}
 		return m
 	}
-	b.chats["g1"] = &chat{id: "s1", chat: "g1"}
+	bindChat(b, "g1", binding{Session: "s1"})
+	b.chat("g1").chat = "g1"
 	b.leave("g1")
 	b.enter(chatKey("g1", "om_root"))
 	b.onMessage(nil, prompt("second"))
@@ -683,7 +696,7 @@ func TestGroupMentions(t *testing.T) {
 	if len(luna.created) != 1 || last(t, msgs) == "" {
 		t.Fatalf("a mention didn't act: %+v", luna.created)
 	}
-	if got := b.chat(chatKey("g1", "")).id; got != "s-new" {
+	if got := b.bindingOf(chatKey("g1", "")).Session; got != "s-new" {
 		t.Errorf("the group is bound to %q", got)
 	}
 }
@@ -711,8 +724,8 @@ func TestCommands(t *testing.T) {
 	}
 	luna.sessions[0].Panes[0].Status = proto.Idle
 	b.onMessage(nil, textMsg("c1", "ou_me", "/close"))
-	if !slices.Equal(luna.closed, []string{"s1"}) || b.chat("c1").id != "" {
-		t.Errorf("closed %v, bound %q", luna.closed, b.chat("c1").id)
+	if !slices.Equal(luna.closed, []string{"s1"}) || b.bindingOf("c1").Session != "" {
+		t.Errorf("closed %v, bound %q", luna.closed, b.bindingOf("c1").Session)
 	}
 	b.onMessage(nil, textMsg("c1", "ou_me", "/nosuch"))
 	if !strings.Contains(last(t, msgs), "/help") {
@@ -729,34 +742,32 @@ func TestBindsPersist(t *testing.T) {
 	again.msgs = msgs
 	again.sync = true
 	again.load()
-	if got := again.chat("c1").id; got != "s1" {
+	if got := again.bindingOf("c1").Session; got != "s1" {
 		t.Fatalf("after a restart the chat is bound to %q", got)
 	}
 	luna.sessions = nil
 	again.onMessage(nil, textMsg("c1", "ou_me", "hello"))
-	if !strings.Contains(last(t, msgs), "gone") || again.chat("c1").id != "" {
-		t.Fatalf("a prompt to a gone session replied %q, bound %q", last(t, msgs), again.chat("c1").id)
+	if !strings.Contains(last(t, msgs), "gone") || again.bindingOf("c1").Session != "" {
+		t.Fatalf("a prompt to a gone session replied %q, bound %q", last(t, msgs), again.bindingOf("c1").Session)
 	}
 }
 
 // A chat's agent conversation goes on across a restart of the bot, as its
 // bound session does: the next turn continues the conversation the last
-// one left, not a new one. It goes on too where the chat lost it, as a
-// restart of another kind would leave it.
+// one left, not a new one.
 func TestChatContinuesAcrossRestarts(t *testing.T) {
 	defer shortWaits()()
 	b, luna, msgs := newBot(t)
 	b.cfg.Run = settings.FeishuRunCommand
 	b.cfg.Agent = "opencode"
-	b.chats["c1"] = &chat{id: "s1"}
+	bindChat(b, "c1", binding{Session: "s1"})
 	b.leave("c1")
 	luna.files = []string{
 		`{"type":"step_start","sessionID":"ses_A"}`, "",
 		`{"type":"step_start","sessionID":"ses_B"}`, "",
-		`{"type":"step_start","sessionID":"ses_C"}`, "",
 	}
 	b.onMessage(nil, textMsg("c1", "ou_me", "first"))
-	if got := b.chat("c1").sid; got != "ses_A" {
+	if got := b.bindingOf("c1").Conversation; got != "ses_A" {
 		t.Fatalf("the first turn's conversation is %q", got)
 	}
 
@@ -764,21 +775,67 @@ func TestChatContinuesAcrossRestarts(t *testing.T) {
 	again.msgs = msgs
 	again.sync = true
 	again.load()
-	if got := again.chat("c1").sid; got != "ses_A" {
+	if got := again.bindingOf("c1").Conversation; got != "ses_A" {
 		t.Fatalf("after a restart the chat's conversation is %q", got)
 	}
 	again.onMessage(nil, textMsg("c1", "ou_me", "second"))
 	if len(luna.ran) != 2 || !slices.Contains(luna.ran[1].Command, "ses_A") {
 		t.Fatalf("the turn after a restart ran %v, not the conversation before it", luna.ran)
 	}
+}
 
-	// A chat that lost its conversation goes on with the one the bot
-	// remembers.
-	again.chat("c1").sid = ""
-	again.onMessage(nil, textMsg("c1", "ou_me", "third"))
-	if len(luna.ran) != 3 || !slices.Contains(luna.ran[2].Command, "ses_B") {
-		t.Fatalf("the turn after the loss ran %v, not the conversation before it", luna.ran)
+// A chat's binding is the chat's, whichever topic a message came in: the
+// turn of a second topic goes on with the conversation the first left.
+func TestBindingAcrossTopics(t *testing.T) {
+	defer shortWaits()()
+	b, luna, _ := newBot(t)
+	b.cfg.Run = settings.FeishuRunCommand
+	b.cfg.Agent = "opencode"
+	bindChat(b, "g1", binding{Session: "s1"})
+	luna.files = []string{
+		`{"type":"step_start","sessionID":"ses_A"}`, "",
+		`{"type":"step_start","sessionID":"ses_B"}`, "",
 	}
+	b.onMessage(nil, groupMsgOf("g1", "t1", "m1", "first"))
+	b.onMessage(nil, groupMsgOf("g1", "t2", "m2", "second"))
+	if len(luna.ran) != 2 || !slices.Contains(luna.ran[1].Command, "ses_A") {
+		t.Fatalf("the second topic's turn ran %v, not the chat's conversation", luna.ran)
+	}
+	if got := b.bindingOf("g1"); got.Conversation != "ses_B" {
+		t.Errorf("the chat's conversation is %q, want ses_B", got.Conversation)
+	}
+}
+
+// A file of before the bindings, with the sessions in binds and what a
+// chat went on with in chats, loads as the chat's binding.
+func TestLegacyBindingsFile(t *testing.T) {
+	b, _, _ := newBot(t)
+	old := `{"binds":{"c1":"s1"},"chats":{"c1":{"agent":"opencode","dir":"/tmp/api","sid":"ses_A"}}}`
+	if err := os.WriteFile(bindFile(), []byte(old), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	b.load()
+	want := binding{Session: "s1", Agent: "opencode", Dir: "/tmp/api", Conversation: "ses_A"}
+	if got := b.bindingOf("c1"); got != want {
+		t.Fatalf("the old file loads %+v, want %+v", got, want)
+	}
+	b.save()
+	data, err := os.ReadFile(bindFile())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), `"bindings"`) || strings.Contains(string(data), `"binds"`) {
+		t.Errorf("saved %s", data)
+	}
+}
+
+// groupMsgOf is a group message in a topic, as Feishu sends one.
+func groupMsgOf(chat, root, id, text string) *larkim.P2MessageReceiveV1 {
+	e := textMsgFrom(chat, id, text)
+	e.Event.Message.ChatType = str("group")
+	e.Event.Message.RootId = str(root)
+	e.Event.Message.Mentions = []*larkim.MentionEvent{{Key: str("@_user_1"), MentionedType: str("bot")}}
+	return e
 }
 
 // shortWaits makes the waits the driving relies on short, for the tests.
@@ -796,7 +853,7 @@ func TestPromptAnsweredWhileIdle(t *testing.T) {
 	defer func() { stuckAfter = old }()
 	defer shortWaits()()
 	b, luna, msgs := newBot(t)
-	b.chats["c1"] = &chat{id: "s1"}
+	bindChat(b, "c1", binding{Session: "s1"})
 	b.leave("c1")
 	luna.hold = true
 	// The turn: the agent takes the prompt, and keeps a status it had
@@ -817,7 +874,7 @@ func TestPromptAnsweredWhileIdle(t *testing.T) {
 func TestPromptOfAViewport(t *testing.T) {
 	defer shortWaits()()
 	b, luna, msgs := newBot(t)
-	b.chats["c1"] = &chat{id: "s1"}
+	bindChat(b, "c1", binding{Session: "s1"})
 	b.leave("c1")
 	luna.hold = true
 	// The screen before the turn, and after it: as many rows either way.
@@ -842,7 +899,7 @@ func TestPromptStuckWorking(t *testing.T) {
 	defer func() { stuckAfter = old }()
 	defer shortWaits()()
 	b, luna, msgs := newBot(t)
-	b.chats["c1"] = &chat{id: "s1"}
+	bindChat(b, "c1", binding{Session: "s1"})
 	b.leave("c1")
 	luna.busy = true
 	luna.script = []struct {
@@ -863,7 +920,7 @@ func TestCommandMode(t *testing.T) {
 	b.cfg.Run = settings.FeishuRunCommand
 	b.cfg.Agent = "claude"
 	b.yolo = true // feishu-yolo's default
-	b.chats["c1"] = &chat{id: "s1"}
+	bindChat(b, "c1", binding{Session: "s1"})
 	b.leave("c1")
 	luna.files = []string{"2", ""}
 	b.onMessage(nil, textMsg("c1", "ou_me", "1+1=?"))
@@ -1028,7 +1085,7 @@ func TestHostHandoff(t *testing.T) {
 	// prompt replies to: the first host that hears a message takes it.
 	luna.msgs = append(luna.msgs, &larkim.EventMessage{MessageId: str("om_user"), ChatId: str("c1"), ChatType: str("p2p"), MessageType: str("text"), Content: jsonText("ask")})
 	luna.msgs = append(luna.msgs, &larkim.EventMessage{MessageId: str("om_sent_1"), ChatId: str("c1"), ChatType: str("p2p"), MessageType: str("text"), Content: jsonText("hi")})
-	b.chats["c1"] = &chat{id: "s1", agent: "claude", dir: "/tmp"}
+	bindChat(b, "c1", binding{Session: "s1", Agent: "claude", Dir: "/tmp"})
 	b.sync = true
 	// The turn's text, after what the pane had.
 	luna.script = append(luna.script, struct {
@@ -1116,7 +1173,7 @@ func TestCardTurn(t *testing.T) {
 	b, luna, msgs := newBot(t)
 	b.cfg.Run = settings.FeishuRunCommand
 	luna.files = []string{`{"type":"assistant","message":{"content":[{"type":"text","text":"Fixed 2 tests."}]}}`, "", ""}
-	b.chats["c1"] = &chat{id: "s1", agent: "claude", dir: "/tmp"}
+	bindChat(b, "c1", binding{Session: "s1", Agent: "claude", Dir: "/tmp"})
 	b.onMessage(nil, cardMsgOf("c1", "om_t", "om_user", "fix the tests"))
 	if len(msgs.cards) < 2 {
 		t.Fatalf("cards %d", len(msgs.cards))
@@ -1201,7 +1258,7 @@ func parseCard(t *testing.T, shown string) map[string]any {
 func TestImage(t *testing.T) {
 	t.Setenv("HYLA_HOME", t.TempDir())
 	b, luna, msgs := newBot(t)
-	b.chats["c1"] = &chat{id: "s1"}
+	bindChat(b, "c1", binding{Session: "s1"})
 	b.leave("c1")
 	luna.waitEnd = proto.Working
 	b.onMessage(nil, &larkim.P2MessageReceiveV1{
@@ -1261,7 +1318,7 @@ func TestCardRefused(t *testing.T) {
 		b.sync = true
 		b.cfg.Run = settings.FeishuRunCommand
 		b.cfg.Agent = "claude"
-		b.chats["c1"] = &chat{id: "s1"}
+		bindChat(b, "c1", binding{Session: "s1"})
 		b.leave("c1")
 		luna.files = []string{"2", ""} // the command's text, then its end
 		b.onMessage(nil, textMsg("c1", "ou_me", "1+1=?"))
@@ -1372,8 +1429,8 @@ func TestHookAnswerToQuestion(t *testing.T) {
 	if !strings.Contains(got, "On main.") || strings.Contains(got, "Which branch?") && strings.Contains(got, "no final") {
 		t.Fatalf("replied %q", got)
 	}
-	if b.chat("c1").sid != "turn2" {
-		t.Errorf("the conversation is %q", b.chat("c1").sid)
+	if b.bindingOf("c1").Conversation != "turn2" {
+		t.Errorf("the conversation is %q", b.bindingOf("c1").Conversation)
 	}
 }
 
@@ -1407,8 +1464,8 @@ func TestHookAnswerToPrompt(t *testing.T) {
 	if !strings.Contains(got, "All tests pass.") {
 		t.Fatalf("replied %q", got)
 	}
-	if b.chat("c1").sid != "turn3" {
-		t.Errorf("the conversation is %q", b.chat("c1").sid)
+	if b.bindingOf("c1").Conversation != "turn3" {
+		t.Errorf("the conversation is %q", b.bindingOf("c1").Conversation)
 	}
 }
 

@@ -413,21 +413,12 @@ func (b *Bot) newSession(chatID, rest string) {
 	}
 	var s proto.Session
 	cmd := []string{}
-	after := false
 	if agent != "default" {
-		cmd, after = b.sessionCommand(agent)
+		cmd, _ = b.sessionCommand(agent)
 	}
 	if err := b.api.Call("create", proto.CreateParams{Project: project, Dir: b.cfg.Dir, Command: cmd}, &s); err != nil {
 		b.reply(chatID, "Hyla could not start a session: "+err.Error())
 		return
-	}
-	if after {
-		// The agent's program takes the yolo option, but not its
-		// subcommand, which is all a background turn runs: the chat's
-		// background turns start it with the option after the subcommand.
-		b.mu.Lock()
-		b.chatLocked(chatKey(chatID, "")).cmd = strings.Join(append([]string{cmd[0], agentSubcommand[agent]}, cmd[1:]...), "\x00")
-		b.mu.Unlock()
 	}
 	b.bind(chatID, s)
 	// Its pane's process, if there is one: where it works.
@@ -503,7 +494,7 @@ func (b *Bot) list(chatID string) {
 		return
 	}
 	var out strings.Builder
-	cur := b.chat(chatKey(chatID, "")).id
+	cur := b.bindingOf(bindingKey(chatID)).Session
 	for _, s := range st.Sessions {
 		if !takesPrompts(&s) {
 			continue // no terminal to send a prompt to
@@ -564,7 +555,7 @@ func (b *Bot) stop(key, chatID string) {
 	}
 	if has, err := b.hasBackground(s.ID); err == nil && has {
 
-		if turn := b.runningTurn(chatID).text; turn != "" {
+		if turn := b.runningTurn(key).text; turn != "" {
 			if err := b.api.Call("agent.stop", proto.SessionParams{ID: s.ID}, nil); err != nil {
 				b.reply(chatID, err.Error())
 				return
@@ -667,7 +658,7 @@ func (b *Bot) answer(chatID, text string) {
 // chat's host replies with it.
 func (b *Bot) answering(key string, s *proto.Session, t turnInfo) {
 	pane := leadPane(s).ID
-	agent := b.conversationAgent(b.chat(key), "", s.ID)
+	agent := b.conversationAgent(t.chat, "", s.ID)
 	answers := b.prepare(pane, agent)
 	if answers != "" {
 		var info proto.Pane
@@ -712,11 +703,10 @@ func (b *Bot) followAnswer(key, chatID, agent, answers string, t turnInfo) {
 	if r.hook {
 		// The hook's answer is the turn's text, not the terminal's, and
 		// it names the conversation the answer continued.
+		b.setBinding(bindingKey(chatID), binding{Conversation: r.conversation})
 		b.mu.Lock()
-		c := b.chatLocked(key)
-		c.sid, c.card = r.conversation, cardMsg{}
+		b.chatLocked(key).card = cardMsg{}
 		b.mu.Unlock()
-		b.save()
 	}
 	b.drop(card)
 	b.replyAt(key, t.event, chatID, b.replyWith(r))
@@ -737,14 +727,13 @@ func (b *Bot) close(chatID string) {
 		b.reply(chatID, err.Error())
 		return
 	}
-	b.unbind(chatKey(chatID, ""))
+	b.unbind(chatID)
 	b.reply(chatID, "Closed. /new starts another.")
 }
 
 // bound is the chat's session, now.
 func (b *Bot) bound(chatID string) (*proto.Session, error) {
-	id := b.chat(chatKey(chatID, "")).id
-
+	id := b.bindingOf(bindingKey(chatID)).Session
 	if id == "" {
 		return nil, errors.New("no session")
 	}
@@ -796,26 +785,67 @@ func plainName(s string) string {
 	return strings.Trim(s, `"'`)
 }
 
+// bindingKey is where a chat's binding is kept. A chat has one, whichever
+// topic its messages came in: a topic's turn is a turn of the chat, which
+// the chat's turn state keeps, and not a conversation of its own.
+func bindingKey(chatID string) string { return chatKey(chatID, "") }
+
+// bind binds a chat to a Hyla session, which its turns go to.
 func (b *Bot) bind(chatID string, s proto.Session) {
-	key := chatKey(chatID, "")
-	b.mu.Lock()
-	b.chatLocked(key).id = s.ID
-	b.binds[key] = s.ID
-	b.mu.Unlock()
-	b.save()
+	b.setBinding(bindingKey(chatID), binding{Session: s.ID})
 }
 
 // unbind takes the chat's session, which is gone or closed, off the
-// chat.
-func (b *Bot) unbind(key string) {
+// chat: what its turns went on with, its agent and conversation, stays.
+func (b *Bot) unbind(chatID string) {
+	key := bindingKey(chatID)
 	b.mu.Lock()
-	b.chatLocked(key).id = ""
-	had := b.binds[key] != ""
-	delete(b.binds, key)
+	bnd := b.bindings[key]
+	had := bnd.Session != ""
+	bnd.Session = ""
+	if bnd != (binding{}) {
+		b.bindings[key] = bnd
+	} else {
+		delete(b.bindings, key)
+	}
 	b.mu.Unlock()
 	if had {
 		b.save()
 	}
+}
+
+// bindingOf is a chat's binding, as the turns before this one left it.
+func (b *Bot) bindingOf(key string) binding {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.bindings[key]
+}
+
+// setBinding sets what a turn knows of a chat's binding, and saves it.
+// A field the change leaves empty is one it did not learn: it stays as it
+// was, so that a turn which tells no conversation keeps the one before.
+func (b *Bot) setBinding(key string, change binding) {
+	b.mu.Lock()
+	bnd := b.bindings[key]
+	if change.Session != "" {
+		bnd.Session = change.Session
+	}
+	if change.Agent != "" {
+		bnd.Agent = change.Agent
+	}
+	if change.Dir != "" {
+		bnd.Dir = change.Dir
+	}
+	if change.Conversation != "" {
+		bnd.Conversation = change.Conversation
+	}
+	if bnd != (binding{}) {
+		b.bindings[key] = bnd
+	} else {
+		delete(b.bindings, key)
+	}
+	b.mu.Unlock()
+	b.save()
 }
 
 // takesPrompts tells a session a prompt can go to: one with a terminal.
@@ -837,41 +867,23 @@ func sessionOf(l []*proto.Session, id string) *proto.Session {
 	return nil
 }
 
-// memory is what a chat's turns went on with, as the bot keeps it across
-// its restarts.
-func (b *Bot) memory(key string) chatMemory {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	return b.mem[key]
-}
-
 // bindFile is where the chats' bindings go: hylad's directory, kept with
 // its sessions, so that a chat finds its session again after hylad
 // restarts.
 func bindFile() string { return filepath.Join(proto.Dir(), "feishu-chats.json") }
 
+// legacyChat is what a chat went on with, as a file of before the
+// bindings kept it: read, and written no more.
+type legacyChat struct {
+	Agent string `json:"agent,omitempty"`
+	Dir   string `json:"dir,omitempty"`
+	Sid   string `json:"sid,omitempty"`
+}
+
 // save writes the bindings.
 func (b *Bot) save() {
 	b.mu.Lock()
-	// What the chats went on with is kept, even where a chat's own fields
-	// have none: a turn that ends without telling its conversation keeps
-	// the one it was given, and the next turn goes on with that.
-	for key, c := range b.chats {
-		m := b.mem[key]
-		if c.agent != "" {
-			m.Agent = c.agent
-		}
-		if c.dir != "" {
-			m.Dir = c.dir
-		}
-		if c.sid != "" {
-			m.Sid = c.sid
-		}
-		if m != (chatMemory{}) {
-			b.mem[key] = m
-		}
-	}
-	w := chatsFile{Turns: maps.Clone(b.times), Pins: maps.Clone(b.pins), Chats: maps.Clone(b.mem)}
+	w := chatsFile{Turns: maps.Clone(b.times), Pins: maps.Clone(b.pins), Bindings: maps.Clone(b.bindings)}
 	allowed := map[string][]string{}
 	for key, c := range b.chats {
 		for tool := range c.allowed {
@@ -884,63 +896,56 @@ func (b *Bot) save() {
 	}
 	data, _ := json.Marshal(struct {
 		chatsFile
-		Binds   map[string]string   `json:"binds"`
 		Allowed map[string][]string `json:"allowed,omitempty"`
-	}{w, maps.Clone(b.binds), allowed})
+	}{w, allowed})
 	tmp := bindFile() + ".tmp"
 	if os.WriteFile(tmp, data, 0o600) == nil && os.Rename(tmp, bindFile()) != nil {
 		os.Remove(tmp)
 	}
 }
 
-// load reads the bindings.
+// load reads the bindings, which replace the bot's whole: the file is the
+// only thing that carries a chat's session, agent and conversation across
+// a restart.
 func (b *Bot) load() {
 	data, err := os.ReadFile(bindFile())
 	if err != nil {
 		return
 	}
-	// The chats' turns, with their keys, or the keys alone, as the file
-	// was before the chats' turns.
+	// A file of before bindings: the sessions in binds, and what each
+	// chat went on with, by its agent's own key, in chats.
 	var w struct {
 		chatsFile
-		Binds   map[string]string   `json:"binds"`
-		Allowed map[string][]string `json:"allowed"`
+		Binds   map[string]string     `json:"binds"`
+		Chats   map[string]legacyChat `json:"chats"`
+		Allowed map[string][]string   `json:"allowed"`
 	}
 	if json.Unmarshal(data, &w) != nil {
 		return
 	}
-	if w.Binds == nil {
-		json.Unmarshal(data, &w.Binds)
+	bindings := maps.Clone(w.Bindings)
+	if bindings == nil {
+		bindings = map[string]binding{}
+	}
+	for k, id := range w.Binds {
+		bnd := bindings[k]
+		bnd.Session = id
+		bindings[k] = bnd
+	}
+	for k, m := range w.Chats {
+		bnd := bindings[k]
+		bnd.Agent, bnd.Dir, bnd.Conversation = m.Agent, m.Dir, m.Sid
+		bindings[k] = bnd
 	}
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	for k, id := range w.Binds {
-		if _, ok := b.chats[k]; !ok {
-			b.chats[k] = &chat{id: id}
-		}
-		b.binds[k] = id
-	}
-	// What a chat's turns went on with, which a restart of the bot would
-	// leave a new conversation of: the agent's, its directory, and the
-	// conversation it continues.
-	for k, m := range w.Chats {
-		b.mem[k] = m
-		c := b.chatLocked(k)
-		if c.agent == "" {
-			c.agent = m.Agent
-		}
-		if c.dir == "" {
-			c.dir = m.Dir
-		}
-		if c.sid == "" {
-			c.sid = m.Sid
+	for k, bnd := range bindings {
+		if bnd != (binding{}) {
+			b.bindings[k] = bnd
 		}
 	}
 	for k, tools := range w.Allowed {
-		c := b.chats[k]
-		if c == nil {
-			continue
-		}
+		c := b.chatLocked(k)
 		c.allowed = map[string]bool{}
 		for _, tool := range tools {
 			c.allowed[tool] = true

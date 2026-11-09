@@ -18,12 +18,8 @@ import (
 // claude -p, whose text is the answer. response is the event the answer
 // replies to, which t has; a restart's take on the turn has none.
 func (b *Bot) background(key, chatID, response, text string, t turnInfo) {
-	base := b.chat(key)
-	mem := b.memory(key)
-	agent := base.agent
-	if agent == "" {
-		agent = mem.Agent
-	}
+	bnd := b.bindingOf(bindingKey(chatID))
+	agent := bnd.Agent
 	if agent == "" {
 		agent = b.cfg.Agent
 	}
@@ -31,10 +27,7 @@ func (b *Bot) background(key, chatID, response, text string, t turnInfo) {
 		b.reply(chatID, "Which agent? /new <project> <agent> starts one, as /new api claude.")
 		return
 	}
-	dir := base.dir
-	if dir == "" {
-		dir = mem.Dir
-	}
+	dir := bnd.Dir
 	if dir == "" {
 		dir = b.cfg.Dir
 	}
@@ -44,17 +37,13 @@ func (b *Bot) background(key, chatID, response, text string, t turnInfo) {
 	if t.event == "" {
 		t.event = response
 	}
-	session, made, err := b.backgroundSession(chatID, base.id, agent, dir)
+	session, made, err := b.backgroundSession(chatID, bnd.Session, agent, dir)
 	if err != nil {
 		b.reply(chatID, err.Error())
 		return
 	}
-	// The conversation the chat went on with, as the turn before left it:
-	// the chat's own, or what the bot remembers of it across a restart.
-	resume := base.sid
-	if resume == "" {
-		resume = mem.Sid
-	}
+	// The conversation the chat went on with, as the turn before left it.
+	resume := bnd.Conversation
 	sid := resume
 	if sid == "" {
 		sid = newUUID()
@@ -93,14 +82,7 @@ func (b *Bot) background(key, chatID, response, text string, t turnInfo) {
 		return
 	}
 	// The chat window shows the conversation this turn runs from now on.
-	if key != "" {
-		b.mu.Lock()
-		if c := b.chats[key]; c != nil {
-			c.agent, c.dir, c.cmd, c.sid = agent, dir, "", sid
-		}
-		b.mu.Unlock()
-		b.save()
-	}
+	b.setBinding(bindingKey(chatID), binding{Agent: agent, Dir: dir, Conversation: sid})
 	if made && !t.window {
 		// The user's session shows in the app at once, where its chat
 		// window is: not one a prompt of the app's chat window made, which
@@ -137,10 +119,7 @@ func (b *Bot) background(key, chatID, response, text string, t turnInfo) {
 			return
 		}
 		if time.Now().After(stop) {
-			b.mu.Lock()
-			base.agent, base.dir, base.cmd, base.sid = agent, dir, "", sid
-			b.mu.Unlock()
-			b.save()
+			b.setBinding(bindingKey(chatID), binding{Agent: agent, Dir: dir, Conversation: sid})
 			b.drop(card)
 			b.reply(chatID, fmt.Sprintf("Still working after %s. /stop ends it.", b.timeout()))
 			return
@@ -155,7 +134,7 @@ func (b *Bot) background(key, chatID, response, text string, t turnInfo) {
 func (b *Bot) finished(key, chatID, response, agent, dir, sid, text string, out proto.Output, answer string, card *turnCard, started time.Time) {
 	out.Text = answer
 	if sid = conversation(agent, answer, sid); sid == "" {
-		sid = b.chat(key).sid
+		sid = b.bindingOf(bindingKey(chatID)).Conversation
 	}
 	// A session the agent does not know, as one this turn's ID named
 	// before the agent kept it, starts anew next turn: the chat goes on
@@ -163,12 +142,10 @@ func (b *Bot) finished(key, chatID, response, agent, dir, sid, text string, out 
 	if agent == "codex" && lostSession(answer) {
 		sid = ""
 	}
+	b.setBinding(bindingKey(chatID), binding{Agent: agent, Dir: dir, Conversation: sid})
 	b.mu.Lock()
-	c := b.chatLocked(key)
-	c.agent, c.dir, c.cmd, c.sid = agent, dir, "", sid
-	c.card = cardMsg{}
+	b.chatLocked(key).card = cardMsg{}
 	b.mu.Unlock()
-	b.save()
 	reply := b.backgroundReply(agent, out)
 	b.drop(card)
 	// A question of the agent, which the chat may choose to answer, is

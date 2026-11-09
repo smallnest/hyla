@@ -116,9 +116,7 @@ func TestFeed(t *testing.T) {
 	dir := filepath.Join(home, "projects", encodeDir("/tmp/api"))
 	os.MkdirAll(dir, 0o700)
 	os.WriteFile(filepath.Join(dir, "conv1.jsonl"), []byte(strings.Join(claudeLines, "\n")+"\n"), 0o600)
-	b.mu.Lock()
-	b.chatLocked("oc_1").agent = "claude"
-	b.mu.Unlock()
+	b.setBinding("oc_1", binding{Agent: "claude"})
 	luna.sessions[0].Panes[0].Agent = "claude"
 	b.bind("oc_1", luna.sessions[0])
 
@@ -248,7 +246,7 @@ func TestKeptTurn(t *testing.T) {
 // which a background session's pane has no terminal to tell.
 func TestFeedShowsKeptTurns(t *testing.T) {
 	b, luna, _ := newBot(t)
-	b.chats["c1"] = &chat{id: "s1", agent: "opencode"}
+	bindChat(b, "c1", binding{Session: "s1", Agent: "opencode"})
 	luna.sessions[0].Panes[0].AgentSessionID = "ses_1"
 	b.keepTurn("opencode", "ses_1", "1+1=?", "2")
 	f, err := b.Feed(proto.FeishuFeedParams{Session: "s1", Chat: "c1"})
@@ -267,7 +265,7 @@ func TestFeedShowsKeptTurns(t *testing.T) {
 // the chat keeps: the window shows it before a turn resumes the thread.
 func TestFeedShowsFirstCodexTurn(t *testing.T) {
 	b, luna, _ := newBot(t)
-	b.chats["c1"] = &chat{id: "s1", agent: "codex", sid: "01a1-th-1"}
+	bindChat(b, "c1", binding{Session: "s1", Agent: "codex", Conversation: "01a1-th-1"})
 	// The pane names no conversation before a turn resumes it.
 	luna.sessions[0].Panes[0].AgentSessionID = ""
 	b.keepTurn("codex", "01a1-th-1", "1+1=?", "2")

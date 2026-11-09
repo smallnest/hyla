@@ -149,17 +149,14 @@ type Bot struct {
 	began time.Time
 
 	mu    sync.Mutex
-	chats map[string]*chat // by chat key
-	// binds are the chats' sessions, by chat key, which hylad's state
-	// file keeps across its restarts.
-	binds map[string]string
-	// mem is what each chat's turns went on with, by chat key, which the
-	// file keeps across restarts: the agent, its directory and the
-	// conversation. The chat's own fields are the turn's, and a turn whose
-	// chat has none of them goes on with the memory's.
-	mem   map[string]chatMemory
-	seen  map[string]bool // event IDs, for a while
-	order []string        // seen's, oldest first
+	chats map[string]*chat // by chat key: the turns' own state
+	// bindings is what each chat's turns go on with, by chat key: the
+	// session, the agent, the directory its commands run in, and the
+	// conversation it continues. It is the only source of them;
+	// feishu-chats.json keeps a copy, which load replaces whole.
+	bindings map[string]binding
+	seen     map[string]bool // event IDs, for a while
+	order    []string        // seen's, oldest first
 	// notes tell what the bot's cards are about, by message ID, for the
 	// button's click: hylad's directory keeps them across its restarts.
 	notes map[string]record
@@ -189,23 +186,26 @@ type Bot struct {
 	Chats func(ctx context.Context) ([]proto.FeishuChat, error)
 }
 
+// binding is what a chat's turns go on with, and the only source of it:
+// the Hyla session the chat is bound to, the agent its turns run, the
+// directory their commands run in, and the conversation the agent names,
+// which the next turn continues. Empty means "not known", never "none":
+// a turn that learns nothing leaves the field as it was.
+type binding struct {
+	Session      string `json:"session,omitempty"`
+	Agent        string `json:"agent,omitempty"`
+	Dir          string `json:"dir,omitempty"`
+	Conversation string `json:"conversation,omitempty"`
+}
+
 // chat is a Feishu chat, bound to a session as its messages say.
 type chat struct {
-	id    string // the session it is bound to
 	chat  string // its chat ID, which its answers go to
 	event string // the event its answer names
 	key   string // the chat's key
 	busy  bool   // a turn runs: the bot takes the next one after it
 	// running is the turn the chat runs, as its message left it.
 	running turnInfo
-	// command is the chat's agent, its command run in the background: its
-	// session, its agent's session to continue, and where its turn's
-	// output ended.
-	cmd   string
-	agent string
-	dir   string
-	sid   string
-	from  int64
 	// peer is the open_id of the one the chat is with, for a p2p chat:
 	// a window's prompt reaches it as the user's, which the bot answers.
 	peer string
@@ -295,8 +295,7 @@ func New(c Config) *Bot {
 		me:       c.Secret.Me,
 		logf:     c.Log,
 		chats:    map[string]*chat{},
-		binds:    map[string]string{},
-		mem:      map[string]chatMemory{},
+		bindings: map[string]binding{},
 		seen:     map[string]bool{},
 		notes:    map[string]record{},
 		heard:    map[string]int64{},

@@ -44,7 +44,8 @@ func TestChoiceAction(t *testing.T) {
 	// whose options are buttons.
 	which := "Which color?\n1. Red\n2. Blue"
 	b.sync = true
-	b.chats["c1"] = &chat{id: "s1", event: "ev_q"}
+	bindChat(b, "c1", binding{Session: "s1"})
+	b.chat("c1").event = "ev_q"
 	b.askOptions(newChoice("ev_q", "c1", "om_card_1", which))
 	shown, err := optionsCard(&questionAsk{id: "a1", lang: "en_us", question: "Which color?", options: []string{"Red", "Blue"}}, "")
 	var card map[string]any

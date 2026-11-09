@@ -30,21 +30,22 @@ func (b *Bot) takeOver(c *chat) bool {
 	if started.IsZero() || started.After(b.began) || text == "" {
 		return false
 	}
-	if c.id == "" || time.Since(started) >= b.timeout() {
+	session := b.bindingOf(bindingKey(c.chat)).Session
+	if session == "" || time.Since(started) >= b.timeout() {
 		return false
 	}
 	follow.Lock()
 	defer follow.Unlock()
-	if out, pane := b.backgroundRun(c.id); pane != "" {
+	if out, pane := b.backgroundRun(session); pane != "" {
 		if out.Ended {
 			return false
 		}
-		b.followCommand(c, out, started, event, text)
+		b.followCommand(c, session, out, started, event, text)
 		return true
 	}
 	// The session's pane, as hylad's state has it, shows its state.
 	var p proto.Pane
-	if !b.paneStatus(c.id, &p) || p.Status != proto.Working {
+	if !b.paneStatus(session, &p) || p.Status != proto.Working {
 		return false
 	}
 	b.followPane(c, started, event, text)
@@ -76,11 +77,12 @@ func (b *Bot) backgroundRun(session string) (out proto.Output, pane string) {
 
 // followCommand follows a command in the background, in pane, to its
 // end, by the message of the turn that began it.
-func (b *Bot) followCommand(c *chat, out proto.Output, started time.Time, event, text string) {
+func (b *Bot) followCommand(c *chat, session string, out proto.Output, started time.Time, event, text string) {
 	key := c.key
 	card := b.newTurnCard(c.chat, b.wantEvent(c.chat), langOf(text))
 	b.card(card, "working", "", "")
-	agent, dir, sid := c.agent, c.dir, c.sid
+	bnd := b.bindingOf(bindingKey(c.chat))
+	agent, dir, sid := bnd.Agent, bnd.Dir, bnd.Conversation
 	from, answer := out.From, out.Text
 	for !out.Ended {
 		if time.Since(started) >= b.timeout() {
@@ -90,7 +92,7 @@ func (b *Bot) followCommand(c *chat, out proto.Output, started time.Time, event,
 		}
 		time.Sleep(time.Second)
 		var next proto.Output
-		if err := b.api.Call("agent.output", proto.OutputParams{ID: c.id, From: from}, &next); err != nil {
+		if err := b.api.Call("agent.output", proto.OutputParams{ID: session, From: from}, &next); err != nil {
 			b.card(card, "error", "", "")
 			b.reply(c.chat, err.Error())
 			return
@@ -98,7 +100,7 @@ func (b *Bot) followCommand(c *chat, out proto.Output, started time.Time, event,
 		out = next
 		from, answer = out.From, answer+out.Text
 	}
-	b.finished(key, c.id, event, agent, dir, sid, text, out, answer, card, started)
+	b.finished(key, session, event, agent, dir, sid, text, out, answer, card, started)
 }
 
 // followPane follows an agent in the pane, with its card.
@@ -106,7 +108,7 @@ func (b *Bot) followPane(c *chat, started time.Time, event, text string) {
 	key := c.key
 	card := b.newTurnCard(c.chat, b.wantEvent(c.chat), langOf(text))
 	b.card(card, "working", "", "")
-	lead := leadPaneOf(b, c.id)
+	lead := leadPaneOf(b, b.bindingOf(bindingKey(c.chat)).Session)
 	_, body, _, _ := b.watchCard(card, lead, 0, started.Add(b.timeout()))
 	var p proto.Pane
 	b.api.Call("read", proto.ReadParams{ID: lead}, &p)
@@ -206,8 +208,8 @@ func (b *Bot) dropTurn(key string, t *turnInfo) {
 }
 
 // runningTurn is the turn the chat runs, as its message left it.
-func (b *Bot) runningTurn(chatID string) turnInfo {
+func (b *Bot) runningTurn(key string) turnInfo {
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	return b.chatLocked(chatKey(chatID, "")).running
+	return b.chatLocked(key).running
 }
