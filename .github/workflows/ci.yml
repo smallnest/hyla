@@ -52,16 +52,16 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-      # The library's SHA-256, name and release, as the terminal's manifest
-      # names them, where go list says the module is: downloaded by the run
-      # before.
+      # The library's SHA-256, name, and the release of its file, as the
+      # terminal's manifest names them: the SHA-256 is where the terminal
+      # keeps the library it downloads.
       - run: |
           set -eu
           dir="$(go list -m -f '{{.Dir}}' github.com/egoist/mygo)/plugins/terminal"
+          url="$(jq -r '.libraries[] | select(.name == "libghostty-vt") | .files["linux-amd64"].url' "$dir/mygo-plugin.json")"
           jq -r '.libraries[] | select(.name == "libghostty-vt") | .files["linux-amd64"].sha256' "$dir/mygo-plugin.json" > "$RUNNER_TEMP/sha"
           jq -r '.libraries[] | select(.name == "libghostty-vt") | .files["linux-amd64"].name' "$dir/mygo-plugin.json" > "$RUNNER_TEMP/name"
-          jq -r '.libraries[] | select(.name == "libghostty-vt") | .files["linux-amd64"].url' "$dir/mygo-plugin.json" |
-            sed 's|.*/download/||; s|/.*||' > "$RUNNER_TEMP/tag"
+          echo "$url" | sed 's|.*/download/||; s|/.*||' > "$RUNNER_TEMP/tag"
           echo "sha=$(cat "$RUNNER_TEMP/sha")" >> "$GITHUB_ENV"
           echo "lib=$(cat "$RUNNER_TEMP/name")" >> "$GITHUB_ENV"
           echo "tag=$(cat "$RUNNER_TEMP/tag")" >> "$GITHUB_ENV"
@@ -76,6 +76,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -eu
+          case "$sha" in
+          ????????????????????????????????????????????????????????????????) ;;
+          *)
+            echo "no SHA-256 of $lib in the manifest: $sha" >&2
+            exit 1
+            ;;
+          esac
           mkdir -p "$HOME/.cache/mygo/natives/$sha"
           # Asked for by gh, which reaches the release's file where curl of
           # its link does not at times, and again a moment later.
