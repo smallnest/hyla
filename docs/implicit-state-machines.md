@@ -113,7 +113,7 @@ render. The save comes from the render check
 from the watcher. It works, but any copy race loses the click with no
 save. `a.set` is shared by every render and the watcher (`app.go:1437`).
 
-## 4. Ad blocking (high when the first compile fails)
+## 4. Ad blocking (fixed)
 
 **State:** `adBlock{started, lists, gen, rules}` (`adblock.go:23-30`).
 
@@ -129,8 +129,9 @@ Turning blocking off leaves `a.ads.rules` in place (`adblock.go:35-39`).
 That is safe, because `adRules` returns nil, but the object is a second
 copy of the setting.
 
-**Fix direction:** set `started` when the compile ends, and clear it on
-error.
+**Fixed** in 174fe8b: a compile that ends with an error clears `started`
+and `lists`, so the next page tries the lists again. The rules it did
+compile stay. `TestAdsCompileAgainAfterAFailure` holds it.
 
 ## 5. hylad lock and socket (high, narrow window)
 
@@ -163,7 +164,15 @@ restarted. Background panes have `bg != nil`.
 - `setBackground` calls `p.close()` and then sets `closed = false`
   (`background.go:399-405`). A shell that exits between the two calls
   sets nothing: `exited` sees `closed` (`session.go:744`) and returns.
-  The pane stays Idle with `proc == nil` and no Restart. Checked.
+  The pane stays Idle with `proc == nil` and no Restart. Checked. Worse,
+  `close` calls `noteEnded`, which takes `d.mu` and saves beside the
+  shell's reader: `setBackground` is usually left with `proc` set and
+  the status Exited, after its own work, which then lands in no test and
+  in some runs. My first attempt to fix it (wait for the shell behind
+  the pane's lock, then reopen) was reverted: it changed the lock order
+  and left more holes than it closed. The fix needs one owner of the
+  sequence: `close` returning once its reader left, or a `closed` that
+  `exited` honours by setting the pane's final state.
 - `restart` on a background pane is not prevented: `proc == nil` and
   `term != nil` pass its guard (`session.go:769-783`). `start` then opens
   a shell beside `bg`, so two owners write the status.
