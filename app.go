@@ -174,6 +174,11 @@ type App struct {
 	skillsAt     time.Time
 	sideDrag     float32 // the width as a drag of the sidebar's edge began
 	pendingToast string
+	// undoMessage and undoAction are the last removal's words, and what puts
+	// back what it took away, as the toast's Undo does: a host, an SSH
+	// machine or a pod.
+	undoMessage string
+	undoAction  func()
 	// later are actions that change what the view is building, run once
 	// it is built.
 	later []func()
@@ -815,6 +820,11 @@ func (a *App) selectSession(id string) {
 	changed := a.selected != id
 	a.selected = id
 	s := a.session(id)
+	// The session shows: its project unfolds to it, chosen from the
+	// palette or as the one that needs the user, with its row in sight.
+	if s.Project != "" {
+		delete(a.prefs.Collapsed, s.Project)
+	}
 	for _, p := range s.Panes {
 		a.ensureTerm(p.ID)
 	}
@@ -1532,6 +1542,13 @@ func (a *App) callOn(h *host, method string, params any, done func(err error)) {
 
 func (a *App) toast(msg string) { a.pendingToast = msg }
 
+// undoSays says what a removal took away, and offers undo, which puts it
+// back.
+func (a *App) undoSays(msg string, undo func()) {
+	a.undoMessage, a.undoAction = msg, undo
+	a.toast(msg)
+}
+
 // newSession starts a session in a project: in the directory of the
 // session shown when it is the project's, as a terminal's new tab does,
 // else the project's. With no project, it is the shown session's host's.
@@ -2061,6 +2078,7 @@ func (a *App) restartDaemon() {
 		a.update(func() {
 			if err != nil {
 				h.conn, h.err = connFailed, err.Error()
+				a.toast(locales.HostRestartFailed(err.Error()))
 				return
 			}
 			a.connect()

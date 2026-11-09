@@ -1,9 +1,15 @@
 package main
 
 import (
+	"bufio"
+	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
@@ -12,6 +18,7 @@ import (
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 
+	"hyla/internal/client"
 	"hyla/internal/proto"
 	"hyla/internal/remote"
 	"hyla/internal/settings"
@@ -136,27 +143,29 @@ func TestSidebarFlat(t *testing.T) {
 	if !ok || !ok2 || abs32(tag.Y+tag.H/2-(api.Y+api.H/2)) > 1 || tag.X <= api.X {
 		t.Errorf("build's tag %+v is not after its group's name %+v", tag, api)
 	}
-	// A host with no sessions shows its name, as a section's title has
-	// it, and the address it is reached at under it, to start a session
-	// on; so does one connecting first.
-	name, ok := tt.Find("Empty")
-	addr, ok2 := tt.Find("me@empty")
-	if !ok || !ok2 {
-		t.Errorf("a host without sessions shows nowhere: %q", tt.Texts())
-	} else if addr.Y <= name.Y || addr.X <= name.X {
-		t.Errorf("the address %+v does not sit under the name %+v", addr, name)
-	}
 	if tt.HasText("No sessions") {
 		t.Errorf("this machine claims no sessions: %q", tt.Texts())
 	}
+	// A host still being reached has a row that says so; one that is there
+	// with nothing in it waits for what it tells.
 	empty.conn, empty.loaded = connConnecting, false
-	if a.hostNeedsRow(build) || a.hostNeedsRow(empty) {
-		t.Error("rows for hosts that want nothing")
+	if a.hostNeedsRow(build) || !a.hostNeedsRow(empty) {
+		t.Error("a host being reached has no row")
 	}
-	// Lost, its groups stay, its tag faded; failing, it has a row.
+	empty.conn, empty.loaded = connReady, false
+	if a.hostNeedsRow(empty) {
+		t.Error("a host with nothing in it has a row")
+	}
+	tt.Frame()
+	if !tt.HasText("Connecting…") && !tt.HasText("Reconnecting") {
+		t.Errorf("a host being reached says nothing: %q", tt.Texts())
+	}
+	empty.conn = connReady
+	// Reconnecting, it has a row that says so, and its groups stay, their
+	// tag faded; failing, its row says why.
 	build.conn = connConnecting
-	if a.hostNeedsRow(build) {
-		t.Error("a host reconnecting has a row")
+	if !a.hostNeedsRow(build) {
+		t.Error("a host reconnecting has no row")
 	}
 	build.conn, build.err = connFailed, "Connection refused"
 	if !a.hostNeedsRow(build) {
@@ -213,7 +222,7 @@ func TestSidebarHostProblems(t *testing.T) {
 	h.conn, h.errKind = connVersion, nil
 	h.daemonApp = "1.0.0"
 	tt.Frame()
-	if !tt.HasText("Hyla on build is another version") {
+	if !tt.HasText("This app and Hyla on build speak different versions") || !tt.HasText("build runs Hyla 1.0.0") {
 		t.Errorf("no word of the version: %q", tt.Texts())
 	}
 }
@@ -407,18 +416,196 @@ func TestDesktopHostVersionDetail(t *testing.T) {
 	}
 }
 
-func TestPickerChosen(t *testing.T) {
+// A host of another version is told of by whether Hyla there is older or
+// newer than this app: only the older one is updated from here, asking
+// first; the newer one, or one that has no version to tell, gets told.
+func TestHostVersionWording(t *testing.T) {
+	// Of a released Hyla's: only one of those updates a host.
+	t.Setenv("MYGO_ENV", "production")
+	old := mygo.App.Version()
+	mygo.App.SetVersion("3.5.4")
+	t.Cleanup(func() { mygo.App.SetVersion(old) })
 	a := testApp(t)
-	linux := &host{name: "b", info: proto.HostInfo{OS: "linux", Home: "/home/me"}}
-	a.picker = folderPicker{open: true, host: linux, list: &proto.FSList{Dir: "/home/me", Parent: "/home", Entries: []proto.FSEntry{{Name: "api", Dir: true}}}}
-	items := a.pickerItems()
-	if got := a.pickerChosen(items); got != "/home/me" {
-		t.Errorf("with the parent chosen, Open opens %q", got)
+	if !released(mygo.App.Version()) {
+		t.Skip("a development build updates no host")
 	}
-	a.picker.index = 1
-	if got := a.pickerChosen(items); got != "/home/me/api" {
-		t.Errorf("with api chosen, Open opens %q", got)
+	h := withHost(t, a, "build")
+	h.conn, h.cl = connVersion, &client.Client{}
+	h.info, h.rc = testHost(t, "build")
+	h.info.Updates = true
+
+	h.daemonApp = "99.0.0"
+	title, detail := a.hostVersion(h)
+	if title != locales.HostVersionTitle("build") || detail != locales.HostVersionNewer("build", "99.0.0", mygo.App.Version()) {
+		t.Errorf("newer: %q, %q", title, detail)
 	}
+	a.offerHostUpdate(h)
+	if a.confirm != nil {
+		t.Errorf("a newer host is asked to update: %q", a.confirm.title)
+	}
+	if a.pendingToast != detail {
+		t.Errorf("toast %q, want the newer detail %q", a.pendingToast, detail)
+	}
+
+	// The same app version by another protocol tells of both.
+	a.pendingToast = ""
+	h.daemonApp = mygo.App.Version()
+	if _, got := a.hostVersion(h); got != locales.HostVersionDetail("build", mygo.App.Version(), mygo.App.Version()) {
+		t.Errorf("same version: %q", got)
+	}
+	a.offerHostUpdate(h)
+	if a.confirm != nil {
+		t.Error("a host of the same version is asked to update")
+	}
+
+	// An older Hyla there is updated from here, once asked.
+	h.daemonApp, a.pendingToast = "0.0.1", ""
+	if _, got := a.hostVersion(h); got != locales.HostVersionOlder("build", "0.0.1", mygo.App.Version()) {
+		t.Errorf("older: %q", got)
+	}
+	a.offerHostUpdate(h)
+	if a.confirm == nil || a.confirm.title != locales.HostUpdateTitle("build", mygo.App.Version()) {
+		t.Fatalf("an older host is not asked to update: %+v", a.confirm)
+	}
+	if a.pendingToast != "" {
+		t.Errorf("toast %q", a.pendingToast)
+	}
+	a.confirm = nil
+}
+
+// Restarting Hyla on a host says so once it did, and so does the update
+// that leads to it.
+func TestHostRestartToast(t *testing.T) {
+	a := testApp(t)
+	h := withHost(t, a, "build")
+	h.info, h.rc = testHost(t, "build")
+	cl, err := client.ConnectVia(h.rc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { cl.Close() })
+	h.cl = cl
+	for _, what := range []string{"restart", "update"} {
+		var got error
+		done := make(chan struct{})
+		requestDoneForTest = func(h2 *host, err error) {
+			got = err
+			close(done)
+		}
+		a.hostRequest(h, what)
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			t.Fatal("the request did not end")
+		}
+		requestDoneForTest = func(*host, error) {}
+		if got != nil {
+			t.Fatalf("%s failed: %v", what, got)
+		}
+		want := locales.HostRestarted("build")
+		if what == "update" {
+			want = locales.HostUpdated("build", mygo.App.Version())
+		}
+		if got := a.pendingToast; got != want {
+			t.Errorf("after %s: toast %q, want %q", what, got, want)
+		}
+		a.pendingToast = ""
+	}
+}
+
+// newTestLink is a remote connection to the server of a test: what a
+// remote connection is, over a socket of the test's, as the app dials it.
+func newTestLink(t *testing.T, path string) remoteLink {
+	t.Helper()
+	l := &testLink{path: path}
+	l.conn = newTestConn(t, path)
+	l.done = make(chan struct{})
+	return l
+}
+
+type testLink struct {
+	path string
+	conn *testConn
+	done chan struct{}
+}
+
+func (l *testLink) Dial() (net.Conn, error) { return l.Open() }
+
+func (l *testLink) Open() (net.Conn, error) {
+	st, err := l.conn.sess.Open()
+	if err != nil {
+		return nil, err
+	}
+	return &testStream{Conn: st, r: bufio.NewReader(st)}, nil
+}
+
+func (l *testLink) Close() error              { l.conn.sess.Close(); return nil }
+func (l *testLink) Welcome() proto.MuxWelcome { return l.conn.w }
+
+func (l *testLink) Host(ctx context.Context, req proto.HostRequest) error {
+	st, err := l.Open()
+	if err != nil {
+		return err
+	}
+	defer st.Close()
+	b, _ := json.Marshal(req)
+	if _, err := st.Write(append(b, '\n')); err != nil {
+		return err
+	}
+	line, err := bufio.NewReader(st).ReadString('\n')
+	if err != nil {
+		return err
+	}
+	var r proto.HostReply
+	if err := json.Unmarshal([]byte(line), &r); err != nil {
+		return err
+	}
+	if !r.OK {
+		return errors.New(r.Error)
+	}
+	return nil
+}
+func (l *testLink) Done() <-chan struct{} { return l.done }
+
+// testStream is a stream whose first reply line was read already.
+type testStream struct {
+	net.Conn
+	r *bufio.Reader
+}
+
+func (s *testStream) Read(b []byte) (int, error) { return s.r.Read(b) }
+
+// testHost is a hylad of a test, at a socket of the test's, which takes
+// the host requests a remote connection asks, and a connection to it. It
+// runs this app's version.
+func testHost(t *testing.T, name string) (proto.HostInfo, remoteLink) {
+	t.Helper()
+	s := &remote.Server{
+		Info: func() proto.HostInfo {
+			return proto.HostInfo{Hostname: name, OS: "linux", Hyla: mygo.App.Version(), Server: true, Updates: true}
+		},
+		Stream: func(conn net.Conn, _ []byte, _ proto.MuxHello) { serveControl(conn, nil) },
+		// It runs a released Hyla, which this app updates, and restarts.
+		Update:  func(string) error { return nil },
+		Restart: func() (func(), error) { return nil, nil },
+	}
+	path := filepath.Join(t.TempDir(), "m")
+	ln, err := net.Listen("unix", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { ln.Close() })
+	go func() {
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			go s.Serve(conn)
+		}
+	}()
+	link := newTestLink(t, path)
+	return s.Info(), link
 }
 
 func countText(texts []string, s string) int {
@@ -431,7 +618,6 @@ func countText(texts []string, s string) int {
 	return n
 }
 
-// A host's color is its own, else its name's, which stays.
 func TestHostColor(t *testing.T) {
 	h := &host{name: "devbox"}
 	if hostColorName(h) != hostColorName(&host{name: "DevBox"}) {

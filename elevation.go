@@ -87,6 +87,18 @@ func button(c *ui.Context, key, label, keys string, primary bool, pal *palette) 
 	return sizedButton(c, key, label, keys, primary, 30, 8, pal)
 }
 
+// quietButton is a button under others, as a link: its label in the muted
+// text, in the accent under the pointer, its detail as the tooltip.
+func quietButton(c *ui.Context, key, label, tip string, pal *palette) bool {
+	b := ui.ButtonBase(c.Key(key)).Padding(4, 8).Radius(6).AlignItems(ui.Center)
+	b.TextColor(pal.textMuted).Label(label).Tooltip(tip)
+	if b.Hovered() {
+		b.TextColor(pal.accent)
+	}
+	b.Children(func() { ui.Text(c, label).FontSize(12.5).FontWeight(500) })
+	return b.Clicked()
+}
+
 // defaultButton is button, focused when its dialog first appears, so that
 // Return presses it.
 func defaultButton(c *ui.Context, key, label, keys string, primary bool, pal *palette) bool {

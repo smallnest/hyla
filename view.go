@@ -91,7 +91,11 @@ func (a *App) view(c *ui.Context) {
 	pal := paletteFor(c)
 	c.SetTheme(borderless(c, pal))
 
-	if a.pendingToast != "" {
+	if a.undoAction != nil {
+		// The removal's own words, even as another toast came first.
+		c.ToastAction(a.undoMessage, locales.CommonUndo(), a.undoAction)
+		a.pendingToast, a.undoAction, a.undoMessage = "", nil, ""
+	} else if a.pendingToast != "" {
 		c.Toast(a.pendingToast)
 		a.pendingToast = ""
 	}
@@ -327,10 +331,11 @@ func (a *App) sidebar(c *ui.Context, pal *palette, bar ui.TitleBar) {
 }
 
 // sortButton opens the sidebar's Group and Order menu, as Otty's sort
-// icon does: how sessions group, and which order they take.
+// icon does: how sessions group, and which order they take. It says
+// "Group By" and "Order By" there, as each asks its own question.
 func (a *App) sortButton(c *ui.Context, pal *palette) {
 	b := ui.ButtonBase(c.Key("sort-sidebar")).Size(28, 26).Radius(6).Center().TextColor(pal.textMuted).
-		Label(locales.SidebarSort()).Tooltip(locales.SidebarSort())
+		Label(locales.SidebarSort()).Tooltip(locales.SidebarGroupBy() + ", " + locales.SidebarOrderBy())
 	if b.Hovered() {
 		b.Background(pal.rowHover).TextColor(pal.text)
 	}
@@ -343,7 +348,7 @@ func (a *App) sortButton(c *ui.Context, pal *palette) {
 		if order == "" {
 			order = "created"
 		}
-		m.Item(locales.SidebarGroup()).Disabled(true)
+		m.Item(locales.SidebarGroupBy()).Disabled(true)
 		if m.Item(locales.SidebarGroupProject()).Checked(group == "project").Chosen() {
 			a.prefs.SidebarGroup = "project"
 			a.savePrefs()
@@ -357,7 +362,7 @@ func (a *App) sortButton(c *ui.Context, pal *palette) {
 			a.savePrefs()
 		}
 		m.Separator()
-		m.Item(locales.SidebarOrder()).Disabled(true)
+		m.Item(locales.SidebarOrderBy()).Disabled(true)
 		if m.Item(locales.SidebarOrderCreated()).Checked(order == "created").Chosen() {
 			a.prefs.SidebarOrder = "created"
 			a.savePrefs()
@@ -512,7 +517,7 @@ func (a *App) groupView(c *ui.Context, pal *palette, g group, gi int, n *int) {
 	}
 	pointerTooltip(c, hdr, "tip-project-"+key, a.projectTip(g))
 	hdr.ContextMenu(func(m *ui.Menu) {
-		if m.Item(locales.ActionNewSession()).Chosen() {
+		if m.Item(locales.NewSessionIn(g.project.Name)).Chosen() {
 			a.newSessionOn(g.host, id)
 		}
 		label := locales.SidebarCollapse()
@@ -537,7 +542,7 @@ func (a *App) groupView(c *ui.Context, pal *palette, g group, gi int, n *int) {
 			name, count := g.project.Name, len(g.sessions)
 			a.confirm = &confirmation{
 				open:    true,
-				title:   locales.ConfirmCloseAllSessionsTitle(name),
+				title:   locales.ConfirmCloseAllSessionsTitle(count, name),
 				detail:  locales.ConfirmCloseAllSessionsDetail(count),
 				action:  locales.SidebarCloseAllSessions(),
 				destroy: true,
@@ -601,7 +606,7 @@ func (a *App) groupView(c *ui.Context, pal *palette, g group, gi int, n *int) {
 			})
 		}
 		if renaming {
-			in := ui.TextInputBase(c.Key("rename"), &a.renameBuf).Grow(1).MinWidth(0).FontSize(12.5).FontWeight(600).AutoFocus()
+			in := ui.TextInputBase(c.Key("rename"), &a.renameBuf).Grow(1).MinWidth(0).FontSize(13).FontWeight(600).AutoFocus()
 			if in.Shortcut(0, ui.KeyEscape) {
 				a.renamingProject = ""
 				a.focusTerminal()
@@ -610,7 +615,7 @@ func (a *App) groupView(c *ui.Context, pal *palette, g group, gi int, n *int) {
 			}
 			return
 		}
-		ui.Text(c, g.project.Name).FontSize(12.5).FontWeight(600).TextColor(pal.textMuted).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
+		ui.Text(c, g.project.Name).FontSize(13).FontWeight(600).TextColor(pal.text).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 		if g.host.remote() {
 			a.hostTag(c, pal, g.host)
 		}
@@ -774,7 +779,7 @@ func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int, 
 	row.ContextMenu(func(m *ui.Menu) { a.sessionMenu(m, s) })
 	row.Children(func() {
 		if a.renaming == s.ID {
-			in := ui.TextInputBase(c.Key("rename"), &a.renameBuf).Grow(1).MinWidth(0).FontSize(13.5).AutoFocus()
+			in := ui.TextInputBase(c.Key("rename"), &a.renameBuf).Grow(1).MinWidth(0).FontSize(13.5).FontWeight(600).AutoFocus()
 			if in.Submitted() || in.Shortcut(0, ui.KeyEscape) {
 				if in.Shortcut(0, ui.KeyEscape) {
 					a.renaming = ""
@@ -788,7 +793,7 @@ func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int, 
 			return
 		}
 		name := func() {
-			name := ui.Text(c, s.DisplayName(a.set.SessionName)).FontSize(13.5).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0).TextColor(pal.text)
+			name := ui.Text(c, s.DisplayName(a.set.SessionName)).FontSize(13.5).FontWeight(400).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0).TextColor(pal.text)
 			if s.Unread {
 				name.FontWeight(650)
 			}
@@ -809,7 +814,7 @@ func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int, 
 		// menu's asking; after the frame, which its end reshapes.
 		trailing := func() {
 			id := s.ID
-			statusSlot(c, pal, hovered, s.Status, s.Unread, s.Progress, func() { a.defer_(func() { a.closeSession(id, false) }) })
+			statusSlot(c, pal, hovered, s.Status, s.Unread, s.Progress, func() { a.defer_(func() { a.closeSession(id, true) }) })
 		}
 		if detailed {
 			// The name, the time and the status over the line of what the
@@ -1058,7 +1063,8 @@ func (a *App) restartChip(c *ui.Context, pal *palette) {
 func (a *App) footerNote(c *ui.Context, pal *palette, dot ui.Color, label string) {
 	ui.Row(c).Gap(7).Padding(0, 6).AlignItems(ui.Center).Children(func() {
 		ui.Box(c).Size(6, 6).Radius(3).Background(dot)
-		ui.Text(c, label).FontSize(12).TextColor(pal.textFaint).SingleLine().
+		// It has the room the icons leave: never a label cut with no sign.
+		ui.Text(c, label).FontSize(12).TextColor(pal.textFaint).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0).
 			Tooltip(locales.FooterServiceTip())
 	})
 }
@@ -1330,7 +1336,8 @@ func (a *App) cardFor(c *ui.Context, pal *palette, bar ui.TitleBar, shown float3
 		ui.Column(c).Grow(1).MinHeight(0).Children(func() {
 			switch {
 			case h.conn == connVersion && h.remote():
-				a.message(c, pal, locales.HostVersionTitle(h.name), a.hostVersionDetail(h), locales.HostUpdateAction(h.name), func() { a.offerHostUpdate(h) })
+				title, detail := a.hostVersion(h)
+				a.message(c, pal, title, detail, locales.HostUpdateAction(h.name), func() { a.offerHostUpdate(h) })
 			case h.conn == connVersion:
 				a.message(c, pal, locales.UpdatedTitle(), locales.UpdatedDetail(), locales.CommonRestartService(), a.restartDaemon)
 			case h.conn == connFailed && h.cl == nil && !h.remote():
@@ -1367,12 +1374,20 @@ func (a *App) emptyState(c *ui.Context, pal *palette) {
 		ui.Text(c, locales.EmptyTitle()).FontSize(19).FontWeight(650).TextColor(pal.text)
 		ui.Text(c, locales.EmptyDetail()).
 			FontSize(13.5).TextColor(pal.textMuted).MaxWidth(380).TextAlign(ui.Center).LineHeight(1.45).Margin(8, 0, 22, 0)
-		ui.Row(c).Gap(10).Children(func() {
-			if button(c, "empty-new", locales.ActionNewSession(), a.keys("session.new"), true, pal) {
-				a.newSession("")
-			}
-			if button(c, "empty-open", locales.ActionOpenProject(), a.keys("project.open"), false, pal) {
-				a.openProject()
+		ui.Column(c).Gap(12).Children(func() {
+			ui.Row(c).Gap(10).Children(func() {
+				if button(c, "empty-new", locales.ActionNewSession(), a.keys("session.new"), true, pal) {
+					a.newSession("")
+				}
+				if button(c, "empty-open", locales.ActionOpenProject(), a.keys("project.open"), false, pal) {
+					a.openProject()
+				}
+			})
+			// Another machine's, as the footer adds: an SSH host, a pod, or
+			// one that runs Hyla, whose sessions show here. A quiet button,
+			// a link under the two of this machine.
+			if quietButton(c, "empty-connect", locales.EmptyConnect(), locales.EmptyConnectDetail(), pal) {
+				a.askSSHHost()
 			}
 		})
 		ui.Column(c).Margin(40, 0, 0, 0).Padding(14, 16).Gap(6).Radius(10).Background(pal.chip).MaxWidth(420).Children(func() {

@@ -631,7 +631,7 @@ func (a *App) updatesGroup(c *ui.Context, pal *palette) {
 	settingsGroup(c, pal, locales.SetUpdates(), "", func() {
 		settingRow(c, pal, locales.SetVersion(), version, func() {
 			if button(c, "check-updates", locales.SetCheckForUpdates(), "", false, pal) {
-				updater.CheckForUpdates()
+				a.checkUpdates()
 			}
 		})
 		settingRow(c, pal, locales.SetAutoCheck(), locales.SetAutoCheckDetail(), func() {

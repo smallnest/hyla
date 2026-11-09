@@ -7,6 +7,8 @@
   "actionNewSessionHome": "New Session in Home",
   "actionNewSessionWorktree": "New Session in Worktree…",
   "actionOpenProject": "Open Project…",
+  "emptyConnect": "Connect a Machine…",
+  "emptyConnectDetail": "Add an SSH host, a K8s pod, or a host that runs Hyla to see its sessions here.",
   "actionAddSSHHost": "Add SSH Host…",
   "actionGoToSession": "Go to Session…",
   "actionResumeConversation": "Resume Conversation…",
@@ -49,6 +51,7 @@
   "commonNoResults": "No Results",
   "commonCancel": "Cancel",
   "commonClose": "Close",
+  "commonUndo": "Undo",
   "commonRestart": "Restart",
   "commonRestartService": "Restart Service",
   "commonTryAgain": "Try Again",
@@ -99,7 +102,7 @@
   "openProjectTitle": "Open Project",
   "openProjectMessage": "Choose a folder: its sessions are grouped under its name.",
   "confirmCloseTitle": "Close “{name}”?",
-  "confirmCloseAllSessionsTitle": "Close all sessions of “{name}”?",
+  "confirmCloseAllSessionsTitle": "Close all {count, plural, one {# session} other {# sessions}} of “{name}”?",
   "confirmCloseSessionDetail": "{process} is still running in it. Closing the session ends it.",
   "confirmCloseProjectDetail": "{count, plural, one {This ends its # session, with what runs in it.} other {This ends its # sessions, with what runs in them.}}",
   "@confirmCloseProjectDetail": {
@@ -158,11 +161,13 @@
   "sidebarToday": "Today",
   "sidebarOrderUpdated": "Updated Time",
   "sidebarOrderCreated": "Created Time",
-  "sidebarOrder": "Order",
+  "sidebarOrderBy": "Order By",
+  "sidebarOrder": "Sessions Sorted By",
   "sidebarGroupDate": "By Date",
   "sidebarGroupNone": "No Grouping",
   "sidebarGroupProject": "By Project",
-  "sidebarGroup": "Group",
+  "sidebarGroupBy": "Group By",
+  "sidebarGroup": "Sessions Grouped By",
   "sidebarSort": "Sort and Group",
   "sidebarOtherProject": "Other",
   "sidebarHide": "Hide Sidebar",
@@ -235,6 +240,8 @@
   "statusFailed": "Failed",
   "statusDone": "Done",
   "updateRestartTip": "Hyla was updated: restart the background service to run the new version",
+  "hostRestartFailed": "Hyla's background service did not stop: {error}",
+  "@hostRestartFailed": {"placeholders": {"error": {"type": "String"}}},
   "updatedTitle": "Hyla was updated",
   "updatedDetail": "The background service that runs your sessions is from another version. Restart it: your sessions start again where they were, with their history.",
   "connCantReach": "Can’t reach hylad",
@@ -897,9 +904,36 @@
     }
   },
   "hostRemoveDetail": "Its sessions keep running on {host}. Add the host again to see them.",
+  "hostRemoved": "Removed {host}",
+  "hostRemovedUndo": "Its sessions keep running there. Undo adds it back.",
+  "sshHostRemoved": "Removed {addr}",
+  "sshHostRemovedUndo": "Undo adds it back to the SSH project.",
+  "k8sPodRemoved": "Removed {name}",
+  "k8sPodRemovedUndo": "Undo adds it back to the K8s project.",
   "@hostRemoveDetail": {
     "placeholders": {
       "host": {
+        "type": "String"
+      }
+    }
+  },
+  "@hostRemoved": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "@sshHostRemoved": {
+    "placeholders": {
+      "addr": {
+        "type": "String"
+      }
+    }
+  },
+  "@k8sPodRemoved": {
+    "placeholders": {
+      "name": {
         "type": "String"
       }
     }
@@ -986,8 +1020,16 @@
       }
     }
   },
+  "hostRestarted": "Restarted Hyla on {host}",
+  "@hostRestarted": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
   "hostUpdateDev": "A development build of Hyla can't update a host. Run a released Hyla, or update the host with hyla daemon update there.",
-  "hostVersionTitle": "Hyla on {host} is another version",
+  "hostVersionTitle": "This app and Hyla on {host} speak different versions",
   "@hostVersionTitle": {
     "placeholders": {
       "host": {
@@ -995,8 +1037,36 @@
       }
     }
   },
-  "hostVersionDetail": "{host} runs Hyla {version}, and this app is Hyla {app}. Update Hyla there to see and start its sessions here.",
+  "hostVersionDetail": "{host} runs Hyla {version}, which another version of this app ran. This app is Hyla {app}. Use the same version in both places: update this app, or update Hyla on {host}.",
   "@hostVersionDetail": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      },
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "hostVersionOlder": "{host} runs Hyla {version}, and this app is Hyla {app}. Update Hyla there to see and start its sessions here.",
+  "@hostVersionOlder": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      },
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "hostVersionNewer": "{host} runs Hyla {version}, newer than this app's {app}. Update this app to see and start the host's sessions.",
+  "@hostVersionNewer": {
     "placeholders": {
       "host": {
         "type": "String"
