@@ -358,7 +358,12 @@ func (a *App) k8sPodRow(c *ui.Context, pal *palette, i int) {
 	}
 	selected := s != nil && s.ID == a.selected
 	inset := float32(rowInset + projectBadge + projectBadgeGap)
-	row := ui.Row(c.Key("k8s-"+pod.Command)).Height(rowH2).Margin(0, 0, 1, 0).Padding(0, 10, 0, inset).Gap(10).AlignItems(ui.Center).Radius(8)
+	detailed := a.set.SidebarRows != "compact"
+	height := float32(rowH)
+	if detailed {
+		height = rowH2
+	}
+	row := ui.Row(c.Key("k8s-"+pod.Command)).Height(height).Margin(0, 0, 1, 0).Padding(0, 10, 0, inset).Gap(10).AlignItems(ui.Center).Radius(8)
 	row.Border(1, ui.Transparent)
 	bg := ui.Transparent
 	switch {
@@ -399,9 +404,21 @@ func (a *App) k8sPodRow(c *ui.Context, pal *palette, i int) {
 	}
 	row.Children(func() {
 		ui.Icon(c, terminalIcon).Size(13, 13).TextColor(pal.textMuted).Shrink(0)
-		ui.Text(c, pod.Name).FontSize(13).TextColor(pal.text).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
-		ui.Spacer(c)
-		ui.Text(c, pod.Command).Font("monospace").FontSize(12).TextColor(pal.textFaint).SingleLine().Ellipsis("…").Shrink(2).MaxWidth(220)
+		top := func() {
+			ui.Text(c, pod.Name).FontSize(13).TextColor(pal.text).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
+		}
+		if !detailed {
+			top()
+			ui.Spacer(c)
+			ui.Text(c, pod.Command).Font("monospace").FontSize(12).TextColor(pal.textFaint).SingleLine().Ellipsis("…").Shrink(2).MaxWidth(220)
+		} else {
+			// The name and the command over the row's width, as a detailed
+			// session's row has its name and detail.
+			ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
+				ui.Row(c).Gap(8).AlignItems(ui.Center).Children(top)
+				ui.Text(c, pod.Command).Font("monospace").FontSize(12).TextColor(pal.textFaint).SingleLine().Ellipsis("…").MinWidth(0)
+			})
+		}
 		if s == nil {
 			// A pod with no terminal yet keeps the slot the status (or,
 			// under the pointer, the close button) takes.
