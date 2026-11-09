@@ -179,6 +179,14 @@ func (h *host) behind() bool {
 		update.Compare(h.hyla(), mygo.App.Version()) < 0
 }
 
+// older reports whether Hyla on a remote host is older than this app,
+// whether or not it updates itself: an update from here writes this
+// app's version into it.
+func (h *host) older() bool {
+	return h.remote() && h.hyla() != "" && released(mygo.App.Version()) &&
+		update.Compare(h.hyla(), mygo.App.Version()) < 0
+}
+
 // ahead reports whether Hyla on a remote host is newer than this app,
 // which then wants updating itself.
 func (h *host) ahead() bool {

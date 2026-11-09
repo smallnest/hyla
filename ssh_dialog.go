@@ -296,6 +296,10 @@ func (a *App) removeSSHHost(addr string) {
 		}
 		a.prefs.SSHHosts = slices.Delete(a.prefs.SSHHosts, i, i+1)
 		a.savePrefs()
+		a.undoSays(locales.SshHostRemoved(h.Addr), func() {
+			a.prefs.SSHHosts = slices.Insert(a.prefs.SSHHosts, min(i, len(a.prefs.SSHHosts)), h)
+			a.savePrefs()
+		})
 		if h.Session != "" {
 			// The question above said it goes.
 			a.closeSession(h.Session, false)
@@ -335,13 +339,8 @@ func (a *App) sshHostRow(c *ui.Context, pal *palette, i int) {
 	}
 	selected := s != nil && s.ID == a.selected
 	inset := float32(rowInset + projectBadge + projectBadgeGap)
-	if pal.dark {
-		inset++
-	}
 	row := ui.Row(c.Key("ssh-"+h.Addr)).Height(rowH2).Margin(0, 0, 1, 0).Padding(0, 10, 0, inset).Gap(10).AlignItems(ui.Center).Radius(8)
-	if pal.dark {
-		row.Border(1, ui.Transparent)
-	}
+	row.Border(1, ui.Transparent)
 	bg := ui.Transparent
 	switch {
 	case selected:
@@ -381,11 +380,10 @@ func (a *App) sshHostRow(c *ui.Context, pal *palette, i int) {
 		a.connectSSH(i)
 	}
 	row.Children(func() {
-		ui.Icon(c, terminalIcon).Size(14, 14).TextColor(pal.textMuted).Shrink(0)
-		ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
-			ui.Text(c, h.Name).FontSize(13.5).TextColor(pal.text).SingleLine().Ellipsis("…")
-			ui.Text(c, h.Addr).Font("monospace").FontSize(12).TextColor(pal.textFaint).SingleLine().Ellipsis("…").MinWidth(0)
-		})
+		ui.Icon(c, terminalIcon).Size(13, 13).TextColor(pal.textMuted).Shrink(0)
+		ui.Text(c, h.Name).FontSize(13).TextColor(pal.text).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
+		ui.Spacer(c)
+		ui.Text(c, h.Addr).Font("monospace").FontSize(12).TextColor(pal.textFaint).SingleLine().Ellipsis("…").Shrink(2).MaxWidth(220)
 		if s == nil {
 			// A machine with no terminal yet keeps the slot the status
 			// (or, under the pointer, the close button) takes.
@@ -404,9 +402,6 @@ func (a *App) sshHostRow(c *ui.Context, pal *palette, i int) {
 // adds one, in place of a project's sessions.
 func (a *App) sshEmpty(c *ui.Context, pal *palette) {
 	inset := float32(rowInset + projectBadge + projectBadgeGap)
-	if pal.dark {
-		inset++
-	}
 	row := ui.Row(c.Key("ssh-empty")).Height(rowH).Margin(0, 0, 1, 0).Padding(0, 10, 0, inset).Gap(10).AlignItems(ui.Center).Radius(8)
 	if row.Hovered() {
 		row.Background(pal.rowHover)

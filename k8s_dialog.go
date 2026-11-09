@@ -272,6 +272,10 @@ func (a *App) removeK8sPod(cmd string) {
 		}
 		a.prefs.K8sPods = slices.Delete(a.prefs.K8sPods, i, i+1)
 		a.savePrefs()
+		a.undoSays(locales.K8sPodRemoved(pod.Name), func() {
+			a.prefs.K8sPods = slices.Insert(a.prefs.K8sPods, min(i, len(a.prefs.K8sPods)), pod)
+			a.savePrefs()
+		})
 		if pod.Session != "" {
 			// The question above said it goes.
 			a.closeSession(pod.Session, false)
@@ -354,13 +358,8 @@ func (a *App) k8sPodRow(c *ui.Context, pal *palette, i int) {
 	}
 	selected := s != nil && s.ID == a.selected
 	inset := float32(rowInset + projectBadge + projectBadgeGap)
-	if pal.dark {
-		inset++
-	}
 	row := ui.Row(c.Key("k8s-"+pod.Command)).Height(rowH2).Margin(0, 0, 1, 0).Padding(0, 10, 0, inset).Gap(10).AlignItems(ui.Center).Radius(8)
-	if pal.dark {
-		row.Border(1, ui.Transparent)
-	}
+	row.Border(1, ui.Transparent)
 	bg := ui.Transparent
 	switch {
 	case selected:
@@ -399,11 +398,10 @@ func (a *App) k8sPodRow(c *ui.Context, pal *palette, i int) {
 		a.connectK8s(i)
 	}
 	row.Children(func() {
-		ui.Icon(c, terminalIcon).Size(14, 14).TextColor(pal.textMuted).Shrink(0)
-		ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
-			ui.Text(c, pod.Name).FontSize(13.5).TextColor(pal.text).SingleLine().Ellipsis("…")
-			ui.Text(c, pod.Command).Font("monospace").FontSize(12).TextColor(pal.textFaint).SingleLine().Ellipsis("…").MinWidth(0)
-		})
+		ui.Icon(c, terminalIcon).Size(13, 13).TextColor(pal.textMuted).Shrink(0)
+		ui.Text(c, pod.Name).FontSize(13).TextColor(pal.text).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
+		ui.Spacer(c)
+		ui.Text(c, pod.Command).Font("monospace").FontSize(12).TextColor(pal.textFaint).SingleLine().Ellipsis("…").Shrink(2).MaxWidth(220)
 		if s == nil {
 			// A pod with no terminal yet keeps the slot the status (or,
 			// under the pointer, the close button) takes.
@@ -422,9 +420,6 @@ func (a *App) k8sPodRow(c *ui.Context, pal *palette, i int) {
 // one, in place of a project's sessions.
 func (a *App) k8sEmpty(c *ui.Context, pal *palette) {
 	inset := float32(rowInset + projectBadge + projectBadgeGap)
-	if pal.dark {
-		inset++
-	}
 	row := ui.Row(c.Key("k8s-empty")).Height(rowH).Margin(0, 0, 1, 0).Padding(0, 10, 0, inset).Gap(10).AlignItems(ui.Center).Radius(8)
 	if row.Hovered() {
 		row.Background(pal.rowHover)

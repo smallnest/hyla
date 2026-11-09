@@ -178,7 +178,11 @@ func serveControl(conn net.Conn, handle func(method string, params json.RawMessa
 		if err := dec.Decode(&req); err != nil {
 			return
 		}
-		v, err := handle(req.Method, req.Params)
+		var v any
+		var err error
+		if handle != nil {
+			v, err = handle(req.Method, req.Params)
+		}
 		resp := map[string]any{"id": req.ID, "result": v}
 		if err != nil {
 			resp = map[string]any{"id": req.ID, "error": err.Error()}

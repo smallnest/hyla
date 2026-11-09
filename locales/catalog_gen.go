@@ -106,6 +106,26 @@ func (msgs Messages) ActionOpenProject() string {
 	return Catalog.Format(msgs.locale, "actionOpenProject", nil)
 }
 
+// EmptyConnect says "Connect a Machine…"
+// in the language the app shows.
+func EmptyConnect() string { return In(i18n.Locale()).EmptyConnect() }
+
+// EmptyConnect says "Connect a Machine…"
+// in the language of msgs.
+func (msgs Messages) EmptyConnect() string {
+	return Catalog.Format(msgs.locale, "emptyConnect", nil)
+}
+
+// EmptyConnectDetail says "Add an SSH host, a K8s pod, or a host that runs Hyla to see its sessions here."
+// in the language the app shows.
+func EmptyConnectDetail() string { return In(i18n.Locale()).EmptyConnectDetail() }
+
+// EmptyConnectDetail says "Add an SSH host, a K8s pod, or a host that runs Hyla to see its sessions here."
+// in the language of msgs.
+func (msgs Messages) EmptyConnectDetail() string {
+	return Catalog.Format(msgs.locale, "emptyConnectDetail", nil)
+}
+
 // ActionAddSSHHost says "Add SSH Host…"
 // in the language the app shows.
 func ActionAddSSHHost() string { return In(i18n.Locale()).ActionAddSSHHost() }
@@ -524,6 +544,16 @@ func CommonClose() string { return In(i18n.Locale()).CommonClose() }
 // in the language of msgs.
 func (msgs Messages) CommonClose() string {
 	return Catalog.Format(msgs.locale, "commonClose", nil)
+}
+
+// CommonUndo says "Undo"
+// in the language the app shows.
+func CommonUndo() string { return In(i18n.Locale()).CommonUndo() }
+
+// CommonUndo says "Undo"
+// in the language of msgs.
+func (msgs Messages) CommonUndo() string {
+	return Catalog.Format(msgs.locale, "commonUndo", nil)
 }
 
 // CommonRestart says "Restart"
@@ -964,16 +994,16 @@ func (msgs Messages) ConfirmCloseTitle(name string) string {
 	return Catalog.Format(msgs.locale, "confirmCloseTitle", map[string]any{"name": name})
 }
 
-// ConfirmCloseAllSessionsTitle says "Close all sessions of “{name}”?"
+// ConfirmCloseAllSessionsTitle says "Close all {count, plural, one {# session} other {# sessions}} of “{name}”?"
 // in the language the app shows.
-func ConfirmCloseAllSessionsTitle(name string) string {
-	return In(i18n.Locale()).ConfirmCloseAllSessionsTitle(name)
+func ConfirmCloseAllSessionsTitle(count int, name string) string {
+	return In(i18n.Locale()).ConfirmCloseAllSessionsTitle(count, name)
 }
 
-// ConfirmCloseAllSessionsTitle says "Close all sessions of “{name}”?"
+// ConfirmCloseAllSessionsTitle says "Close all {count, plural, one {# session} other {# sessions}} of “{name}”?"
 // in the language of msgs.
-func (msgs Messages) ConfirmCloseAllSessionsTitle(name string) string {
-	return Catalog.Format(msgs.locale, "confirmCloseAllSessionsTitle", map[string]any{"name": name})
+func (msgs Messages) ConfirmCloseAllSessionsTitle(count int, name string) string {
+	return Catalog.Format(msgs.locale, "confirmCloseAllSessionsTitle", map[string]any{"count": count, "name": name})
 }
 
 // ConfirmCloseSessionDetail says "{process} is still running in it. Closing the session ends it."
@@ -1156,11 +1186,21 @@ func (msgs Messages) SidebarOrderCreated() string {
 	return Catalog.Format(msgs.locale, "sidebarOrderCreated", nil)
 }
 
-// SidebarOrder says "Order"
+// SidebarOrderBy says "Order By"
+// in the language the app shows.
+func SidebarOrderBy() string { return In(i18n.Locale()).SidebarOrderBy() }
+
+// SidebarOrderBy says "Order By"
+// in the language of msgs.
+func (msgs Messages) SidebarOrderBy() string {
+	return Catalog.Format(msgs.locale, "sidebarOrderBy", nil)
+}
+
+// SidebarOrder says "Sessions Sorted By"
 // in the language the app shows.
 func SidebarOrder() string { return In(i18n.Locale()).SidebarOrder() }
 
-// SidebarOrder says "Order"
+// SidebarOrder says "Sessions Sorted By"
 // in the language of msgs.
 func (msgs Messages) SidebarOrder() string {
 	return Catalog.Format(msgs.locale, "sidebarOrder", nil)
@@ -1196,11 +1236,21 @@ func (msgs Messages) SidebarGroupProject() string {
 	return Catalog.Format(msgs.locale, "sidebarGroupProject", nil)
 }
 
-// SidebarGroup says "Group"
+// SidebarGroupBy says "Group By"
+// in the language the app shows.
+func SidebarGroupBy() string { return In(i18n.Locale()).SidebarGroupBy() }
+
+// SidebarGroupBy says "Group By"
+// in the language of msgs.
+func (msgs Messages) SidebarGroupBy() string {
+	return Catalog.Format(msgs.locale, "sidebarGroupBy", nil)
+}
+
+// SidebarGroup says "Sessions Grouped By"
 // in the language the app shows.
 func SidebarGroup() string { return In(i18n.Locale()).SidebarGroup() }
 
-// SidebarGroup says "Group"
+// SidebarGroup says "Sessions Grouped By"
 // in the language of msgs.
 func (msgs Messages) SidebarGroup() string {
 	return Catalog.Format(msgs.locale, "sidebarGroup", nil)
@@ -1644,6 +1694,16 @@ func UpdateRestartTip() string { return In(i18n.Locale()).UpdateRestartTip() }
 // in the language of msgs.
 func (msgs Messages) UpdateRestartTip() string {
 	return Catalog.Format(msgs.locale, "updateRestartTip", nil)
+}
+
+// HostRestartFailed says "Hyla's background service did not stop: {error}"
+// in the language the app shows.
+func HostRestartFailed(error string) string { return In(i18n.Locale()).HostRestartFailed(error) }
+
+// HostRestartFailed says "Hyla's background service did not stop: {error}"
+// in the language of msgs.
+func (msgs Messages) HostRestartFailed(error string) string {
+	return Catalog.Format(msgs.locale, "hostRestartFailed", map[string]any{"error": error})
 }
 
 // UpdatedTitle says "Hyla was updated"
@@ -6342,6 +6402,66 @@ func (msgs Messages) HostRemoveDetail(host string) string {
 	return Catalog.Format(msgs.locale, "hostRemoveDetail", map[string]any{"host": host})
 }
 
+// HostRemoved says "Removed {host}"
+// in the language the app shows.
+func HostRemoved(host string) string { return In(i18n.Locale()).HostRemoved(host) }
+
+// HostRemoved says "Removed {host}"
+// in the language of msgs.
+func (msgs Messages) HostRemoved(host string) string {
+	return Catalog.Format(msgs.locale, "hostRemoved", map[string]any{"host": host})
+}
+
+// HostRemovedUndo says "Its sessions keep running there. Undo adds it back."
+// in the language the app shows.
+func HostRemovedUndo() string { return In(i18n.Locale()).HostRemovedUndo() }
+
+// HostRemovedUndo says "Its sessions keep running there. Undo adds it back."
+// in the language of msgs.
+func (msgs Messages) HostRemovedUndo() string {
+	return Catalog.Format(msgs.locale, "hostRemovedUndo", nil)
+}
+
+// SshHostRemoved says "Removed {addr}"
+// in the language the app shows.
+func SshHostRemoved(addr string) string { return In(i18n.Locale()).SshHostRemoved(addr) }
+
+// SshHostRemoved says "Removed {addr}"
+// in the language of msgs.
+func (msgs Messages) SshHostRemoved(addr string) string {
+	return Catalog.Format(msgs.locale, "sshHostRemoved", map[string]any{"addr": addr})
+}
+
+// SshHostRemovedUndo says "Undo adds it back to the SSH project."
+// in the language the app shows.
+func SshHostRemovedUndo() string { return In(i18n.Locale()).SshHostRemovedUndo() }
+
+// SshHostRemovedUndo says "Undo adds it back to the SSH project."
+// in the language of msgs.
+func (msgs Messages) SshHostRemovedUndo() string {
+	return Catalog.Format(msgs.locale, "sshHostRemovedUndo", nil)
+}
+
+// K8sPodRemoved says "Removed {name}"
+// in the language the app shows.
+func K8sPodRemoved(name string) string { return In(i18n.Locale()).K8sPodRemoved(name) }
+
+// K8sPodRemoved says "Removed {name}"
+// in the language of msgs.
+func (msgs Messages) K8sPodRemoved(name string) string {
+	return Catalog.Format(msgs.locale, "k8sPodRemoved", map[string]any{"name": name})
+}
+
+// K8sPodRemovedUndo says "Undo adds it back to the K8s project."
+// in the language the app shows.
+func K8sPodRemovedUndo() string { return In(i18n.Locale()).K8sPodRemovedUndo() }
+
+// K8sPodRemovedUndo says "Undo adds it back to the K8s project."
+// in the language of msgs.
+func (msgs Messages) K8sPodRemovedUndo() string {
+	return Catalog.Format(msgs.locale, "k8sPodRemovedUndo", nil)
+}
+
 // HostInstall says "Install Hyla…"
 // in the language the app shows.
 func HostInstall() string { return In(i18n.Locale()).HostInstall() }
@@ -6448,6 +6568,16 @@ func (msgs Messages) HostUpdated(host string, version string) string {
 	return Catalog.Format(msgs.locale, "hostUpdated", map[string]any{"host": host, "version": version})
 }
 
+// HostRestarted says "Restarted Hyla on {host}"
+// in the language the app shows.
+func HostRestarted(host string) string { return In(i18n.Locale()).HostRestarted(host) }
+
+// HostRestarted says "Restarted Hyla on {host}"
+// in the language of msgs.
+func (msgs Messages) HostRestarted(host string) string {
+	return Catalog.Format(msgs.locale, "hostRestarted", map[string]any{"host": host})
+}
+
 // HostUpdateDev says "A development build of Hyla can't update a host. Run a released Hyla, or update the host with hyla daemon update there."
 // in the language the app shows.
 func HostUpdateDev() string { return In(i18n.Locale()).HostUpdateDev() }
@@ -6458,26 +6588,50 @@ func (msgs Messages) HostUpdateDev() string {
 	return Catalog.Format(msgs.locale, "hostUpdateDev", nil)
 }
 
-// HostVersionTitle says "Hyla on {host} is another version"
+// HostVersionTitle says "This app and Hyla on {host} speak different versions"
 // in the language the app shows.
 func HostVersionTitle(host string) string { return In(i18n.Locale()).HostVersionTitle(host) }
 
-// HostVersionTitle says "Hyla on {host} is another version"
+// HostVersionTitle says "This app and Hyla on {host} speak different versions"
 // in the language of msgs.
 func (msgs Messages) HostVersionTitle(host string) string {
 	return Catalog.Format(msgs.locale, "hostVersionTitle", map[string]any{"host": host})
 }
 
-// HostVersionDetail says "{host} runs Hyla {version}, and this app is Hyla {app}. Update Hyla there to see and start its sessions here."
+// HostVersionDetail says "{host} runs Hyla {version}, which another version of this app ran. This app is Hyla {app}. Use the same version in bo…"
 // in the language the app shows.
 func HostVersionDetail(host string, version string, app string) string {
 	return In(i18n.Locale()).HostVersionDetail(host, version, app)
 }
 
-// HostVersionDetail says "{host} runs Hyla {version}, and this app is Hyla {app}. Update Hyla there to see and start its sessions here."
+// HostVersionDetail says "{host} runs Hyla {version}, which another version of this app ran. This app is Hyla {app}. Use the same version in bo…"
 // in the language of msgs.
 func (msgs Messages) HostVersionDetail(host string, version string, app string) string {
 	return Catalog.Format(msgs.locale, "hostVersionDetail", map[string]any{"host": host, "version": version, "app": app})
+}
+
+// HostVersionOlder says "{host} runs Hyla {version}, and this app is Hyla {app}. Update Hyla there to see and start its sessions here."
+// in the language the app shows.
+func HostVersionOlder(host string, version string, app string) string {
+	return In(i18n.Locale()).HostVersionOlder(host, version, app)
+}
+
+// HostVersionOlder says "{host} runs Hyla {version}, and this app is Hyla {app}. Update Hyla there to see and start its sessions here."
+// in the language of msgs.
+func (msgs Messages) HostVersionOlder(host string, version string, app string) string {
+	return Catalog.Format(msgs.locale, "hostVersionOlder", map[string]any{"host": host, "version": version, "app": app})
+}
+
+// HostVersionNewer says "{host} runs Hyla {version}, newer than this app's {app}. Update this app to see and start the host's sessions."
+// in the language the app shows.
+func HostVersionNewer(host string, version string, app string) string {
+	return In(i18n.Locale()).HostVersionNewer(host, version, app)
+}
+
+// HostVersionNewer says "{host} runs Hyla {version}, newer than this app's {app}. Update this app to see and start the host's sessions."
+// in the language of msgs.
+func (msgs Messages) HostVersionNewer(host string, version string, app string) string {
+	return Catalog.Format(msgs.locale, "hostVersionNewer", map[string]any{"host": host, "version": version, "app": app})
 }
 
 // HostDesktopDetail says "{host} runs the Hyla app, version {version}, and this is Hyla {app}. Update Hyla on {host}, or turn on Let them updat…"

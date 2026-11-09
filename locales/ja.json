@@ -7,6 +7,8 @@
   "actionNewSessionHome": "ホームで新規セッション",
   "actionNewSessionWorktree": "ワークツリーで新規セッション…",
   "actionOpenProject": "プロジェクトを開く…",
+  "emptyConnect": "マシンに接続…",
+  "emptyConnectDetail": "SSH ホスト、K8s Pod、または Hyla が動作するホストを追加すると、そのセッションをここで表示できます。",
   "actionAddSSHHost": "SSH ホストを追加…",
   "actionGoToSession": "セッションへ移動…",
   "actionResumeConversation": "会話を再開…",
@@ -49,6 +51,7 @@
   "commonNoResults": "結果なし",
   "commonCancel": "キャンセル",
   "commonClose": "閉じる",
+  "commonUndo": "元に戻す",
   "commonRestart": "再起動",
   "commonRestartService": "サービスを再起動",
   "commonTryAgain": "再試行",
@@ -64,7 +67,7 @@
   "commonReinstall": "再インストール",
   "commonUpdate": "アップデート",
   "closeTheMenu": "メニューを閉じる",
-  "fileManagerFinder": "Finder",
+  "fileManagerFinder": "ファインダー",
   "fileManagerExplorer": "エクスプローラー",
   "fileManagerFiles": "ファイル",
   "windowMinimize": "最小化",
@@ -92,7 +95,7 @@
   "openProjectTitle": "プロジェクトを開く",
   "openProjectMessage": "フォルダを選んでください: そのセッションはフォルダ名の下にまとめられます。",
   "confirmCloseTitle": "“{name}”を閉じますか？",
-  "confirmCloseAllSessionsTitle": "“{name}”のすべてのセッションを閉じますか？",
+  "confirmCloseAllSessionsTitle": "“{name}”の {count} 個のセッションを閉じますか？",
   "confirmCloseSessionDetail": "{process} がまだ実行中です。セッションを閉じると終了します。",
   "confirmCloseProjectDetail": "{count} 個のセッションと、そこで実行中のものが終了します。",
   "confirmCloseAllSessionsDetail": "プロジェクトは残りますが、{count} 個のセッションと、そこで実行中のものが終了します。",
@@ -110,11 +113,13 @@
   "sidebarToday": "今日",
   "sidebarOrderUpdated": "更新日時",
   "sidebarOrderCreated": "作成日時",
-  "sidebarOrder": "順序",
+  "sidebarOrderBy": "並び順",
+  "sidebarOrder": "セッションの並び順",
   "sidebarGroupDate": "日付別",
   "sidebarGroupNone": "グループ化しない",
   "sidebarGroupProject": "プロジェクト別",
-  "sidebarGroup": "グループ",
+  "sidebarGroupBy": "グループ基準",
+  "sidebarGroup": "セッションのグループ",
   "sidebarSort": "並べ替えとグループ化",
   "sidebarOtherProject": "その他",
   "sidebarHide": "サイドバーを隠す",
@@ -159,6 +164,8 @@
   "statusFailed": "失敗",
   "statusDone": "完了",
   "updateRestartTip": "Hyla がアップデートされました: 新しいバージョンを使うには、バックグラウンドサービスを再起動してください",
+  "hostRestartFailed": "Hyla のバックグラウンドサービスを停止できませんでした: {error}",
+  "@hostRestartFailed": {"placeholders": {"error": {"type": "String"}}},
   "updatedTitle": "Hyla がアップデートされました",
   "updatedDetail": "セッションを実行しているバックグラウンドサービスは別のバージョンです。再起動してください: セッションは履歴とともに元の場所から再開します。",
   "connCantReach": "hylad に接続できません",
@@ -371,7 +378,7 @@
   "setCliDetail": "Hyla の中では、どのペインでもすでに PATH に hyla コマンドがあります。",
   "setCliNotInstalled": "未インストール: ほかのターミナルは hyla コマンドを認識しません。",
   "setCliRow": "ターミナルで hyla を使う",
-  "setFeishuRow": "Drive this window from Feishu",
+  "setFeishuRow": "Feishu からこのウインドウを操作",
   "setFeishuTitle": "Feishu",
   "setFeishuConnectedState": "接続済み",
   "setFeishuOffState": "オフ",
@@ -591,8 +598,35 @@
   "hostEdit": "ホストを編集",
   "hostRemoveTitle": "{host} を削除しますか？",
   "hostRemoveDetail": "そのセッションは {host} で実行を続けます。もう一度ホストを追加すると表示されます。",
+  "hostRemoved": "{host} を削除しました",
+  "hostRemovedUndo": "そこのセッションは実行を続けます。元に戻すと再び追加されます。",
+  "sshHostRemoved": "{addr} を削除しました",
+  "sshHostRemovedUndo": "元に戻すと SSH プロジェクトに再び追加されます。",
+  "k8sPodRemoved": "{name} を削除しました",
+  "k8sPodRemovedUndo": "元に戻すと K8s プロジェクトに再び追加されます。",
   "hostInstall": "Hyla をインストール…",
   "hostInstalling": "{host} に Hyla をインストール中…",
+  "@hostRemoved": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      }
+    }
+  },
+  "@sshHostRemoved": {
+    "placeholders": {
+      "addr": {
+        "type": "String"
+      }
+    }
+  },
+  "@k8sPodRemoved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "hostInstalled": "{host} に Hyla をインストールしました",
   "hostInstallFailed": "{host} に Hyla をインストールできませんでした: {error}",
   "hostUpdateAction": "{host} の Hyla をアップデート…",
@@ -602,9 +636,12 @@
   "hostUpdating": "{host} の Hyla をアップデート中…",
   "hostUpdated": "{host} は Hyla {version} を実行しています",
   "hostUpdateDev": "開発ビルドの Hyla ではホストをアップデートできません。リリース版の Hyla を使うか、ホスト上で hyla daemon update を実行してアップデートしてください。",
-  "hostVersionTitle": "{host} の Hyla は別のバージョンです",
-  "hostVersionDetail": "{host} は Hyla {version} を実行していて、このアプリは Hyla {app} です。そのセッションをここで表示・開始するには、そちらの Hyla をアップデートしてください。",
+  "hostVersionTitle": "このアプリと {host} の Hyla は異なるバージョンのやり取りをします",
+  "hostVersionDetail": "{host} は Hyla {version} を実行していて、これはアプリの別のバージョンが使っていたものです。このアプリは Hyla {app} です。両方で同じバージョンを使ってください。このアプリをアップデートするか、{host} の Hyla をアップデートしてください。",
   "hostDesktopDetail": "{host} は Hyla アプリのバージョン {version} を実行していて、このアプリは Hyla {app} です。{host} の Hyla をアップデートするか、そちらで“ここの Hyla のアップデートを許可”（設定 › Hyla ホスト）をオンにすると、ここからアップデートできます。",
+  "hostVersionOlder": "{host} は Hyla {version} を実行していて、このアプリは Hyla {app} です。そのセッションをここで表示・開始するには、そちらの Hyla をアップデートしてください。",
+  "hostVersionNewer": "{host} は Hyla {version} を実行していて、このアプリの {app} より新しいバージョンです。ホストのセッションを表示・開始するには、このアプリをアップデートしてください。",
+  "hostRestarted": "{host} の Hyla を再起動しました",
   "hostRestartAction": "{host} のサービスを再起動…",
   "hostRestartTitle": "{host} のサービスを再起動しますか？",
   "hostRestartDetail": "{host} のセッションは履歴とともに元の場所から再開し、実行中のプログラムは終了します。",

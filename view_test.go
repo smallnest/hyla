@@ -367,7 +367,8 @@ func TestSidebarFooter(t *testing.T) {
 
 // The status of a session gives way, while the pointer is on its row, to a
 // close button of the same size, so that hovering moves no text; a click
-// closes the session at once, without the menu's question.
+// closes it as the menu does, asking first while a program other than the
+// shell runs (confirm-close).
 func TestSessionHoverClose(t *testing.T) {
 	for _, mode := range []string{"compact", "detailed"} {
 		for _, selected := range []bool{false, true} {
@@ -425,11 +426,16 @@ func TestSessionHoverClose(t *testing.T) {
 				tt.Frame()
 				tt.Release(button.X+button.W/2, button.Y+button.H/2)
 				tt.Frame()
-				// A busy session goes without a question, as the menu
-				// asks one (confirm-close).
-				if a.confirm != nil && a.confirm.open {
-					t.Fatal("closing from the row asked first")
+				// A busy session asks first, as the menu does: one wrong
+				// click must not end a working program.
+				if a.confirm == nil || !a.confirm.open {
+					t.Fatal("closing a busy session from the row did not ask")
 				}
+				if a.session(id) == nil {
+					t.Fatalf("the session closed before the answer")
+				}
+				a.confirm.run()
+				a.confirm = nil
 				if a.session(id) != nil || len(a.st.Sessions) != 1 || a.selected != remaining {
 					t.Fatalf("wrong session closed: selected=%q sessions=%v", a.selected, a.st.Sessions)
 				}

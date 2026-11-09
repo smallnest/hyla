@@ -29,6 +29,10 @@ const (
 	quickAction = "quickTerminal.toggle"
 	quickHeight = 0.4 // of the work area of the display with the pointer
 	quickSlide  = 180 * time.Millisecond
+
+	// quickErrDelay is how long the panel shows a spinner before an
+	// error, so that its window comes up first.
+	quickErrDelay = 150 * time.Millisecond
 )
 
 // quickTerm is the quick terminal's state, on the main thread.
@@ -40,6 +44,9 @@ type quickTerm struct {
 	ref      ui.Handle
 	creating bool // its session is being made
 	err      string
+	// errAt is when the error shows: a moment after the view that first
+	// has it, whose frame the panel's window does not show at once.
+	errAt time.Time
 	// keys is the global shortcut registered, and asked what the settings
 	// asked for last, which failed when it is not keys.
 	keys, asked string
@@ -100,7 +107,7 @@ func (a *App) showQuick() {
 	if q.win == nil {
 		a.makeQuick()
 	}
-	q.err = ""
+	q.err, q.errAt = "", time.Time{}
 	a.attachQuick()
 	r := a.quickFrame()
 	q.shown = true
@@ -220,7 +227,16 @@ func (a *App) attachQuick() {
 		a.dropQuick()
 		// Until hylad tells its sessions, the one of the last run may be
 		// among them: the panel waits, and attaches as they come.
-		if q.creating || h.cl == nil || h.conn != connReady || !h.loaded {
+		if q.creating {
+			return
+		}
+		if h.cl == nil || h.conn == connFailed || h.conn == connVersion {
+			// It shows that, with Try Again, instead of a spinner that
+			// never ends. Connecting goes on to a terminal, or this.
+			q.err = a.hostProblem(h)
+			if h.conn != connFailed {
+				q.err = locales.HostNotConnected(h.label())
+			}
 			return
 		}
 		q.creating = true
@@ -357,12 +373,22 @@ func (a *App) quickView(c *ui.Context) {
 	case q.e != nil && q.e.term != nil:
 		terminal.View(c.Key("term"), q.e.term).Fill().Bind(&q.ref)
 	case q.err != "" || q.e != nil && q.e.err != "":
+		if q.errAt.IsZero() {
+			// The view came up with it: the error waits, so that the
+			// panel comes up before it.
+			q.errAt = time.Now().Add(quickErrDelay)
+			c.After(quickErrDelay)
+		}
+		if time.Now().Before(q.errAt) {
+			ui.Column(c).Fill().Center().Children(func() { ui.Spinner(c) })
+			return
+		}
 		detail := q.err
 		if q.e != nil {
 			detail = q.e.err
 		}
 		a.message(c, pal, locales.PaneCantShow(), detail, locales.CommonTryAgain(), func() {
-			q.err = ""
+			q.err, q.errAt = "", time.Time{}
 			a.dropQuick()
 			a.attachQuick()
 		})

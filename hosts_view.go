@@ -7,7 +7,6 @@ import (
 	"slices"
 	"strings"
 	"time"
-	"unicode"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/plugins/updater"
@@ -15,6 +14,7 @@ import (
 
 	"hyla/internal/proto"
 	"hyla/internal/remote"
+	"hyla/internal/settings"
 	"hyla/internal/shell"
 
 	"hyla/locales"
@@ -24,6 +24,10 @@ var (
 	hostIcon = glyph("f7-desktopcomputer")
 )
 
+// checkUpdates looks for a newer Hyla, as Hyla there being newer asks:
+// the app's updater, which a test makes its own.
+var checkUpdates = updater.CheckForUpdates
+
 // The sidebar is flat: groups, a remote host's tagged with its name (see
 // groupView). A host shows only by its groups, and has no row of its own
 // unless something there wants the user: hostNeedsRow. One with no
@@ -31,9 +35,11 @@ var (
 
 // hostNeedsRow reports whether a host has a row of its own in the
 // sidebar, besides its groups: while it can't be reached, wants updating
-// first, or is busy with what the user asked, as installing Hyla.
+// first, is busy with what the user asked, as installing Hyla, or is
+// still being reached.
 func (a *App) hostNeedsRow(h *host) bool {
-	return h.busy != "" || h.conn == connFailed || h.conn == connVersion
+	return h.busy != "" || h.conn == connFailed || h.conn == connVersion ||
+		(h.remote() && h.conn == connConnecting)
 }
 
 // hostLine is a host in the sidebar while it needs a row of its own: its
@@ -67,11 +73,7 @@ func (a *App) hostEmpty(c *ui.Context, pal *palette, h *host) {
 	if h.info.Hostname != "" {
 		name = h.info.Hostname
 	}
-	inset := float32(rowInset + projectBadge + projectBadgeGap)
-	if pal.dark {
-		inset++
-	}
-	row := ui.Row(c.Key("host-empty-"+h.name)).Height(rowH2).Margin(0, 0, 1, 0).Padding(0, 10, 0, inset).Gap(10).AlignItems(ui.Center).Radius(8)
+	row := ui.Row(c.Key("host-empty-"+h.name)).Height(rowH).Margin(0, 0, 1, 0).Padding(0, 10, 0, rowInset).Gap(10).AlignItems(ui.Center).Radius(8)
 	if row.Hovered() {
 		row.Background(pal.rowHover)
 	}
@@ -86,21 +88,20 @@ func (a *App) hostEmpty(c *ui.Context, pal *palette, h *host) {
 		a.newSessionOn(h, "")
 	}
 	row.Children(func() {
-		ui.Icon(c, terminalIcon).Size(14, 14).TextColor(pal.textMuted).Shrink(0)
-		ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
-			ui.Text(c, name).FontSize(13.5).TextColor(pal.text).SingleLine().Ellipsis("…")
-			ui.Text(c, h.addr.String()).Font("monospace").FontSize(12).TextColor(pal.textFaint).SingleLine().Ellipsis("…").MinWidth(0)
-		})
+		ui.Icon(c, terminalIcon).Size(13, 13).TextColor(pal.textMuted).Shrink(0)
+		ui.Text(c, name).FontSize(13).TextColor(pal.text).SingleLine().Ellipsis("…").MinWidth(0)
+		ui.Spacer(c)
+		ui.Text(c, h.addr.String()).Font("monospace").FontSize(12).TextColor(pal.textFaint).SingleLine().Ellipsis("…").Shrink(2).MaxWidth(200)
 	})
 }
 
 // hostHeader is a remote host's name, with how the app stands with it: a
 // dot while it connects or failed to, a chip when Hyla there wants
 // updating. It names a part of the sidebar, under the projects of this
-// machine, so it reads as a section does: small, faint, the name's color
-// on its icon to tell the host.
+// machine, as a project's header does, the name's color on its icon to
+// tell the host.
 func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32) {
-	hdr := ui.Row(c.Key("host-"+h.name)).Height(28).Margin(top, 0, 3, 0).Padding(0, 6, 0, 8).Gap(6).AlignItems(ui.Center).Radius(6)
+	hdr := ui.Row(c.Key("host-"+h.name)).Height(28).Margin(top, 0, 3, 0).Padding(0, 6, 0, rowInset).Gap(6).AlignItems(ui.Center).Radius(6)
 	hovered := hdr.Hovered()
 	pointerTooltip(c, hdr, "tip-host-"+h.name, a.hostTip(h))
 	hdr.ContextMenu(func(m *ui.Menu) { a.hostMenu(m, h) })
@@ -108,9 +109,8 @@ func (a *App) hostHeader(c *ui.Context, pal *palette, h *host, top float32) {
 		hdr.Background(pal.rowHover)
 	}
 	hdr.Children(func() {
-		ui.Icon(c, hostIcon).Size(12, 12).TextColor(pal.hostColor(h)).Shrink(0)
-		ui.Text(c, sectionName(h.name)).FontSize(11.5).FontWeight(600).TextColor(pal.textFaint).LetterSpacing(0.4).
-			SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
+		ui.Icon(c, hostIcon).Size(13, 13).TextColor(pal.hostColor(h)).Shrink(0)
+		ui.Text(c, h.name).FontSize(13).FontWeight(600).TextColor(pal.text).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 		ui.Spacer(c)
 		a.hostState(c, pal, h)
 		if hovered && h.conn == connReady {
@@ -141,23 +141,10 @@ func (a *App) hostTag(c *ui.Context, pal *palette, h *host) {
 	})
 }
 
-// sectionName is a host's name as a section's title: "dev box" reads
-// "Dev Box".
-func sectionName(name string) string {
-	words := strings.Fields(name)
-	for i, w := range words {
-		r := []rune(strings.ToLower(w))
-		if len(r) > 0 {
-			r[0] = unicode.ToUpper(r[0])
-		}
-		words[i] = string(r)
-	}
-	return strings.Join(words, " ")
-}
-
 // hostState says how the app stands with a host, at the end of its row,
 // or of its first group's header: a dot while it connects or failed to,
-// a chip when Hyla there wants updating or hylad restarting.
+// a chip when Hyla there wants updating or hylad restarting, or the app
+// wants it, as Hyla there is newer.
 func (a *App) hostState(c *ui.Context, pal *palette, h *host) {
 	switch {
 	case h.busy != "":
@@ -168,6 +155,20 @@ func (a *App) hostState(c *ui.Context, pal *palette, h *host) {
 		a.hostDot(c, pal, pal.textFaint, locales.StatusConnecting())
 	case h.conn == connFailed:
 		a.hostDot(c, pal, pal.danger, a.hostProblem(h))
+	case h.conn == connVersion && h.ahead():
+		// An update from here would put no newer Hyla there.
+		b := ui.ButtonBase(c.Key("update")).Height(22).Padding(0, 7).Gap(5).Radius(11).AlignItems(ui.Center).
+			Label(locales.CommonUpdate()).Tooltip(a.hostVersionDetail(h))
+		if b.Hovered() {
+			b.Background(pal.rowHover)
+		}
+		b.Children(func() {
+			ui.Box(c).Size(6, 6).Radius(3).Background(pal.attention)
+			ui.Text(c, locales.CommonUpdate()).FontSize(12).FontWeight(500).TextColor(pal.attention).SingleLine()
+		})
+		if b.Clicked() {
+			a.offerHostUpdate(h)
+		}
 	case h.conn == connVersion || h.behind():
 		b := ui.ButtonBase(c.Key("update")).Height(22).Padding(0, 7).Gap(5).Radius(11).AlignItems(ui.Center).
 			Label(locales.HostUpdateAction(h.name)).Tooltip(a.hostVersionDetail(h))
@@ -239,7 +240,7 @@ func (a *App) hostNote(c *ui.Context, pal *palette, h *host) {
 		case h.busy == "restart":
 			title = locales.HostRestarting(h.name)
 		case h.conn == connVersion:
-			title, detail = locales.HostVersionTitle(h.name), a.hostVersionDetail(h)
+			title, detail = a.hostVersion(h)
 		case errors.Is(h.errKind, remote.ErrNotInstalled):
 			// What the host said says it again.
 			title = a.hostProblem(h)
@@ -258,6 +259,10 @@ func (a *App) hostNote(c *ui.Context, pal *palette, h *host) {
 		}
 		ui.Row(c).Gap(6).Margin(2, 0, 0, 0).Children(func() {
 			switch {
+			case h.conn == connVersion && h.ahead():
+				if smallButton(c, "update", locales.CommonUpdate(), true, pal) {
+					a.checkUpdates()
+				}
 			case h.conn == connVersion:
 				if smallButton(c, "update", locales.CommonUpdate(), true, pal) {
 					a.offerHostUpdate(h)
@@ -306,7 +311,7 @@ func (a *App) hostMenu(m *ui.Menu, h *host) {
 	if m.Item(locales.HostRestartAction(h.name)).Disabled(h.rc == nil || h.busy != "").Chosen() {
 		a.offerHostRestart(h)
 	}
-	if h.info.Server || h.conn == connVersion {
+	if h.info.Server || h.conn == connVersion && h.older() {
 		if m.Item(locales.HostUpdateAction(h.name)).Disabled(h.rc == nil || h.busy != "" || !released(mygo.App.Version())).Chosen() {
 			a.offerHostUpdate(h)
 		}
@@ -359,16 +364,23 @@ func (a *App) removeHostConfirmation(h *host) *confirmation {
 	}
 }
 
+// removeHost takes a host out of the settings, and offers to put it back:
+// its sessions keep running there meanwhile.
 func (a *App) removeHost(name string) {
 	s := a.set.Clone()
-	var keep = s.Hosts[:0]
-	for _, h := range s.Hosts {
-		if !strings.EqualFold(h.Name, name) {
-			keep = append(keep, h)
-		}
+	i := slices.IndexFunc(s.Hosts, func(h settings.Host) bool { return strings.EqualFold(h.Name, name) })
+	if i < 0 {
+		return
 	}
-	s.Hosts = keep
+	removed := s.Hosts[i]
+	s.Hosts = slices.Delete(s.Hosts, i, i+1)
 	a.applySettings(s)
+	a.undoSays(locales.HostRemoved(removed.Name), func() {
+		back := a.set.Clone()
+		j := min(i, len(back.Hosts))
+		back.Hosts = slices.Insert(back.Hosts, j, removed)
+		a.applySettings(back)
+	})
 }
 
 // installOnHost asks, then installs Hyla on a host the app reaches over
@@ -421,6 +433,19 @@ func (a *App) install(h *host) {
 	}()
 }
 
+// hostVersion says how Hyla on a host of another version differs from
+// this app, as the title and the detail of what the app says of it.
+func (a *App) hostVersion(h *host) (title, detail string) {
+	v, app := h.hyla(), mygo.App.Version()
+	switch {
+	case h.ahead():
+		return locales.HostVersionTitle(h.name), locales.HostVersionNewer(h.name, v, app)
+	case h.older():
+		return locales.HostVersionTitle(h.name), locales.HostVersionOlder(h.name, v, app)
+	}
+	return locales.HostVersionTitle(h.name), locales.HostVersionDetail(h.name, v, app)
+}
+
 // hostVersionDetail says how Hyla on a host differs from this app, and
 // what updates which.
 func (a *App) hostVersionDetail(h *host) string {
@@ -436,6 +461,13 @@ func (a *App) hostVersionDetail(h *host) string {
 	return locales.HostVersionDetail(h.name, v, app)
 }
 
+// checkUpdates asks the updater for a newer app, which updates a host
+// from here: none, where the app has no updater, as in a test.
+func (a *App) checkUpdates() {
+	defer func() { recover() }() // no updater: the panic of mygo's CheckForUpdates
+	checkUpdates()
+}
+
 // offerHostUpdate updates the server build of Hyla on a host to this
 // app's version, and restarts hylad there into it, asking first, as the
 // restart ends the programs in its sessions. A host newer than the app,
@@ -443,8 +475,17 @@ func (a *App) hostVersionDetail(h *host) string {
 func (a *App) offerHostUpdate(h *host) {
 	switch {
 	case h.ahead():
-		updater.CheckForUpdates()
+		a.checkUpdates()
 		a.toast(a.hostVersionDetail(h))
+		return
+	case h.conn == connVersion && !h.older():
+		// Hyla there is not older, so an update writes no newer build
+		// into it: say what fixes it instead.
+		_, detail := a.hostVersion(h)
+		if h.ahead() {
+			a.checkUpdates()
+		}
+		a.toast(detail)
 		return
 	case !h.info.Updates:
 		a.toast(a.hostVersionDetail(h))
@@ -507,7 +548,7 @@ func (a *App) hostRequest(h *host, what string) {
 		if err == nil {
 			err = rc.Host(ctx, proto.HostRequest{Kind: proto.KindRestart})
 		}
-		a.update(func() {
+		a.main(func() {
 			h.busy = ""
 			if !slices.Contains(a.hosts, h) {
 				return
@@ -521,13 +562,20 @@ func (a *App) hostRequest(h *host, what string) {
 			}
 			if what == "update" {
 				a.toast(locales.HostUpdated(h.name, version))
+			} else {
+				a.toast(locales.HostRestarted(h.name))
 			}
 			// Through the bridge, which stays, or through a new
 			// connection to the listener of the hylad that follows.
 			time.AfterFunc(time.Second, func() { a.update(func() { a.reconnectHost(h) }) })
+			requestDoneForTest(h, err)
 		})
 	}()
 }
+
+// requestDoneForTest runs once a host request's work on the main thread
+// is done, for a test: nothing in the app.
+var requestDoneForTest = func(*host, error) {}
 
 // openRemotePath opens what a path printed in a remote pane names, which
 // the host tells: a folder in a new session there, a file in the editor
