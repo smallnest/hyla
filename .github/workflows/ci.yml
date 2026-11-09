@@ -42,8 +42,8 @@ jobs:
 
   # libghostty-vt, which the terminal downloads from the release of mygo's
   # plugin as a terminal is first made. Kept, so that the runs of the tests
-  # and of the server's Check do not wait on GitHub's release files, which
-  # answer with 504 Gateway Timeout at times.
+  # do not wait on GitHub's release files, which answer with 504 Gateway
+  # Timeout at times.
   native:
     name: Native
     runs-on: ubuntu-latest
@@ -52,48 +52,54 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-      # The library's SHA-256, name, and the release of its file, as the
-      # terminal's manifest names them: the SHA-256 is where the terminal
-      # keeps the library it downloads.
-      - run: |
+      # The library's SHA-256 and name, and the release it comes from: the
+      # SHA-256 is where the terminal keeps the library it downloads, and a
+      # part of this step's key.
+      - id: lib
+        run: |
           set -eu
           dir="$(go list -m -f '{{.Dir}}' github.com/egoist/mygo)/plugins/terminal"
-          url="$(jq -r '.libraries[] | select(.name == "libghostty-vt") | .files["linux-amd64"].url' "$dir/mygo-plugin.json")"
           jq -r '.libraries[] | select(.name == "libghostty-vt") | .files["linux-amd64"].sha256' "$dir/mygo-plugin.json" > "$RUNNER_TEMP/sha"
+          # The file's name in the release, which gh matches: the manifest
+          # names the file the program loads, which the release names by
+          # platform.
+          jq -r '.libraries[] | select(.name == "libghostty-vt") | .files["linux-amd64"].url | split("/") | last' "$dir/mygo-plugin.json" > "$RUNNER_TEMP/asset"
           jq -r '.libraries[] | select(.name == "libghostty-vt") | .files["linux-amd64"].name' "$dir/mygo-plugin.json" > "$RUNNER_TEMP/name"
-          echo "$url" | sed 's|.*/download/||; s|/.*||' > "$RUNNER_TEMP/tag"
-          echo "sha=$(cat "$RUNNER_TEMP/sha")" >> "$GITHUB_ENV"
-          echo "lib=$(cat "$RUNNER_TEMP/name")" >> "$GITHUB_ENV"
-          echo "tag=$(cat "$RUNNER_TEMP/tag")" >> "$GITHUB_ENV"
+          # The release that holds the file, whose URL is
+          # https://github.com/<owner>/<repo>/releases/download/<tag>/<file>.
+          jq -r '.libraries[] | select(.name == "libghostty-vt") | .files["linux-amd64"].url' "$dir/mygo-plugin.json" > "$RUNNER_TEMP/url"
+          sed 's|.*/releases/download/||; s|/.*||' "$RUNNER_TEMP/url" > "$RUNNER_TEMP/tag"
+          echo "sha=$(cat "$RUNNER_TEMP/sha")" >> "$GITHUB_OUTPUT"
+          echo "asset=$(cat "$RUNNER_TEMP/asset")" >> "$GITHUB_OUTPUT"
+          echo "name=$(cat "$RUNNER_TEMP/name")" >> "$GITHUB_OUTPUT"
+          echo "tag=$(cat "$RUNNER_TEMP/tag")" >> "$GITHUB_OUTPUT"
       - uses: actions/cache/restore@v4
         id: cache
         with:
           path: ~/.cache/mygo/natives
-          key: native-${{ env.sha }}
+          key: native-${{ steps.lib.outputs.sha }}
       - name: Download
         if: steps.cache.outputs.cache-hit != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.lib.outputs.sha }}
+          ASSET: ${{ steps.lib.outputs.asset }}
+          NAME: ${{ steps.lib.outputs.name }}
+          TAG: ${{ steps.lib.outputs.tag }}
         run: |
           set -eu
-          case "$sha" in
-          ????????????????????????????????????????????????????????????????) ;;
-          *)
-            echo "no SHA-256 of $lib in the manifest: $sha" >&2
-            exit 1
-            ;;
-          esac
-          mkdir -p "$HOME/.cache/mygo/natives/$sha"
+          dir="$HOME/.cache/mygo/natives/$SHA"
+          mkdir -p "$dir"
           # Asked for by gh, which reaches the release's file where curl of
           # its link does not at times, and again a moment later.
           for i in 0 15 30 60; do
             sleep "$i"
-            gh release download "$tag" --repo egoist/mygo \
-              --pattern "$lib" --dir "$HOME/.cache/mygo/natives/$sha" --clobber && break
+            gh release download "$TAG" --repo egoist/mygo --pattern "$ASSET" --dir "$dir" --clobber && break
           done
-          test -s "$HOME/.cache/mygo/natives/$sha/$lib"
+          mv "$dir/$ASSET" "$dir/$NAME"
+          echo "$SHA  $dir/$NAME" | sha256sum -c -
       - uses: actions/cache/save@v4
         if: steps.cache.outputs.cache-hit != 'true'
         with:
           path: ~/.cache/mygo/natives
-          key: native-${{ env.sha }}
+          key: native-${{ steps.lib.outputs.sha }}
