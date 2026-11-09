@@ -54,6 +54,9 @@ type palette struct {
 	onDone    ui.Color
 	danger    ui.Color
 	accent    ui.Color
+	// group is a sidebar group's name, a project's or a day's: lighter than
+	// its rows' names, which it tells apart.
+	group ui.Color
 
 	overlay   ui.Color // behind dialogs
 	popover   ui.Color
@@ -66,6 +69,7 @@ var lightPalette = palette{
 	text:         ui.Hex("#1d1d1f"),
 	textMuted:    ui.Hex("#6e6e78"),
 	textFaint:    ui.Hex("#a3a3ad"),
+	group:        ui.Hex("#888892"),
 	rowHover:     ui.RGBA(0, 0, 0, 0.04),
 	rowSelected:  ui.Hex("#ffffff"),
 	rowSelBorder: ui.RGBA(0, 0, 0, 0.05),
@@ -104,6 +108,7 @@ var darkPalette = palette{
 	text:         ui.Hex("#ececf0"),
 	textMuted:    ui.Hex("#a9a9b4"),
 	textFaint:    ui.Hex("#83838f"),
+	group:        ui.Hex("#90909b"),
 	rowHover:     ui.RGBA(255, 255, 255, 0.05),
 	rowSelected:  ui.RGBA(255, 255, 255, 0.10),
 	rowSelBorder: ui.RGBA(255, 255, 255, 0.06),

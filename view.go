@@ -435,7 +435,7 @@ func (a *App) dateHeader(c *ui.Context, pal *palette, key, label string, count i
 		inset++
 	}
 	ui.Row(c.Key(key)).Height(28).Margin(top, 0, 3, 0).Padding(0, 6, 0, inset).Gap(6).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, label).FontSize(12.5).FontWeight(600).TextColor(pal.textMuted).SingleLine().Shrink(1)
+		ui.Text(c, label).FontSize(12.5).FontWeight(600).TextColor(pal.group).SingleLine().Shrink(1)
 		ui.Textf(c, "%d", count).FontSize(12.5).TextColor(pal.textFaint).FontFeatures("tnum")
 	})
 }
@@ -615,7 +615,7 @@ func (a *App) groupView(c *ui.Context, pal *palette, g group, gi int, n *int) {
 			}
 			return
 		}
-		ui.Text(c, g.project.Name).FontSize(13).FontWeight(500).TextColor(pal.textMuted).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
+		ui.Text(c, g.project.Name).FontSize(13).FontWeight(500).TextColor(pal.group).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 		if g.host.remote() {
 			a.hostTag(c, pal, g.host)
 		}
