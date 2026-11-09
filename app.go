@@ -187,6 +187,9 @@ type App struct {
 	// the pointer was last over a pane, in the window.
 	hoverPane string
 	hoverAt   [2]float32
+	// claimGen counts the wheel's rests in each pane, of which the last
+	// tells its host the user is there (claimWhenRest).
+	claimGen map[string]int
 
 	// Panes dragged: the zone last under the pointer, the pane whose
 	// drop preview shows and since when, and the panes just moved, which
@@ -881,6 +884,9 @@ func (a *App) touch(id string) {
 }
 
 func (a *App) dropTerm(id string) {
+	if a.claimGen != nil {
+		delete(a.claimGen, id)
+	}
 	if e := a.terms[id]; e != nil {
 		if e.term != nil {
 			e.term.Close()
@@ -1142,9 +1148,12 @@ func (a *App) termOptions(id string, conn *gated) terminal.Options {
 		},
 		// The wheel, the user's even over a window not focused, tells they
 		// are in this pane, which then takes this window's size back from
-		// another machine's app (Stream.Claim); it scrolls as it would.
+		// another machine's app (Stream.Claim); it scrolls as it would. A
+		// claim goes once the pointer rests, not once a scroll event, which
+		// a trackpad sends by the hundred: each asks the host for the
+		// stream's size, and its frames hold the terminal up.
 		OnScroll: func(int) bool {
-			go conn.Claim()
+			a.claimWhenRest(id, conn)
 			return false
 		},
 		OpenLink: func(link string) bool { return a.openLink(id, link) },
@@ -1171,6 +1180,33 @@ func (a *App) termOptions(id string, conn *gated) terminal.Options {
 	}
 	return o
 }
+
+// claimWhenRest tells the host the user is in the pane id, as its stream's
+// Claim does, once the wheel rests: a wheel's scroll, and every one of a
+// trackpad's, comes sooner. Each claim makes the host size the pane to
+// this window, and its frames wait for that.
+func (a *App) claimWhenRest(id string, conn interface{ Claim() error }) {
+	if a.claimGen == nil {
+		a.claimGen = map[string]int{}
+	}
+	n := a.claimGen[id] + 1
+	a.claimGen[id] = n
+	go func() {
+		time.Sleep(claimRest)
+		a.main(func() {
+			if a.claimGen[id] != n || a.terms[id] == nil {
+				return
+			}
+			delete(a.claimGen, id)
+			conn.Claim()
+		})
+	}()
+}
+
+// claimRest is how long the wheel rests before a pane claims the size: more
+// than the least between a trackpad's scroll events, short enough that the
+// user, arriving, waits for nothing they see.
+const claimRest = 150 * time.Millisecond
 
 // zoom makes every terminal's text bigger or smaller, which Settings
 // remembers as the font's size.

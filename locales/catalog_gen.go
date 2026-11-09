@@ -3332,6 +3332,46 @@ func (msgs Messages) SetBackground() string {
 	return Catalog.Format(msgs.locale, "setBackground", nil)
 }
 
+// BgEmber says "Ember"
+// in the language the app shows.
+func BgEmber() string { return In(i18n.Locale()).BgEmber() }
+
+// BgEmber says "Ember"
+// in the language of msgs.
+func (msgs Messages) BgEmber() string {
+	return Catalog.Format(msgs.locale, "bgEmber", nil)
+}
+
+// BgTidal says "Tidal"
+// in the language the app shows.
+func BgTidal() string { return In(i18n.Locale()).BgTidal() }
+
+// BgTidal says "Tidal"
+// in the language of msgs.
+func (msgs Messages) BgTidal() string {
+	return Catalog.Format(msgs.locale, "bgTidal", nil)
+}
+
+// BgUmbra says "Umbra"
+// in the language the app shows.
+func BgUmbra() string { return In(i18n.Locale()).BgUmbra() }
+
+// BgUmbra says "Umbra"
+// in the language of msgs.
+func (msgs Messages) BgUmbra() string {
+	return Catalog.Format(msgs.locale, "bgUmbra", nil)
+}
+
+// BgStatic says "Static"
+// in the language the app shows.
+func BgStatic() string { return In(i18n.Locale()).BgStatic() }
+
+// BgStatic says "Static"
+// in the language of msgs.
+func (msgs Messages) BgStatic() string {
+	return Catalog.Format(msgs.locale, "bgStatic", nil)
+}
+
 // BgPetal says "Petal"
 // in the language the app shows.
 func BgPetal() string { return In(i18n.Locale()).BgPetal() }

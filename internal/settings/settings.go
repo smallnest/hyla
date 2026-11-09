@@ -331,8 +331,12 @@ var Backgrounds = []struct{ ID, Name string }{
 	{"rex", "Petal"},
 	{"mist", "Mist"},
 	{"meadow", "Meadow"},
-	{"plain", "Plain"},
 	{"dock", "Dock"},
+	{"ember", "Ember"},
+	{"tidal", "Tidal"},
+	{"umbra", "Umbra"},
+	{"static", "Static"},
+	{"plain", "Plain"},
 }
 
 // Path returns the settings' file, the configuration (ConfigPath).

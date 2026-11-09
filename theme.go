@@ -188,7 +188,7 @@ func washOpacity(s settings.Settings) float32 {
 
 // backdrop paints the window's wash of color, under the sidebar and
 // between the cards: the base on the root, a glow from the top right on
-// row, which holds everything else. It lies over the window's material
+// row, which holds everything else, and a scene's shapes over both. It lies over the window's material
 // where there is one, and over the desktop when the window is blurless;
 // the plain one is the material or the desktop alone.
 func backdrop(c *ui.Context, pal *palette, row ui.Element, s settings.Settings) {
@@ -223,6 +223,13 @@ func backdrop(c *ui.Context, pal *palette, row ui.Element, s settings.Settings) 
 		}
 	}
 	row.LinearGradient(glow)
+	if scene := washTable[s.Background].scene; scene != nil {
+		// Its shapes lie over the wash as it shows: as faint as the
+		// window's material makes it.
+		// The scene takes the wash's opacity in its colors, as the wash
+		// does.
+		row.Draw(func(p *ui.Painter, r ui.Rect) { scene(p, r, pal.dark, alpha) })
+	}
 }
 
 // paneGlass is what a terminal's card shows in place of its background:
@@ -423,25 +430,44 @@ func washes(id string, dark bool) (base, glow ui.LinearGradient) {
 	if !ok {
 		w = washTable["rex"]
 	}
-	stops := func(hexes ...string) []ui.GradientStop {
-		out := make([]ui.GradientStop, len(hexes))
-		for i, h := range hexes {
-			out[i] = ui.GradientStop{Color: ui.Hex(h), At: float32(i) / float32(len(hexes)-1)}
-		}
-		return out
-	}
+	stops := stopsOf
 	glowOf := func(c ui.Color) ui.LinearGradient {
 		return ui.LinearGradient{Angle: 225, Oklab: true, Stops: []ui.GradientStop{{Color: c, At: 0}, {Color: c.Alpha(0), At: 0.5}}}
 	}
-	if dark {
-		return ui.LinearGradient{Angle: 180, Oklab: true, Stops: stops(w.dark...)}, glowOf(w.darkGlow)
+	angle := w.lightAngle
+	if angle == 0 {
+		angle = 180
 	}
-	return ui.LinearGradient{Angle: 180, Oklab: true, Stops: stops(w.light...)}, glowOf(w.lightGlow)
+	if dark {
+		if w.darkAngle != 0 {
+			angle = w.darkAngle
+		}
+		return ui.LinearGradient{Angle: angle, Oklab: true, Stops: stops(w.dark...)}, glowOf(w.darkGlow)
+	}
+	return ui.LinearGradient{Angle: angle, Oklab: true, Stops: stops(w.light...)}, glowOf(w.lightGlow)
 }
 
+// stopsOf puts colors at even places along a gradient, the first at 0
+// and the last at 1.
+func stopsOf(hexes ...string) []ui.GradientStop {
+	out := make([]ui.GradientStop, len(hexes))
+	for i, h := range hexes {
+		out[i] = ui.GradientStop{Color: ui.Hex(h), At: float32(i) / float32(len(hexes)-1)}
+	}
+	return out
+}
+
+// wash is a background's colors: its base's stops, top to bottom unless
+// an angle turns them, and the color of its glow from the top right.
 type wash struct {
 	light, dark         []string
 	lightGlow, darkGlow ui.Color
+	// lightAngle and darkAngle turn the base, in degrees clockwise from
+	// upwards, where a wash runs otherwise than top to bottom: 0 is down.
+	lightAngle, darkAngle float32
+	// scene draws shapes on the base and glow, under the cards: a
+	// treeline, the moon, a teletype's ruling. nil is none.
+	scene func(p *ui.Painter, r ui.Rect, dark bool, alpha float32)
 }
 
 var washTable = map[string]wash{
@@ -462,10 +488,78 @@ var washTable = map[string]wash{
 		light: []string{"#eceef4", "#eceef4"}, lightGlow: ui.RGBA(0, 0, 0, 0),
 		dark: []string{"#141418", "#141418"}, darkGlow: ui.RGBA(0, 0, 0, 0),
 	},
+	// Ember's: a fire at the bottom left, dark brick at the top right.
+	"ember": {
+		light: []string{"#3a1a1c", "#5c2623", "#8a3d2c", "#c4703a", "#ecab63"}, lightGlow: ui.RGBA(255, 150, 90, 0.35),
+		dark: []string{"#100708", "#1a0c0b", "#2a1310", "#3d1c15", "#57301f"}, darkGlow: ui.RGBA(255, 120, 60, 0.18),
+	},
+	// Tidal's: deep water below, a pale band at the horizon, night above,
+	// turned so that it runs from the top left corner down.
+	"tidal": {
+		light: []string{"#1f4050", "#2f6272", "#6b9aa4", "#d7c9a8", "#efe3c8"}, lightGlow: ui.RGBA(255, 236, 200, 0.5), lightAngle: 135,
+		dark: []string{"#070f16", "#0d1c26", "#163440", "#234b56", "#2e5b63"}, darkGlow: ui.RGBA(140, 200, 210, 0.16), darkAngle: 135,
+	},
+	// Umbra's: deep indigo with violet at the upper right and its dark
+	// under it; the moon, faint, at the lower left.
+	"umbra": {
+		light: []string{"#3b3a6b", "#504a7d", "#6b5f8e", "#8a7a9e", "#a99bb0"}, lightGlow: ui.RGBA(190, 170, 255, 0.45),
+		dark: []string{"#08080f", "#0d0c18", "#131126", "#191632", "#1f1a3b"}, darkGlow: ui.RGBA(120, 100, 220, 0.2),
+		scene: umbraScene,
+	},
+	// Static's: a field of teal, turned, and the faint lines of a
+	// teletype's ruling across it.
+	"static": {
+		light: []string{"#dfe6e4", "#e9eeeb", "#f1f3ee", "#f5f4ea"}, lightGlow: ui.RGBA(160, 220, 200, 0.5), lightAngle: 160,
+		dark: []string{"#0c1413", "#101a18", "#141f1c", "#17251f"}, darkGlow: ui.RGBA(80, 200, 170, 0.14), darkAngle: 160,
+		scene: staticScene,
+	},
 	// The Dock's: the desktop behind the window, frosted, under a thin
 	// neutral veil that grounds what sits on it, in the Dock's gray.
 	"dock": {
 		light: []string{"#f3f4f6", "#eeeff2", "#f6f6f7"}, lightGlow: ui.RGBA(0, 0, 0, 0),
 		dark: []string{"#131315", "#161618", "#19191b"}, darkGlow: ui.RGBA(0, 0, 0, 0),
 	},
+}
+
+// umbraScene draws Umbra's moon: a soft disc at the lower left, faded at
+// its edge, and the faint ring around it.
+func umbraScene(p *ui.Painter, r ui.Rect, dark bool, alpha float32) {
+	if r.W <= 0 || r.H <= 0 {
+		return
+	}
+	cx, cy := r.X+r.W*0.22, r.Y+r.H*0.72
+	rad := min(r.W, r.H) * 0.09
+	core := ui.Oklch(0.86, 0.03, 85)
+	if dark {
+		core = ui.Oklch(0.93, 0.02, 85)
+	}
+	p.FillRadialGradient(ui.Rect{X: cx - rad, Y: cy - rad, W: 2 * rad, H: 2 * rad}, ui.RadialGradient{
+		Stops: []ui.GradientStop{{Color: core.Alpha(0.55 * alpha), At: 0.72}, {Color: core.Alpha(0), At: 1}},
+	}, rad*0.999)
+	ring := (&ui.Path{}).MoveTo(cx+rad*1.5, cy)
+	for i := 1; i <= 64; i++ {
+		a := float64(i) / 64 * 2 * math.Pi
+		ring.LineTo(cx+rad*1.5*float32(math.Cos(a)), cy+rad*1.5*float32(math.Sin(a)))
+	}
+	p.StrokePath(ring, 1, core.Alpha(0.12*alpha))
+}
+
+// staticScene draws Static's teletype ruling: faint horizontal lines a
+// little apart, and a column of sprocket holes down the left, as a
+// printer's paper has.
+func staticScene(p *ui.Painter, r ui.Rect, dark bool, alpha float32) {
+	if r.W <= 0 || r.H <= 0 {
+		return
+	}
+	ink := ui.Oklch(0.25, 0.02, 180)
+	if dark {
+		ink = ui.Oklch(0.85, 0.03, 170)
+	}
+	const step = 18
+	for y := r.Y + step; y < r.Y+r.H; y += step {
+		p.Fill(ui.Rect{X: r.X, Y: y, W: r.W, H: 1}, ink.Alpha(0.035*alpha), 0)
+	}
+	for y := r.Y + 9; y < r.Y+r.H; y += step * 2 {
+		p.Fill(ui.Rect{X: r.X + 22, Y: y, W: 5, H: 5}, ink.Alpha(0.06*alpha), 1)
+	}
 }

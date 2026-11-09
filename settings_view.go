@@ -753,11 +753,19 @@ func (a *App) appearancePage(c *ui.Context, pal *palette) {
 		})
 	})
 	ui.Column(c).Gap(8).Children(func() {
+		// The washes under their own title, and Plain, which is the
+		// window's material alone, with the material's under foot.
 		groupTitle(c, pal, locales.SetBackground())
 		ui.Row(c).Gap(12).Wrap().Children(func() {
 			for _, b := range settings.Backgrounds {
+				if b.ID == "plain" {
+					continue
+				}
 				a.backgroundTile(c, pal, b.ID, backgroundName(b.ID, b.Name))
 			}
+		})
+		ui.Row(c).Gap(12).Children(func() {
+			a.backgroundTile(c, pal, "plain", backgroundName("plain", "Plain"))
 		})
 	})
 }
@@ -827,7 +835,8 @@ func localeTag(language string) string {
 
 // backgroundName is a wash's name in the language the app shows.
 func backgroundName(id, name string) string {
-	if t, ok := map[string]func() string{"rex": locales.BgPetal, "mist": locales.BgMist, "meadow": locales.BgMeadow, "plain": locales.BgPlain, "dock": locales.BgDock}[id]; ok {
+	if t, ok := map[string]func() string{"rex": locales.BgPetal, "mist": locales.BgMist, "meadow": locales.BgMeadow, "plain": locales.BgPlain, "dock": locales.BgDock,
+		"ember": locales.BgEmber, "tidal": locales.BgTidal, "umbra": locales.BgUmbra, "static": locales.BgStatic}[id]; ok {
 		return t()
 	}
 	return name
@@ -854,6 +863,11 @@ func (a *App) backgroundTile(c *ui.Context, pal *palette, id, name string) {
 		sw.LinearGradient(base)
 		sw.Children(func() {
 			ui.Box(c).Absolute().Top(0).Left(0).Right(0).Bottom(0).LinearGradient(glow)
+			if scene := washTable[id].scene; scene != nil {
+				// The tile is little: the scene at its size, as the window
+				// has it.
+				ui.Box(c).Absolute().Top(0).Left(0).Right(0).Bottom(0).Draw(func(p *ui.Painter, r ui.Rect) { scene(p, r, pal.dark, 1) })
+			}
 			// A card on it, as the window shows them.
 			ui.Box(c).Absolute().Top(12).Left(26).Right(8).Bottom(-6).Radius(7).Background(pal.card)
 			ui.Box(c).Absolute().Top(20).Left(8).Width(12).Height(4).Radius(2).Background(pal.textFaint.Alpha(0.5))
