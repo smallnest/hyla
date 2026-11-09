@@ -43,7 +43,19 @@ for p in $platforms; do
 	# it beside itself, and downloads none.
 	file="$(jq -c ".libraries[] | select(.name == \"libghostty-vt\") | .files[\"$os-$arch\"]" "$manifest")"
 	lib="$(echo "$file" | jq -r .name)"
-	curl -fsSL "$(echo "$file" | jq -r .url)" -o "$stage/$lib"
+	# GitHub's server may answer the link of the release with 500 of a kind,
+	# as 504 Gateway Timeout: asked for again, a moment later.
+	for i in 1 2 3 4 5; do
+		if curl -fsSL --retry 3 --retry-delay 5 "$(echo "$file" | jq -r .url)" -o "$stage/$lib"; then
+			break
+		fi
+		if [ "$i" = 5 ]; then
+			echo "cannot download $lib" >&2
+			exit 1
+		fi
+		echo "$lib: no answer, asking again" >&2
+		sleep $((i * 10))
+	done
 	echo "$(echo "$file" | jq -r .sha256)  $stage/$lib" | check
 	# On Windows, the ConPTY the app ships too, which hylad finds beside
 	# itself (resources/windows-*).

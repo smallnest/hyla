@@ -11,6 +11,7 @@ permissions:
 jobs:
   test:
     name: Test
+    needs: native
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -38,3 +39,49 @@ jobs:
   server:
     name: Server
     uses: ./.github/workflows/server.yml
+
+  # libghostty-vt, which the terminal downloads from the release of mygo's
+  # plugin as a terminal is first made. Kept, so that the runs of the tests
+  # and of the server's Check do not wait on GitHub's release files, which
+  # answer with 504 Gateway Timeout at times.
+  native:
+    name: Native
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      # Where the terminal keeps a library that it downloads: the SHA-256 of
+      # the build, as mygo-plugin.json names it.
+      - run: |
+          dir="$(go list -m -f '{{.Dir}}' github.com/egoist/mygo)/plugins/terminal"
+          sha="$(jq -r '.libraries[] | select(.name == "libghostty-vt") | .files["linux-amd64"].sha256' "$dir/mygo-plugin.json")"
+          echo "sha=$sha" >> "$GITHUB_ENV"
+      - uses: actions/cache/restore@v4
+        id: cache
+        with:
+          path: ~/.cache/mygo/natives
+          key: native-${{ env.sha }}
+      - name: Download
+        if: steps.cache.outputs.cache-hit != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          tag="$(jq -r '.libraries[] | select(.name == "libghostty-vt") | .source' \
+            "$GOMODCACHE/github.com/egoist/mygo@$(go list -m -f '{{.Version}}' github.com/egoist/mygo)/plugins/terminal/mygo-plugin.json" | sed 's|.*/tree/||')"
+          mkdir -p ~/.cache/mygo/natives/"$sha"
+          # gh asks for the release's file, whose link GitHub's own server
+          # may not answer: again, a moment later.
+          for i in 1 2 3; do
+            gh release download "libghostty-vt-$tag" --repo egoist/mygo \
+              --pattern libghostty-vt-linux-amd64.so --dir ~/.cache/mygo/natives/"$sha" --clobber && break
+            sleep $((i * 15))
+          done
+          test -s ~/.cache/mygo/natives/"$sha"/libghostty-vt-linux-amd64.so
+      - uses: actions/cache/save@v4
+        if: steps.cache.outputs.cache-hit != 'true'
+        with:
+          path: ~/.cache/mygo/natives
+          key: native-${{ env.sha }}
