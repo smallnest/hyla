@@ -258,3 +258,32 @@ func TestTermFontFeatures(t *testing.T) {
 		}
 	}
 }
+
+// wheelClaimer counts the claims of a pane: the wheel's rest asks once, as
+// many scrolls as a trackpad sends before it come to one.
+type wheelClaimer struct{ claims int }
+
+func (w *wheelClaimer) Claim() error { w.claims++; return nil }
+
+// A wheel's scrolls, a trackpad's by the hundred, make the pane claim the
+// size once it rests, not once a scroll: each claim holds up the frames.
+func TestWheelClaimsWhenRest(t *testing.T) {
+	a := testApp(t)
+	id := a.st.Sessions[0].ID
+	a.terms[id] = &termEntry{started: time.Now()}
+	w := &wheelClaimer{}
+	for range 50 {
+		a.claimWhenRest(id, w)
+	}
+	time.Sleep(claimRest * 3)
+	if w.claims != 1 {
+		t.Errorf("50 scrolls made %d claims, want 1", w.claims)
+	}
+	// The pane gone, its claim goes with it.
+	a.dropTerm(id)
+	a.claimWhenRest(id, w)
+	time.Sleep(claimRest * 3)
+	if w.claims != 1 {
+		t.Errorf("a dropped pane claimed %d times", w.claims)
+	}
+}
