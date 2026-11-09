@@ -6,6 +6,32 @@ number; the notes of the upstream releases it includes follow its own.
 
 ## Unreleased
 
+## 3.5.5
+
+- Closing a session from the button on its row asks first while a program
+  other than the shell runs in it, as the menu does: one wrong click no
+  longer ends a working agent. Closing all of a project's sessions says
+  how many end.
+- Removing a host, an SSH host or a K8s pod offers Undo, which puts it
+  back where it was.
+- A host that runs another version of Hyla says which side is older:
+  only one of them is updated from here, and the other says what
+  to do. Waiting for Hyla on a host that restarted says so once
+  it did.
+- When Hyla's background service does not stop, Hyla says why instead of
+  waiting forever; a host still being reached has a row of its own in the
+  sidebar.
+- The quick terminal says when it can't reach the service, with Try
+  Again, instead of spinning.
+- The sidebar's hierarchy reads top-down: a project's name outweighs its
+  sessions, a long session name keeps its room, and its details stand on
+  one line. Dark and light themes lay rows out alike. Picking a session
+  from **Go to Session** (⌘P), or the one that needs you (⌘J), unfolds
+  its project.
+- The first screen offers **Connect a Machine…**, and the sort menu's
+  headings say what they group and order by.
+- Japanese and Chinese no longer leave English sentences in the window.
+
 ## 3.5.4
 
 - Hyla starts hylad when it finds none answering, as after **hyla daemon
