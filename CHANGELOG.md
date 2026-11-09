@@ -9,6 +9,8 @@ number; the notes of the upstream releases it includes follow its own.
 - A prompt sent from Feishu while the agent works waits its turn in a blue
   card titled 加入请求队列，请等待 (Added to the queue), which goes when its
   turn begins, or when /stop ends it.
+- hylad builds for Windows again: the profile signals it listens to on
+  Unix are Unix's alone.
 
 ## 3.5.5
 

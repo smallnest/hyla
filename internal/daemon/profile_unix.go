@@ -1,3 +1,5 @@
+//go:build !windows
+
 package daemon
 
 import (
@@ -16,7 +18,8 @@ import (
 // profiling lets a hylad that runs from a shell, as one that is built
 // into /tmp for a profile, tell where its CPU and memory go, without a
 // server of its own: $HYLA_PROFILE names the directory of the profiles
-// it writes, and signals ask for them.
+// it writes, and signals ask for them. Windows has no such signals: a
+// hylad there writes none, and startProfiling there does less.
 //
 //	SIGUSR1  starts a CPU profile, into cpu.pprof
 //	SIGUSR2  stops it, and writes the heap profile, heap.pprof
