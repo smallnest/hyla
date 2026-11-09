@@ -99,3 +99,23 @@ func TestBackgroundTilesShot(t *testing.T) {
 	tt.Frame()
 	shot(t, tt, "settings-backgrounds")
 }
+
+// Washes are kept: made once for each background and theme, and drawn as
+// they are. The backdrop fades a copy of a translucent wash's stops, never
+// the wash the theme has.
+func TestWashesAreKept(t *testing.T) {
+	base, _ := washOf("rex", false)
+	again, _ := washOf("rex", false)
+	if &base.Stops[0] != &again.Stops[0] {
+		t.Fatal("washes made twice")
+	}
+	other, _ := washOf("mist", false)
+	if &other.Stops[0] == &base.Stops[0] {
+		t.Fatal("two backgrounds have one wash")
+	}
+	// Faded, as the backdrop fades it, they stay.
+	faded(base.Stops, 0.4)
+	if after, _ := washOf("rex", false); after.Stops[0] != base.Stops[0] {
+		t.Errorf("the wash's first stop %v, then %v: a fade changed it", base.Stops[0], after.Stops[0])
+	}
+}

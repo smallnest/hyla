@@ -210,6 +210,9 @@ func Run(opts Options) error {
 	sigs := stopSignals()
 	signal.Notify(sigs, stopSignal())
 	notifyStop(sigs)
+	// Where $HYLA_PROFILE asks, a development hylad profiles itself on the
+	// signals the same one does, rather than them stopping it.
+	startProfiling(lg)
 	go func() {
 		s := <-sigs
 		d.logStop(lg, s)

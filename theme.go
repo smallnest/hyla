@@ -2,6 +2,7 @@ package main
 
 import (
 	"math"
+	"sync"
 
 	"github.com/egoist/mygo/plugins/glass"
 	"github.com/egoist/mygo/plugins/terminal"
@@ -212,21 +213,13 @@ func backdrop(c *ui.Context, pal *palette, row ui.Element, s settings.Settings) 
 	alpha := float32(1)
 	if s.Vibrancy {
 		// The wash is translucent over the material, or over the desktop
-		// when the window is blurless.
+		// when the window is blurless: its glow too, as at 0% none of it
+		// shows.
 		alpha = washOpacity(s)
+		base.Stops = faded(base.Stops, alpha)
+		glow.Stops = faded(glow.Stops, alpha)
 	}
-	stops := make([]ui.GradientStop, len(base.Stops))
-	for i, st := range base.Stops {
-		stops[i] = ui.GradientStop{Color: st.Color.Alpha(alpha), At: st.At}
-	}
-	base.Stops = stops
 	c.Root().LinearGradient(base)
-	if s.Vibrancy {
-		// The glow is part of the wash: at 0% none of it shows either.
-		for i := range glow.Stops {
-			glow.Stops[i].Color = glow.Stops[i].Color.Alpha(alpha)
-		}
-	}
 	row.LinearGradient(glow)
 	if scene := washTable[s.Background].scene; scene != nil {
 		// Its shapes lie over the wash as it shows: as faint as the
@@ -400,22 +393,28 @@ func (w *paneWash) PaintMaterial(p *ui.Painter, box ui.Rect, radii [4]float32) {
 	}
 	base, glow := washes(w.background, w.dark)
 	if a := w.opacity; a > 0 {
-		for i := range base.Stops {
-			base.Stops[i].Color = base.Stops[i].Color.Alpha(a)
-		}
-		for i := range glow.Stops {
-			glow.Stops[i].Color = glow.Stops[i].Color.Alpha(a)
-		}
+		// Copies, as the wash the theme has stays as it is.
+		base.Stops = faded(base.Stops, a)
+		glow.Stops = faded(glow.Stops, a)
 	} else {
-		// A wash of none: the gradient's stops at 0.5, and the glow makes
-		// its own from its colors, so a color at 0 alpha of a wash's own
-		// keeps it from showing.
+		// A wash of none: the gradient's stops at 0.5, which a gradient of
+		// one shows as one color throughout.
 		base.Stops = []ui.GradientStop{{Color: ui.Color{A: 0}, At: 0.5}}
-		glow.From, glow.To = ui.Color{A: 0}, ui.Color{A: 0}
+		glow.Stops = []ui.GradientStop{{Color: ui.Color{A: 0}, At: 0.5}}
 	}
 	p.FillGradient(box, base, radii[0])
 	// The glow covers the card and as much again, and fades at 0.5 of that.
 	p.FillGradient(ui.Rect{X: box.X, Y: box.Y, W: box.W, H: box.H * 2}, glow, 0)
+}
+
+// faded returns stops as another frame draws them: at opacity a, their
+// colors' alphas times it.
+func faded(stops []ui.GradientStop, a float32) []ui.GradientStop {
+	out := make([]ui.GradientStop, len(stops))
+	for i, st := range stops {
+		out[i] = ui.GradientStop{Color: st.Color.Alpha(a), At: st.At}
+	}
+	return out
 }
 
 // translucentGlass makes surfaces that sit on the wash, the sidebar's rows
@@ -429,27 +428,57 @@ func translucentGlass(c ui.Color, pal *palette, s settings.Settings) ui.Color {
 	return c.Alpha(min(1, 1-0.2*washOpacity(s)))
 }
 
-// washes returns a background's base and glow.
-func washes(id string, dark bool) (base, glow ui.LinearGradient) {
-	w, ok := washTable[id]
-	if !ok {
-		w = washTable["rex"]
-	}
-	stops := stopsOf
-	glowOf := func(c ui.Color) ui.LinearGradient {
-		return ui.LinearGradient{Angle: 225, Oklab: true, Stops: []ui.GradientStop{{Color: c, At: 0}, {Color: c.Alpha(0), At: 0.5}}}
-	}
-	angle := w.lightAngle
-	if angle == 0 {
-		angle = 180
-	}
-	if dark {
-		if w.darkAngle != 0 {
-			angle = w.darkAngle
+// A background's base and glow, made once for each background and theme,
+// as the theme has them: a frame asks for them each time, and what a frame
+// makes of its own is garbage at the next frame.
+var (
+	// washes returns a background's base and glow, as backdrop and a card
+	// ask for them.
+	washes = washOf
+	// washOf returns a background's base and glow, made.
+	washOf = memoWash(func(id string, dark bool) (base, glow ui.LinearGradient) {
+		w, ok := washTable[id]
+		if !ok {
+			w = washTable["rex"]
 		}
-		return ui.LinearGradient{Angle: angle, Oklab: true, Stops: stops(w.dark...)}, glowOf(w.darkGlow)
+		glowOf := func(c ui.Color) ui.LinearGradient {
+			return ui.LinearGradient{Angle: 225, Oklab: true, Stops: []ui.GradientStop{{Color: c, At: 0}, {Color: c.Alpha(0), At: 0.5}}}
+		}
+		angle := w.lightAngle
+		if angle == 0 {
+			angle = 180
+		}
+		if dark {
+			if w.darkAngle != 0 {
+				angle = w.darkAngle
+			}
+			return ui.LinearGradient{Angle: angle, Oklab: true, Stops: stopsOf(w.dark...)}, glowOf(w.darkGlow)
+		}
+		return ui.LinearGradient{Angle: angle, Oklab: true, Stops: stopsOf(w.light...)}, glowOf(w.lightGlow)
+	})
+)
+
+// memoWash keeps what make returns for each background and theme, made
+// once: a theme's colors are set as the program starts, and do not change
+// under it.
+func memoWash(make func(id string, dark bool) (base, glow ui.LinearGradient)) func(id string, dark bool) (base, glow ui.LinearGradient) {
+	type key struct {
+		id   string
+		dark bool
 	}
-	return ui.LinearGradient{Angle: angle, Oklab: true, Stops: stops(w.light...)}, glowOf(w.lightGlow)
+	var mu sync.Mutex
+	kept := map[key][2]ui.LinearGradient{}
+	return func(id string, dark bool) (base, glow ui.LinearGradient) {
+		k := key{id, dark}
+		mu.Lock()
+		defer mu.Unlock()
+		if g, ok := kept[k]; ok {
+			return g[0], g[1]
+		}
+		base, glow = make(id, dark)
+		kept[k] = [2]ui.LinearGradient{base, glow}
+		return base, glow
+	}
 }
 
 // stopsOf puts colors at even places along a gradient, the first at 0
