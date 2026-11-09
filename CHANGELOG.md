@@ -18,6 +18,9 @@ number; the notes of the upstream releases it includes follow its own.
   same changes.
 - The app shows and holds the settings as the file keeps them after it
   saves them, so a value it corrects no longer differs from the file.
+- A filter list that fails to download or compile is tried again the next
+  time a browser pane shows a page, rather than leaving every page
+  without ad blocking until the list settings change.
 
 ## 3.5.5
 

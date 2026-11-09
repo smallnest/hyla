@@ -40,33 +40,58 @@ func (a *App) adRules() []*mygo.ContentRules {
 }
 
 // compileAds compiles the lists the settings name, unless those compiled
-// or compiling last are those.
-func (a *App) compileAds() {
+// or compiling last are those: a compile that failed is not one, and the
+// next page tries again. It tells whether it started one.
+func (a *App) compileAds() bool {
 	if a.ads.started && slices.Equal(a.ads.lists, a.set.AdLists) {
-		return
+		adblockDone() // none started: what is compiled shows
+		return false
 	}
 	a.ads.started, a.ads.lists = true, slices.Clone(a.set.AdLists)
 	a.ads.gen++
 	gen, lists := a.ads.gen, a.ads.lists
 	go func() {
-		rules, err := compileAdBlock(lists)
+		rules, err := adblockRules(lists)
 		if err != nil {
 			log.Printf("hyla: ad blocking: %v", err)
 		}
-		a.update(func() {
+		a.main(func() {
 			if a.ads.gen != gen {
-				return // other lists compile now
+				adblockDone() // other lists compile now
+				return
+			}
+			if err != nil {
+				// As not tried: the rules it did compile, if any, stay,
+				// and the next page tries the lists again.
+				a.ads.started, a.ads.lists = false, nil
+				adblockDone() // this compile left no rules to show
+				return
 			}
 			a.ads.rules = rules
-			a.applyAdBlock()
+			a.showAdBlock(rules)
+			adblockDone()
 		})
 	}()
+	return true
 }
+
+var (
+	// adblockRules is the lists' rules, a var so that a test need not
+	// download them.
+	adblockRules = compileAdBlock
+	// adblockDone marks each compile's end, which a test's window, with
+	// no loop to take the result, waits on.
+	adblockDone = func() {}
+)
 
 // applyAdBlock gives the open browser panes' pages the rules, or takes
 // them away, as the settings are; they apply to the loads from then on.
 func (a *App) applyAdBlock() {
-	rules := a.adRules()
+	a.showAdBlock(a.adRules())
+}
+
+// showAdBlock gives the pages rules.
+func (a *App) showAdBlock(rules []*mygo.ContentRules) {
 	for _, e := range a.webs {
 		if e.view != nil && !e.view.IsDestroyed() {
 			e.view.Page().SetContentRules(rules...)

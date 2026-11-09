@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -928,5 +929,52 @@ func TestApplyKeepsWhatTheFileKept(t *testing.T) {
 	}
 	if again := settings.Load(); again.FontSize != a.set.FontSize {
 		t.Errorf("a save of the app's writes font-size %v, the app holds %v", again.FontSize, a.set.FontSize)
+	}
+}
+
+// A compile that failed is tried again by the next page: ad blocking
+// is on, and no list download failure keeps every page bare.
+func TestAdsCompileAgainAfterAFailure(t *testing.T) {
+	a := testApp(t)
+	a.set.BlockAds = true
+	a.set.AdLists = []string{"https://example.com/filters.txt"} // a list no cache holds, as a first run's
+	var calls atomic.Int32
+	fail := atomic.Bool{}
+	fail.Store(true)
+	adblockRules = func(ids []string) ([]*mygo.ContentRules, error) {
+		calls.Add(1)
+		if fail.Load() {
+			return nil, fmt.Errorf("no network")
+		}
+		return nil, nil
+	}
+	// The app's window's loop takes each page's end, which this stands
+	// in for: a page's load answers once, after its compile, or with
+	// none started.
+	done := make(chan struct{}, 8)
+	adblockDone = func() { done <- struct{}{} }
+	t.Cleanup(func() { adblockRules, adblockDone = compileAdBlock, func() {} })
+	// page is a page's load, which starts a compile or finds the lists
+	// compiled, with its answer taken.
+	page := func() int32 {
+		a.main(func() { a.compileAds() })
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			t.Fatal("a page's load gets no answer")
+		}
+		return calls.Load()
+	}
+	if n := page(); n != 1 {
+		t.Fatalf("a failed compile ran once: %d calls", n)
+	}
+	fail.Store(false)
+	if n := page(); n != 2 {
+		t.Fatalf("the next page compiles the lists again: %d calls", n)
+	}
+	// A failed compile left no rules: the lists count as compiled from
+	// its start, until its error clears them.
+	if n := page(); n != 2 {
+		t.Fatalf("the lists compiled are compiled again: %d calls", n)
 	}
 }
