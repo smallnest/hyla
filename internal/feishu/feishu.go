@@ -229,6 +229,9 @@ type chat struct {
 // waitingTurn is a prompt that came while the chat's turn ran, and the
 // message it came in.
 type waitingTurn struct {
+	// key is the chat struct it waits in: a group's thread has one of
+	// its own, and a stop must find it there.
+	key    string
 	chatID string
 	openID string
 	group  bool

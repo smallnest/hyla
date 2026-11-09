@@ -915,3 +915,18 @@ func TestWeightExtraLight(t *testing.T) {
 		t.Errorf("chose weight %d, want 200", a.set.FontWeight)
 	}
 }
+
+// A value the file keeps in range is the app's after it applies it: a
+// loaded once is one the app would save as is.
+func TestApplyKeepsWhatTheFileKept(t *testing.T) {
+	a := testApp(t)
+	s := a.set
+	s.FontSize = 100
+	a.apply(s, true)
+	if got := a.set.FontSize; got != settings.Default().FontSize {
+		t.Errorf("the app holds font-size %v, the file %v", got, settings.Load().FontSize)
+	}
+	if again := settings.Load(); again.FontSize != a.set.FontSize {
+		t.Errorf("a save of the app's writes font-size %v, the app holds %v", again.FontSize, a.set.FontSize)
+	}
+}

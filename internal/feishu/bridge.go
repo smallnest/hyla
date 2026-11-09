@@ -230,7 +230,7 @@ func (b *Bot) turn(key, chatID, event, text string) {
 	case "status":
 		b.status(chatID)
 	case "stop":
-		b.stop(chatID)
+		b.stop(key, chatID)
 	case "answer":
 		b.answer(chatID, strings.TrimSpace(rest))
 	case "close":
@@ -313,7 +313,7 @@ func (b *Bot) hold(key, chatID string, group bool, openID string, m *larkim.Even
 		b.mu.Unlock()
 		return false
 	}
-	c.waiting = append(c.waiting, waitingTurn{chatID: chatID, openID: openID, group: group, m: m, text: text})
+	c.waiting = append(c.waiting, waitingTurn{key: key, chatID: chatID, openID: openID, group: group, m: m, text: text})
 	b.mu.Unlock()
 	// Every other answer shows as a card, the queued prompt's too: blue,
 	// titled for the queue, over the prompt. A chat that takes no cards
@@ -548,18 +548,19 @@ func (b *Bot) status(chatID string) {
 	b.reply(chatID, out.String())
 }
 
-// stop interrupts the bound session's pane, as Ctrl-C.
-func (b *Bot) stop(chatID string) {
-	s, err := b.bound(chatID)
-	if err != nil {
-		b.reply(chatID, "This chat has no session yet. /new starts one.")
-		return
-	}
+// stop interrupts the bound session's pane, as Ctrl-C. It drops what
+// waited in key's chat, even as the session is gone.
+func (b *Bot) stop(key, chatID string) {
 	// A prompt that waited goes with the turn it waited for: it is not
 	// run as the turn it waited for ends.
 	dropped := ""
-	if n := b.dropWaiting(chatID); n > 0 {
+	if n := b.dropWaiting(key); n > 0 {
 		dropped = " Dropped the prompt that waited."
+	}
+	s, err := b.bound(chatID)
+	if err != nil {
+		b.reply(chatID, "This chat has no session yet. /new starts one."+dropped)
+		return
 	}
 	if has, err := b.hasBackground(s.ID); err == nil && has {
 
@@ -582,18 +583,21 @@ func (b *Bot) stop(chatID string) {
 }
 
 // dropWaiting drops the prompts that waited in a chat, which a stop ends
-// with the turn they waited for, and reports how many did.
-func (b *Bot) dropWaiting(chatID string) int {
+// with the turn they waited for, and reports how many did. A group's
+// threads wait in chat structs of their own, so key says which stops:
+// the chat's, and each of its threads'.
+func (b *Bot) dropWaiting(key string) int {
 	b.mu.Lock()
 	n := 0
 	var cards []string
-	for _, c := range b.chats {
-		if c.chat == chatID {
-			n += len(c.waiting)
-			c.waiting = nil
-			cards = append(cards, c.held...)
-			c.held = nil
+	for k, c := range b.chats {
+		if !threadOf(k, key) {
+			continue
 		}
+		n += len(c.waiting)
+		c.waiting = nil
+		cards = append(cards, c.held...)
+		c.held = nil
 	}
 	b.mu.Unlock()
 	// The stop ends the prompts' wait too: their cards go.
@@ -1093,6 +1097,12 @@ func chatKey(chatID, thread string) string {
 		return chatID
 	}
 	return chatID + "\x00" + thread
+}
+
+// threadOf tells whether a chat's key, k, is the chat key names or one of
+// its threads'.
+func threadOf(k, key string) bool {
+	return k == key || strings.HasPrefix(k, key+"\x00")
 }
 
 func (b *Bot) chat(key string) *chat {

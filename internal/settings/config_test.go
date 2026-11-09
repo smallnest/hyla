@@ -297,8 +297,10 @@ func TestSaveKeepsASymlinkedConfig(t *testing.T) {
 	cache = nil
 	mu.Unlock()
 	s := Load()
-	s.FontSize = 16
-	if err := Save(s); err != nil {
+	// As the app's does: through a pointer, which the cache can't amend.
+	p := s
+	p.FontSize = 16
+	if err := Save(p); err != nil {
 		t.Fatal(err)
 	}
 	if st, err := os.Lstat(link); err != nil || st.Mode()&os.ModeSymlink == 0 {
@@ -310,6 +312,11 @@ func TestSaveKeepsASymlinkedConfig(t *testing.T) {
 	}
 	if st, _ := os.Stat(dotfiles); st.Mode().Perm() != 0o600 {
 		t.Errorf("mode %v", st.Mode().Perm())
+	}
+	// What another reader, as hylad, loads is what the save left: the
+	// link's file, not what the link said when it was made.
+	if got := Load().FontSize; got != 16 {
+		t.Errorf("a load through the link reads font-size %v, want 16", got)
 	}
 }
 

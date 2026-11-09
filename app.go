@@ -1251,15 +1251,18 @@ func (a *App) rememberEnv() {
 // they come from the app rather than from the file.
 func (a *App) apply(s settings.Settings, save bool) {
 	old := a.applied
-	a.set, a.applied = s, s.Clone()
-	applied.Lock()
-	applied.s = s
-	applied.Unlock()
 	if save {
 		if err := settings.Save(s); err != nil {
 			a.toast(locales.ToastSaveSettingsFailed(err.Error()))
 		}
+		// The file's keep the app's: a value it keeps in range, or
+		// reads as another, is one the app shows as saved.
+		s = settings.Load()
 	}
+	a.set, a.applied = s, s.Clone()
+	applied.Lock()
+	applied.s = a.set
+	applied.Unlock()
 	font := old.FontFamily != s.FontFamily || old.FontFallback != s.FontFallback || old.FontSize != s.FontSize || old.FontWeight != s.FontWeight ||
 		old.CellWidth != s.CellWidth || old.LineHeight != s.LineHeight || old.Ligatures != s.Ligatures || old.Thicken != s.Thicken ||
 		!slices.Equal(old.FontFeatures, s.FontFeatures)

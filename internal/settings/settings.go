@@ -360,7 +360,10 @@ func Load() Settings {
 	mu.Lock()
 	defer mu.Unlock()
 	migrate()
-	st, err := os.Stat(Path())
+	// The file the links lead to reads as write's file does: a
+	// configuration kept in a dotfiles repository changes there.
+	path := Target()
+	st, err := os.Stat(path)
 	if err != nil {
 		cache, problems = nil, nil
 		return Default()
@@ -368,7 +371,7 @@ func Load() Settings {
 	if cache != nil && st.ModTime().UnixNano() == mtime {
 		return clone(*cache)
 	}
-	b, err := os.ReadFile(Path())
+	b, err := os.ReadFile(path)
 	if err != nil {
 		return Default()
 	}

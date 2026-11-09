@@ -11,6 +11,13 @@ number; the notes of the upstream releases it includes follow its own.
   turn begins, or when /stop ends it.
 - hylad builds for Windows again: the profile signals it listens to on
   Unix are Unix's alone.
+- /stop in a group thread drops the prompt that waited there, with its
+  blue card, and does so even when the chat's session is gone.
+- A configuration that is a symlink, as one kept in dotfiles, reads what
+  another program last wrote through it, so the app and hylad apply the
+  same changes.
+- The app shows and holds the settings as the file keeps them after it
+  saves them, so a value it corrects no longer differs from the file.
 
 ## 3.5.5
 

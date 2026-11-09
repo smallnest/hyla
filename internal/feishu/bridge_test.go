@@ -603,6 +603,38 @@ func TestStopDropsTheWaitingPrompt(t *testing.T) {
 	}
 }
 
+// A stop ends a group thread's waiting prompt too, with its card: the
+// thread waits in a chat struct of its own.
+func TestStopDropsAThreadsWaitingPrompt(t *testing.T) {
+	b, luna, msgs := newBot(t)
+	b.cfg.Allow = []string{"ou_me"}
+	prompt := func(text string) *larkim.P2MessageReceiveV1 {
+		m := textMsg("g1", "ou_me", text)
+		*m.Event.Message.ChatType = "group"
+		m.Event.Message.RootId = str("om_root")
+		m.Event.Message.Mentions = []*larkim.MentionEvent{{Key: str("@_user_1"), MentionedType: str("bot")}}
+		return m
+	}
+	b.chats["g1"] = &chat{id: "s1", chat: "g1"}
+	b.leave("g1")
+	b.enter(chatKey("g1", "om_root"))
+	b.onMessage(nil, prompt("second"))
+	if len(msgs.shown) != 1 {
+		t.Fatalf("a prompt while the thread's turn runs is queued as %v", msgs.shown)
+	}
+	b.onMessage(nil, prompt("/stop"))
+	if got := last(t, msgs); !strings.Contains(got, "Dropped") {
+		t.Fatalf("/stop in a group thread replies %q", got)
+	}
+	if len(msgs.deleted) != 1 || msgs.deleted[0] != "om_card_1" {
+		t.Fatalf("a stop leaves the thread's queued card: %v", msgs.deleted)
+	}
+	b.leave(chatKey("g1", "om_root"))
+	if slices.Contains(luna.sent, proto.SendParams{ID: "p1", Data: "second"}) {
+		t.Fatalf("a stopped thread ran the prompt that waited: %+v", luna.sent)
+	}
+}
+
 // The reply is what the turn added: not the old screen, and the last
 // rows only.
 func TestReplyTail(t *testing.T) {
