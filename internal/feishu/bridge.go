@@ -142,6 +142,8 @@ func (b *Bot) takeTurn(key, chatID string, group bool, openID string, m *larkim.
 	}
 	b.mu.Unlock()
 	b.beginTurn(key, t)
+	// The wait is over: its card goes as the turn's begins.
+	b.dropHold(key)
 	c := b.chat(key)
 	b.goTurn(func() {
 		defer b.leave(key)
@@ -302,7 +304,8 @@ func (b *Bot) leave(key string) {
 }
 
 // hold puts a prompt in a chat's queue, one deep, for its turn's end to
-// run. It reports whether it found room.
+// run, and tells the chat so in a card, which the turn that runs it, or
+// a stop, takes back. It reports whether it found room.
 func (b *Bot) hold(key, chatID string, group bool, openID string, m *larkim.EventMessage, text string) bool {
 	b.mu.Lock()
 	c := b.chatLocked(key)
@@ -312,8 +315,43 @@ func (b *Bot) hold(key, chatID string, group bool, openID string, m *larkim.Even
 	}
 	c.waiting = append(c.waiting, waitingTurn{chatID: chatID, openID: openID, group: group, m: m, text: text})
 	b.mu.Unlock()
+	// Every other answer shows as a card, the queued prompt's too: blue,
+	// titled for the queue, over the prompt. A chat that takes no cards
+	// gets the words.
+	if shown, err := heldCardJSON(text, langOf(text)); err == nil {
+		if msg, err := b.msgs.SendCard("chat_id", chatID, shown); err == nil {
+			b.holdCard(key, msg)
+			return true
+		}
+	}
 	b.reply(chatID, "Queued: Hyla sends it when the turn there ends.")
 	return true
+}
+
+// holdCard keeps a waiting prompt's card by its message, for the turn
+// that runs the prompt to take back.
+func (b *Bot) holdCard(key, msg string) {
+	if msg == "" {
+		return
+	}
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.chatLocked(key).held = append(b.chatLocked(key).held, msg)
+}
+
+// dropHold takes back the waiting prompts' cards of a chat, which the
+// turn it starts with leaves behind, or a stop ends.
+func (b *Bot) dropHold(key string) {
+	b.mu.Lock()
+	c := b.chatLocked(key)
+	cards := c.held
+	c.held = nil
+	b.mu.Unlock()
+	for _, msg := range cards {
+		if err := b.msgs.DeleteMessage(msg); err != nil {
+			b.logf("feishu: taking back a queued prompt's card: %v", err)
+		}
+	}
 }
 
 // goTurn runs a turn, unless the tests take the turns in their own hands
@@ -547,12 +585,21 @@ func (b *Bot) stop(chatID string) {
 // with the turn they waited for, and reports how many did.
 func (b *Bot) dropWaiting(chatID string) int {
 	b.mu.Lock()
-	defer b.mu.Unlock()
 	n := 0
+	var cards []string
 	for _, c := range b.chats {
 		if c.chat == chatID {
 			n += len(c.waiting)
 			c.waiting = nil
+			cards = append(cards, c.held...)
+			c.held = nil
+		}
+	}
+	b.mu.Unlock()
+	// The stop ends the prompts' wait too: their cards go.
+	for _, msg := range cards {
+		if err := b.msgs.DeleteMessage(msg); err != nil {
+			b.logf("feishu: taking back a queued prompt's card: %v", err)
 		}
 	}
 	return n

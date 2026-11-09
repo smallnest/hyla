@@ -6,6 +6,10 @@ number; the notes of the upstream releases it includes follow its own.
 
 ## Unreleased
 
+- A prompt sent from Feishu while the agent works waits its turn in a blue
+  card titled 加入请求队列，请等待 (Added to the queue), which goes when its
+  turn begins, or when /stop ends it.
+
 ## 3.5.5
 
 - Closing a session from the button on its row asks first while a program

@@ -273,8 +273,10 @@ func (f *fakeLuna) Kept(id string) (proto.FeishuMessage, error) {
 
 type fakeMessages struct {
 	sent     []string
+	shown    []string // each card sent, as its JSON: a turn's, or a queued prompt's
 	cards    []string // each card's JSON, sent or updated
 	updates  []string // each update's message ID, and the card's JSON
+	deleted  []string // each message the bot took back
 	replies  []string // each reply to a message
 	reacts   []string
 	unreacts []string
@@ -309,8 +311,14 @@ func (m *fakeMessages) SendCard(kind, id, cardJSON string) (string, error) {
 	if m.fail && false && len(t) > 1 && t[1] == 's' {
 		return "", fmt.Errorf("no card")
 	}
+	m.shown = append(m.shown, cardJSON)
 	m.cards = append(m.cards, cardJSON)
 	return fmt.Sprintf("om_card_%d", len(m.cards)), nil
+}
+
+func (m *fakeMessages) DeleteMessage(id string) error {
+	m.deleted = append(m.deleted, id)
+	return nil
 }
 
 func (m *fakeMessages) UpdateCard(id, cardJSON string) error {
@@ -469,17 +477,18 @@ func textMsgFrom(chat, id, text string) *larkim.P2MessageReceiveV1 {
 
 // last is the last answer: its card's text, as feishu-cards sends it, or
 // the message that answers without cards.
-func last(msgs *fakeMessages) string {
+func last(t *testing.T, msgs *fakeMessages) string {
+	t.Helper()
 	if msgs.fail {
 		if len(msgs.sent) == 0 {
 			return ""
 		}
 		return msgs.sent[len(msgs.sent)-1]
 	}
-	if len(msgs.cards) == 0 {
+	if len(msgs.shown) == 0 {
 		return ""
 	}
-	return msgs.cardText()
+	return cardText(parseCard(t, msgs.shown[len(msgs.shown)-1]))
 }
 
 // jsonText is a message's content as Feishu sends a text message's: JSON.
@@ -493,8 +502,8 @@ func jsonText(text string) *string {
 func TestPrompt(t *testing.T) {
 	b, luna, msgs := newBot(t)
 	b.onMessage(nil, textMsg("c1", "ou_me", "/new"))
-	if len(luna.created) != 1 || !strings.Contains(last(msgs), `"review" is ready`) {
-		t.Fatalf("created %+v, replied %q", luna.created, last(msgs))
+	if len(luna.created) != 1 || !strings.Contains(last(t, msgs), `"review" is ready`) {
+		t.Fatalf("created %+v, replied %q", luna.created, last(t, msgs))
 	}
 	if got := b.chat("c1").id; got != "s-new" {
 		t.Fatalf("the chat is bound to %q", got)
@@ -518,8 +527,9 @@ func TestPrompt(t *testing.T) {
 	}
 }
 
-// A prompt that comes while a turn runs waits its turn, one deep, and
-// runs as the turn ends; a command does not wait, which /stop needs.
+// A prompt that comes while a turn runs waits its turn, one deep, in a
+// card titled for the queue, which goes as the turn that runs it begins;
+// a command does not wait, which /stop needs.
 func TestPromptWaitsItsTurn(t *testing.T) {
 	defer shortWaits()()
 	b, luna, msgs := newBot(t)
@@ -531,29 +541,36 @@ func TestPromptWaitsItsTurn(t *testing.T) {
 		t.Fatal("the chat took no turn")
 	}
 	b.onMessage(nil, textMsg("c1", "ou_me", "second"))
-	if got := last(msgs); !strings.Contains(got, "Queued") {
-		t.Fatalf("a prompt while a turn runs replies %q", got)
+	// Its answer is a card: blue, titled for the queue, over the prompt.
+	queued := parseCard(t, msgs.shown[len(msgs.shown)-1])
+	if got, head := cardText(queued), queued["header"].(map[string]any); !strings.Contains(got, "second") ||
+		head["template"] != "blue" ||
+		!strings.Contains(head["title"].(map[string]any)["content"].(string), "queue") {
+		t.Fatalf("the queued prompt's card is %v", queued)
 	}
 	if slices.Contains(luna.sent, proto.SendParams{ID: "p1", Data: "second"}) {
 		t.Fatalf("the prompt ran while a turn ran: %+v", luna.sent)
 	}
 	// One deep: the next prompt is told the one before waits.
 	b.onMessage(nil, textMsg("c1", "ou_me", "third"))
-	if got := last(msgs); !strings.Contains(got, "one waits") {
+	if got := cardText(parseCard(t, msgs.shown[len(msgs.shown)-1])); !strings.Contains(got, "one waits") {
 		t.Fatalf("a third prompt replies %q", got)
 	}
 	// A command runs while the turn runs, and leaves it running.
 	b.onMessage(nil, textMsg("c1", "ou_me", "/status"))
-	if got := last(msgs); !strings.Contains(got, "idle") {
+	if got := last(t, msgs); !strings.Contains(got, "idle") {
 		t.Fatalf("/status beside a turn replies %q", got)
 	}
 	if !b.chat("c1").busy {
 		t.Fatal("a command ended the turn that ran")
 	}
-	// The turn ends, and the waiting prompt runs.
+	// The turn ends, and the waiting prompt runs, its card gone.
 	b.leave("c1")
 	if !slices.Contains(luna.sent, proto.SendParams{ID: "p1", Data: "second"}) {
 		t.Fatalf("the waiting prompt did not run: %+v", luna.sent)
+	}
+	if len(msgs.deleted) != 1 || msgs.deleted[0] != "om_card_1" {
+		t.Fatalf("the queued prompt's card goes as %v", msgs.deleted)
 	}
 	if b.chat("c1").busy {
 		t.Fatal("the chat runs a turn after the queued one ended")
@@ -561,19 +578,24 @@ func TestPromptWaitsItsTurn(t *testing.T) {
 }
 
 // /stop ends the turn it comes beside, and the prompt that waited with
-// it.
+// it, whose card goes too.
 func TestStopDropsTheWaitingPrompt(t *testing.T) {
 	b, luna, msgs := newBot(t)
 	b.chats["c1"] = &chat{id: "s1", chat: "c1"}
 	b.leave("c1")
 	b.enter("c1")
 	b.onMessage(nil, textMsg("c1", "ou_me", "second"))
-	if got := last(msgs); !strings.Contains(got, "Queued") {
-		t.Fatalf("a prompt while a turn runs replies %q", got)
+	queued := parseCard(t, msgs.shown[len(msgs.shown)-1])
+	if head := queued["header"].(map[string]any); head["template"] != "blue" ||
+		!strings.Contains(head["title"].(map[string]any)["content"].(string), "queue") {
+		t.Fatalf("a prompt while a turn runs is queued as %v", queued)
 	}
 	b.onMessage(nil, textMsg("c1", "ou_me", "/stop"))
-	if got := last(msgs); !strings.Contains(got, "Interrupted") || !strings.Contains(got, "Dropped") {
+	if got := last(t, msgs); !strings.Contains(got, "Interrupted") || !strings.Contains(got, "Dropped") {
 		t.Fatalf("/stop beside a turn replies %q", got)
+	}
+	if len(msgs.deleted) != 1 || msgs.deleted[0] != "om_card_1" {
+		t.Fatalf("a stop leaves the queued prompt's card: %v", msgs.deleted)
 	}
 	b.leave("c1")
 	if slices.Contains(luna.sent, proto.SendParams{ID: "p1", Data: "second"}) {
@@ -600,7 +622,7 @@ func TestNotAllowed(t *testing.T) {
 	b, luna, msgs := newBot(t)
 	b.cfg.Allow = nil
 	b.onMessage(nil, textMsg("c1", "ou_stranger", "/new"))
-	if len(luna.created) != 0 || len(msgs.cards) != 1 || !strings.Contains(last(msgs), "not allowed") {
+	if len(luna.created) != 0 || len(msgs.cards) != 1 || !strings.Contains(last(t, msgs), "not allowed") {
 		t.Fatalf("created %+v, replied %q", luna.created, msgs.sent)
 	}
 	// Who ran setup may, and another event of the same ID is ignored.
@@ -626,7 +648,7 @@ func TestGroupMentions(t *testing.T) {
 	*m.Event.Message.ChatType = "group"
 	m.Event.Message.Mentions = []*larkim.MentionEvent{{Key: str("@_user_1"), MentionedType: str("bot")}}
 	b.onMessage(nil, m)
-	if len(luna.created) != 1 || last(msgs) == "" {
+	if len(luna.created) != 1 || last(t, msgs) == "" {
 		t.Fatalf("a mention didn't act: %+v", luna.created)
 	}
 	if got := b.chat(chatKey("g1", "")).id; got != "s-new" {
@@ -639,16 +661,16 @@ func TestGroupMentions(t *testing.T) {
 func TestCommands(t *testing.T) {
 	b, luna, msgs := newBot(t)
 	b.onMessage(nil, textMsg("c1", "ou_me", "/use api"))
-	if !strings.Contains(last(msgs), "This chat is api") {
-		t.Fatalf("/use replied %q", last(msgs))
+	if !strings.Contains(last(t, msgs), "This chat is api") {
+		t.Fatalf("/use replied %q", last(t, msgs))
 	}
 	b.onMessage(nil, textMsg("c1", "ou_me", "/ls"))
-	if !strings.Contains(last(msgs), "→ ○ api") {
-		t.Errorf("/ls lists %q", last(msgs))
+	if !strings.Contains(last(t, msgs), "→ ○ api") {
+		t.Errorf("/ls lists %q", last(t, msgs))
 	}
 	b.onMessage(nil, textMsg("c1", "ou_me", "/status"))
-	if !strings.Contains(last(msgs), "idle") || !strings.Contains(last(msgs), "/tmp/api") {
-		t.Errorf("/status shows %q", last(msgs))
+	if !strings.Contains(last(t, msgs), "idle") || !strings.Contains(last(t, msgs), "/tmp/api") {
+		t.Errorf("/status shows %q", last(t, msgs))
 	}
 	luna.sessions[0].Panes[0].Status = proto.Working
 	b.onMessage(nil, textMsg("c1", "ou_me", "/close"))
@@ -661,8 +683,8 @@ func TestCommands(t *testing.T) {
 		t.Errorf("closed %v, bound %q", luna.closed, b.chat("c1").id)
 	}
 	b.onMessage(nil, textMsg("c1", "ou_me", "/nosuch"))
-	if !strings.Contains(last(msgs), "/help") {
-		t.Errorf("an unknown command replies %q", last(msgs))
+	if !strings.Contains(last(t, msgs), "/help") {
+		t.Errorf("an unknown command replies %q", last(t, msgs))
 	}
 }
 
@@ -680,8 +702,8 @@ func TestBindsPersist(t *testing.T) {
 	}
 	luna.sessions = nil
 	again.onMessage(nil, textMsg("c1", "ou_me", "hello"))
-	if !strings.Contains(last(msgs), "gone") || again.chat("c1").id != "" {
-		t.Fatalf("a prompt to a gone session replied %q, bound %q", last(msgs), again.chat("c1").id)
+	if !strings.Contains(last(t, msgs), "gone") || again.chat("c1").id != "" {
+		t.Fatalf("a prompt to a gone session replied %q, bound %q", last(t, msgs), again.chat("c1").id)
 	}
 }
 
@@ -753,7 +775,7 @@ func TestPromptAnsweredWhileIdle(t *testing.T) {
 		status proto.Status
 	}{{"old\n", proto.Working}, {"old\n", proto.Working}, {"old\n", proto.Working}, {"old\n", proto.Working}, {"old\n", proto.Working}}
 	b.onMessage(nil, textMsg("c1", "ou_me", "1+1=?"))
-	if got := last(msgs); !strings.Contains(got, "2") || strings.Contains(got, "terminal's") {
+	if got := last(t, msgs); !strings.Contains(got, "2") || strings.Contains(got, "terminal's") {
 		t.Fatalf("replied %q", got)
 	}
 }
@@ -775,7 +797,7 @@ func TestPromptOfAViewport(t *testing.T) {
 		}{viewportAfter, proto.Idle})
 	}
 	b.onMessage(nil, textMsg("c1", "ou_me", "2+2=?"))
-	if got := last(msgs); !strings.Contains(got, "2+2=4") || strings.Contains(got, "printed nothing new") {
+	if got := last(t, msgs); !strings.Contains(got, "2+2=4") || strings.Contains(got, "printed nothing new") {
 		t.Fatalf("replied %q", got)
 	}
 }
@@ -796,7 +818,7 @@ func TestPromptStuckWorking(t *testing.T) {
 		status proto.Status
 	}{{"old\n", proto.Working}, {"old\n", proto.Working}, {"old\n", proto.Working}, {"old\n", proto.Working}, {"old\n", proto.Working}}
 	b.onMessage(nil, textMsg("c1", "ou_me", "fix it"))
-	if got := last(msgs); !strings.Contains(got, "cannot tell") && !strings.Contains(got, "text") {
+	if got := last(t, msgs); !strings.Contains(got, "cannot tell") && !strings.Contains(got, "text") {
 		t.Fatalf("replied %q", got)
 	}
 }
@@ -814,7 +836,7 @@ func TestCommandMode(t *testing.T) {
 	luna.files = []string{"2", ""}
 	b.onMessage(nil, textMsg("c1", "ou_me", "1+1=?"))
 	// The card's answer, then the turn's state.
-	got := last(msgs)
+	got := last(t, msgs)
 	if !strings.Contains(got, "2") {
 		t.Fatalf("replied %q", got)
 	}
@@ -1018,7 +1040,7 @@ func TestHostHandoff(t *testing.T) {
 	mac()
 	replies := len(msgs.cards)
 	b.onMessage(nil, textMsg("c1", "ou_me", "/host mac"))
-	if n := len(msgs.cards); n != replies+1 || !strings.Contains(last(msgs), "Messages here go to mac.") {
+	if n := len(msgs.cards); n != replies+1 || !strings.Contains(last(t, msgs), "Messages here go to mac.") {
 		t.Fatalf("mac sent %+v", luna.sent)
 	}
 	if b.chat("c1").host != "mac" {
@@ -1158,7 +1180,7 @@ func TestImage(t *testing.T) {
 		},
 	})
 	if len(luna.sent) == 0 || !strings.Contains(luna.sent[0].Data, "feishu-files") || !strings.Contains(luna.sent[0].Data, ".png") {
-		t.Fatalf("sent %+v, replied %q", luna.sent, last(msgs))
+		t.Fatalf("sent %+v, replied %q", luna.sent, last(t, msgs))
 	}
 }
 
@@ -1314,7 +1336,7 @@ func TestHookAnswerToQuestion(t *testing.T) {
 	if len(sent) != 1 || sent[0].Data != "" || len(luna.answers) != 1 {
 		t.Fatalf("sent %+v", sent)
 	}
-	got := last(msgs)
+	got := last(t, msgs)
 	if !strings.Contains(got, "On main.") || strings.Contains(got, "Which branch?") && strings.Contains(got, "no final") {
 		t.Fatalf("replied %q", got)
 	}
@@ -1349,7 +1371,7 @@ func TestHookAnswerToPrompt(t *testing.T) {
 	if len(luna.answers) != 1 || luna.answers[0] != dir {
 		t.Fatalf("answered in %q", luna.answers)
 	}
-	got := last(msgs)
+	got := last(t, msgs)
 	if !strings.Contains(got, "All tests pass.") {
 		t.Fatalf("replied %q", got)
 	}

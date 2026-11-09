@@ -41,6 +41,37 @@ func markdown() bool { return settings.Load().FeishuMarkdown }
 // for a card, and the escapes and the rest of it take some.
 const maxAnswer = 20 << 10
 
+// heldCardJSON is a card of a prompt that waits the chat's turn: blue, to
+// stand apart from the turn that runs, and titled for the prompt, which
+// its text holds.
+func heldCardJSON(prompt, lang string) (string, error) {
+	var elems []any
+	prompt = strings.TrimSpace(prompt)
+	if len(prompt) > maxAnswer {
+		prompt = truncate(prompt, maxAnswer)
+	}
+	if prompt != "" {
+		if markdown() {
+			elems = append(elems, map[string]any{"tag": "markdown", "content": markdownText(prompt)})
+		} else {
+			elems = append(elems, map[string]any{"tag": "div", "text": map[string]any{"tag": "plain_text", "content": plainBody(prompt)}})
+		}
+	}
+	card := map[string]any{
+		"schema": "2.0",
+		"config": map[string]any{"update_multi": true, "wide_screen_mode": true},
+		"header": map[string]any{
+			"title":    map[string]any{"tag": "plain_text", "content": word(lang, "held.title")},
+			"template": "blue",
+		},
+	}
+	if len(elems) > 0 {
+		card["body"] = map[string]any{"direction": "vertical", "elements": elems}
+	}
+	data, err := json.Marshal(card)
+	return string(data), err
+}
+
 // cardJSON is a card's content, as the interactive message takes it: the
 // card's JSON, as a string.
 func cardJSON(c Card, lang string) (string, error) {
@@ -423,6 +454,7 @@ func word(lang, key string) string {
 			"choice.title": "Please choose", "choice.other": "Other answer", "choice.send": "Send",
 			"choice.sent": "Sent.", "choice.gone": "This question is answered already.",
 			"choice.empty": "Write an answer first.", "choice.answered": "This question is answered already.",
+			"held.title": "Added to the queue. Wait for the turn to end.",
 		},
 		"zh_cn": {
 			"state.working": "运行中", "state.done": "已完成", "state.asks": "等待你回答", "state.error": "出错",
@@ -438,6 +470,7 @@ func word(lang, key string) string {
 			"choice.title": "请选择", "choice.other": "其他回答", "choice.send": "发送",
 			"choice.sent": "已发送。", "choice.gone": "这个问题已经回答过了。",
 			"choice.empty": "请先填写回答。", "choice.answered": "这个问题已经回答过了。",
+			"held.title": "加入请求队列，请等待",
 		},
 		"ja_jp": {
 			"state.working": "実行中", "state.done": "完了", "state.asks": "回答待ち", "state.error": "エラー",
@@ -452,6 +485,7 @@ func word(lang, key string) string {
 			"choice.title": "選択してください", "choice.other": "その他の回答", "choice.send": "送信",
 			"choice.sent": "送信しました。", "choice.gone": "この質問はすでに回答済みです。",
 			"choice.empty": "先に回答を書いてください。", "choice.answered": "この質問はすでに回答済みです。",
+			"held.title": "待ち行列に追加しました。ターンの終了を待ってください。",
 		},
 	}
 	if v, ok := w[lang][key]; ok {

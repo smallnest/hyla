@@ -77,6 +77,9 @@ type Messages interface {
 	SendCard(receiveIDType, receiveID, cardJSON string) (string, error)
 	// UpdateCard replaces the card of a message the bot sent.
 	UpdateCard(messageID, cardJSON string) error
+	// DeleteMessage takes back a message the bot sent, as the card of a
+	// prompt that waited its turn.
+	DeleteMessage(messageID string) error
 	// React marks a message with an emoji, by its Feishu name, as
 	// "OnIt".
 	React(messageID, emoji string) error
@@ -218,6 +221,9 @@ type chat struct {
 	// waiting are the prompts that came while a turn ran: the next one
 	// waits, and the queue's size holds the rest back.
 	waiting []waitingTurn
+	// held are the waiting prompts' cards, by message ID, which the
+	// turns they wait for take back.
+	held []string
 }
 
 // waitingTurn is a prompt that came while the chat's turn ran, and the
@@ -367,6 +373,18 @@ func (a *larkAPI) SendCard(receiveIDType, receiveID, cardJSON string) (string, e
 		return "", errors.New("Feishu returned no message")
 	}
 	return *res.Data.MessageId, nil
+}
+
+func (a *larkAPI) DeleteMessage(messageID string) error {
+	res, err := a.c.Im.Message.Delete(context.Background(),
+		larkim.NewDeleteMessageReqBuilder().MessageId(messageID).Build())
+	if err != nil {
+		return err
+	}
+	if !res.Success() {
+		return fmt.Errorf("Feishu answered %d %s", res.Code, res.Msg)
+	}
+	return nil
 }
 
 func (a *larkAPI) UpdateCard(messageID, cardJSON string) error {

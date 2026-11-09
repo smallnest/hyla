@@ -190,8 +190,8 @@ func TestReplyCard(t *testing.T) {
 		t.Errorf("the answer is %q", text)
 	}
 	b.reply("c1", "/new starts one.")
-	if !strings.Contains(last(msgs), "/new starts one.") {
-		t.Errorf("a command's note is %q", last(msgs))
+	if !strings.Contains(last(t, msgs), "/new starts one.") {
+		t.Errorf("a command's note is %q", last(t, msgs))
 	}
 }
 
