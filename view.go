@@ -606,7 +606,7 @@ func (a *App) groupView(c *ui.Context, pal *palette, g group, gi int, n *int) {
 			})
 		}
 		if renaming {
-			in := ui.TextInputBase(c.Key("rename"), &a.renameBuf).Grow(1).MinWidth(0).FontSize(13).FontWeight(600).AutoFocus()
+			in := ui.TextInputBase(c.Key("rename"), &a.renameBuf).Grow(1).MinWidth(0).FontSize(13).FontWeight(500).AutoFocus()
 			if in.Shortcut(0, ui.KeyEscape) {
 				a.renamingProject = ""
 				a.focusTerminal()
@@ -615,7 +615,7 @@ func (a *App) groupView(c *ui.Context, pal *palette, g group, gi int, n *int) {
 			}
 			return
 		}
-		ui.Text(c, g.project.Name).FontSize(13).FontWeight(600).TextColor(pal.text).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
+		ui.Text(c, g.project.Name).FontSize(13).FontWeight(500).TextColor(pal.textMuted).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 		if g.host.remote() {
 			a.hostTag(c, pal, g.host)
 		}
