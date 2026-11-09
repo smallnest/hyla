@@ -15,6 +15,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/egoist/mygo"
@@ -188,7 +189,10 @@ type App struct {
 	hoverPane string
 	hoverAt   [2]float32
 	// claimGen counts the wheel's rests in each pane, of which the last
-	// tells its host the user is there (claimWhenRest).
+	// tells its host the user is there (claimWhenRest). claimMu guards it:
+	// the wheel's callback and the frame that drops a pane both reach it,
+	// on their own goroutines.
+	claimMu  sync.Mutex
 	claimGen map[string]int
 
 	// Panes dragged: the zone last under the pointer, the pane whose
@@ -884,9 +888,9 @@ func (a *App) touch(id string) {
 }
 
 func (a *App) dropTerm(id string) {
-	if a.claimGen != nil {
-		delete(a.claimGen, id)
-	}
+	a.claimMu.Lock()
+	delete(a.claimGen, id)
+	a.claimMu.Unlock()
 	if e := a.terms[id]; e != nil {
 		if e.term != nil {
 			e.term.Close()
@@ -1186,18 +1190,27 @@ func (a *App) termOptions(id string, conn *gated) terminal.Options {
 // trackpad's, comes sooner. Each claim makes the host size the pane to
 // this window, and its frames wait for that.
 func (a *App) claimWhenRest(id string, conn interface{ Claim() error }) {
+	a.claimMu.Lock()
 	if a.claimGen == nil {
 		a.claimGen = map[string]int{}
 	}
 	n := a.claimGen[id] + 1
 	a.claimGen[id] = n
+	a.claimMu.Unlock()
 	go func() {
 		time.Sleep(claimRest)
 		a.main(func() {
-			if a.claimGen[id] != n || a.terms[id] == nil {
+			// The last rest is the one that claims: an earlier one, which
+			// a later scroll made stale, returns.
+			a.claimMu.Lock()
+			last := a.claimGen[id] == n
+			if last {
+				delete(a.claimGen, id)
+			}
+			a.claimMu.Unlock()
+			if !last || a.terms[id] == nil {
 				return
 			}
-			delete(a.claimGen, id)
 			conn.Claim()
 		})
 	}()
