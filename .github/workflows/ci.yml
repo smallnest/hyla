@@ -52,12 +52,19 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-      # Where the terminal keeps a library that it downloads: the SHA-256 of
-      # the build, as mygo-plugin.json names it.
+      # The library's SHA-256, name and release, as the terminal's manifest
+      # names them, where go list says the module is: downloaded by the run
+      # before.
       - run: |
+          set -eu
           dir="$(go list -m -f '{{.Dir}}' github.com/egoist/mygo)/plugins/terminal"
-          sha="$(jq -r '.libraries[] | select(.name == "libghostty-vt") | .files["linux-amd64"].sha256' "$dir/mygo-plugin.json")"
-          echo "sha=$sha" >> "$GITHUB_ENV"
+          jq -r '.libraries[] | select(.name == "libghostty-vt") | .files["linux-amd64"].sha256' "$dir/mygo-plugin.json" > "$RUNNER_TEMP/sha"
+          jq -r '.libraries[] | select(.name == "libghostty-vt") | .files["linux-amd64"].name' "$dir/mygo-plugin.json" > "$RUNNER_TEMP/name"
+          jq -r '.libraries[] | select(.name == "libghostty-vt") | .files["linux-amd64"].url' "$dir/mygo-plugin.json" |
+            sed 's|.*/download/||; s|/.*||' > "$RUNNER_TEMP/tag"
+          echo "sha=$(cat "$RUNNER_TEMP/sha")" >> "$GITHUB_ENV"
+          echo "lib=$(cat "$RUNNER_TEMP/name")" >> "$GITHUB_ENV"
+          echo "tag=$(cat "$RUNNER_TEMP/tag")" >> "$GITHUB_ENV"
       - uses: actions/cache/restore@v4
         id: cache
         with:
@@ -69,17 +76,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -eu
-          tag="$(jq -r '.libraries[] | select(.name == "libghostty-vt") | .source' \
-            "$GOMODCACHE/github.com/egoist/mygo@$(go list -m -f '{{.Version}}' github.com/egoist/mygo)/plugins/terminal/mygo-plugin.json" | sed 's|.*/tree/||')"
-          mkdir -p ~/.cache/mygo/natives/"$sha"
-          # gh asks for the release's file, whose link GitHub's own server
-          # may not answer: again, a moment later.
-          for i in 1 2 3; do
-            gh release download "libghostty-vt-$tag" --repo egoist/mygo \
-              --pattern libghostty-vt-linux-amd64.so --dir ~/.cache/mygo/natives/"$sha" --clobber && break
-            sleep $((i * 15))
+          mkdir -p "$HOME/.cache/mygo/natives/$sha"
+          # Asked for by gh, which reaches the release's file where curl of
+          # its link does not at times, and again a moment later.
+          for i in 0 15 30 60; do
+            sleep "$i"
+            gh release download "$tag" --repo egoist/mygo \
+              --pattern "$lib" --dir "$HOME/.cache/mygo/natives/$sha" --clobber && break
           done
-          test -s ~/.cache/mygo/natives/"$sha"/libghostty-vt-linux-amd64.so
+          test -s "$HOME/.cache/mygo/natives/$sha/$lib"
       - uses: actions/cache/save@v4
         if: steps.cache.outputs.cache-hit != 'true'
         with:

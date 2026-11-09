@@ -17,6 +17,21 @@ mkdir -p "$out"
 go mod download github.com/egoist/mygo
 manifest="$(go list -m -f '{{.Dir}}' github.com/egoist/mygo)/plugins/terminal/mygo-plugin.json"
 
+# fetch_lib asks for the file, the library to carry, again a moment later
+# each time, at once first.
+fetch_lib() {
+	for d in 0 1 2 4 8 12; do
+		if [ "$d" != 0 ]; then
+			sleep "$d"
+		fi
+		curl -fsSL "$(echo "$file" | jq -r .url)" -o "$stage/$lib" || continue
+		if echo "$(echo "$file" | jq -r .sha256)  $stage/$lib" | check; then
+			return 0
+		fi
+	done
+	return 1
+}
+
 check() {
 	if command -v sha256sum >/dev/null 2>&1; then
 		sha256sum -c - >/dev/null
@@ -43,19 +58,29 @@ for p in $platforms; do
 	# it beside itself, and downloads none.
 	file="$(jq -c ".libraries[] | select(.name == \"libghostty-vt\") | .files[\"$os-$arch\"]" "$manifest")"
 	lib="$(echo "$file" | jq -r .name)"
-	# GitHub's server may answer the link of the release with 500 of a kind,
-	# as 504 Gateway Timeout: asked for again, a moment later.
-	for i in 1 2 3 4 5; do
-		if curl -fsSL --retry 3 --retry-delay 5 "$(echo "$file" | jq -r .url)" -o "$stage/$lib"; then
-			break
-		fi
-		if [ "$i" = 5 ]; then
+	# GitHub's server answers the link of the release with 502 and 504 now and
+	# then: the library is asked for again, and, failing that, where the
+	# terminal keeps one it downloaded, then by mygo, which downloads one that
+	# its program finds missing as the program runs, and checks its SHA-256:
+	# that program is built for this machine, and runs on Windows not, a
+	# download that failed there failing the build.
+	if ! fetch_lib; then
+		cached="$(go env GOCACHE)/fetch-lib/$lib"
+		if [ -n "$(go env GOCACHE)" ] && echo "$(echo "$file" | jq -r .sha256)  $cached" | check; then
+			cp "$cached" "$stage/$lib"
+		elif [ "$os" = windows ]; then
 			echo "cannot download $lib" >&2
 			exit 1
+		else
+			if [ -n "$(go env GOCACHE)" ]; then
+				mkdir -p "$(go env GOCACHE)/fetch-lib"
+				MYGO_GHOSTTY_VT="$cached" go run ./scripts/fetch-lib
+				cp "$cached" "$stage/$lib"
+			else
+				MYGO_GHOSTTY_VT="$stage/$lib" go run ./scripts/fetch-lib
+			fi
 		fi
-		echo "$lib: no answer, asking again" >&2
-		sleep $((i * 10))
-	done
+	fi
 	echo "$(echo "$file" | jq -r .sha256)  $stage/$lib" | check
 	# On Windows, the ConPTY the app ships too, which hylad finds beside
 	# itself (resources/windows-*).
