@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"slices"
 	"sync"
+	"time"
 
 	"github.com/egoist/mygo"
 
@@ -26,8 +27,20 @@ type adBlock struct {
 	// compiles, so that only the latest one's rules apply.
 	lists []string
 	gen   int
-	rules []*mygo.ContentRules // main thread
+	// failed is how many compiles of those lists failed in a row, and
+	// retryAt the earliest the next one may go: a list that is gone for
+	// good costs a wait that grows, not a download at every page.
+	failed  int
+	retryAt time.Time
+	rules   []*mygo.ContentRules // main thread
 }
+
+// adRetry is how long after a failed compile the next may go, at least,
+// and the most it grows to by a list that keeps failing.
+const (
+	adRetry    = time.Minute
+	adRetryMax = 24 * time.Hour
+)
 
 // adRules returns the rules browser panes' pages apply: none while the
 // setting is off or the rules are not compiled yet.
@@ -41,11 +54,18 @@ func (a *App) adRules() []*mygo.ContentRules {
 
 // compileAds compiles the lists the settings name, unless those compiled
 // or compiling last are those: a compile that failed is not one, and the
-// next page tries again. It tells whether it started one.
+// next page after a wait tries again. It tells whether it started one.
 func (a *App) compileAds() bool {
 	if a.ads.started && slices.Equal(a.ads.lists, a.set.AdLists) {
 		adblockDone() // none started: what is compiled shows
 		return false
+	}
+	if a.ads.failed > 0 && adNow().Before(a.ads.retryAt) {
+		adblockDone() // the lists failed, and their wait is not over
+		return false
+	}
+	if a.ads.lists != nil && !slices.Equal(a.ads.lists, a.set.AdLists) {
+		a.ads.failed, a.ads.retryAt = 0, time.Time{}
 	}
 	a.ads.started, a.ads.lists = true, slices.Clone(a.set.AdLists)
 	a.ads.gen++
@@ -64,9 +84,18 @@ func (a *App) compileAds() bool {
 				// As not tried: the rules it did compile, if any, stay,
 				// and the next page tries the lists again.
 				a.ads.started, a.ads.lists = false, nil
+				a.ads.failed++
+				wait := adRetry
+				for range a.ads.failed - 1 {
+					wait *= 2
+				}
+				a.ads.retryAt = adNow().Add(min(wait, adRetryMax))
 				adblockDone() // this compile left no rules to show
 				return
 			}
+			// A success ends the waits, and the lists' that the settings
+			// change to go at once, which keep how the last failed.
+			a.ads.failed, a.ads.retryAt = 0, time.Time{}
 			a.ads.rules = rules
 			a.showAdBlock(rules)
 			adblockDone()
@@ -82,6 +111,9 @@ var (
 	// adblockDone marks each compile's end, which a test's window, with
 	// no loop to take the result, waits on.
 	adblockDone = func() {}
+	// adNow is the time a failed compile's wait ends from, a var so that
+	// a test need not wait for the wait.
+	adNow = time.Now
 )
 
 // applyAdBlock gives the open browser panes' pages the rules, or takes

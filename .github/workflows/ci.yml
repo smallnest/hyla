@@ -18,6 +18,26 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
+      # libghostty-vt, which the tests' terminals load, comes from the
+      # native job's cache: the key is the SHA-256 the manifest names, as
+      # that job builds it.
+      - id: lib
+        run: |
+          set -eu
+          dir="$(go list -m -f '{{.Dir}}' github.com/egoist/mygo)/plugins/terminal"
+          jq -r '.libraries[] | select(.name == "libghostty-vt") | .files["linux-amd64"].sha256' "$dir/mygo-plugin.json" > "$RUNNER_TEMP/sha"
+          jq -r '.libraries[] | select(.name == "libghostty-vt") | .files["linux-amd64"].name' "$dir/mygo-plugin.json" > "$RUNNER_TEMP/name"
+          echo "sha=$(cat "$RUNNER_TEMP/sha")" >> "$GITHUB_OUTPUT"
+          echo "name=$(cat "$RUNNER_TEMP/name")" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache/restore@v4
+        id: cache
+        with:
+          path: ~/.cache/mygo/natives
+          key: native-${{ steps.lib.outputs.sha }}
+          fail-on-cache-miss: true
+      # A cache hit is the native job's: its file, under its SHA-256.
+      - name: Check the library
+        run: echo "${{ steps.lib.outputs.sha }}  $HOME/.cache/mygo/natives/${{ steps.lib.outputs.sha }}/${{ steps.lib.outputs.name }}" | sha256sum -c -
       - name: Vet
         run: go vet ./...
       - name: Test

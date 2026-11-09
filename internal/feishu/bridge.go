@@ -880,8 +880,11 @@ type legacyChat struct {
 	Sid   string `json:"sid,omitempty"`
 }
 
-// save writes the bindings.
+// save writes the bindings: one writer at a time, since the turns of
+// several chats save at once, into the one file they load from.
 func (b *Bot) save() {
+	b.saveMu.Lock()
+	defer b.saveMu.Unlock()
 	b.mu.Lock()
 	w := chatsFile{Turns: maps.Clone(b.times), Pins: maps.Clone(b.pins), Bindings: maps.Clone(b.bindings)}
 	allowed := map[string][]string{}
@@ -904,9 +907,9 @@ func (b *Bot) save() {
 	}
 }
 
-// load reads the bindings, which replace the bot's whole: the file is the
-// only thing that carries a chat's session, agent and conversation across
-// a restart.
+// load reads the bindings, replacing the bot's: the file is the only thing
+// that carries a chat's session, agent and conversation across a restart,
+// and the bot reads it once, as it starts, before a chat's turns run.
 func (b *Bot) load() {
 	data, err := os.ReadFile(bindFile())
 	if err != nil {
@@ -939,10 +942,14 @@ func (b *Bot) load() {
 	}
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	for k, bnd := range bindings {
-		if bnd != (binding{}) {
-			b.bindings[k] = bnd
-		}
+	b.bindings = bindings
+	b.times = map[string]turnTimes{}
+	for c, t := range w.Turns {
+		b.times[c] = t
+	}
+	b.pins = map[string]string{}
+	for s, c := range w.Pins {
+		b.pins[s] = c
 	}
 	for k, tools := range w.Allowed {
 		c := b.chatLocked(k)
@@ -950,12 +957,6 @@ func (b *Bot) load() {
 		for _, tool := range tools {
 			c.allowed[tool] = true
 		}
-	}
-	for c, t := range w.Turns {
-		b.times[c] = t
-	}
-	for s, c := range w.Pins {
-		b.pins[s] = c
 	}
 }
 

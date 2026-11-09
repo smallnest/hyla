@@ -44,6 +44,9 @@ func TestChoiceAction(t *testing.T) {
 	// whose options are buttons.
 	which := "Which color?\n1. Red\n2. Blue"
 	b.sync = true
+	// The turn the answer starts ends at once, not after the program's
+	// half hour: it watches the pane until then.
+	b.cfg.Timeout = int64(100 * time.Millisecond)
 	bindChat(b, "c1", binding{Session: "s1"})
 	b.chat("c1").event = "ev_q"
 	b.askOptions(newChoice("ev_q", "c1", "om_card_1", which))
@@ -73,16 +76,15 @@ func TestChoiceAction(t *testing.T) {
 	if res := click("1"); res == nil || res.Toast.Content != "Sent." {
 		t.Fatalf("the click answers %+v", res)
 	}
-	time.Sleep(300 * time.Millisecond) // the answer goes to the pane, which takes a moment to type it
-	// The question's words go before the option, which the agent gets
-	// once: its list of the options is no part of them.
-	answered := false
-	for _, s := range luna.sent {
-		answered = answered || s.Data == "Which color?\nBlue"
-	}
-	if !answered {
-		t.Errorf("the pane gets %+v", luna.sent)
-	}
+	// The answer goes to the pane, which takes a moment to type it.
+	waitFor(t, "the answer", func() bool {
+		for _, s := range luna.sends() {
+			if s.Data == "Which color?\nBlue" {
+				return true
+			}
+		}
+		return false
+	})
 	// The card shows the question, and the answer under it.
 	u := msgs.updates[1]
 	last := parseCard(t, u[strings.Index(u, ": ")+2:strings.LastIndex(u, " [marks")])

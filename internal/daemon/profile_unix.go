@@ -21,9 +21,12 @@ import (
 // it writes, and signals ask for them. Windows has no such signals: a
 // hylad there writes none, and startProfiling there does less.
 //
-//	SIGUSR1  starts a CPU profile, into cpu.pprof
-//	SIGUSR2  stops it, and writes the heap profile, heap.pprof
-//	SIGQUIT  writes the goroutine profile, goroutine.pprof
+//	SIGUSR1  starts a CPU profile, into cpu.pprof, and writes the heap,
+//	         allocation, block and mutex profiles
+//	SIGUSR2  stops it, and writes them again
+//
+// SIGQUIT is Go's alone: it dumps every goroutine's stack, and the daemon
+// wants no other.
 //
 // One of a release has none of this: it is for developing Hyla, and a
 // release has not the -X that says it is one.
@@ -41,13 +44,22 @@ type profilerT struct {
 	last    time.Time     // when infos last went
 }
 
+// profileDir is where the profiles go: $HYLA_PROFILE, in a build of
+// development. One of a release is the user's: no profile of theirs, and
+// none of a hylad that names no directory either.
+func profileDir() string {
+	dir := os.Getenv(profileDirEnv)
+	if dir == "" || !mygo.IsDev() {
+		return ""
+	}
+	return dir
+}
+
 // startProfiling attaches the signals to the profiles, when
 // $HYLA_PROFILE says where to write them.
 func startProfiling(lg *log.Logger) {
-	dir := os.Getenv(profileDirEnv)
-	// One of a release is the user's, and a release to be: no profile of
-	// theirs.
-	if dir == "" || mygo.IsDev() {
+	dir := profileDir()
+	if dir == "" {
 		return
 	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {

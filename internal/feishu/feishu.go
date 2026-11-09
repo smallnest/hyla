@@ -148,12 +148,16 @@ type Bot struct {
 	// the ones it takes on.
 	began time.Time
 
-	mu    sync.Mutex
-	chats map[string]*chat // by chat key: the turns' own state
+	mu sync.Mutex
+	// saveMu guards the file the bindings go to: the turns of several
+	// chats save at once, and one writer at a time writes it.
+	saveMu sync.Mutex
+	chats  map[string]*chat // by chat key: the turns' own state
 	// bindings is what each chat's turns go on with, by chat key: the
 	// session, the agent, the directory its commands run in, and the
 	// conversation it continues. It is the only source of them;
-	// feishu-chats.json keeps a copy, which load replaces whole.
+	// feishu-chats.json keeps a copy, which load replaces the first with,
+	// once, as the bot starts.
 	bindings map[string]binding
 	seen     map[string]bool // event IDs, for a while
 	order    []string        // seen's, oldest first

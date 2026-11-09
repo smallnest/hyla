@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -26,6 +27,7 @@ type fakeLuna struct {
 	order    []string // the methods that act on a session
 	sessions []proto.Session
 	sent     []proto.SendParams
+	sentMu   sync.Mutex // held while a test reads sent, which a turn writes as it runs
 	created  []proto.CreateParams
 	screen   string
 	waits    int
@@ -106,7 +108,9 @@ func (f *fakeLuna) Call(method string, params, out any) error {
 		if f.calls["send"] != nil {
 			f.calls["send"]()
 		}
+		f.sentMu.Lock()
 		f.sent = append(f.sent, send)
+		f.sentMu.Unlock()
 	case "read":
 		if f.calls["read"] != nil {
 			f.calls["read"]()
@@ -327,6 +331,27 @@ func (m *fakeMessages) UpdateCard(id, cardJSON string) error {
 	return nil
 }
 
+// waitFor waits for what a turn does as it runs, which a test's goroutine
+// sees a moment later.
+func waitFor(t *testing.T, what string, ok func() bool) {
+	t.Helper()
+	for i := 0; i < 100; i++ {
+		if ok() {
+			return
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	t.Fatalf("%s: nothing", what)
+}
+
+// sends is what the bot sent, as a test reads it once its turns may run
+// still.
+func (f *fakeLuna) sends() []proto.SendParams {
+	f.sentMu.Lock()
+	defer f.sentMu.Unlock()
+	return append([]proto.SendParams{}, f.sent...)
+}
+
 // sendReply records a reply apart from a card's message: sending replies
 // fails, as Feishu's does for an app that no longer replies to events,
 // unless the cards fail too, as an app without them.
@@ -522,18 +547,24 @@ func TestPrompt(t *testing.T) {
 
 	luna.screen = "old\n$ "
 	luna.waitEnd = proto.Working
-	defer shortWaits()()
+	shortWaits(t)
 	b.onMessage(nil, textMsg("c1", "ou_me", "fix the tests"))
-	sent := luna.sent[len(luna.sent)-2:]
+	// The turn, which reads the pane until the agent stops, may write
+	// still: its prompt is the last sent.
+	var sent []proto.SendParams
+	waitFor(t, "the prompt", func() bool {
+		if s := luna.sends(); len(s) >= 2 {
+			sent = s[len(s)-2:]
+			return true
+		}
+		return false
+	})
 	if sent[0].Data != "fix the tests" || sent[1].Data != "\r" || sent[0].ID != "p-new" {
-		t.Fatalf("sent %+v", luna.sent)
-	}
-	if luna.waits < 2 {
-		t.Errorf("the bot waits %d times, as the agent works and then stops", luna.waits)
+		t.Fatalf("sent %+v", sent)
 	}
 	luna.screen = "old\n$ \n● Fixed 2 tests.\n"
 	b.onMessage(nil, textMsg("c1", "ou_me", "/ls"))
-	if len(luna.sent) == 0 {
+	if len(luna.sends()) == 0 {
 		t.Fatal("no prompt went")
 	}
 }
@@ -542,8 +573,8 @@ func TestPrompt(t *testing.T) {
 // card titled for the queue, which goes as the turn that runs it begins;
 // a command does not wait, which /stop needs.
 func TestPromptWaitsItsTurn(t *testing.T) {
-	defer shortWaits()()
 	b, luna, msgs := newBot(t)
+	shortWaits(t)
 	bindChat(b, "c1", binding{Session: "s1"})
 	b.leave("c1")
 	luna.screen = "old\n$ "
@@ -752,12 +783,31 @@ func TestBindsPersist(t *testing.T) {
 	}
 }
 
+// A chat's binding is the chat's, whichever topic a message came in: one
+// whose session went in a group thread unbinds the chat, and leaves no
+// binding of the topic's.
+func TestGoneSessionUnbindsTheChatFromATopic(t *testing.T) {
+	b, luna, msgs := newBot(t)
+	bindChat(b, "g1", binding{Session: "s1"})
+	luna.sessions = nil
+	b.onMessage(nil, groupMsgOf("g1", "t1", "m1", "hello"))
+	if got := last(t, msgs); !strings.Contains(got, "gone") {
+		t.Fatalf("a prompt to a gone session replied %q", got)
+	}
+	if got := b.bindingOf("g1").Session; got != "" {
+		t.Errorf("the chat stays bound to %q after its session went in a topic", got)
+	}
+	if got := b.bindingOf(chatKey("g1", "t1")).Session; got != "" {
+		t.Errorf("the topic holds a binding of its own: %q", got)
+	}
+}
+
 // A chat's agent conversation goes on across a restart of the bot, as its
 // bound session does: the next turn continues the conversation the last
 // one left, not a new one.
 func TestChatContinuesAcrossRestarts(t *testing.T) {
-	defer shortWaits()()
 	b, luna, msgs := newBot(t)
+	shortWaits(t)
 	b.cfg.Run = settings.FeishuRunCommand
 	b.cfg.Agent = "opencode"
 	bindChat(b, "c1", binding{Session: "s1"})
@@ -787,8 +837,8 @@ func TestChatContinuesAcrossRestarts(t *testing.T) {
 // A chat's binding is the chat's, whichever topic a message came in: the
 // turn of a second topic goes on with the conversation the first left.
 func TestBindingAcrossTopics(t *testing.T) {
-	defer shortWaits()()
 	b, luna, _ := newBot(t)
+	shortWaits(t)
 	b.cfg.Run = settings.FeishuRunCommand
 	b.cfg.Agent = "opencode"
 	bindChat(b, "g1", binding{Session: "s1"})
@@ -829,6 +879,37 @@ func TestLegacyBindingsFile(t *testing.T) {
 	}
 }
 
+// The turns of several chats save at once, and the file they load from
+// still holds every binding: one writer at a time writes it.
+func TestConcurrentSaves(t *testing.T) {
+	b, luna, _ := newBot(t)
+	const n = 40
+	for i := 0; i < n; i++ {
+		bindChat(b, fmt.Sprintf("c%d", i), binding{
+			Session:      fmt.Sprintf("s%d", i),
+			Agent:        "opencode",
+			Conversation: fmt.Sprintf("conv%d", i),
+		})
+	}
+	var wg sync.WaitGroup
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			b.save()
+		}()
+	}
+	wg.Wait()
+	again := New(Config{Settings: b.cfg, Secret: settings.FeishuSecret{AppID: "cli_a", AppSecret: "x", Me: "ou_me"}, Luna: luna, Log: t.Logf})
+	again.load()
+	for i := 0; i < n; i++ {
+		want := binding{Session: fmt.Sprintf("s%d", i), Agent: "opencode", Conversation: fmt.Sprintf("conv%d", i)}
+		if got := again.bindingOf(fmt.Sprintf("c%d", i)); got != want {
+			t.Errorf("chat c%d loads %+v, want %+v", i, got, want)
+		}
+	}
+}
+
 // groupMsgOf is a group message in a topic, as Feishu sends one.
 func groupMsgOf(chat, root, id, text string) *larkim.P2MessageReceiveV1 {
 	e := textMsgFrom(chat, id, text)
@@ -839,20 +920,33 @@ func groupMsgOf(chat, root, id, text string) *larkim.P2MessageReceiveV1 {
 }
 
 // shortWaits makes the waits the driving relies on short, for the tests.
-func shortWaits() func() {
-	old := waits
+func shortWaits(t *testing.T) {
+	t.Helper()
+	// The waits end as the test does, before its cleanups, which wait for
+	// the turns that no later test's waits would hold to their own.
+	t.Cleanup(func() {
+		waits = theWaits
+		turnMu.Unlock()
+	})
+	turnMu.Lock()
 	waits.start, waits.settle, waits.quiet, waits.grace, waits.poll = 60*time.Millisecond, 60*time.Millisecond, 150*time.Millisecond, 250*time.Millisecond, 60*time.Millisecond
-	return func() { waits = old }
 }
+
+// theWaits are the driving's waits as the program has them.
+var theWaits = waits
+
+// turnMu holds through a test that makes the waits short: since those
+// outlast it until its cleanups, the turns of the next would wait for the
+// one they held here to end.
+var turnMu sync.Mutex
 
 // A turn whose agent's screen, drawn as a prompt again, tells nothing of
 // its answer is answered from the passage its Stop hook wrote.
 func TestPromptAnsweredWhileIdle(t *testing.T) {
-	old := stuckAfter
-	stuckAfter = 150 * time.Millisecond
-	defer func() { stuckAfter = old }()
-	defer shortWaits()()
 	b, luna, msgs := newBot(t)
+	shortWaits(t)
+	stuckAfter = 150 * time.Millisecond
+	t.Cleanup(func() { stuckAfter = 5 * time.Second })
 	bindChat(b, "c1", binding{Session: "s1"})
 	b.leave("c1")
 	luna.hold = true
@@ -872,8 +966,8 @@ func TestPromptAnsweredWhileIdle(t *testing.T) {
 // A pane that draws its screen anew, as a TUI does, keeps a turn's text in
 // the rows below its prompt, which the rows of its screen never grow for.
 func TestPromptOfAViewport(t *testing.T) {
-	defer shortWaits()()
 	b, luna, msgs := newBot(t)
+	shortWaits(t)
 	bindChat(b, "c1", binding{Session: "s1"})
 	b.leave("c1")
 	luna.hold = true
@@ -894,11 +988,10 @@ func TestPromptOfAViewport(t *testing.T) {
 // A status the daemon keeps across a restart, as one a program reported,
 // does not hold a prompt forever.
 func TestPromptStuckWorking(t *testing.T) {
-	old := stuckAfter
-	stuckAfter = 100 * time.Millisecond
-	defer func() { stuckAfter = old }()
-	defer shortWaits()()
 	b, luna, msgs := newBot(t)
+	shortWaits(t)
+	stuckAfter = 100 * time.Millisecond
+	t.Cleanup(func() { stuckAfter = 5 * time.Second })
 	bindChat(b, "c1", binding{Session: "s1"})
 	b.leave("c1")
 	luna.busy = true
@@ -915,8 +1008,8 @@ func TestPromptStuckWorking(t *testing.T) {
 // In the command mode, a prompt runs the agent's own command in the
 // background, and its text is the reply.
 func TestCommandMode(t *testing.T) {
-	defer shortWaits()()
 	b, luna, msgs := newBot(t)
+	shortWaits(t)
 	b.cfg.Run = settings.FeishuRunCommand
 	b.cfg.Agent = "claude"
 	b.yolo = true // feishu-yolo's default
@@ -1073,8 +1166,8 @@ func replyNamed(event, text string) string {
 // prompt. For /host mac, linux answers mac's message before it, and
 // leaves the prompt that comes with it to mac.
 func TestHostHandoff(t *testing.T) {
-	defer shortWaits()()
 	b, luna, msgs := newBot(t)
+	shortWaits(t)
 	b.cfg.Host = []string{"mac", "linux"}
 	luna.host, b.hostname = "linux", "linux"
 	// A message Feishu has: what it says, and the message it answers,
@@ -1166,11 +1259,10 @@ func TestHostHandoff(t *testing.T) {
 // A background turn shows by its message, which takes the work's marks,
 // and the end's, and the next turn's card is its answer.
 func TestCardTurn(t *testing.T) {
-	old := stuckAfter
-	stuckAfter = 100 * time.Millisecond
-	defer func() { stuckAfter = old }()
-	defer shortWaits()()
 	b, luna, msgs := newBot(t)
+	shortWaits(t)
+	stuckAfter = 100 * time.Millisecond
+	t.Cleanup(func() { stuckAfter = 5 * time.Second })
 	b.cfg.Run = settings.FeishuRunCommand
 	luna.files = []string{`{"type":"assistant","message":{"content":[{"type":"text","text":"Fixed 2 tests."}]}}`, "", ""}
 	bindChat(b, "c1", binding{Session: "s1", Agent: "claude", Dir: "/tmp"})
@@ -1307,13 +1399,19 @@ func TestCardButton(t *testing.T) {
 // A turn whose card Feishu refuses answers outside it: with cards on, an
 // answer's card; with them off, a message. Its answer is not lost.
 func TestCardRefused(t *testing.T) {
+	// The waits are the first iteration's alone: the second, in the same
+	// test, would wait for their end.
+	set := false
 	for _, cards := range []bool{true, false} {
 		t.Setenv("HYLA_CONFIG", filepath.Join(t.TempDir(), "config"))
 		os.WriteFile(os.Getenv("HYLA_CONFIG"), []byte(fmt.Sprintf("feishu-cards = %v\n", cards)), 0o600)
 		settings.Reload()
 		defer settings.Reload()
-		shortWaits()()
 		b, luna, msgs := newBot(t)
+		if !set {
+			shortWaits(t)
+			set = true
+		}
 		msgs.fail = true
 		b.sync = true
 		b.cfg.Run = settings.FeishuRunCommand
@@ -1384,7 +1482,7 @@ func TestHookAnswerToQuestion(t *testing.T) {
 	setup.Agent, setup.Status, setup.Message = "claude", proto.Waiting, "Which branch?"
 	setup.Panes[0] = setup.Pane
 	luna.sessions[0] = setup
-	defer shortWaits()()
+	shortWaits(t)
 	dir := answerDir("claude", "p1")
 	defer os.RemoveAll(dir)
 	luna.screen = "Which branch?\n"
@@ -1444,7 +1542,7 @@ func TestHookAnswerToPrompt(t *testing.T) {
 	setup.Agent = "claude"
 	setup.Panes[0] = setup.Pane
 	luna.sessions[0] = setup
-	defer shortWaits()()
+	shortWaits(t)
 	dir := answerDir("claude", "p1")
 	defer os.RemoveAll(dir)
 	luna.screen = "$ "

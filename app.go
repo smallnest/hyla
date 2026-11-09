@@ -188,12 +188,12 @@ type App struct {
 	// the pointer was last over a pane, in the window.
 	hoverPane string
 	hoverAt   [2]float32
-	// claimGen counts the wheel's rests in each pane, of which the last
-	// tells its host the user is there (claimWhenRest). claimMu guards it:
-	// the wheel's callback and the frame that drops a pane both reach it,
-	// on their own goroutines.
-	claimMu  sync.Mutex
-	claimGen map[string]int
+	// claims are the wheel's rests in each pane, of which the last tells
+	// its host the user is there (claimWhenRest). claimMu guards them: the
+	// wheel's callback and the frame that drops a pane both reach them, on
+	// their own goroutines.
+	claimMu sync.Mutex
+	claims  map[string]*claimWait
 
 	// Panes dragged: the zone last under the pointer, the pane whose
 	// drop preview shows and since when, and the panes just moved, which
@@ -889,8 +889,12 @@ func (a *App) touch(id string) {
 
 func (a *App) dropTerm(id string) {
 	a.claimMu.Lock()
-	delete(a.claimGen, id)
+	cw := a.claims[id]
+	delete(a.claims, id)
 	a.claimMu.Unlock()
+	if cw != nil {
+		cw.t.Stop()
+	}
 	if e := a.terms[id]; e != nil {
 		if e.term != nil {
 			e.term.Close()
@@ -1188,33 +1192,45 @@ func (a *App) termOptions(id string, conn *gated) terminal.Options {
 // claimWhenRest tells the host the user is in the pane id, as its stream's
 // Claim does, once the wheel rests: a wheel's scroll, and every one of a
 // trackpad's, comes sooner. Each claim makes the host size the pane to
-// this window, and its frames wait for that.
-func (a *App) claimWhenRest(id string, conn interface{ Claim() error }) {
+// this window, and its frames wait for that. A scroll after the last puts
+// the claim off, rather than start one of its own to drop.
+func (a *App) claimWhenRest(id string, conn claimer) {
 	a.claimMu.Lock()
-	if a.claimGen == nil {
-		a.claimGen = map[string]int{}
+	defer a.claimMu.Unlock()
+	if a.claims == nil {
+		a.claims = map[string]*claimWait{}
 	}
-	n := a.claimGen[id] + 1
-	a.claimGen[id] = n
-	a.claimMu.Unlock()
-	go func() {
-		time.Sleep(claimRest)
-		a.main(func() {
-			// The last rest is the one that claims: an earlier one, which
-			// a later scroll made stale, returns.
-			a.claimMu.Lock()
-			last := a.claimGen[id] == n
-			if last {
-				delete(a.claimGen, id)
-			}
-			a.claimMu.Unlock()
-			if !last || a.terms[id] == nil {
-				return
-			}
-			conn.Claim()
-		})
-	}()
+	if cw := a.claims[id]; cw != nil {
+		cw.t.Reset(claimRest)
+		return
+	}
+	cw := &claimWait{}
+	cw.t = time.AfterFunc(claimRest, func() { a.claimAtRest(id, cw, conn) })
+	a.claims[id] = cw
 }
+
+// claimAtRest claims the pane id for the wheel's rest cw, if it is still
+// the pane's last, on the main thread.
+func (a *App) claimAtRest(id string, cw *claimWait, conn claimer) {
+	a.main(func() {
+		a.claimMu.Lock()
+		last := a.claims[id] == cw
+		if last {
+			delete(a.claims, id)
+		}
+		a.claimMu.Unlock()
+		if !last || a.terms[id] == nil {
+			return
+		}
+		conn.Claim()
+	})
+}
+
+// claimWait is a pane's wheel resting, and the timer that ends the rest.
+type claimWait struct{ t *time.Timer }
+
+// claimer asks a host for the size of the pane a stream shows.
+type claimer interface{ Claim() error }
 
 // claimRest is how long the wheel rests before a pane claims the size: more
 // than the least between a trackpad's scroll events, short enough that the

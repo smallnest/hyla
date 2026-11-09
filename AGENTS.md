@@ -59,7 +59,7 @@ only that it builds.
 
 | Feature | PR | Code to find | Tests |
 |---|---|---|---|
-| Files view in the side panel | #241 | `sideFiles`, `filesView`, `filesRoot` | `TestSideToggle`, `TestFilePane`, `TestFileTreeRel` |
+| Files view in the side panel | #241 | `sideFiles`, `filesRoot` | `TestFilesTab`, `TestFilesIconsAndMenu`, `TestViewerImageAndOpen` |
 | Sidebar sort and group, project badges, folded projects | #214 | `sortButton`, `sessionSidebar`, `projectBadgeColor`, `projectInitial`, `dateHeader` | `TestProjectOrder`, `TestProjectDrag`, `TestSessionAlign`, `TestCollapseSelectedProject`, `TestSidebarRowKeepsTime` |
 | Background opacity and blur | #211 | `washOpacity`, `vibrancyFor`, `WindowBlur` | `TestVibrancyFor`, `TestBlurlessBackgroundIsTranslucent`, `TestTranslucentGlass` |
 | The menu of installed monospaced fonts | #209 | `fontOptions` | `TestFontOptionsInstalled` |
@@ -67,10 +67,10 @@ only that it builds.
 | Quitting ends this machine's sessions | #219 | `quitRequested`, `quitAndEnd`, `QuitEndsSessions` | `TestQuitEndsSessions` |
 
 ```sh
-for s in sideFiles filesView sortButton sessionSidebar projectBadgeColor fontOptions petState quitRequested vibrancyFor; do
+for s in sideFiles filesRoot sortButton sessionSidebar projectBadgeColor fontOptions petState quitRequested vibrancyFor; do
 	grep -rq "$s" --include='*.go' . || echo "missing: $s"
 done
-go test . -run 'TestSideToggle|TestFilePane|TestProjectOrder|TestProjectDrag|TestSessionAlign|TestCollapseSelectedProject|TestSidebarRowKeepsTime|TestQuitEndsSessions|TestFontOptionsInstalled|TestVibrancyFor|TestBlurlessBackgroundIsTranslucent|TestTranslucentGlass'
+go test . -run 'TestFilesTab|TestFilesIconsAndMenu|TestViewerImageAndOpen|TestProjectOrder|TestProjectDrag|TestSessionAlign|TestCollapseSelectedProject|TestSidebarRowKeepsTime|TestQuitEndsSessions|TestFontOptionsInstalled|TestVibrancyFor|TestBlurlessBackgroundIsTranslucent|TestTranslucentGlass'
 ```
 
 The branches the pull requests came from (`feat/files-view`,

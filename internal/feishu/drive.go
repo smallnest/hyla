@@ -80,8 +80,9 @@ func (b *Bot) prompt(key, chatID, response, text string, t turnInfo) {
 	s, err := b.session(bnd.Session)
 	if err != nil {
 		// The session, closed from the app or another host, binds no
-		// longer.
-		b.unbind(key)
+		// longer: the chat's binding goes, whichever topic the message
+		// came in.
+		b.unbind(chatID)
 		b.reply(chatID, "The session this chat had is gone. /new starts one, or /use an open one.")
 		return
 	}

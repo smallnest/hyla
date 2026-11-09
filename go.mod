@@ -9,7 +9,7 @@ require (
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be
 	github.com/coder/websocket v1.8.15
 	github.com/ebitengine/purego v0.11.3
-	github.com/egoist/mygo v0.8.3
+	github.com/egoist/mygo v0.8.4-0.20261109155211-c101dc948337
 	github.com/hashicorp/yamux v0.1.2
 	github.com/larksuite/oapi-sdk-go/v3 v3.12.2
 	github.com/pkg/sftp v1.13.12

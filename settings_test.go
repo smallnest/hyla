@@ -953,7 +953,13 @@ func TestAdsCompileAgainAfterAFailure(t *testing.T) {
 	// none started.
 	done := make(chan struct{}, 8)
 	adblockDone = func() { done <- struct{}{} }
-	t.Cleanup(func() { adblockRules, adblockDone = compileAdBlock, func() {} })
+	// The wait after a failed compile ends at once: a test need not wait.
+	var now atomic.Int64
+	now.Store(time.Now().UnixNano())
+	adNow = func() time.Time { return time.Unix(0, now.Load()) }
+	t.Cleanup(func() {
+		adblockRules, adblockDone, adNow = compileAdBlock, func() {}, time.Now
+	})
 	// page is a page's load, which starts a compile or finds the lists
 	// compiled, with its answer taken.
 	page := func() int32 {
@@ -969,12 +975,77 @@ func TestAdsCompileAgainAfterAFailure(t *testing.T) {
 		t.Fatalf("a failed compile ran once: %d calls", n)
 	}
 	fail.Store(false)
+	now.Add(int64(adRetry))
 	if n := page(); n != 2 {
-		t.Fatalf("the next page compiles the lists again: %d calls", n)
+		t.Fatalf("the page after the wait compiles the lists again: %d calls", n)
 	}
 	// A failed compile left no rules: the lists count as compiled from
 	// its start, until its error clears them.
 	if n := page(); n != 2 {
 		t.Fatalf("the lists compiled are compiled again: %d calls", n)
+	}
+}
+
+// A list that keeps failing is not downloaded at every page: each failed
+// compile waits longer than the one before, and a compile that succeeds
+// ends the wait.
+func TestAdsWaitAfterAFailure(t *testing.T) {
+	a := testApp(t)
+	a.set.BlockAds = true
+	a.set.AdLists = []string{"https://example.com/filters.txt"}
+	var calls atomic.Int32
+	fail := atomic.Bool{}
+	fail.Store(true)
+	adblockRules = func(ids []string) ([]*mygo.ContentRules, error) {
+		calls.Add(1)
+		if fail.Load() {
+			return nil, fmt.Errorf("no network")
+		}
+		return nil, nil
+	}
+	done := make(chan struct{}, 8)
+	adblockDone = func() { done <- struct{}{} }
+	var now atomic.Int64
+	now.Store(time.Now().UnixNano())
+	adNow = func() time.Time { return time.Unix(0, now.Load()) }
+	t.Cleanup(func() {
+		adblockRules, adblockDone, adNow = compileAdBlock, func() {}, time.Now
+	})
+	page := func() int32 {
+		a.main(func() { a.compileAds() })
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			t.Fatal("a page's load gets no answer")
+		}
+		return calls.Load()
+	}
+	if n := page(); n != 1 {
+		t.Fatalf("the first page ran %d compiles, want 1", n)
+	}
+	if n := page(); n != 1 {
+		t.Fatalf("the next page, inside the wait, ran %d compiles, want 1", n)
+	}
+	// The wait over, the lists go again, and fail again.
+	t0 := now.Load()
+	now.Store(t0 + int64(adRetry))
+	if n := page(); n != 2 {
+		t.Fatalf("the page after the wait ran %d compiles, want 2", n)
+	}
+	// The second failure waits twice as long: a page inside the second
+	// wait does not go.
+	t1 := now.Load()
+	now.Store(t1 + int64(adRetry+adRetry/2))
+	if n := page(); n != 2 {
+		t.Fatalf("the page inside the second wait ran %d compiles, want 2", n)
+	}
+	now.Store(t1 + int64(2*adRetry))
+	fail.Store(false)
+	if n := page(); n != 3 {
+		t.Fatalf("the page after the waits ran %d compiles, want 3", n)
+	}
+	// Succeeded, the lists are compiled: no page compiles them again.
+	if n := page(); n != 3 {
+		t.Fatalf("a page after a compile ran %d compiles, want 3", n)
 	}
 }

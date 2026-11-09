@@ -18,9 +18,16 @@ number; the notes of the upstream releases it includes follow its own.
   same changes.
 - The app shows and holds the settings as the file keeps them after it
   saves them, so a value it corrects no longer differs from the file.
-- A filter list that fails to download or compile is tried again the next
-  time a browser pane shows a page, rather than leaving every page
-  without ad blocking until the list settings change.
+- A filter list that fails to download or compile is tried again after a
+  wait, which doubles with each failure up to a day, rather than leaving
+  every page without ad blocking until the list settings change, or
+  downloading the list at every page.
+- A Feishu chat whose session is gone unbinds the chat from a group
+  thread as from the chat itself, so its next message starts afresh
+  without /new.
+- The turns of several Feishu chats write their bindings one at a time,
+  so a restart no longer finds a half-written file.
+- A wheel's scrolls over a pane set one timer, not one per scroll.
 
 ## 3.5.5
 
