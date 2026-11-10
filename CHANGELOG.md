@@ -4,8 +4,26 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
-## Unreleased
+## 3.6.0
 
+- **Settings › Appearance** offers four backgrounds unlike the washes:
+  **Ember** runs from dark brick to firelight, **Tidal** from water to a
+  pale horizon band to night at a corner, **Umbra** is indigo with a faint
+  moon, and **Static** a teal field ruled like a teletype's paper. A wash
+  may now turn its gradient and draw a scene under the cards, and the
+  tiles in Settings draw each the same way. **Plain**, for none, stands
+  after them.
+- An SSH machine's row and a K8s pod's row follow **Settings › General ›
+  Sidebar rows** as a session's does: the detailed row puts the address,
+  or the command, on a second line over the row's width, and the compact
+  row keeps it on one line beside the name, in place of a row that was
+  always two lines tall.
+- The sidebar's hierarchy keeps its order in greys: a project's name is a
+  muted grey, lighter than its sessions' names, and a group's name is
+  lighter again.
+- A wheel's scrolls over a pane set one timer, not one per scroll, and
+  tell the host that the user is there once the wheel rests, not at each
+  of the hundreds a trackpad sends, whose frames held the terminal up.
 - A prompt sent from Feishu while the agent works waits its turn in a blue
   card titled 加入请求队列，请等待 (Added to the queue), which goes when its
   turn begins, or when /stop ends it.
@@ -27,7 +45,6 @@ number; the notes of the upstream releases it includes follow its own.
   without /new.
 - The turns of several Feishu chats write their bindings one at a time,
   so a restart no longer finds a half-written file.
-- A wheel's scrolls over a pane set one timer, not one per scroll.
 
 ## 3.5.5
 
