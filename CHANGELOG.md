@@ -4,6 +4,29 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.6.2
+
+- **Info**'s folder card opens the folder in **Zed**, beside Hyla, through
+  Zed's CLI, or its app where the CLI is not installed, in place of a file
+  pane of Hyla's that gave the folder nothing the editor the user already
+  runs does. Another machine's folder keeps no such button: its files are
+  that machine's.
+- The row of a machine in the SSH project offers **Disconnect Host**: it
+  ends the terminal the machine runs `ssh` in and leaves the row, where a
+  click starts a new one. A machine with no terminal has nothing to
+  disconnect, and the item is disabled there.
+- **Remove Host…** on a Tailcat host takes the host out at last, where
+  the question searched the configuration's hosts and left this one in
+  place for good. Its row no longer offers an edit of its address, a pair
+  code that is a secret, nor the **Remote control** switch of a
+  configuration host.
+- **Settings › Hosts › Tailcat**'s switch, **Use Tailcat to Reach Other
+  Hosts**, stays off once the user turns it off: a configuration that
+  named a Tailcat host turned it back on in the same frame, and off now
+  drops this computer's listener too.
+- A Tailcat host that cannot be reached no longer crashes the app, which
+  took the failed dial for a new connection.
+
 ## 3.6.1
 
 - The sidebar's top bar has a button that folds every project at once,
