@@ -6,6 +6,7 @@ package actions
 import (
 	"runtime"
 	"strings"
+	"sync"
 )
 
 // Action is something the app does.
@@ -151,12 +152,27 @@ func Keys(a Action, overrides map[string]string) string {
 	return a.Keys
 }
 
+// glyphs are the accelerators written already: a view draws a shortcut
+// every frame, and writing one splits it and bends it to the system's
+// symbols each time.
+var glyphs sync.Map // accelerator → its glyphs
+
 // Glyphs writes an accelerator as the system's menus show it: "⇧⌘D" on
 // macOS, "Ctrl+Shift+D" elsewhere.
 func Glyphs(accel string) string {
 	if accel == "" {
 		return ""
 	}
+	if g, ok := glyphs.Load(accel); ok {
+		return g.(string)
+	}
+	g := glyphsOf(accel)
+	glyphs.Store(accel, g)
+	return g
+}
+
+// glyphsOf is Glyphs' own writing, once an accelerator.
+func glyphsOf(accel string) string {
 	parts := strings.Split(accel, "+")
 	key := parts[len(parts)-1]
 	if key == "" && len(parts) > 1 { // "CmdOrCtrl++"
