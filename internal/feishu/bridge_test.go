@@ -484,6 +484,9 @@ func newBot(t *testing.T) (*Bot, *fakeLuna, *fakeMessages) {
 	b.msgs = msgs
 	b.files = msgs
 	b.sync = true
+	// A turn of a test starts no OpenCode server: what its command
+	// reports is what the card shows.
+	b.noOC = true
 	return b, luna, msgs
 }
 
@@ -1418,6 +1421,61 @@ func TestTopicCard(t *testing.T) {
 	}
 	if len(msgs.topics) != 1 {
 		t.Errorf("the answer is a card of its own: %v", msgs.topics)
+	}
+}
+
+// A working card shows the tool a background agent runs and what it says,
+// and none of the stream of events it says them in.
+func TestBackgroundTail(t *testing.T) {
+	step := `{"type":"step_start","part":{"type":"step-start"}}`
+	tool := `{"type":"tool_use","part":{"type":"tool","tool":"shell"}}`
+	said := `{"type":"text","part":{"type":"text","text":"Looking at the docs."}}`
+	// The events alone are the tool it runs, and no text.
+	if got := backgroundTail("opencode", step+"\n"+tool, "en"); got != "⏳ **shell** · 1 tool" {
+		t.Errorf("the events read %q", got)
+	}
+	// The words it says, under the tool.
+	got := backgroundTail("opencode", step+"\n"+tool+"\n"+said, "en")
+	if !strings.HasPrefix(got, "⏳ **shell** · 1 tool") || !strings.Contains(got, "Looking at the docs.") {
+		t.Errorf("the turn reads %q", got)
+	}
+	// The words alone, before a tool runs.
+	if got := backgroundTail("opencode", step+"\n"+said, "en"); strings.Contains(got, "⏳") || !strings.Contains(got, "Looking at the docs.") {
+		t.Errorf("the words read %q", got)
+	}
+	// An output of no events is its own text, as a command's is.
+	if got := backgroundTail("dsh", "line one\nline two", "en"); got != "line one\nline two" {
+		t.Errorf("a plain output reads %q", got)
+	}
+}
+
+// A background turn shows as its own card, whichever agent runs it: the
+// card says the turn runs as it starts, and takes the answer as it ends.
+func TestCommandModeCard(t *testing.T) {
+	b, luna, msgs := newBot(t)
+	shortWaits(t)
+	b.cfg.Run = settings.FeishuRunCommand
+	b.cfg.Agent = "opencode"
+	bindChat(b, "c1", binding{Session: "s1", Agent: "opencode"})
+	b.leave("c1")
+	luna.files = []string{`{"type":"text","part":{"type":"text","text":"Pong"}}`, ""}
+	b.onMessage(nil, textMsg("c1", "ou_me", "ping"))
+	if len(msgs.shown) != 1 {
+		t.Fatalf("cards sent %d", len(msgs.shown))
+	}
+	working := parseCard(t, msgs.shown[0])
+	if head := working["header"].(map[string]any); head["template"] != "grey" ||
+		head["title"].(map[string]any)["content"] != "🔵 Running…" {
+		t.Errorf("the turn's card is %v", working)
+	}
+	// Feishu takes no card without a body: the card says the agent
+	// thinks until it has words of its own.
+	if working["body"] == nil || !strings.Contains(cardText(working), "Thinking") {
+		t.Errorf("the turn's card has no body: %v", working)
+	}
+	last := parseCard(t, msgs.cards[len(msgs.cards)-1])
+	if last["header"].(map[string]any)["template"] != "green" || !strings.Contains(cardText(last), "Pong") {
+		t.Errorf("the answer's card is %v", last)
 	}
 }
 

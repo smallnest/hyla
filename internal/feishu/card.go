@@ -470,7 +470,8 @@ func escapeMarkdown(s string) string {
 func word(lang, key string) string {
 	w := map[string]map[string]string{
 		"en_us": {
-			"state.working": "Working", "state.running": "Running", "state.done": "Done", "state.asks": "Waiting for you", "state.error": "Error",
+			"state.working": "Working", "state.running": "Running", "state.thinking": "Thinking…", "state.done": "Done", "state.asks": "Waiting for you", "state.error": "Error",
+			"tool": "%d tool", "tools": "%d tools", "tool.one": "tool",
 			"asks": "The agent waits for your answer. Use /answer, or send a message.",
 			"open": "Open in Hyla", "opened": "Hyla shows the session.", "gone": "This card's session is gone.",
 			"inTerminal": "The answer follows in its own card.",
@@ -485,7 +486,8 @@ func word(lang, key string) string {
 			"held.title": "Added to the queue. Wait for the turn to end.",
 		},
 		"zh_cn": {
-			"state.working": "运行中", "state.running": "运行中", "state.done": "已完成", "state.asks": "等待你回答", "state.error": "出错",
+			"state.working": "运行中", "state.running": "运行中", "state.thinking": "思考中…", "state.done": "已完成", "state.asks": "等待你回答", "state.error": "出错",
+			"tool": "%d 次调用", "tools": "%d 次调用", "tool.one": "工具",
 			"asks": "代理在等待你回答。用 /answer 回答，或发送一条消息。",
 			"open": "在 Hyla 中打开", "opened": "Hyla 已打开该会话。", "gone": "这张卡片的会话已不存在。",
 			"inTerminal": "回答在下一张卡片中。",
@@ -500,7 +502,8 @@ func word(lang, key string) string {
 			"held.title": "加入请求队列，请等待",
 		},
 		"ja_jp": {
-			"state.working": "実行中", "state.running": "実行中", "state.done": "完了", "state.asks": "回答待ち", "state.error": "エラー",
+			"state.working": "実行中", "state.running": "実行中", "state.thinking": "考え中…", "state.done": "完了", "state.asks": "回答待ち", "state.error": "エラー",
+			"tool": "%d 回", "tools": "%d 回", "tool.one": "ツール",
 			"asks":       "エージェントは回答を待っています。/answer で答えるか、メッセージを送ってください。",
 			"inTerminal": "回答は次のカードにあります。",
 			"perm.title": "許可が必要です",
@@ -590,10 +593,6 @@ func (p postPart) String() string {
 	}
 	return p.Text
 }
-
-// terminal tells an agent whose answer may hold a terminal's rows, which
-// a card shows as they are.
-func terminal(agent string) bool { return agent == "opencode" || agent == "codex" }
 
 // bodyOf takes a card's body from its JSON, for an update, and keeps the
 // header, which was sent with the card: the header's color stays.

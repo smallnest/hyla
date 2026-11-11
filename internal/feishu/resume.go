@@ -84,6 +84,14 @@ func (b *Bot) followCommand(c *chat, session string, out proto.Output, started t
 	bnd := b.bindingOf(bindingKey(c.chat))
 	agent, dir, sid := bnd.Agent, bnd.Dir, bnd.Conversation
 	from, answer := out.From, out.Text
+	// The card takes the tool the turn runs, its text, and the time it
+	// has run, as often as feishu-stream says.
+	shown := time.Now()
+	began := shown
+	every := cardEvery
+	if s := time.Duration(b.cfg.Stream); s >= time.Second {
+		every = s
+	}
 	for !out.Ended {
 		if time.Since(started) >= b.timeout() {
 			if msg := fmt.Sprintf("Still working after %s. /stop ends it.", b.timeout()); !b.card(card, "working", msg, "") {
@@ -101,6 +109,15 @@ func (b *Bot) followCommand(c *chat, session string, out proto.Output, started t
 		}
 		out = next
 		from, answer = out.From, answer+out.Text
+		if card != nil && time.Since(shown) >= every {
+			tail := backgroundTail(agent, answer, langOf(text))
+			if tail == "" {
+				tail = thinking(card, time.Since(began))
+			}
+			if b.card(card, "working", tail, "") {
+				shown = time.Now()
+			}
+		}
 	}
 	b.finished(key, session, event, agent, dir, sid, text, out, answer, card, started)
 }

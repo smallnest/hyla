@@ -57,6 +57,11 @@ func (b *Bot) card(c *turnCard, state, text, note string) bool {
 	if note != "" {
 		body += "\n\n" + note
 	}
+	if body == "" && state == "working" {
+		// Feishu takes no card without a body: a turn card says the
+		// agent thinks until it has words of its own to show.
+		body = "_" + word(c.lang, "state.thinking") + "_"
+	}
 	if c.msg != "" && c.state == state && c.text == body {
 		// The card says this already: a patch of the same content is no
 		// update, and Feishu counts one.
@@ -122,6 +127,13 @@ var cardRetry = 400 * time.Millisecond
 // cardTail is a turn's text as far as it goes, as a working card shows
 // it: the rows it printed since it began, without the screen's escapes.
 func cardTail(screen string, start int) string { return clean(since(screen, start, toolTail)) }
+
+// thinking is a working card's body before the turn has words of its own:
+// its state and the time it has run, so that a long step shows that the
+// agent is at work.
+func thinking(c *turnCard, run time.Duration) string {
+	return "_" + word(c.lang, "state.thinking") + " " + durationText(run) + "_"
+}
 
 // watchCard follows a turn of the pane from base on until it ends: the
 // agent idle once seen working, or the pane waiting for the user. The

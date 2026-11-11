@@ -143,10 +143,14 @@ type Bot struct {
 	lark  *lark.Client
 	ws    *larkws.Client
 	msgs  Messages
-	files Files  // where the messages' files go, nil in a test that takes none
-	me    string // the open_id of the one who ran hyla feishu setup
+	files Files          // where the messages' files go, nil in a test that takes none
+	me    string         // the open_id of the one who ran hyla feishu setup
+	oc    openCodeServer // the OpenCode server the commands go through, for their progress
 	logf  func(format string, args ...any)
 	sync  bool // turns run in the handler's goroutine, for tests
+	// noOC tells a bot that starts no OpenCode server, as a test's: its
+	// turns show what the command reports alone.
+	noOC bool
 	// began is when this bot started: the turns that ran before it are
 	// the ones it takes on.
 	began time.Time
@@ -321,6 +325,7 @@ func New(c Config) *Bot {
 func (b *Bot) Run(ctx context.Context) error {
 	hylad = b.api
 	b.load()
+	defer b.stopOpenCode()
 	return b.ws.Start(ctx)
 }
 

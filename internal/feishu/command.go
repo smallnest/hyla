@@ -48,7 +48,24 @@ func (b *Bot) background(key, chatID, response, text string, t turnInfo) {
 	if sid == "" {
 		sid = newUUID()
 	}
-	cmd := b.backgroundCommand(agent, sid, resume, text, true)
+	// An OpenCode turn's words come from its server as it writes them,
+	// which the command's stream reports a step at a time.
+	var prog *turnProgress
+	server, pass := "", ""
+	if agent == "opencode" {
+		if url, pw, err := b.openCode(); err == nil {
+			server, pass = url, pw
+			prog = &turnProgress{}
+			go prog.watch(url, pw, opencodeSession(resume, sid))
+			defer prog.stop()
+		} else {
+			b.logf("feishu: opencode's server: %v", err)
+		}
+	}
+	cmd := b.turnCommand(agent, sid, resume, server, true)
+	if cmd != nil {
+		cmd = append(cmd, text)
+	}
 	asks := false
 	if agent == "claude" {
 		if b.yoloFor(agent) {
@@ -77,6 +94,10 @@ func (b *Bot) background(key, chatID, response, text string, t turnInfo) {
 			params.Env = append(params.Env, kv)
 		}
 	}
+	if pass != "" {
+		// The command's server takes its password, which the bot made.
+		params.Env = envWith(params.Env, "OPENCODE_PASSWORD", pass)
+	}
 	if err := b.api.Call("agent.background", params, nil); err != nil {
 		b.reply(chatID, err.Error())
 		return
@@ -89,12 +110,22 @@ func (b *Bot) background(key, chatID, response, text string, t turnInfo) {
 		// shows the chat it asked.
 		b.api.Call("select", proto.FocusParams{Session: session}, nil)
 	}
-	// The turn shows by its own card, where the chat has Feishu's cards,
-	// and the agent is one that runs its prompt without a terminal.
+	// The turn shows by its own card, where the chat has Feishu's cards:
+	// every agent of a background turn prints what it does, which the
+	// card takes, and its answer, which the same card ends with.
 	var card *turnCard
-	if !terminal(agent) {
+	if cards() {
 		card = b.newTurnCard(key, chatID, langOf(text))
 		b.card(card, "working", "", "")
+	}
+	// The card takes the turn's new text as often as feishu-stream says,
+	// and the time the turn has run until it has words, so that a card
+	// of a long step is not still.
+	shown := time.Now()
+	started := shown
+	every := cardEvery
+	if s := time.Duration(b.cfg.Stream); s >= time.Second {
+		every = s
 	}
 	stop := time.Now().Add(b.timeout())
 	ended := make(chan struct{})
@@ -117,6 +148,23 @@ func (b *Bot) background(key, chatID, response, text string, t turnInfo) {
 		if out.Ended {
 			b.finished(key, chatID, t.event, agent, dir, sid, text, out, answer, card, t.start)
 			return
+		}
+		if card != nil && time.Since(shown) >= every {
+			tail := ""
+			if prog != nil {
+				if name, n, words := prog.snapshot(); n > 0 || words != "" {
+					tail = progressBody(name, n, words, langOf(text))
+				}
+			}
+			if tail == "" {
+				tail = backgroundTail(agent, answer, langOf(text))
+			}
+			if tail == "" {
+				tail = thinking(card, time.Since(started))
+			}
+			if b.card(card, "working", tail, "") {
+				shown = time.Now()
+			}
 		}
 		if time.Now().After(stop) {
 			b.setBinding(bindingKey(chatID), binding{Agent: agent, Dir: dir, Conversation: sid})
@@ -231,7 +279,7 @@ func opencodeSession(resume, sid string) string {
 // turn takes the yolo option as its settings have it, not as its chat
 // told it for a session without it.
 func (b *Bot) backgroundCommand(agent, sid, resume, text string, told bool) []string {
-	cmd := b.turnCommand(agent, sid, resume, told)
+	cmd := b.turnCommand(agent, sid, resume, "", told)
 	if cmd == nil {
 		return nil
 	}
@@ -239,7 +287,7 @@ func (b *Bot) backgroundCommand(agent, sid, resume, text string, told bool) []st
 }
 
 // turnCommand is a background turn's command without its prompt.
-func (b *Bot) turnCommand(agent, sid, resume string, told bool) []string {
+func (b *Bot) turnCommand(agent, sid, resume, server string, told bool) []string {
 	again := resume != ""
 	wrote := len(b.cfg.AgentCommand(agent)) > 0
 	// The turn's words: those of feishu-agent-command, with the option
@@ -287,8 +335,12 @@ func (b *Bot) turnCommand(agent, sid, resume string, told bool) []string {
 		}
 	case "opencode":
 		// Its events, as JSON lines, name the session, its answer, and
-		// what the turn used.
+		// what the turn used. The server is the bot's, which reports the
+		// words as the agent writes them.
 		cmd = append(cmd, "run", "--format", "json")
+		if server != "" {
+			cmd = append(cmd, "--server", server)
+		}
 		// OpenCode names a session of its own ses_…, and makes the one
 		// an ID it does not know names: a chat's ID, or a pane's
 		// conversation's, is one of its own, which the turn keeps.
@@ -453,6 +505,125 @@ func conversation(agent, raw string, sid string) string {
 		return sid // the CLI keeps the one it was given
 	}
 	return found
+}
+
+// backgroundTail is a background turn's text as a working card shows it:
+// the last tool the agent ran, and the last rows of what it said, and
+// none of the stream it says them in.
+func backgroundTail(agent, answer, lang string) string {
+	text := commandText(agent, answer)
+	if text == "" || text == strings.TrimSpace(answer) {
+		// What the agent printed is its stream's own text, which it has
+		// not made into words yet: the card waits for the words.
+		if streamed(answer) {
+			text = ""
+		}
+	}
+	text = clean(since(text, 0, toolTail))
+	line := toolLine(agent, answer, lang)
+	switch {
+	case line != "" && text != "":
+		return line + "\n\n" + text
+	case line != "":
+		return line
+	}
+	return text
+}
+
+// streamed tells a turn's output that is a stream of JSON events, which
+// the agent's parsing makes into words, and which no card shows as it is.
+func streamed(raw string) bool {
+	line, _, _ := strings.Cut(strings.TrimSpace(raw), "\n")
+	return strings.HasPrefix(strings.TrimSpace(line), "{")
+}
+
+// toolLine is a background turn's tools as a working card shows them: the
+// last one the agent ran, and how many it ran, as "⏳ shell · 5 tools".
+func toolLine(agent, raw, lang string) string {
+	name, n := lastTool(agent, raw)
+	return toolSummary(name, n, lang)
+}
+
+// toolSummary is a turn's tools as a working card shows them.
+func toolSummary(name string, n int, lang string) string {
+	if n == 0 {
+		return ""
+	}
+	if name == "" {
+		name = word(lang, "tool.one")
+	}
+	key := "tools"
+	if n == 1 {
+		key = "tool"
+	}
+	return "⏳ **" + escapeMarkdown(name) + "** · " + fmt.Sprintf(word(lang, key), n)
+}
+
+// progressBody is a turn's progress as a working card shows it: the tool
+// it runs, how many it ran, and the last rows of the words it wrote.
+func progressBody(name string, n int, words, lang string) string {
+	parts := make([]string, 0, 2)
+	if line := toolSummary(name, n, lang); line != "" {
+		parts = append(parts, line)
+	}
+	if said := clean(since(words, 0, toolTail)); said != "" {
+		parts = append(parts, said)
+	}
+	return strings.Join(parts, "\n\n")
+}
+
+// lastTool is the last tool a background turn ran, and how many it ran:
+// the tool_use of an OpenCode turn, the tool_use of a Claude Code one,
+// and the items a Codex turn completes.
+func lastTool(agent, raw string) (string, int) {
+	name, n := "", 0
+	for _, line := range strings.Split(raw, "\n") {
+		switch agent {
+		case "opencode":
+			var e struct {
+				Type string `json:"type"`
+				Part *struct {
+					Tool string `json:"tool"`
+				} `json:"part"`
+			}
+			if json.Unmarshal([]byte(line), &e) == nil && e.Type == "tool_use" && e.Part != nil && e.Part.Tool != "" {
+				name, n = e.Part.Tool, n+1
+			}
+		case "claude":
+			var m struct {
+				Type    string `json:"type"`
+				Message *struct {
+					Content []struct {
+						Type string `json:"type"`
+						Name string `json:"name"`
+					} `json:"content"`
+				} `json:"message"`
+			}
+			if json.Unmarshal([]byte(line), &m) != nil || m.Type != "assistant" || m.Message == nil {
+				continue
+			}
+			for _, c := range m.Message.Content {
+				if c.Type == "tool_use" && c.Name != "" {
+					name, n = c.Name, n+1
+				}
+			}
+		case "codex":
+			var e struct {
+				Type string `json:"type"`
+				Item *struct {
+					Type     string `json:"type"`
+					ItemType string `json:"item_type"`
+				} `json:"item"`
+			}
+			if json.Unmarshal([]byte(line), &e) != nil || e.Type != "item.completed" || e.Item == nil {
+				continue
+			}
+			if t := firstNotEmpty(e.Item.Type, e.Item.ItemType); t != "" && t != "agent_message" && t != "reasoning" {
+				name, n = t, n+1
+			}
+		}
+	}
+	return name, n
 }
 
 // backgroundReply is the answer a background turn gives: its text, or
