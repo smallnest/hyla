@@ -3,12 +3,12 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
 
-	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 	"hyla/internal/client"
 
@@ -313,11 +313,16 @@ func (a *App) infoDir(c *ui.Context, pal *palette, s *proto.Session, h *host, p 
 	_, name := splitDir(dir)
 	a.infoCard(c, pal, infoFoldDir, folderIcon, name, dir, func() {
 		ui.Row(c).Padding(8, 12, 12, 12).Gap(6).Wrap().Children(func() {
-			a.infoAction(c, pal, "app-editor", locales.InfoOpenEditor(mygo.App.Name()), docIcon, func() {
-				if file := indexFile(h, s, p, dir); file != "" {
-					a.split(s, proto.CreateParams{Split: p.ID, Direction: "right", File: file})
-				}
-			})
+			// This machine's folder alone opens here: another machine's
+			// files are its own, its Zed's to open.
+			if dir != "" && !h.remote() {
+				a.infoAction(c, pal, "zed", locales.InfoOpenEditor("Zed"), zedIcon, func() {
+					if cur := a.session(sid); cur != nil {
+						a.setFocus(cur, pid)
+					}
+					openInZed(dir)
+				})
+			}
 			editor := editorName(h)
 			if editor == "vi" {
 				editor = "Vim"
@@ -379,21 +384,23 @@ func editorGlyph(name string) *ui.SVG {
 	return linkIcon
 }
 
-// indexFile is the file a folder's file pane opens: its README, or, for a
-// host without one to ask, the folder itself, whose pane lists it.
-func indexFile(h *host, s *proto.Session, p *proto.Pane, dir string) string {
-	if dir == "" {
-		return ""
-	}
-	if h.remote() {
-		return dir
-	}
-	for _, name := range []string{"README.md", "README", "readme.md"} {
-		if st, err := os.Stat(filepath.Join(dir, name)); err == nil && st.Mode().IsRegular() {
-			return filepath.Join(dir, name)
+// openInZed opens a folder on this machine in the Zed outside Hyla: Zed's
+// CLI, in a PATH, or else macOS's launch of the app by its bundle id, for
+// a Zed dragged into Applications from a disk image, which installs none.
+// The app starting may take a moment, so its wait runs off the frame.
+func openInZed(dir string) {
+	go func() {
+		cmd := exec.Command("zed", dir)
+		// The editor's output goes nowhere, and its input from nowhere,
+		// for a program that would wait on them of a window-less process.
+		cmd.Stdin, cmd.Stdout, cmd.Stderr = nil, nil, nil
+		if err := cmd.Run(); err == nil {
+			return
 		}
-	}
-	return dir
+		if runtime.GOOS == "darwin" {
+			exec.Command("/usr/bin/open", "-b", "dev.zed.Zed", dir).Run()
+		}
+	}()
 }
 
 // editorName names the editor the editor button opens the directory in:
