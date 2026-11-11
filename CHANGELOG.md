@@ -4,6 +4,19 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.6.1
+
+- The sidebar's top bar has a button that folds every project at once,
+  and unfolds them all once all are folded. A folded project stays folded
+  across runs.
+- **Info** shows its cards of the working directory, the processes, the
+  ports, Magpie and Feishu, and a click on a card's header folds it, or
+  unfolds it, so that a card below comes into view. The app keeps the
+  cards folded as the user left them.
+- The side panel's header no longer repeats the folder path: the Info
+  view's first card names the folder, the Files view names it in its
+  tree, and the tabs' buttons get the room.
+
 ## 3.6.0
 
 - **Settings › Appearance** offers four backgrounds unlike the washes:
