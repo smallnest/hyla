@@ -173,7 +173,7 @@ func (a *App) hostRow(c *ui.Context, pal *palette, h *host) {
 			ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
 				ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
 					ui.Text(c, h.name).FontSize(13.5).FontWeight(600).TextColor(pal.text).SingleLine()
-					ui.Text(c, h.addr.String()).Font("monospace").FontSize(12).TextColor(pal.textMuted).SingleLine().Ellipsis("…").MinWidth(0).Selectable()
+					ui.Text(c, addrText(h)).Font("monospace").FontSize(12).TextColor(pal.textMuted).SingleLine().Ellipsis("…").MinWidth(0).Selectable()
 				})
 				col := pal.textMuted
 				if h.conn == connFailed {
@@ -181,9 +181,15 @@ func (a *App) hostRow(c *ui.Context, pal *palette, h *host) {
 				}
 				ui.Text(c, status).FontSize(12).TextColor(col).LineHeight(1.35).Selectable()
 			})
-			iconButton(c, "edit", editIcon, locales.HostEdit(), pal, func() {
-				a.ss.hostEdit = hostDraft{name: h.name, addr: h.cfg.Addr, editing: h.name}
-			})
+			// A tailcat host's address is its pair code, which the user
+			// replaces by removing it and adding the code again: there is
+			// no edit of it, and no remote control of another machine's,
+			// which the configuration's hosts carry.
+			if !h.tc {
+				iconButton(c, "edit", editIcon, locales.HostEdit(), pal, func() {
+					a.ss.hostEdit = hostDraft{name: h.name, addr: h.cfg.Addr, editing: h.name}
+				})
+			}
 			iconButton(c, "reconnect", reloadIcon, locales.HostReconnect(), pal, func() { a.reconnectHost(h) })
 			iconButton(c, "remove", closeIcon, locales.HostRemove(), pal, func() {
 				cf := a.removeHostConfirmation(h)
@@ -196,21 +202,23 @@ func (a *App) hostRow(c *ui.Context, pal *palette, h *host) {
 				}
 			})
 		})
-		ui.Row(c).Gap(10).AlignItems(ui.Center).Padding(0, 0, 0, 26).Children(func() {
-			ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
-				ui.Text(c, locales.SetHostRemoteControl()).FontSize(12.5).TextColor(pal.text)
-				ui.Text(c, locales.SetHostRemoteControlDetail(h.name)).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
+		if !h.tc {
+			ui.Row(c).Gap(10).AlignItems(ui.Center).Padding(0, 0, 0, 26).Children(func() {
+				ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
+					ui.Text(c, locales.SetHostRemoteControl()).FontSize(12.5).TextColor(pal.text)
+					ui.Text(c, locales.SetHostRemoteControlDetail(h.name)).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
+				})
+				// The switch shows the host's setting, which a click writes back.
+				on, name := h.cfg.RemoteControl, h.name
+				toggle(c.Key("rc"), &on, pal).OnClick(func() {
+					s := a.set.Clone()
+					if cfg := s.Host(name); cfg != nil {
+						cfg.RemoteControl = on
+					}
+					a.set = s
+				})
 			})
-			// The switch shows the host's setting, which a click writes back.
-			on, name := h.cfg.RemoteControl, h.name
-			toggle(c.Key("rc"), &on, pal).OnClick(func() {
-				s := a.set.Clone()
-				if cfg := s.Host(name); cfg != nil {
-					cfg.RemoteControl = on
-				}
-				a.set = s
-			})
-		})
+		}
 		// What fixes it, a button of its own size, under the host.
 		ui.Row(c).Padding(0, 0, 0, 26).Children(func() {
 			switch {

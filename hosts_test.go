@@ -17,10 +17,13 @@ import (
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
+	"github.com/tailscale/tailcat"
+	"tailscale.com/tailcfg"
 
 	"hyla/internal/client"
 	"hyla/internal/proto"
 	"hyla/internal/remote"
+
 	"hyla/internal/settings"
 
 	"hyla/locales"
@@ -728,6 +731,59 @@ func TestRemoveHostAsksInSettings(t *testing.T) {
 	if a.ss.confirm != nil || len(a.set.Hosts) != 0 {
 		t.Errorf("not removed: question %+v, hosts %+v", a.ss.confirm, a.set.Hosts)
 	}
+}
+
+// A tailcat host is removed from the client's own list: removeHost
+// looked for it among the configuration's hosts alone, took nothing out,
+// and the row stayed for good.
+func TestRemoveTailcatHost(t *testing.T) {
+	a := testApp(t)
+	code := testPairCode()
+	s := a.set.Clone()
+	s.Tailcat, s.TailcatHosts = true, []settings.TailcatHost{{Name: "mini", Addr: "tailcat://" + code}}
+	a.applySettings(s)
+	if a.hostNamed("mini") == nil {
+		t.Fatalf("the tailcat host is not listed: %+v", a.hosts)
+	}
+	a.ss.page = "hosts"
+	tt := ui.NewTester(a.settingsView, 820, 640)
+	tt.Frame()
+	shot(t, tt, "settings-tailcat-host")
+	// Its pair code is a secret, and its address no field of the row to
+	// edit: the two controls of a configuration host's are absent.
+	if tt.HasText(code) || tt.HasText(locales.HostEdit()) {
+		t.Fatalf("the tailcat host's row says %q", tt.Texts())
+	}
+	if err := tt.Click(locales.HostRemove()); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if err := tt.Click(locales.CommonRemove()); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if len(a.set.TailcatHosts) != 0 || len(a.set.Hosts) != 0 {
+		t.Fatalf("settings after the removal: hosts %+v, tailcat %+v", a.set.Hosts, a.set.TailcatHosts)
+	}
+	if a.hostNamed("mini") != nil {
+		t.Error("the tailcat host stayed in the app")
+	}
+	// Undo puts it back, as it does a configuration host.
+	a.undoAction()
+	if len(a.set.TailcatHosts) != 1 || a.set.TailcatHosts[0].Name != "mini" || a.hostNamed("mini") == nil {
+		t.Fatalf("after the undo: tailcat %+v", a.set.TailcatHosts)
+	}
+}
+
+// testPairCode is a pair code the app reads as a tailcat address, of a
+// relay of nowhere: a host added with it fails at once, and no test
+// reaches a network.
+func testPairCode() string {
+	ci := tailcat.ConnInfo{Region: []*tailcfg.DERPRegion{{
+		RegionID: 1, RegionCode: "test", RegionName: "test",
+		Nodes: []*tailcfg.DERPNode{{Name: "n1", HostName: "127.0.0.1", DERPPort: 1}},
+	}}}
+	return string(ci.Addr())
 }
 
 // Editing a host in Settings renames it in place, keeping its connection

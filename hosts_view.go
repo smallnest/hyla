@@ -365,22 +365,42 @@ func (a *App) removeHostConfirmation(h *host) *confirmation {
 }
 
 // removeHost takes a host out of the settings, and offers to put it back:
-// its sessions keep running there meanwhile.
+// its sessions keep running there meanwhile. A tailcat host is of the
+// client's own list, which the configuration's hosts are not.
 func (a *App) removeHost(name string) {
 	s := a.set.Clone()
-	i := slices.IndexFunc(s.Hosts, func(h settings.Host) bool { return strings.EqualFold(h.Name, name) })
-	if i < 0 {
+	if i := slices.IndexFunc(s.Hosts, func(h settings.Host) bool { return strings.EqualFold(h.Name, name) }); i >= 0 {
+		removed := s.Hosts[i]
+		s.Hosts = slices.Delete(s.Hosts, i, i+1)
+		a.applySettings(s)
+		a.undoSays(locales.HostRemoved(removed.Name), func() {
+			back := a.set.Clone()
+			j := min(i, len(back.Hosts))
+			back.Hosts = slices.Insert(back.Hosts, j, removed)
+			a.applySettings(back)
+		})
 		return
 	}
-	removed := s.Hosts[i]
-	s.Hosts = slices.Delete(s.Hosts, i, i+1)
-	a.applySettings(s)
-	a.undoSays(locales.HostRemoved(removed.Name), func() {
-		back := a.set.Clone()
-		j := min(i, len(back.Hosts))
-		back.Hosts = slices.Insert(back.Hosts, j, removed)
-		a.applySettings(back)
-	})
+	if i := s.TailcatHostByName(name); i >= 0 {
+		removed := s.TailcatHosts[i]
+		s.TailcatHosts = slices.Delete(s.TailcatHosts, i, i+1)
+		a.applySettings(s)
+		a.undoSays(locales.HostRemoved(removed.Name), func() {
+			back := a.set.Clone()
+			j := min(i, len(back.TailcatHosts))
+			back.TailcatHosts = slices.Insert(back.TailcatHosts, j, removed)
+			a.applySettings(back)
+		})
+	}
+}
+
+// addrText is the address a host's row shows: a tailcat host's is a pair
+// code, which is a secret, and its name stands for it.
+func addrText(h *host) string {
+	if h.tc {
+		return h.addr.Label()
+	}
+	return h.addr.String()
 }
 
 // installOnHost asks, then installs Hyla on a host the app reaches over
