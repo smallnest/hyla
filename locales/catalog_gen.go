@@ -296,6 +296,16 @@ func (msgs Messages) ActionReconnectHost() string {
 	return Catalog.Format(msgs.locale, "actionReconnectHost", nil)
 }
 
+// ActionDisconnectHost says "Disconnect Host"
+// in the language the app shows.
+func ActionDisconnectHost() string { return In(i18n.Locale()).ActionDisconnectHost() }
+
+// ActionDisconnectHost says "Disconnect Host"
+// in the language of msgs.
+func (msgs Messages) ActionDisconnectHost() string {
+	return Catalog.Format(msgs.locale, "actionDisconnectHost", nil)
+}
+
 // ActionFind says "Find…"
 // in the language the app shows.
 func ActionFind() string { return In(i18n.Locale()).ActionFind() }

@@ -236,6 +236,27 @@ func (a *App) connectSSHTo(host sshHost) {
 	a.startSSH(host)
 }
 
+// disconnectSSHHost ends a machine's terminal, which ends the ssh running
+// in it, and leaves the row: a click on it starts a new terminal, and
+// with it a new connection.
+func (a *App) disconnectSSHHost(addr string) {
+	i := slices.IndexFunc(a.prefs.SSHHosts, func(h sshHost) bool { return h.Addr == addr })
+	if i < 0 {
+		return
+	}
+	id := a.prefs.SSHHosts[i].Session
+	if id == "" {
+		return
+	}
+	// The row has no terminal from here, whatever its end does to the
+	// list.
+	a.prefs.SSHHosts[i].Session = ""
+	a.savePrefs()
+	if s := a.session(id); s != nil {
+		a.closeSession(id, false)
+	}
+}
+
 // startSSH starts a machine's terminal, in the SSH project.
 func (a *App) startSSH(host sshHost) {
 	addr, err := remote.ParseAddr(host.Addr)
@@ -365,6 +386,11 @@ func (a *App) sshHostRow(c *ui.Context, pal *palette, i int) {
 		// list.
 		if m.Item(locales.ActionReconnectHost()).Chosen() {
 			a.connectSSHTo(h)
+		}
+		// Disconnecting ends the machine's terminal, and ssh with it, but
+		// keeps its row: a click on it starts a new terminal.
+		if m.Item(locales.ActionDisconnectHost()).Disabled(s == nil || s.Status == proto.Exited).Chosen() {
+			a.disconnectSSHHost(h.Addr)
 		}
 		m.Separator()
 		if m.Item(locales.HostCopyAddress()).Chosen() {

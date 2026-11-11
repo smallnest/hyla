@@ -26,6 +26,7 @@
   "actionZoomPane": "Zoom Pane",
   "actionShowTerminal": "Show Terminal",
   "actionReconnectHost": "Reconnect Host",
+  "actionDisconnectHost": "Disconnect Host",
   "actionFind": "Find…",
   "actionFindNext": "Find Next",
   "actionFindPrevious": "Find Previous",

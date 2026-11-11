@@ -275,7 +275,7 @@ func TestSSHHostReconnect(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	want := []string{locales.ActionReconnectHost(), "-", locales.HostCopyAddress(), locales.HostRemove()}
+	want := []string{locales.ActionReconnectHost(), locales.ActionDisconnectHost(), "-", locales.HostCopyAddress(), locales.HostRemove()}
 	if got := tt.Menu(); !reflect.DeepEqual(got, want) {
 		t.Fatalf("the row's menu shows %q, want %q", got, want)
 	}
@@ -336,7 +336,7 @@ func TestSSHHostReconnectOpen(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	want := []string{locales.ActionReconnectHost(), "-", locales.HostCopyAddress(), locales.HostRemove()}
+	want := []string{locales.ActionReconnectHost(), locales.ActionDisconnectHost(), "-", locales.HostCopyAddress(), locales.HostRemove()}
 	if got := tt.Menu(); !reflect.DeepEqual(got, want) {
 		t.Fatalf("the open row's menu shows %q, want %q", got, want)
 	}
@@ -355,6 +355,74 @@ func TestSSHHostReconnectOpen(t *testing.T) {
 		}
 		time.Sleep(2 * time.Millisecond)
 	}
+}
+
+// A machine's menu offers to disconnect it: its terminal ends, and ssh
+// with it, while its row stays, and a click on the row connects again.
+func TestSSHHostDisconnect(t *testing.T) {
+	a := testApp(t)
+	a.local().conn = connReady
+	a.mergeState(a.local(), proto.State{
+		Projects: []proto.Project{{ID: "p-ssh", Name: locales.SshHostsProject()}},
+		Sessions: []proto.Session{{
+			Pane: proto.Pane{Status: proto.Idle, Progress: -1},
+			ID:   "ssh-s", Project: "p-ssh", Name: "example.com",
+			Panes: []proto.Pane{{ID: "sp", Status: proto.Idle, Progress: -1}},
+		}},
+	})
+	a.prefs.SSHProject = "p-ssh"
+	a.prefs.SSHHosts = []sshHost{{Name: "example.com", Addr: "root@example.com:2222", Session: "ssh-s"}}
+	closes := make(chan proto.CloseParams, 1)
+	cl, stop := projectClient(t, func(method string, raw json.RawMessage) (any, error) {
+		if method != "close" {
+			return nil, errors.New("unexpected method " + method)
+		}
+		var p proto.CloseParams
+		if err := json.Unmarshal(raw, &p); err != nil {
+			return nil, err
+		}
+		closes <- p
+		return nil, nil
+	})
+	defer stop()
+	a.local().cl = cl
+
+	tt := ui.NewTester(a.view, 1100, 700)
+	tt.Frame()
+	if err := tt.RightClick("root@example.com:2222"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if err := tt.ChooseMenuItem(locales.ActionDisconnectHost()); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case p := <-closes:
+		if p.ID != "ssh-s" {
+			t.Errorf("the terminal closed is %+v", p)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("Disconnect Host closed no terminal")
+	}
+	tt.Frame()
+	if len(a.prefs.SSHHosts) != 1 || a.prefs.SSHHosts[0].Session != "" {
+		t.Fatalf("the row kept %+v", a.prefs.SSHHosts)
+	}
+	if !tt.HasText("root@example.com:2222") {
+		t.Errorf("the row left the sidebar; texts %q", tt.Texts())
+	}
+	if a.session("ssh-s") != nil {
+		t.Errorf("the terminal stays in the app")
+	}
+	// A machine with no terminal has nothing to disconnect.
+	if err := tt.RightClick("root@example.com:2222"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if err := tt.ChooseMenuItem(locales.ActionDisconnectHost()); err == nil {
+		t.Error("a machine with no terminal offers to disconnect it")
+	}
+	tt.CloseMenu()
 }
 
 // An SSH project with no machine yet shows the row that adds one.
