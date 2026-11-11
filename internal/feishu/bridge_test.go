@@ -487,6 +487,8 @@ func newBot(t *testing.T) (*Bot, *fakeLuna, *fakeMessages) {
 	// A turn of a test starts no OpenCode server: what its command
 	// reports is what the card shows.
 	b.noOC = true
+	// The bot's own identity, which a group's mention of it carries.
+	b.botID, b.botName = "ou_bot", "hyla"
 	return b, luna, msgs
 }
 
@@ -676,7 +678,7 @@ func TestStopDropsAThreadsWaitingPrompt(t *testing.T) {
 		m := textMsg("g1", "ou_me", text)
 		*m.Event.Message.ChatType = "group"
 		m.Event.Message.RootId = str("om_root")
-		m.Event.Message.Mentions = []*larkim.MentionEvent{{Key: str("@_user_1"), MentionedType: str("bot")}}
+		m.Event.Message.Mentions = []*larkim.MentionEvent{{Key: str("@_user_1"), Id: &larkim.UserId{OpenId: str("ou_bot")}, MentionedType: str("bot")}}
 		return m
 	}
 	bindChat(b, "g1", binding{Session: "s1"})
@@ -747,7 +749,7 @@ func TestGroupMentions(t *testing.T) {
 	}
 	m = textMsg("g1", "ou_me", "/new")
 	*m.Event.Message.ChatType = "group"
-	m.Event.Message.Mentions = []*larkim.MentionEvent{{Key: str("@_user_1"), MentionedType: str("bot")}}
+	m.Event.Message.Mentions = []*larkim.MentionEvent{{Key: str("@_user_1"), Id: &larkim.UserId{OpenId: str("ou_bot")}, MentionedType: str("bot")}}
 	b.onMessage(nil, m)
 	if len(luna.created) != 1 || last(t, msgs) == "" {
 		t.Fatalf("a mention didn't act: %+v", luna.created)
@@ -940,7 +942,7 @@ func groupMsgOf(chat, root, id, text string) *larkim.P2MessageReceiveV1 {
 	e := textMsgFrom(chat, id, text)
 	e.Event.Message.ChatType = str("group")
 	e.Event.Message.RootId = str(root)
-	e.Event.Message.Mentions = []*larkim.MentionEvent{{Key: str("@_user_1"), MentionedType: str("bot")}}
+	e.Event.Message.Mentions = []*larkim.MentionEvent{{Key: str("@_user_1"), Id: &larkim.UserId{OpenId: str("ou_bot")}, MentionedType: str("bot")}}
 	return e
 }
 
@@ -1395,6 +1397,37 @@ func TestCardShowsTheTurn(t *testing.T) {
 	}
 }
 
+// A group's message that @s another bot is no message to this bot, which
+// answers only a mention of itself.
+func TestAnotherBotsMention(t *testing.T) {
+	bot := func(openID, id, text string) *larkim.P2MessageReceiveV1 {
+		m := textMsg("g1", "ou_me", text)
+		m.Event.Message.MessageId = str(id)
+		*m.Event.Message.ChatType = "group"
+		m.Event.Message.Mentions = []*larkim.MentionEvent{{Key: str("@_user_1"), Id: &larkim.UserId{OpenId: str(openID)}, MentionedType: str("bot")}}
+		return m
+	}
+	b, luna, msgs := newBot(t)
+	shortWaits(t)
+	b.cfg.Allow = []string{"ou_me"}
+	bindChat(b, "g1", binding{Session: "s1"})
+	b.leave("g1")
+	// Another bot's mention is the message's, and the chat's session is
+	// no part of it.
+	b.onMessage(nil, bot("ou_other", "om_other", "@_user_1 read this"))
+	if n := len(luna.sent); n != 0 {
+		t.Fatalf("the bot ran another bot's mention: %+v", luna.sent)
+	}
+	if len(msgs.cards) != 0 {
+		t.Fatalf("the bot answered another bot's mention: %v", msgs.cards)
+	}
+	// Its own mention is.
+	b.onMessage(nil, bot("ou_bot", "om_own", "@_user_1 read this"))
+	if len(luna.sent) == 0 {
+		t.Fatal("the bot took no prompt from its own mention")
+	}
+}
+
 // A prompt in a group's topic shows there: the turn's card goes into the
 // topic the prompt came in, and its answer patches that card.
 func TestTopicCard(t *testing.T) {
@@ -1410,7 +1443,7 @@ func TestTopicCard(t *testing.T) {
 	*m.Event.Message.ChatType = "group"
 	m.Event.Message.MessageId = str("om_msg")
 	m.Event.Message.RootId = str("om_root")
-	m.Event.Message.Mentions = []*larkim.MentionEvent{{Key: str("@_user_1"), MentionedType: str("bot")}}
+	m.Event.Message.Mentions = []*larkim.MentionEvent{{Key: str("@_user_1"), Id: &larkim.UserId{OpenId: str("ou_bot")}, MentionedType: str("bot")}}
 	b.onMessage(nil, m)
 	if len(msgs.shown) != 1 || len(msgs.topics) != 1 || msgs.topics[0] != "om_root" {
 		t.Fatalf("the turn's card went to %v: %v", msgs.topics, msgs.shown)

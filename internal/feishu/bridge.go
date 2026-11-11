@@ -247,10 +247,24 @@ func (b *Bot) turn(key, chatID, event, text string) {
 // mentioned tells whether the message @-mentions the bot.
 func (b *Bot) mentioned(m *larkim.EventMessage) bool {
 	for _, mt := range m.Mentions {
-		if mt == nil {
+		if mt == nil || deref(mt.MentionedType) != "bot" {
 			continue
 		}
-		if deref(mt.MentionedType) == "bot" {
+		switch {
+		case b.botID != "":
+			// The bot's own open_id, as a mention of it names it: a
+			// mention of another bot is no mention of this one.
+			if id := mt.Id; id != nil && deref(id.OpenId) == b.botID {
+				return true
+			}
+		case b.botName != "":
+			// Its name, where Feishu gave no ID.
+			if deref(mt.Name) == b.botName {
+				return true
+			}
+		default:
+			// A bot that could not read its own identity takes the
+			// mentions it did before.
 			return true
 		}
 	}

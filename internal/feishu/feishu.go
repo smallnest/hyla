@@ -146,8 +146,12 @@ type Bot struct {
 	files Files          // where the messages' files go, nil in a test that takes none
 	me    string         // the open_id of the one who ran hyla feishu setup
 	oc    openCodeServer // the OpenCode server the commands go through, for their progress
-	logf  func(format string, args ...any)
-	sync  bool // turns run in the handler's goroutine, for tests
+	// botID and botName are the bot's own, which a group's mentions name:
+	// a message that @s another bot is no message to this one.
+	botID   string
+	botName string
+	logf    func(format string, args ...any)
+	sync    bool // turns run in the handler's goroutine, for tests
 	// noOC tells a bot that starts no OpenCode server, as a test's: its
 	// turns show what the command reports alone.
 	noOC bool
@@ -325,8 +329,36 @@ func New(c Config) *Bot {
 func (b *Bot) Run(ctx context.Context) error {
 	hylad = b.api
 	b.load()
+	b.fetchBot()
 	defer b.stopOpenCode()
 	return b.ws.Start(ctx)
+}
+
+// fetchBot reads the bot's own identity, which Feishu's mentions of it
+// name: the open_id in a group's mention of the bot, and the name it
+// shows. A bot that cannot read it takes every mention of a bot, as it
+// did before, rather than none.
+func (b *Bot) fetchBot() {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	res, err := b.lark.Get(ctx, "/open-apis/bot/v3/info", nil, larkcore.AccessTokenTypeTenant)
+	if err != nil {
+		b.logf("feishu: the bot's identity: %v", err)
+		return
+	}
+	var out struct {
+		Code int `json:"code"`
+		Bot  struct {
+			OpenID  string `json:"open_id"`
+			AppName string `json:"app_name"`
+		} `json:"bot"`
+	}
+	if err := json.Unmarshal(res.RawBody, &out); err != nil || out.Code != 0 {
+		b.logf("feishu: the bot's identity: %v %d", err, out.Code)
+		return
+	}
+	b.botID, b.botName = out.Bot.OpenID, out.Bot.AppName
+	b.logf("feishu: the bot is %q, %s", b.botName, b.botID)
 }
 
 // Files downloads the messages' files from Feishu.
