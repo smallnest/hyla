@@ -4,6 +4,19 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.6.4
+
+- A group's message acts only when it @-mentions **this** bot: a message
+  that @-mentions another bot, as another assistant, is no longer taken
+  for one of its own. The bot reads its own name and open_id as Feishu has
+  them, and answers a mention of its own alone. A host that runs hylad
+  gets the rule with its next update.
+- The toolkit the window draws with, MyGo, goes from 0.8.4 to 0.9.0: a
+  scrolling pane no longer rebuilds and reshapes every row on every frame,
+  and a label that is translated is looked up rather than matched again.
+  A profile of ten seconds of a terminal's frames allocates about a third
+  less, and Hyla's own shortcut glyphs are written once.
+
 ## 3.6.3
 
 - A turn in Feishu shows as one card: the bot sends it as the turn starts,
