@@ -50,12 +50,7 @@ func (a *App) tailcatGroup(c *ui.Context, pal *palette) {
 	settingsGroup(c, pal, "", "", func() {
 		groupTitle(c, pal, locales.SetTailcatTitle())
 		settingRow(c, pal, locales.SetTailcat(), locales.SetTailcatDetail(), func() {
-			toggle(c.Key("tailcat"), &on, pal).OnClick(func() {
-				s := a.set.Clone()
-				s.Tailcat = on
-				a.set = s
-				a.resetTailcat()
-			})
+			toggle(c.Key("tailcat"), &on, pal).OnClick(func() { a.setTailcat(on) })
 		})
 		if !on {
 			return
@@ -76,6 +71,20 @@ func (a *App) tailcatGroup(c *ui.Context, pal *palette) {
 	if !on {
 		settingsGroup(c, pal, "", locales.SetTailcatOffNote(), nil)
 	}
+}
+
+// setTailcat turns Tailcat on or off, as the switch of Settings › Hosts
+// does: off, this machine listens through no relay either, since the
+// daemon follows the listener and not the switch, and the line left
+// behind would be a configuration problem.
+func (a *App) setTailcat(on bool) {
+	s := a.set.Clone()
+	s.Tailcat = on
+	if !on {
+		s.SetTailcatListen("")
+	}
+	a.set = s
+	a.resetTailcat()
 }
 
 // resetTailcat reads the Tailcat group's fields again from the settings,

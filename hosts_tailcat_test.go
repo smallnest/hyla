@@ -13,17 +13,62 @@ import (
 	"hyla/locales"
 )
 
-// The Tailcat switch governs the tailcat hosts, off.
+// The Tailcat switch governs the tailcat hosts, off, and this machine's
+// listener with them.
 func TestTailcatSwitch(t *testing.T) {
 	a := testApp(t)
-	for _, on := range []bool{true, false} {
-		s := a.set.Clone()
-		s.Tailcat = on
-		a.set = s
-		a.resetTailcat()
-		if a.set.Tailcat != on {
-			t.Fatalf("switch %v: %v", on, a.set.Tailcat)
-		}
+	s := a.set.Clone()
+	s.Tailcat = true
+	s.SetTailcatListen("7473")
+	a.set = s
+	a.resetTailcat()
+	if !a.set.Tailcat || !hasTailcatListener(&a.set) {
+		t.Fatalf("on: Tailcat %v, listen %q", a.set.Tailcat, a.set.Listen)
+	}
+	a.setTailcat(false)
+	if a.set.Tailcat || hasTailcatListener(&a.set) {
+		t.Fatalf("off: Tailcat %v, listen %q", a.set.Tailcat, a.set.Listen)
+	}
+	a.setTailcat(true)
+	if !a.set.Tailcat || hasTailcatListener(&a.set) {
+		t.Fatalf("on again: Tailcat %v, listen %q", a.set.Tailcat, a.set.Listen)
+	}
+}
+
+// A host the configuration names asks for no switch of its own: turned
+// off, the app saves it off, and lists none of its hosts.
+func TestTailcatSwitchOffSaved(t *testing.T) {
+	k, err := remote.NewTailcatKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The code names a region of its own: this test needs no relay.
+	k.Region = "1"
+	code, err := remote.TailcatAddress(context.Background(), k)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a := testApp(t)
+	s := a.set.Clone()
+	s.Tailcat = true
+	// As a configuration line makes one: no Added flag.
+	s.TailcatHosts = []settings.TailcatHost{{Name: "box", Addr: "tailcat://" + code}}
+	s.SetTailcatListen("7473")
+	a.set = s
+	a.resetTailcat()
+	if err := settings.Save(a.set); err != nil {
+		t.Fatal(err)
+	}
+	a.setTailcat(false)
+	// The settings view saves what the switch set, as it does each frame.
+	a.applySettings(a.set)
+	settings.Reload()
+	if back := settings.Load(); back.Tailcat || len(back.TailcatHosts) != 1 {
+		t.Fatalf("saved off, reads Tailcat %v, hosts %+v", back.Tailcat, back.TailcatHosts)
+	}
+	a.syncHosts()
+	if a.hostNamed("box") != nil {
+		t.Fatal("a tailcat host listed with the switch off")
 	}
 }
 

@@ -658,11 +658,6 @@ func (s *Settings) normalize() {
 	if s.TailcatRelay != "" && !ValidDERPMapURL(s.TailcatRelay) {
 		s.TailcatRelay = d.TailcatRelay
 	}
-	// The settings that named a tailcat host asked for Tailcat, as one
-	// this version knew no switch for.
-	for _, h := range s.TailcatHosts {
-		s.Tailcat = s.Tailcat || (validTailcatAddr(h.Addr) && !h.Added)
-	}
 	s.TailcatHosts = slices.DeleteFunc(s.TailcatHosts, func(h TailcatHost) bool { return !validTailcatAddr(h.Addr) })
 	if s.LightTheme == "" {
 		s.LightTheme = d.LightTheme

@@ -2,6 +2,8 @@ package settings
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -15,6 +17,8 @@ func TestTailcatConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// The code names a region of its own: this test needs no relay.
+	k.Region = "1"
 	code, err := remote.TailcatAddress(context.Background(), k)
 	if err != nil {
 		t.Fatal(err)
@@ -47,12 +51,68 @@ func TestTailcatConfig(t *testing.T) {
 			t.Errorf("%q read", bad)
 		}
 	}
-	// A file of tailcat hosts from before the switch asked for Tailcat.
-	old := Default()
-	old.TailcatHosts = []TailcatHost{{Name: "box", Addr: "tailcat://" + code}}
-	old.normalize()
-	if !old.Tailcat {
-		t.Error("a tailcat host with the switch off")
+}
+
+// The switch turned off stays off: a host is no switch of its own, and a
+// file of hosts alone asks for the switch, so off is written.
+func TestTailcatSwitchOff(t *testing.T) {
+	k, err := remote.NewTailcatKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The code names a region of its own: this test needs no relay.
+	k.Region = "1"
+	code, err := remote.TailcatAddress(context.Background(), k)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A file of hosts from before the switch asked for it.
+	host := "tailcat-host = box=tailcat://" + code + "\n"
+	if s, probs := parse(host); len(probs) > 0 || !s.Tailcat || len(s.TailcatHosts) != 1 {
+		t.Errorf("a file from before the switch: Tailcat %v, hosts %+v, problems %q", s.Tailcat, s.TailcatHosts, probs)
+	}
+	// A file that names the switch says which way it wants it, whichever
+	// of its lines comes first.
+	for _, off := range []string{"tailcat = false\n" + host, host + "tailcat = false\n"} {
+		if s, probs := parse(off); len(probs) > 0 || s.Tailcat || len(s.TailcatHosts) != 1 {
+			t.Errorf("%q: Tailcat %v, hosts %+v, problems %q", off, s.Tailcat, s.TailcatHosts, probs)
+		}
+	}
+	// Off, saved, stays off: the file says the switch is off, which one of
+	// hosts alone cannot.
+	path := filepath.Join(t.TempDir(), "config")
+	t.Setenv("HYLA_CONFIG", path)
+	if err := os.WriteFile(path, []byte(host), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	Reload()
+	s := Load()
+	if !s.Tailcat {
+		t.Fatal("a file of hosts alone reads Tailcat off")
+	}
+	s.Tailcat = false
+	if err := Save(s); err != nil {
+		t.Fatal(err)
+	}
+	Reload()
+	if back := Load(); back.Tailcat || len(back.TailcatHosts) != 1 {
+		t.Fatalf("saved off, reads Tailcat %v, hosts %+v", back.Tailcat, back.TailcatHosts)
+	}
+	out, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(out), "tailcat = false\n") {
+		t.Errorf("the file says nothing of the switch:\n%s", out)
+	}
+	// Back on, the host is listed, and the switch says so.
+	s.Tailcat = true
+	if err := Save(s); err != nil {
+		t.Fatal(err)
+	}
+	Reload()
+	if back := Load(); !back.Tailcat || len(back.TailcatHosts) != 1 {
+		t.Fatalf("saved on, reads Tailcat %v, hosts %+v", back.Tailcat, back.TailcatHosts)
 	}
 }
 

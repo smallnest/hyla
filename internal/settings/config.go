@@ -421,8 +421,9 @@ var keys = append([]key{
 					bad = append(bad, err.Error())
 					continue
 				}
+				// A host named here asks for no switch of its own: the
+				// file's tailcat line says, and the app's switch sets it.
 				s.TailcatHosts = append(s.TailcatHosts, TailcatHost{Name: name, Addr: addr})
-				s.Tailcat = true
 			}
 			if bad != nil {
 				return fmt.Errorf("%s", strings.Join(bad, "; "))
@@ -670,6 +671,14 @@ func parse(data string) (Settings, []string) {
 			problems = append(problems, name+": "+err.Error())
 		}
 	}
+	// A file from before the switch that named a tailcat host asked for
+	// Tailcat; one that names the switch has said which way it wants it,
+	// whichever its lines' order.
+	if _, named := values["tailcat"]; !named {
+		for _, h := range s.TailcatHosts {
+			s.Tailcat = s.Tailcat || !h.Added
+		}
+	}
 	// After every key, as a file may write listen before tailcat.
 	for _, name := range order {
 		if k := findKey(name); k.list && k.check != nil {
@@ -720,8 +729,16 @@ func format(s Settings, data string) string {
 	}
 	for i := range keys {
 		k := &keys[i]
-		if written[k.name] || slices.Equal(k.get(&s), k.get(&def)) {
+		if written[k.name] {
 			continue
+		}
+		if slices.Equal(k.get(&s), k.get(&def)) {
+			// A file that names tailcat hosts and says nothing of the
+			// switch asked for Tailcat, as one from before the switch did:
+			// off is written, that the file keeps it off.
+			if k.name != "tailcat" || len(s.TailcatHosts) == 0 {
+				continue
+			}
 		}
 		emit(k)
 	}
