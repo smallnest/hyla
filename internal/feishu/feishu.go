@@ -75,6 +75,9 @@ type Messages interface {
 	// SendCard sends a card's JSON to a chat, and returns the message's
 	// ID.
 	SendCard(receiveIDType, receiveID, cardJSON string) (string, error)
+	// SendCardReply sends a card's JSON as an answer to a message, in the
+	// topic the message is in, and returns the card's message ID.
+	SendCardReply(messageID, cardJSON string) (string, error)
 	// UpdateCard replaces the card of a message the bot sent.
 	UpdateCard(messageID, cardJSON string) error
 	// DeleteMessage takes back a message the bot sent, as the card of a
@@ -177,8 +180,6 @@ type Bot struct {
 	// answers.
 	wants  map[string]string
 	claims map[string]string
-	// kard are the chats' cards, which their next turns replace.
-	kard map[string]kard
 	// noticeSend is where a message that names an event goes: a chat's,
 	// in place of an answer.
 	noticeSend func(receiveIDType, receiveID, text string) (string, error)
@@ -217,8 +218,6 @@ type chat struct {
 	// host is the machine the chat's messages go to, set by /host: "" for
 	// the one that hears them first, as hylad's directory keeps it.
 	host string
-	// card is the chat's last card, which a turn's replaces.
-	card cardMsg
 	// allowed are the tools the chat allowed for the session, which its
 	// next turns run without asking.
 	allowed map[string]bool
@@ -262,14 +261,6 @@ type turnInfo struct {
 	// window is a turn a chat window's prompt started, which the app's
 	// chat window shows.
 	window bool
-}
-
-// cardMsg is a card the bot sent, and the turn it shows.
-type cardMsg struct {
-	id   string
-	turn string
-	text string // what its card showed, as PATCH takes no same content
-	seen bool   // a turn told it it works
 }
 
 // Config is what a bot needs.
@@ -467,6 +458,30 @@ func (a *larkAPI) Download(key string, image bool) ([]byte, error) {
 		return nil, fmt.Errorf("Feishu answered %d %s", res.Code, res.Msg)
 	}
 	return io.ReadAll(io.LimitReader(res.File, 64<<20))
+}
+
+// SendCardReply sends a card into the topic of the message it answers: a
+// group's thread is a topic, and a card in the chat alone would leave it.
+func (a *larkAPI) SendCardReply(messageID, cardJSON string) (string, error) {
+	res, err := a.c.Im.Message.Reply(context.Background(),
+		larkim.NewReplyMessageReqBuilder().
+			MessageId(messageID).
+			Body(larkim.NewReplyMessageReqBodyBuilder().
+				MsgType("interactive").
+				Content(cardJSON).
+				ReplyInThread(true).
+				Build()).
+			Build())
+	if err != nil {
+		return "", err
+	}
+	if !res.Success() {
+		return "", fmt.Errorf("Feishu answered %d %s", res.Code, res.Msg)
+	}
+	if res.Data == nil || res.Data.MessageId == nil {
+		return "", errors.New("Feishu returned no message")
+	}
+	return *res.Data.MessageId, nil
 }
 
 func (a *larkAPI) SendReply(messageID, text string) (string, error) {

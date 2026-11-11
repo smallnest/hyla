@@ -79,22 +79,24 @@ func (b *Bot) backgroundRun(session string) (out proto.Output, pane string) {
 // end, by the message of the turn that began it.
 func (b *Bot) followCommand(c *chat, session string, out proto.Output, started time.Time, event, text string) {
 	key := c.key
-	card := b.newTurnCard(c.chat, b.wantEvent(c.chat), langOf(text))
+	card := b.newTurnCard(c.key, c.chat, langOf(text))
 	b.card(card, "working", "", "")
 	bnd := b.bindingOf(bindingKey(c.chat))
 	agent, dir, sid := bnd.Agent, bnd.Dir, bnd.Conversation
 	from, answer := out.From, out.Text
 	for !out.Ended {
 		if time.Since(started) >= b.timeout() {
-			b.drop(card)
-			b.reply(c.chat, fmt.Sprintf("Still working after %s. /stop ends it.", b.timeout()))
+			if msg := fmt.Sprintf("Still working after %s. /stop ends it.", b.timeout()); !b.card(card, "working", msg, "") {
+				b.reply(c.chat, msg)
+			}
 			return
 		}
 		time.Sleep(time.Second)
 		var next proto.Output
 		if err := b.api.Call("agent.output", proto.OutputParams{ID: session, From: from}, &next); err != nil {
-			b.card(card, "error", "", "")
-			b.reply(c.chat, err.Error())
+			if !b.card(card, "error", err.Error(), "") {
+				b.reply(c.chat, err.Error())
+			}
 			return
 		}
 		out = next
@@ -106,15 +108,14 @@ func (b *Bot) followCommand(c *chat, session string, out proto.Output, started t
 // followPane follows an agent in the pane, with its card.
 func (b *Bot) followPane(c *chat, started time.Time, event, text string) {
 	key := c.key
-	card := b.newTurnCard(c.chat, b.wantEvent(c.chat), langOf(text))
+	card := b.newTurnCard(c.key, c.chat, langOf(text))
 	b.card(card, "working", "", "")
 	lead := leadPaneOf(b, b.bindingOf(bindingKey(c.chat)).Session)
 	_, body, _, _ := b.watchCard(card, lead, 0, started.Add(b.timeout()))
 	var p proto.Pane
 	b.api.Call("read", proto.ReadParams{ID: lead}, &p)
 	reply := b.replyWith(&run{status: p, text: body})
-	b.drop(card)
-	b.replyAt(key, event, c.chat, reply)
+	b.replyTurn(key, event, c.chat, card, Card{Title: titleOf(reply), Text: reply}, reply)
 }
 
 // paneStatus is the session's lead pane, as hylad's state has it: a read
@@ -175,18 +176,6 @@ func (b *Bot) wantTurn(chatID string) string {
 		return ""
 	}
 	return t.text
-}
-
-// wantEvent is the message of the chat's turn that runs, which its answer
-// replies to, "" for none.
-func (b *Bot) wantEvent(chatID string) string {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	t := b.chatLocked(chatKey(chatID, "")).running
-	if t.pane != "" && t.start.IsZero() {
-		return ""
-	}
-	return t.event
 }
 
 // beginTurn notes the turn that begins, as the chat's turn until it ends,

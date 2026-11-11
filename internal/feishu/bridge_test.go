@@ -284,10 +284,16 @@ type fakeMessages struct {
 	replies  []string // each reply to a message
 	reacts   []string
 	unreacts []string
-	fail     bool      // sending a card fails: the answers go as messages
-	keep     *fakeLuna // what hylad keeps of what is sent
-	targets  []string  // each message's receive ID, "kind id"
-	kept     int       // the messages sent, which the kept ones count
+	fail     bool // sending a card fails: the answers go as messages
+	// patchFail tells a Feishu that refuses the update of a message, as
+	// one it takes for too frequent (230020) does.
+	patchFail bool
+	// topics are where the cards went, in order: the root message of the
+	// topic a card answered, "" for a card of the chat's own.
+	topics  []string
+	keep    *fakeLuna // what hylad keeps of what is sent
+	targets []string  // each message's receive ID, "kind id"
+	kept    int       // the messages sent, which the kept ones count
 	// send sends the text of every message, as a chat's does; false when
 	// the tests read the cards alone.
 	send bool
@@ -317,6 +323,15 @@ func (m *fakeMessages) SendCard(kind, id, cardJSON string) (string, error) {
 	}
 	m.shown = append(m.shown, cardJSON)
 	m.cards = append(m.cards, cardJSON)
+	m.topics = append(m.topics, "")
+	return fmt.Sprintf("om_card_%d", len(m.cards)), nil
+}
+
+// SendCardReply sends a card into the topic of the message it answers.
+func (m *fakeMessages) SendCardReply(messageID, cardJSON string) (string, error) {
+	m.shown = append(m.shown, cardJSON)
+	m.cards = append(m.cards, cardJSON)
+	m.topics = append(m.topics, messageID)
 	return fmt.Sprintf("om_card_%d", len(m.cards)), nil
 }
 
@@ -326,6 +341,9 @@ func (m *fakeMessages) DeleteMessage(id string) error {
 }
 
 func (m *fakeMessages) UpdateCard(id, cardJSON string) error {
+	if m.patchFail {
+		return fmt.Errorf("Feishu answered 230020 update too frequent")
+	}
 	m.updates = append(m.updates, id+": "+cardJSON+fmt.Sprintf(" [marks %v]", m.reacts))
 	m.cards = append(m.cards, cardJSON)
 	return nil
@@ -521,10 +539,10 @@ func last(t *testing.T, msgs *fakeMessages) string {
 		}
 		return msgs.sent[len(msgs.sent)-1]
 	}
-	if len(msgs.shown) == 0 {
+	if len(msgs.cards) == 0 {
 		return ""
 	}
-	return cardText(parseCard(t, msgs.shown[len(msgs.shown)-1]))
+	return cardText(parseCard(t, msgs.cards[len(msgs.cards)-1]))
 }
 
 // jsonText is a message's content as Feishu sends a text message's: JSON.
@@ -665,6 +683,10 @@ func TestStopDropsAThreadsWaitingPrompt(t *testing.T) {
 	b.onMessage(nil, prompt("second"))
 	if len(msgs.shown) != 1 {
 		t.Fatalf("a prompt while the thread's turn runs is queued as %v", msgs.shown)
+	}
+	// The queued prompt waits in the topic it came in.
+	if len(msgs.topics) != 1 || msgs.topics[0] != "om_root" {
+		t.Fatalf("the queued prompt's card went to %v", msgs.topics)
 	}
 	b.onMessage(nil, prompt("/stop"))
 	if got := last(t, msgs); !strings.Contains(got, "Dropped") {
@@ -1256,8 +1278,9 @@ func TestHostHandoff(t *testing.T) {
 	}
 }
 
-// A background turn shows by its message, which takes the work's marks,
-// and the end's, and the next turn's card is its answer.
+// A turn shows as one card of the bot's: it says the turn works as it
+// starts, and takes the answer as it ends. The user's message keeps its
+// text, and takes the work's marks.
 func TestCardTurn(t *testing.T) {
 	b, luna, msgs := newBot(t)
 	shortWaits(t)
@@ -1267,27 +1290,29 @@ func TestCardTurn(t *testing.T) {
 	luna.files = []string{`{"type":"assistant","message":{"content":[{"type":"text","text":"Fixed 2 tests."}]}}`, "", ""}
 	bindChat(b, "c1", binding{Session: "s1", Agent: "claude", Dir: "/tmp"})
 	b.onMessage(nil, cardMsgOf("c1", "om_t", "om_user", "fix the tests"))
-	if len(msgs.cards) < 2 {
-		t.Fatalf("cards %d", len(msgs.cards))
+	// One card, sent as the turn starts: the work's, over the prompt.
+	if len(msgs.shown) != 1 {
+		t.Fatalf("cards sent %d", len(msgs.shown))
 	}
-	// The message's card is the working one, then the line that goes at
-	// the end.
-	if len(msgs.updates) < 2 {
-		t.Fatalf("the message's updates are %v", msgs.updates)
+	working := parseCard(t, msgs.shown[0])
+	if head := working["header"].(map[string]any); head["template"] != "grey" ||
+		head["title"].(map[string]any)["content"] != "🔵 Running…" {
+		t.Errorf("the turn's card is %v", working)
 	}
-	if first := parseCard(t, cardOf(msgs.updates[0])); cardText(first) != "\n" {
-		t.Errorf("the message's working card says %q", cardText(first))
+	// The same card takes the answer: green, with a footer of what the
+	// turn used, and the answer's words.
+	if len(msgs.updates) != 1 || !strings.HasPrefix(msgs.updates[0], "om_card_1: ") {
+		t.Fatalf("the turn's card updates are %v", msgs.updates)
 	}
 	if !strings.Contains(msgs.updates[0], "[marks [om_t:OnIt]]") {
-		t.Errorf("the mark waits for the turn's start, not before: %s", msgs.updates[0][strings.LastIndex(msgs.updates[0], "["):])
+		t.Errorf("the answer comes as the turn's mark goes: %s", msgs.updates[0][strings.LastIndex(msgs.updates[0], "["):])
 	}
-	if gone := parseCard(t, cardOf(msgs.updates[1])); !strings.Contains(cardText(gone), "earlier") {
-		t.Errorf("the message's card goes as %v", gone)
+	last := parseCard(t, cardOf(msgs.updates[0]))
+	if head := last["header"].(map[string]any); head["template"] != "green" ||
+		head["title"].(map[string]any)["content"] != "🟢 Fixed 2 tests." {
+		t.Errorf("the answer's card is %v", last)
 	}
-	// The answer is the last card's, green, in a footer of what the turn
-	// used.
-	last := parseCard(t, msgs.cards[len(msgs.cards)-1])
-	if last["header"].(map[string]any)["template"] != "green" || !strings.Contains(cardText(last), "Fixed 2 tests.") ||
+	if !strings.Contains(cardText(last), "Fixed 2 tests.") ||
 		!strings.Contains(footerOf(last), "<text_tag color='green'>Done</text_tag>") ||
 		!strings.Contains(footerOf(last), "· ") {
 		t.Errorf("the answer's card is %v", last)
@@ -1319,6 +1344,110 @@ func TestCardTurn(t *testing.T) {
 	}
 }
 
+// A turn's card shows what the turn prints as it goes, a patch at a time,
+// and keeps the same message for its answer.
+func TestCardShowsTheTurn(t *testing.T) {
+	b, luna, msgs := newBot(t)
+	shortWaits(t)
+	defer func(d time.Duration) { cardEvery = d }(cardEvery)
+	defer func(d time.Duration) { stuckAfter = d }(stuckAfter)
+	cardEvery = time.Millisecond
+	stuckAfter = 400 * time.Millisecond
+	bindChat(b, "c1", binding{Session: "s1"})
+	b.leave("c1")
+	// A pane that works for the first look, and prints a row each look
+	// after: the bot sees it work, and then idle with a still screen.
+	luna.waitEnd = proto.Working
+	luna.screen = "old\n$ "
+	printed := 0
+	luna.onRead = func(string) {
+		if printed >= 3 {
+			return
+		}
+		printed++
+		luna.screen = "old\n$ " + strings.Repeat("step\n", printed)
+	}
+	b.onMessage(nil, textMsg("c1", "ou_me", "what changed?"))
+	if len(msgs.shown) != 1 {
+		t.Fatalf("cards sent %d", len(msgs.shown))
+	}
+	// One message from the start to the end: the working card's patches,
+	// then its answer.
+	if len(msgs.updates) < 2 {
+		t.Fatalf("the card's updates are %v", msgs.updates)
+	}
+	for _, u := range msgs.updates {
+		if !strings.HasPrefix(u, "om_card_1: ") {
+			t.Errorf("an update of another message: %s", u)
+		}
+	}
+	prog := false
+	for _, u := range msgs.updates[:len(msgs.updates)-1] {
+		if strings.Contains(cardText(parseCard(t, cardOf(u))), "step") {
+			prog = true
+		}
+	}
+	if !prog {
+		t.Errorf("no patch shows the turn: %v", msgs.updates)
+	}
+}
+
+// A prompt in a group's topic shows there: the turn's card goes into the
+// topic the prompt came in, and its answer patches that card.
+func TestTopicCard(t *testing.T) {
+	b, luna, msgs := newBot(t)
+	shortWaits(t)
+	b.sync = true
+	b.cfg.Allow = []string{"ou_me"}
+	bindChat(b, "g1", binding{Session: "s1"})
+	b.leave(chatKey("g1", "om_root"))
+	luna.screen = "old\n$ "
+	luna.waitEnd = proto.Working
+	m := textMsg("g1", "ou_me", "fix it")
+	*m.Event.Message.ChatType = "group"
+	m.Event.Message.MessageId = str("om_msg")
+	m.Event.Message.RootId = str("om_root")
+	m.Event.Message.Mentions = []*larkim.MentionEvent{{Key: str("@_user_1"), MentionedType: str("bot")}}
+	b.onMessage(nil, m)
+	if len(msgs.shown) != 1 || len(msgs.topics) != 1 || msgs.topics[0] != "om_root" {
+		t.Fatalf("the turn's card went to %v: %v", msgs.topics, msgs.shown)
+	}
+	// The answer is the topic's card, patched, not one of the chat's own.
+	if len(msgs.updates) == 0 || !strings.HasPrefix(msgs.updates[0], "om_card_1: ") {
+		t.Fatalf("the turn's updates are %v", msgs.updates)
+	}
+	if len(msgs.topics) != 1 {
+		t.Errorf("the answer is a card of its own: %v", msgs.topics)
+	}
+}
+
+// A card Feishu refuses to patch into its answer leaves the answer to a
+// card of its own, which the turn's message stays as it was: Feishu
+// refuses the patches of a message it takes for too frequent (230020).
+func TestCardPatchRefused(t *testing.T) {
+	b, luna, msgs := newBot(t)
+	shortWaits(t)
+	defer func(d time.Duration) { cardRetry = d }(cardRetry)
+	cardRetry = time.Millisecond
+	b.cfg.Run = settings.FeishuRunCommand
+	b.cfg.Agent = "claude"
+	bindChat(b, "c1", binding{Session: "s1"})
+	b.leave("c1")
+	luna.files = []string{"2", ""} // the command's text, then its end
+	msgs.patchFail = true
+	b.onMessage(nil, textMsg("c1", "ou_me", "1+1=?"))
+	if len(msgs.updates) != 0 {
+		t.Errorf("Feishu took the patches it refuses: %v", msgs.updates)
+	}
+	if len(msgs.shown) != 2 {
+		t.Fatalf("cards sent %d: %v", len(msgs.shown), msgs.shown)
+	}
+	last := parseCard(t, msgs.shown[len(msgs.shown)-1])
+	if last["header"].(map[string]any)["template"] != "green" || !strings.Contains(cardText(last), "2") {
+		t.Errorf("the answer's card is %v", last)
+	}
+}
+
 // footerOf is a card's footer: its last line of notation.
 func footerOf(c map[string]any) string {
 	body, _ := c["body"].(map[string]any)
@@ -1334,7 +1463,10 @@ func footerOf(c map[string]any) string {
 }
 
 // cardOf is an update's card's JSON, without the marks it notes.
-func cardOf(update string) string { return update[len("om_t: "):strings.Index(update, " [marks")] }
+func cardOf(update string) string {
+	_, rest, _ := strings.Cut(update, ": ")
+	return rest[:strings.Index(rest, " [marks")]
+}
 
 // parseCard is a card's JSON, as a map.
 func parseCard(t *testing.T, shown string) map[string]any {

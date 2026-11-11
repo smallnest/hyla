@@ -180,7 +180,7 @@ func TestReplyCard(t *testing.T) {
 		t.Fatalf("cards %d, messages %d", len(msgs.cards), len(msgs.sent))
 	}
 	c := msgs.lastCard(t)
-	if title := c["header"].(map[string]any)["title"].(map[string]any)["content"]; title != "Fixed" {
+	if title := c["header"].(map[string]any)["title"].(map[string]any)["content"]; title != "🟢 Fixed" {
 		t.Errorf("the title is %q", title)
 	}
 	text := cardText(c)

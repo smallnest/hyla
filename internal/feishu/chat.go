@@ -2,7 +2,6 @@ package feishu
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"html"
 	"time"
@@ -13,86 +12,116 @@ import (
 	"hyla/internal/settings"
 )
 
-// A turn shows in a chat by the user's own message (feishu-cards): a
-// plain card while the agent works, and a short line once it ends, which
-// a reaction on the message marks as done, or failed. The agent's answer
-// is a card that follows the message.
+// A turn shows in a chat as one card of the bot's (feishu-cards): it says
+// the turn runs, shows what the turn printed as it goes, and takes the
+// answer as it ends. The user's message keeps its text, and the reaction
+// that marks the turn while it runs.
 
-// turnCard is a turn's card: the user's message, as it shows while the
-// turn runs.
+// turnCard is a turn's card: the message the bot sent for the turn, which
+// its updates patch.
 type turnCard struct {
-	key     string
-	chatID  string
-	msg     string // the user's message, which the card shows
-	lang    string // the language of the words the card shows
-	state   string // working, done or error
-	text    string // the card's body, as Feishu took it
-	sent    bool   // Feishu took a card for the message
-	dropped bool   // the card went, as the answer came: its updates are none
+	key    string
+	chatID string
+	thread string // the topic of the turn, as its root message: "" for the chat's own
+	msg    string // the card's message, which its updates patch
+	lang   string // the language of the words the card shows
+	state  string // working, done, asks or error
+	text   string // the card's body, as Feishu took it
 }
 
-// newTurnCard makes a turn's card in a chat, which is the message the
-// turn answers.
-func (b *Bot) newTurnCard(chatID, msg, lang string) *turnCard {
-	return &turnCard{key: chatKey(chatID, ""), chatID: chatID, msg: msg, lang: lang, state: "working"}
+// newTurnCard makes a turn's card for a chat, which the turn's start
+// opens, and which its answer ends: key is the chat's, a group's topic
+// one of its own.
+func (b *Bot) newTurnCard(key, chatID, lang string) *turnCard {
+	return &turnCard{key: key, chatID: chatID, thread: threadOfKey(key), lang: lang, state: "working"}
 }
 
-// card tells the turn's card, as it is now: sent once, as the message's
-// card. Feishu has no way to remove the card from a message again: the
-// answer never shows in it, so a turn that is done, and has an answer,
-// closes with the card gone (drop) as the answer's card follows.
-func (b *Bot) card(c *turnCard, state, text, note string) {
-	if c == nil || !cards() || c.msg == "" || c.dropped {
-		return
+// sendCard sends a card to a chat, or into the topic the turn is in,
+// which Feishu takes as a reply to the message that began it.
+func (b *Bot) sendCard(chatID, thread, shown string) (string, error) {
+	if thread != "" {
+		return b.msgs.SendCardReply(thread, shown)
+	}
+	return b.msgs.SendCard("chat_id", chatID, shown)
+}
+
+// card tells the turn's card, as it is now: sent as the turn's first
+// card, and patched as the turn goes. It reports whether Feishu took it:
+// a chat without cards, or one Feishu refuses, gets the turn's words as a
+// message.
+func (b *Bot) card(c *turnCard, state, text, note string) bool {
+	if c == nil || !cards() {
+		return false
 	}
 	body := html.UnescapeString(plainBody(text))
 	if note != "" {
 		body += "\n\n" + note
 	}
-	shown, err := stateCard(body, cardState[state])
+	if c.msg != "" && c.state == state && c.text == body {
+		// The card says this already: a patch of the same content is no
+		// update, and Feishu counts one.
+		return true
+	}
+	shown, err := cardJSON(Card{Title: titleOf(text), Text: body, State: state}, c.lang)
 	if err != nil {
 		b.logf("feishu: a card: %v", err)
-		return
+		return false
 	}
-	// An update takes the card's body alone: the header that sent it
-	// stays as it was made.
-	err2 := b.msgs.UpdateCard(c.msg, bodyOf(shown))
-	if err2 != nil {
-		b.logf("feishu: updating a card: %v", err2)
-		return
+	if c.msg == "" {
+		msg, err := b.sendCard(c.chatID, c.thread, shown)
+		if err != nil {
+			b.logf("feishu: sending a card: %v", err)
+			return false
+		}
+		c.msg = msg
+	} else if err := b.msgs.UpdateCard(c.msg, shown); err != nil {
+		b.logf("feishu: updating a card: %v", err)
+		return false
 	}
-	c.state, c.text, c.sent = state, body, true
+	c.state, c.text = state, body
+	return true
 }
 
-// drop shows the turn's card as a line, so that it takes no room in the
-// thread below the answer, and stops its updates.
-func (b *Bot) drop(c *turnCard) {
-	if c == nil || c.dropped || !c.sent {
-		return
+// cardTries is how many times a turn's card is patched into its answer:
+// Feishu refuses a patch it takes for too frequent (230020), so a second
+// try follows a pause, and a new card after them.
+const cardTries = 3
+
+// finishCard patches the turn's card into its answer, and reports whether
+// Feishu took it: the answer goes as a new card when the turn's own goes
+// unanswered.
+func (b *Bot) finishCard(c *turnCard, card Card) bool {
+	if c == nil || c.msg == "" || !cards() {
+		return false
 	}
-	c.dropped = true
-	if s, err := stateCard("*"+word(c.lang, "earlier")+"*", "grey"); err == nil {
-		b.msgs.UpdateCard(c.msg, bodyOf(s))
+	shown, err := cardJSON(card, c.lang)
+	if err != nil {
+		b.logf("feishu: a card: %v", err)
+		return false
 	}
+	for i := 0; i < cardTries; i++ {
+		if err := b.msgs.UpdateCard(c.msg, shown); err == nil {
+			c.state, c.text = card.State, card.Text
+			return true
+		} else {
+			b.logf("feishu: finishing a card: %v", err)
+			time.Sleep(cardRetry * time.Duration(i+1))
+		}
+	}
+	return false
 }
 
-// stateCard is a message's card JSON, in its body alone: the turn's
-// text, and its state's color, which the card's header takes.
-func stateCard(body, color string) (string, error) {
-	if color == "" {
-		color = "blue"
-	}
-	card := map[string]any{
-		"schema": "2.0",
-		"config": map[string]any{"update_multi": true, "wide_screen_mode": true},
-		"header": map[string]any{"template": color},
-		"body": map[string]any{"direction": "vertical", "elements": []any{
-			map[string]any{"tag": "markdown", "content": body},
-		}},
-	}
-	data, err := json.Marshal(card)
-	return string(data), err
-}
+// cardEvery is how often a working card may be patched: the screen
+// changes many times a second, and Feishu takes a patch for too frequent.
+var cardEvery = 1500 * time.Millisecond
+
+// cardRetry is how long a failed patch of a turn's answer waits for the
+// next, which is longer each try.
+var cardRetry = 400 * time.Millisecond
+
+// cardTail is a turn's text as far as it goes, as a working card shows
+// it: the rows it printed since it began, without the screen's escapes.
+func cardTail(screen string, start int) string { return clean(since(screen, start, toolTail)) }
 
 // watchCard follows a turn of the pane from base on until it ends: the
 // agent idle once seen working, or the pane waiting for the user. The

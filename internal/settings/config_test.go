@@ -218,6 +218,15 @@ func TestDuskBackgroundMigrates(t *testing.T) {
 	}
 }
 
+// feishu-card-body is gone: a card is patched as the card it is. A
+// configuration that still names the switch works, with nothing to report.
+func TestFeishuCardBodyIsGone(t *testing.T) {
+	s, probs := parse("feishu-card-body = true\nfeishu-cards = true\n")
+	if len(probs) != 0 || !s.FeishuCards {
+		t.Errorf("feishu-card-body = true: %v, problems %q", s.FeishuCards, probs)
+	}
+}
+
 func TestRemoteUpdatesOptIn(t *testing.T) {
 	if Default().RemoteUpdates {
 		t.Error("remote updates are on by default")

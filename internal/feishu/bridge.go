@@ -232,7 +232,7 @@ func (b *Bot) turn(key, chatID, event, text string) {
 	case "stop":
 		b.stop(key, chatID)
 	case "answer":
-		b.answer(chatID, strings.TrimSpace(rest))
+		b.answer(key, chatID, strings.TrimSpace(rest))
 	case "close":
 		b.close(chatID)
 	case "host":
@@ -319,7 +319,8 @@ func (b *Bot) hold(key, chatID string, group bool, openID string, m *larkim.Even
 	// titled for the queue, over the prompt. A chat that takes no cards
 	// gets the words.
 	if shown, err := heldCardJSON(text, langOf(text)); err == nil {
-		if msg, err := b.msgs.SendCard("chat_id", chatID, shown); err == nil {
+		// A prompt that waits in a topic waits there, as it came.
+		if msg, err := b.sendCard(chatID, threadOfKey(key), shown); err == nil {
 			b.holdCard(key, msg)
 			return true
 		}
@@ -602,7 +603,7 @@ func (b *Bot) dropWaiting(key string) int {
 
 // answer sends text to the bound session, and Enter: an answer to the
 // question the agent asks.
-func (b *Bot) answer(chatID, text string) {
+func (b *Bot) answer(key, chatID, text string) {
 	s, err := b.bound(chatID)
 	if err != nil {
 		b.reply(chatID, "This chat has no session yet. /new starts one.")
@@ -617,7 +618,6 @@ func (b *Bot) answer(chatID, text string) {
 	}
 	// An answer to the agent's question ends a turn, as a prompt does: the
 	// pane's hook writes its answer, and the chat's host replies with it.
-	key := chatKey(chatID, "")
 	if text != "" && s.Pane.Status == proto.Waiting {
 		// The agent asks, and its hook names the answer: the host follows
 		// the turn, and replies with it. Else the answer is text.
@@ -632,25 +632,24 @@ func (b *Bot) answer(chatID, text string) {
 	b.api.Call("watch", map[string]bool{"stay": true}, nil)
 	var card *turnCard
 	if cards() && len(text) > 0 {
-		// The turn shows by its message, which /stop ends.
-		card = b.newTurnCard(chatID, b.chat(key).event, langOf(text))
+		// The turn shows by its card, which /stop ends.
+		card = b.newTurnCard(key, chatID, langOf(text))
 		b.card(card, "working", "", "")
 	}
-	if card != nil {
-		b.goTurn(func() {
-			state, body, failed, _ := b.watchCard(card, s.Pane.ID, rows(b.read(s.Pane.ID)), time.Time{})
-			if failed {
-				state = "error"
-			}
-			if state != "working" {
-				b.drop(card)
-			}
-			if body != "" && (state == "error" || state == "asks") {
-				b.replyAt(key, card.msg, chatID, body)
-			}
-		})
+	if card == nil {
+		b.reply(chatID, "Sent. /status shows the turn.")
+		return
 	}
-	b.reply(chatID, "Sent. /status shows the turn.")
+	b.goTurn(func() {
+		state, body, failed, _ := b.watchCard(card, s.Pane.ID, rows(b.read(s.Pane.ID)), time.Time{})
+		if failed || state == "" {
+			state = "error"
+		}
+		// The turn's card takes its end: the question it asks, or what
+		// went wrong, under the same message that said it runs.
+		b.replyTurn(key, "", chatID, card, Card{Title: titleOf(body), Text: body, State: state},
+			"Sent. /status shows the turn.")
+	})
 }
 
 // answering hands an answer to the agent's question, which ends the turn
@@ -688,7 +687,7 @@ func (b *Bot) answering(key string, s *proto.Session, t turnInfo) {
 func (b *Bot) followAnswer(key, chatID, agent, answers string, t turnInfo) {
 	var card *turnCard
 	if cards() && t.event != "" {
-		card = b.newTurnCard(chatID, t.event, langOf(t.text))
+		card = b.newTurnCard(key, chatID, langOf(t.text))
 		b.card(card, "working", "", "")
 	}
 	// The answer continues the prompt's turn, which t notes: drive looks
@@ -696,20 +695,18 @@ func (b *Bot) followAnswer(key, chatID, agent, answers string, t turnInfo) {
 	s := &proto.Session{ID: chatID, Pane: proto.Pane{ID: t.pane, Status: proto.Working}}
 	r, err := b.drive(s, "", card, t, agent, answers)
 	if err != nil {
-		b.card(card, "error", err.Error(), "")
-		b.reply(chatID, err.Error())
+		if !b.card(card, "error", err.Error(), "") {
+			b.reply(chatID, err.Error())
+		}
 		return
 	}
 	if r.hook {
 		// The hook's answer is the turn's text, not the terminal's, and
 		// it names the conversation the answer continued.
 		b.setBinding(bindingKey(chatID), binding{Conversation: r.conversation})
-		b.mu.Lock()
-		b.chatLocked(key).card = cardMsg{}
-		b.mu.Unlock()
 	}
-	b.drop(card)
-	b.replyAt(key, t.event, chatID, b.replyWith(r))
+	reply := b.replyWith(r)
+	b.replyTurn(key, t.event, chatID, card, Card{Title: titleOf(reply), Text: reply}, reply)
 }
 
 // close ends the bound session, once no turn runs.
@@ -973,13 +970,14 @@ func (b *Bot) reply(chatID, text string) {
 // event the message answers, "" for a message of its own. Its card has
 // the answer's own state, and no time or usage.
 func (b *Bot) replyAt(key, event, chatID, text string) {
-	b.replyTurn(key, event, chatID, Card{Title: titleOf(text)}, text)
+	b.replyTurn(key, event, chatID, nil, Card{Title: titleOf(text)}, text)
 }
 
 // replyTurn ends a turn in a chat: text says what the turn did, as
 // "Sent." does, and card is the turn's answer, which its card shows.
-// A card is the turn's answer, and text a note about it.
-func (b *Bot) replyTurn(key, event, chatID string, card Card, text string) {
+// A card is the turn's answer, and text a note about it. c is the turn's
+// card, which its answer takes, and nil for a turn that had none.
+func (b *Bot) replyTurn(key, event, chatID string, c *turnCard, card Card, text string) {
 	text = truncate(strings.TrimSpace(text), maxText)
 	if text == "" {
 		return
@@ -1009,14 +1007,32 @@ func (b *Bot) replyTurn(key, event, chatID string, card Card, text string) {
 	if card.State == "" {
 		card.State = "done"
 	}
+	// A turn in a group's topic shows there, as its prompt does: the
+	// answer's card goes into the topic of the turn, or the chat's own.
+	thread := threadOfKey(key)
+	if c != nil && c.thread != "" {
+		thread = c.thread
+	}
 	if cards() {
-		if msg, err := b.replyCard(chatID, cardWith(card, answer, text)); err == nil && !b.shared() {
-			if card.State == "asks" && askedQuestion(card.Text) {
+		full := cardWith(card, answer, text)
+		// The turn's own card takes the answer: the turn shows as one
+		// message, from Running to its end. A card that is gone, or one
+		// Feishu would not take, leaves the answer to a card of its own.
+		msg := ""
+		if b.finishCard(c, full) {
+			msg = c.msg
+		} else if sent, err := b.replyCard(chatID, thread, full); err == nil {
+			msg = sent
+		}
+		if msg != "" {
+			if full.State == "asks" && askedQuestion(full.Text) {
 				// The agent asks a question, and its options go in the
 				// card, as buttons: its text is the question alone.
 				b.askOptions(newChoice(key, chatID, msg, answer))
 			}
-			return
+			if !b.shared() {
+				return
+			}
 		}
 	}
 	text = strings.Join([]string{answer, strings.TrimSpace(text)}, "\n\n")
@@ -1075,15 +1091,15 @@ func cardWith(c Card, text, note string) Card {
 	return c
 }
 
-// replyCard answers a turn in a chat with a card, and returns the
-// message Feishu took it as.
-func (b *Bot) replyCard(chatID string, c Card) (string, error) {
+// replyCard answers a turn in a chat with a card, in the topic the
+// answer is of, and returns the message Feishu took it as.
+func (b *Bot) replyCard(chatID, thread string, c Card) (string, error) {
 	text := c.Text
 	shown, err := cardJSON(c, langOf(text))
 	if err != nil {
 		return "", err
 	}
-	msg, err := b.msgs.SendCard("chat_id", chatID, shown)
+	msg, err := b.sendCard(chatID, thread, shown)
 	if err != nil {
 		b.logf("feishu: sending a card: %v", err)
 	}
@@ -1103,6 +1119,16 @@ func chatKey(chatID, thread string) string {
 		return chatID
 	}
 	return chatID + "\x00" + thread
+}
+
+// threadOfKey is the topic a chat's key is of: the root message of a
+// group's thread, "" for the chat's own.
+func threadOfKey(key string) string {
+	_, root, ok := strings.Cut(key, "\x00")
+	if !ok {
+		return ""
+	}
+	return root
 }
 
 // threadOf tells whether a chat's key, k, is the chat key names or one of

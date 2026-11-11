@@ -83,8 +83,14 @@ func cardJSON(c Card, lang string) (string, error) {
 		color = "blue"
 	}
 	title := orDash(c.Title)
-	if c.State == "working" {
-		title += " · " + word(lang, "state.working")
+	if icon := stateIcon(c.State); icon != "" {
+		// The header says the turn's state first, as its color does: the
+		// turn that runs, its answer once it ends.
+		if c.State == "working" {
+			title = icon + " " + word(lang, "state.running") + "…"
+		} else {
+			title = icon + " " + title
+		}
 	}
 	body := plainBody(strings.TrimSpace(c.Text))
 	if len(body) > maxAnswer {
@@ -105,15 +111,17 @@ func cardJSON(c Card, lang string) (string, error) {
 		}
 	}
 
-	// A rule keeps the footer apart from the text above it.
-	if len(elems) > 0 {
-		elems = append(elems, map[string]any{"tag": "hr"})
-	}
 	// The footer is the card's last, quiet line: its state in colored
 	// words, the time the turn took, and what the agent used. A card with
-	// none of them, as a note's, keeps a line without them.
+	// none of them, as a working turn's first, has no footer.
 	footer := c.footer(lang)
-	elems = append(elems, map[string]any{"tag": "markdown", "content": footer, "text_size": "notation"})
+	if footer != "" {
+		// A rule keeps the footer apart from the text above it.
+		if len(elems) > 0 {
+			elems = append(elems, map[string]any{"tag": "hr"})
+		}
+		elems = append(elems, map[string]any{"tag": "markdown", "content": footer, "text_size": "notation"})
+	}
 	// The session, under the footer, only when its button is off: the
 	// button opens it.
 	if c.Session != "" && !settings.Load().FeishuOpenButton {
@@ -136,7 +144,11 @@ func cardJSON(c Card, lang string) (string, error) {
 			"title":    map[string]any{"tag": "plain_text", "content": title},
 			"template": color,
 		},
-		"body": map[string]any{"direction": "vertical", "elements": elems},
+	}
+	// A card of the header alone, as a working turn's first is, has no
+	// body: Feishu takes a card without one, and not one of no elements.
+	if len(elems) > 0 {
+		card["body"] = map[string]any{"direction": "vertical", "elements": elems}
 	}
 	data, err := json.Marshal(card)
 	return string(data), err
@@ -162,6 +174,23 @@ func (c Card) footer(lang string) string {
 	}
 	tag := "<text_tag color='" + textTagColor(c.State) + "'>" + escapeMarkdown(word(lang, "state."+c.State)) + "</text_tag>"
 	return strings.Join(append([]string{tag}, parts...), " · ")
+}
+
+// stateIcon is a card's state as its header opens: a blue dot while the
+// turn runs, green once it is done, yellow while it asks, red when it
+// failed.
+func stateIcon(state string) string {
+	switch state {
+	case "working":
+		return "🔵"
+	case "done":
+		return "🟢"
+	case "asks":
+		return "🟡"
+	case "error":
+		return "🔴"
+	}
+	return ""
 }
 
 // textTagColor is a card's state as a colored tag takes it: green once
@@ -441,11 +470,10 @@ func escapeMarkdown(s string) string {
 func word(lang, key string) string {
 	w := map[string]map[string]string{
 		"en_us": {
-			"state.working": "Working", "state.done": "Done", "state.asks": "Waiting for you", "state.error": "Error",
+			"state.working": "Working", "state.running": "Running", "state.done": "Done", "state.asks": "Waiting for you", "state.error": "Error",
 			"asks": "The agent waits for your answer. Use /answer, or send a message.",
 			"open": "Open in Hyla", "opened": "Hyla shows the session.", "gone": "This card's session is gone.",
 			"inTerminal": "The answer follows in its own card.",
-			"earlier":    "An earlier turn",
 			"perm.title": "Permission needed",
 			"perm.once":  "Allow once", "perm.always": "Always allow", "perm.deny": "Refuse",
 			"perm.hint": "Refuse: add the reason under the heading, then take Refuse.",
@@ -457,11 +485,10 @@ func word(lang, key string) string {
 			"held.title": "Added to the queue. Wait for the turn to end.",
 		},
 		"zh_cn": {
-			"state.working": "运行中", "state.done": "已完成", "state.asks": "等待你回答", "state.error": "出错",
+			"state.working": "运行中", "state.running": "运行中", "state.done": "已完成", "state.asks": "等待你回答", "state.error": "出错",
 			"asks": "代理在等待你回答。用 /answer 回答，或发送一条消息。",
 			"open": "在 Hyla 中打开", "opened": "Hyla 已打开该会话。", "gone": "这张卡片的会话已不存在。",
 			"inTerminal": "回答在下一张卡片中。",
-			"earlier":    "较早的一轮",
 			"perm.title": "需要授权",
 			"perm.once":  "允许一次", "perm.always": "始终允许", "perm.deny": "拒绝",
 			"perm.hint": "拒绝时可在标题下写上原因，再点拒绝。",
@@ -473,10 +500,9 @@ func word(lang, key string) string {
 			"held.title": "加入请求队列，请等待",
 		},
 		"ja_jp": {
-			"state.working": "実行中", "state.done": "完了", "state.asks": "回答待ち", "state.error": "エラー",
+			"state.working": "実行中", "state.running": "実行中", "state.done": "完了", "state.asks": "回答待ち", "state.error": "エラー",
 			"asks":       "エージェントは回答を待っています。/answer で答えるか、メッセージを送ってください。",
 			"inTerminal": "回答は次のカードにあります。",
-			"earlier":    "以前のターン",
 			"perm.title": "許可が必要です",
 			"perm.once":  "1 回だけ許可", "perm.always": "常に許可", "perm.deny": "拒否",
 			"perm.hint": "拒否するときは見出しの下に理由を書いてから拒否を押してください。",

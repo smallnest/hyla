@@ -89,12 +89,11 @@ func (b *Bot) background(key, chatID, response, text string, t turnInfo) {
 		// shows the chat it asked.
 		b.api.Call("select", proto.FocusParams{Session: session}, nil)
 	}
-	// The turn shows by the message it answers, where the chat has
-	// Feishu's cards, and the agent is one that runs its prompt without a
-	// terminal.
+	// The turn shows by its own card, where the chat has Feishu's cards,
+	// and the agent is one that runs its prompt without a terminal.
 	var card *turnCard
 	if !terminal(agent) {
-		card = b.newTurnCard(chatID, response, langOf(text))
+		card = b.newTurnCard(key, chatID, langOf(text))
 		b.card(card, "working", "", "")
 	}
 	stop := time.Now().Add(b.timeout())
@@ -108,8 +107,9 @@ func (b *Bot) background(key, chatID, response, text string, t turnInfo) {
 	for {
 		var out proto.Output
 		if err := b.api.Call("agent.output", proto.OutputParams{ID: session, From: from}, &out); err != nil {
-			b.card(card, "error", err.Error(), "")
-			b.reply(chatID, err.Error())
+			if !b.card(card, "error", err.Error(), "") {
+				b.reply(chatID, err.Error())
+			}
 			return
 		}
 		answer += out.Text
@@ -120,8 +120,9 @@ func (b *Bot) background(key, chatID, response, text string, t turnInfo) {
 		}
 		if time.Now().After(stop) {
 			b.setBinding(bindingKey(chatID), binding{Agent: agent, Dir: dir, Conversation: sid})
-			b.drop(card)
-			b.reply(chatID, fmt.Sprintf("Still working after %s. /stop ends it.", b.timeout()))
+			if msg := fmt.Sprintf("Still working after %s. /stop ends it.", b.timeout()); !b.card(card, "working", msg, "") {
+				b.reply(chatID, msg)
+			}
 			return
 		}
 		time.Sleep(500 * time.Millisecond)
@@ -143,11 +144,7 @@ func (b *Bot) finished(key, chatID, response, agent, dir, sid, text string, out 
 		sid = ""
 	}
 	b.setBinding(bindingKey(chatID), binding{Agent: agent, Dir: dir, Conversation: sid})
-	b.mu.Lock()
-	b.chatLocked(key).card = cardMsg{}
-	b.mu.Unlock()
 	reply := b.backgroundReply(agent, out)
-	b.drop(card)
 	// A question of the agent, which the chat may choose to answer, is
 	// the card's: its options are buttons under the question.
 	state := "done"
@@ -157,7 +154,7 @@ func (b *Bot) finished(key, chatID, response, agent, dir, sid, text string, out 
 	// The conversation a chat window shows keeps the turn's prompt and
 	// answer, which the agent's command left no transcript for.
 	b.keepTurn(agent, sid, text, reply)
-	b.replyTurn(key, response, chatID, Card{Title: titleOf(reply), Text: reply, State: state,
+	b.replyTurn(key, response, chatID, card, Card{Title: titleOf(reply), Text: reply, State: state,
 		Duration: time.Since(started), Usage: UsageOf(agent, out.Text)}, reply)
 }
 

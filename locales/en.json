@@ -621,8 +621,6 @@
   "setFeishuMarkdownDetail": "The cards’ text as Markdown",
   "setFeishuOpenButton": "Open Session button",
   "setFeishuOpenButtonDetail": "A card’s button opens its session in Hyla",
-  "setFeishuCardBody": "Send cards as their body",
-  "setFeishuCardBodyDetail": "Try it if Feishu shows no card or does not update one",
   "setFeishuHost": "Machines that share the app",
   "setFeishuHostDetail": "Hostnames of other Hyla machines on this app, comma separated: one answers each message, the others leave it",
   "setFeishuHostPlaceholder": "host1, host2",

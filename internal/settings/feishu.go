@@ -419,7 +419,6 @@ func feishuCardKeys() []key {
 				return nil
 			}},
 		boolKey("feishu-open-button", "a card's button opens its session in Hyla", func(s *Settings) *bool { return &s.FeishuOpenButton }),
-		boolKey("feishu-card-body", "send a card as its body's JSON, as an update takes it (try it if Feishu shows no card, or does not update one)", func(s *Settings) *bool { return &s.FeishuCardBody }),
 	}
 }
 

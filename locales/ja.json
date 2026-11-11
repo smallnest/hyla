@@ -421,8 +421,6 @@
   "setFeishuMarkdownDetail": "カードのテキストを Markdown で表示",
   "setFeishuOpenButton": "「セッションを開く」ボタン",
   "setFeishuOpenButtonDetail": "カードのボタンでそのセッションを Hyla で開きます",
-  "setFeishuCardBody": "カードを本文として送信",
-  "setFeishuCardBodyDetail": "Feishu でカードが表示されない、または更新されない場合に試してください",
   "setFeishuHost": "このアプリを共有するマシン",
   "setFeishuHostDetail": "このアプリを使う他の Hyla マシンのホスト名（カンマ区切り）：各メッセージには 1 台だけが応答します",
   "setFeishuHostPlaceholder": "host1, host2",

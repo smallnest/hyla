@@ -79,7 +79,7 @@ func (b *Bot) ask(a *permissionAsk) {
 		b.logf("feishu: a permission's card: %v", err)
 		return
 	}
-	if _, err := b.msgs.SendCard("chat_id", a.chatID, shown); err != nil {
+	if _, err := b.sendCard(a.chatID, threadOfKey(a.key), shown); err != nil {
 		b.logf("feishu: sending a permission's card: %v", err)
 	}
 }

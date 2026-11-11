@@ -466,8 +466,6 @@
   "setFeishuMarkdownDetail": "卡片文字按 Markdown 显示",
   "setFeishuOpenButton": "“打开会话”按钮",
   "setFeishuOpenButtonDetail": "卡片上的按钮在 Hyla 中打开对应会话",
-  "setFeishuCardBody": "以卡片正文发送卡片",
-  "setFeishuCardBodyDetail": "如果飞书不显示或不更新卡片，可尝试此项",
   "setFeishuHost": "共用此应用的机器",
   "setFeishuHostDetail": "使用此应用的其他 Hyla 机器的主机名，逗号分隔：每条消息只有一个机器回复，其他机器跳过",
   "setFeishuHostPlaceholder": "host1, host2",

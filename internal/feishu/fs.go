@@ -118,58 +118,6 @@ func messageFiles(content string) (files, images []media) {
 	return files, images
 }
 
-// kard is a chat's card, which its next turn replaces.
-type kard struct {
-	id    string
-	turn  string
-	shown string
-	body  string
-	state string
-}
-
-// cardFile is where the chats' cards go.
-func cardFile() string { return filepath.Join(proto.Dir(), "feishu-cards-state.json") }
-
-// saveCard keeps the chat's card, and its JSON, which the next turn
-// replaces through a restart.
-func (b *Bot) saveCard(key string, c cardMsg, lang, body, state string) {
-	b.mu.Lock()
-	if b.kard == nil {
-		b.kard = map[string]kard{}
-	}
-	b.kard[key] = kard{id: c.id, turn: c.turn, shown: c.text, body: body, state: state}
-	data, err := json.Marshal(b.kard)
-	b.mu.Unlock()
-	if err != nil || os.MkdirAll(filepath.Dir(cardFile()), 0o700) != nil {
-		return
-	}
-	tmp := cardFile() + ".tmp"
-	if os.WriteFile(tmp, data, 0o600) == nil && os.Rename(tmp, cardFile()) != nil {
-		os.Remove(tmp)
-	}
-}
-
-// kardStateValue is the chat's card, as the bot keeps it.
-func (b *Bot) kardStateValue(key string) kard {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	return b.kard[key]
-}
-
-func (b *Bot) loadCards() {
-	data, err := os.ReadFile(cardFile())
-	if err != nil {
-		return
-	}
-	states := map[string]kard{}
-	if json.Unmarshal(data, &states) != nil {
-		return
-	}
-	b.mu.Lock()
-	b.kard = states
-	b.mu.Unlock()
-}
-
 // record tells what one of the bot's own cards is about: the chat, the
 // session, and the turn of a prompt, "" for the rest.
 type record struct {

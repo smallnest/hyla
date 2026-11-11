@@ -132,7 +132,7 @@ The conversation reads in a column of a fixed width, in the middle of the pane. 
 
 The view only shows the conversation. It has no field: write your prompts in Feishu. The session's host reads the turns with `feishu.feed` as the chat opens, and again each time that the host's state changes.
 
-In Feishu, each turn shows on the user's message and in an answer (`feishu-cards`). When the turn starts, the message takes the `OnIt` reaction, and while the agent works, it takes a plain, grey card. When the turn ends, the card becomes one short line, and the reaction goes. The answer is a card that follows the message: its text is the answer as Markdown. Its footer is a small line: the state in a colored tag (Done in green, Waiting for you in orange, Error in red), then the model, the usage (↑ input, ↓ output, cache, and ctx used of the limit in percent) and the time the turn took, as `1m24s`. The card does not show a value that it does not know. Only the Claude Code command mode reports the usage and the time.
+In Feishu, each turn shows as one card (`feishu-cards`), in a group's topic the topic's as the prompt is. The bot sends it as the turn starts, with a header that says the turn runs (`🔵 Running…`), and the user's message keeps its text with the `OnIt` reaction. While the agent works, the card shows the rows the turn printed, as often as `feishu-stream` says; when the turn ends, the same card takes the answer, its header in the state's color and icon (`🟢` its answer, `🟡` its question, `🔴` an error), and the reaction goes. Its text is the answer as Markdown. Its footer is a small line: the state in a colored tag (Done in green, Waiting for you in orange, Error in red), then the model, the usage (↑ input, ↓ output, cache, and ctx used of the limit in percent) and the time the turn took, as `1m24s`. The card does not show a value that it does not know. Only the Claude Code command mode reports the usage and the time. A patch that Feishu refuses, as it does one it takes for too frequent, leaves the answer to a card of its own, so the answer is never lost.
 
 ### Questions with options
 
@@ -177,7 +177,7 @@ feishu-agent-command = pi=pi
 | `feishu-allow` | empty | Who may send prompts: `open_id`, `user_id` or `email` values. Empty allows only the user who ran `hyla feishu setup`. |
 | `feishu-timeout` | `30m` | The longest a turn waits before its card says it timed out. |
 | `feishu-stream` | `2s` | How often a working card takes the new text. |
-| `feishu-cards` | `true` | A turn shows on the user's message, with a reaction while it runs, and every answer is a card whose text is Markdown. `false` sends the answers as messages, and shows no card or reaction. |
+| `feishu-cards` | `true` | A turn shows as one card, whose header says it runs, with a reaction on the user's message while it runs, and the same card takes the answer, whose text is Markdown. `false` sends the answers as messages, and shows no card or reaction. |
 | `feishu-run` | `session` | How a prompt runs its agent: `command`, as the agent's own command in the background, which tells the reply and no terminal shows; or `session`, in the session's pane, as a user's turn. |
 | `feishu-agent` | `default` | The agent a `/new` session runs: `default`, or a name the detector knows, such as `claude`, `codex`, `opencode`, `pi` or `dsh`. |
 | `feishu-dir` | empty | The directory new sessions start in when the message names no project. Empty uses `new-session-directory`. |

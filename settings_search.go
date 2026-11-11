@@ -95,7 +95,7 @@ func settingsIndex() []searchEntry {
 		{"notifications", locales.SetDockBounce(), "dock-bounce attention"},
 
 		{"feishu", locales.SetFeishuYolo(), "feishu-yolo yolo permission prompts sandbox skip dangerously auto approve claude codex unsafe dangerous"},
-		{"feishu", locales.SetFeishu(), "feishu lark bot chat app secret feishu-app feishu-allow feishu-agent feishu-run feishu-dir feishu-cards feishu-markdown feishu-open-button feishu-card-body feishu-host feishu-timeout feishu-stream"},
+		{"feishu", locales.SetFeishu(), "feishu lark bot chat app secret feishu-app feishu-allow feishu-agent feishu-run feishu-dir feishu-cards feishu-markdown feishu-open-button feishu-host feishu-timeout feishu-stream"},
 		{"agents", locales.SetRemoteControlRow(), "remote-control hyla do focus browser automation"},
 		{"agents", locales.SetCliRow(), "cli command line tool install path"},
 		{"agents", "Claude Code", "skill agents install"},

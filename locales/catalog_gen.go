@@ -4716,26 +4716,6 @@ func (msgs Messages) SetFeishuOpenButtonDetail() string {
 	return Catalog.Format(msgs.locale, "setFeishuOpenButtonDetail", nil)
 }
 
-// SetFeishuCardBody says "Send cards as their body"
-// in the language the app shows.
-func SetFeishuCardBody() string { return In(i18n.Locale()).SetFeishuCardBody() }
-
-// SetFeishuCardBody says "Send cards as their body"
-// in the language of msgs.
-func (msgs Messages) SetFeishuCardBody() string {
-	return Catalog.Format(msgs.locale, "setFeishuCardBody", nil)
-}
-
-// SetFeishuCardBodyDetail says "Try it if Feishu shows no card or does not update one"
-// in the language the app shows.
-func SetFeishuCardBodyDetail() string { return In(i18n.Locale()).SetFeishuCardBodyDetail() }
-
-// SetFeishuCardBodyDetail says "Try it if Feishu shows no card or does not update one"
-// in the language of msgs.
-func (msgs Messages) SetFeishuCardBodyDetail() string {
-	return Catalog.Format(msgs.locale, "setFeishuCardBodyDetail", nil)
-}
-
 // SetFeishuHost says "Machines that share the app"
 // in the language the app shows.
 func SetFeishuHost() string { return In(i18n.Locale()).SetFeishuHost() }

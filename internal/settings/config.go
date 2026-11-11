@@ -644,6 +644,12 @@ func parse(data string) (Settings, []string) {
 			continue
 		}
 		if findKey(l.key) == nil {
+			// feishu-card-body is gone: a card is patched as the card it
+			// is, and never as a body alone. A file that still names the
+			// switch keeps working, with no problem to report.
+			if l.key == "feishu-card-body" {
+				continue
+			}
 			problems = append(problems, fmt.Sprintf("line %d: no setting %q", n+1, l.key))
 			continue
 		}

@@ -115,7 +115,6 @@ type Settings struct {
 	FeishuCards      bool `json:"feishuCards"`      // a turn's card updates as the agent works
 	FeishuMarkdown   bool `json:"feishuMarkdown"`   // cards' text as Markdown
 	FeishuOpenButton bool `json:"feishuOpenButton"` // a card's button opens its session in Hyla
-	FeishuCardBody   bool `json:"feishuCardBody"`   // a card is sent as its body's JSON, as an update takes it
 	FeishuYolo       bool `json:"feishuYolo"`       // every agent from Feishu runs in its yolo mode, as feishu-yolo
 
 	// Notifications

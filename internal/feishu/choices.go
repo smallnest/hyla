@@ -31,6 +31,7 @@ var questions struct {
 // questionAsk is a question of a turn, which the chat's buttons answer.
 type questionAsk struct {
 	id       string
+	key      string // the chat's, or the topic the question was asked in
 	chatID   string
 	lang     string
 	question string
@@ -170,7 +171,7 @@ func (b *Bot) askOptions(c *choice) {
 		questions.all = map[string]*questionAsk{}
 	}
 	questions.next++
-	ask := &questionAsk{id: fmt.Sprintf("%d-%d", time.Now().UnixNano(), questions.next), chatID: c.chatID,
+	ask := &questionAsk{id: fmt.Sprintf("%d-%d", time.Now().UnixNano(), questions.next), key: c.key, chatID: c.chatID,
 		lang: langOf(c.msg), question: c.question, options: c.options, answers: make(chan string, 1)}
 	questions.all[ask.id] = ask
 	questions.mu.Unlock()
@@ -193,7 +194,7 @@ func (b *Bot) askOptions(c *choice) {
 func (b *Bot) answerOnce(ask *questionAsk) bool {
 	select {
 	case text := <-ask.answers:
-		b.answer(ask.chatID, text)
+		b.answer(ask.key, ask.chatID, text)
 		return true
 	default:
 		return false
@@ -306,7 +307,7 @@ func (b *Bot) onChoiceAction(e *callback.CardActionTriggerEvent) (*callback.Card
 	}
 	select {
 	case ask.answers <- sent:
-		go b.answer(ask.chatID, sent)
+		go b.answer(ask.key, ask.chatID, sent)
 	case <-time.After(time.Minute):
 		// The question's card went unanswered: the agent gets no answer.
 	}

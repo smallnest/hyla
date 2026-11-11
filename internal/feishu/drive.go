@@ -88,13 +88,15 @@ func (b *Bot) prompt(key, chatID, response, text string, t turnInfo) {
 	}
 	var card *turnCard
 	if cards() {
-		card = b.newTurnCard(chatID, t.event, langOf(text))
+		card = b.newTurnCard(key, chatID, langOf(text))
 		b.card(card, "working", "", "")
 	}
 	agent := b.conversationAgent(chatID, "", bnd.Session)
 	r, err := b.drive(s, text, card, t, agent, "")
 	if err != nil {
-		b.replyAt(key, response, chatID, err.Error())
+		if !b.card(card, "error", err.Error(), "") {
+			b.replyAt(key, response, chatID, err.Error())
+		}
 		return
 	}
 	// A terminal's turn shows as the reply's card: the answer's card, or
@@ -103,12 +105,7 @@ func (b *Bot) prompt(key, chatID, response, text string, t turnInfo) {
 		// The agent's hook wrote the turn's answer, which the terminal's
 		// text would bury in its frames: the answer is the turn's text,
 		// and the conversation is the hook's.
-		b.card(card, "done", r.answer, "")
-		b.drop(card)
 		b.setBinding(bindingKey(chatID), binding{Conversation: r.conversation})
-		b.mu.Lock()
-		b.chatLocked(key).card = cardMsg{}
-		b.mu.Unlock()
 	}
 	reply := b.replyWith(r)
 	// The conversation a chat window shows keeps the turn, which the
@@ -129,7 +126,7 @@ func (b *Bot) prompt(key, chatID, response, text string, t turnInfo) {
 			reply = q
 		}
 	}
-	b.replyTurn(key, response, chatID, Card{
+	b.replyTurn(key, response, chatID, card, Card{
 		Title:    titleOf(reply),
 		Text:     reply,
 		State:    state,
@@ -180,6 +177,13 @@ func (b *Bot) drive(s *proto.Session, text string, card *turnCard, t turnInfo, a
 	}
 	prompted := time.Now()
 	var seen, still time.Time // when the agent was first, and last, seen to work
+	shown := prompted         // when the turn's card last took the screen
+	// The card takes the turn's new text as often as feishu-stream says,
+	// which the configuration sets.
+	every := cardEvery
+	if s := time.Duration(b.cfg.Stream); s >= time.Second {
+		every = s
+	}
 	before := rd.Text
 
 	// settle reads the pane, and tells whether the turn can end: the
@@ -246,6 +250,16 @@ func (b *Bot) drive(s *proto.Session, text string, card *turnCard, t turnInfo, a
 			still = now
 			if stuck {
 				break
+			}
+			// The turn's card shows what it printed, a patch at a time:
+			// the screen changes many times a second, and Feishu refuses
+			// the patches it takes for too frequent.
+			if card != nil && now.Sub(shown) >= every {
+				if tail := cardTail(b.read(p.ID), r.start); tail != "" {
+					if b.card(card, "working", tail, "") {
+						shown = now
+					}
+				}
 			}
 			continue
 		}
