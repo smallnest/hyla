@@ -4,6 +4,27 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.6.3
+
+- A turn in Feishu shows as one card: the bot sends it as the turn starts,
+  with a header that says it runs, the tool it runs and the words it
+  writes as they come, and the same card takes the answer as the turn
+  ends, in the state's color and icon. The user's message keeps its text,
+  with the `OnIt` reaction while the turn runs. A turn in a group's topic
+  sends its card into the topic, as its prompt came.
+- A turn of `feishu-run = command` has that card whatever agent runs it:
+  an OpenCode one had none, and its chat saw the answer alone. OpenCode's
+  words and tools now come from a server of Hyla's own as the agent writes
+  them, rather than a step at a time; a long tool no longer leaves the
+  card with the time it has run alone.
+- An answer Feishu would not take, as a card it refuses to update, comes
+  as a card of its own, so the answer is never lost.
+- **Settings › Feishu › Card update interval** is what it says: how often
+  a working card takes the turn's new text, which nothing read before.
+- `feishu-card-body` is gone: a configuration that still names it keeps
+  working, and the switch did nothing.
+- A host that runs hylad gets the new cards with its next update.
+
 ## 3.6.2
 
 - **Info**'s folder card opens the folder in **Zed**, beside Hyla, through
