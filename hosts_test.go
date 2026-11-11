@@ -177,6 +177,37 @@ func TestSidebarFlat(t *testing.T) {
 	}
 }
 
+// The sidebar's fold button folds every project at once, and unfolds them
+// all once all are folded.
+func TestSidebarFoldAll(t *testing.T) {
+	a := testApp(t)
+	a.mergeState(a.local(), a.st)
+	withHost(t, a, "build")
+	a.toggleProject("p1")
+	if a.allProjectsCollapsed() {
+		t.Error("one group folded reads as all")
+	}
+	a.toggleAllProjects()
+	if !a.allProjectsCollapsed() {
+		t.Error("fold all left a group open")
+	}
+	if ids := a.visibleOrder(); len(ids) != 1 {
+		t.Errorf("folded: %q", ids)
+	}
+	a.toggleAllProjects()
+	if a.allProjectsCollapsed() {
+		t.Error("unfold all left a group folded")
+	}
+	if ids := a.visibleOrder(); len(ids) != 2 {
+		t.Errorf("unfolded: %q", ids)
+	}
+	tt := ui.NewTester(a.view, 1100, 700)
+	tt.Frame()
+	if !tt.HasText("Collapse All Projects") {
+		t.Errorf("no fold button: %q", tt.Texts())
+	}
+}
+
 // With hosts, Open Project lists any machine's folders, this one's too,
 // with a switch between them.
 func TestPickerHosts(t *testing.T) {

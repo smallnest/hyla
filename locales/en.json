@@ -175,6 +175,8 @@
   "sidebarNoSessions": "No sessions",
   "sidebarCollapse": "Collapse",
   "sidebarExpand": "Expand",
+  "sidebarCollapseAll": "Collapse All Projects",
+  "sidebarExpandAll": "Expand All Projects",
   "sidebarCloseProjectMenu": "Close Project…",
   "sidebarCloseProject": "Close Project",
   "sidebarCloseAllSessions": "Close All Sessions",
@@ -1448,5 +1450,7 @@
   "switchPush": "Push",
   "switchCover": "Cover",
   "switchZoom": "Zoom",
-  "dropDirUnknown": "The pane's directory is unknown"
+  "dropDirUnknown": "The pane's directory is unknown",
+  "infoCollapse": "Collapse {title}",
+  "infoExpand": "Expand {title}"
 }

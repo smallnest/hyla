@@ -49,7 +49,7 @@ func (a *App) infoFeishu(c *ui.Context, pal *palette, p *proto.Pane) {
 	if len(set.Allow) > 0 {
 		who = locales.SetFeishuAllow() + ": " + strings.Join(set.Allow, ", ")
 	}
-	infoCard(c, pal, linkIcon, locales.SetFeishu(), aside, func() {
+	a.infoCard(c, pal, infoFoldFeishu, linkIcon, locales.SetFeishu(), aside, func() {
 		infoRows(c, func() {
 			ui.Column(c).Padding(4, 12, 10, 12).Gap(4).Children(func() {
 				ui.Text(c, who).FontSize(12).TextColor(pal.textMuted).Wrap()

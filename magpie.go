@@ -398,7 +398,7 @@ func (a *App) infoMagpie(c *ui.Context, pal *palette) {
 	if st.err == "" {
 		aside = magpieCost(st.usage.Today.Cost)
 	}
-	infoCard(c, pal, magpieGlyph, locales.InfoMagpie(), aside, func() {
+	a.infoCard(c, pal, infoFoldMagpie, magpieGlyph, locales.InfoMagpie(), aside, func() {
 		switch {
 		case st.usage == nil:
 			infoEmpty(c, pal, st.err)

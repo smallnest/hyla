@@ -258,9 +258,10 @@ func (a *App) sidePanel(c *ui.Context, pal *palette, s *proto.Session, width flo
 			if set != "" {
 				a.defer_(func() { a.showSide(set) })
 			}
-			if dir := a.sideDir(s, view); dir != "" {
-				ui.Text(c, a.hostOf(s.ID).shortDir(dir)).FontSize(13).TextColor(pal.textFaint).SingleLine().Ellipsis("…").Shrink(2).MinWidth(0).Tooltip(dir)
-			}
+			// The header names no folder: that is the Info view's first
+			// card's title, the Files view's tree's root, and the Changes
+			// view's worktree it lists; the tabs alone leave its buttons
+			// their room.
 			ui.Box(c.Key("drag")).Grow(1).AlignSelf(ui.Stretch).DragWindow()
 			if view == sideFiles && a.side.files.views[s.ID] != nil {
 				iconButton(c, "files-toggle-view", docIcon, a.tip(locales.FilesCloseFile(), "files-close"), pal, func() {
@@ -323,24 +324,6 @@ func (a *App) sideTabButton(c *ui.Context, pal *palette, id, label string, svg *
 		ui.Icon(c, svg).Size(14, 14).TextColor(fg)
 		ui.Text(c, label).FontSize(14).FontWeight(600).TextColor(fg).SingleLine().Shrink(0)
 	})
-}
-
-// sideDir is the folder a view names in the header: the worktree the
-// Changes view lists, or the folder the Files view shows.
-func (a *App) sideDir(s *proto.Session, view string) string {
-	switch view {
-	case sideFiles:
-		if _, root := a.filesRoot(s); root != "" {
-			return root
-		}
-		return ""
-	case sideInfo:
-		if p := s.PaneByID(a.focusOf(s)); p != nil {
-			return p.WorkDir()
-		}
-		return ""
-	}
-	return a.changesDir(s)
 }
 
 // --- the Changes view ---

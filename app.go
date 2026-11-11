@@ -68,6 +68,8 @@ type prefs struct {
 	// "preview" or "" shows it in the viewer, "pane" opens it in a file
 	// pane, and "editor" in the host's editor.
 	FileOpen string `json:"fileOpen,omitempty"`
+	// InfoFolded are the Info view's cards the user folded, by their key.
+	InfoFolded map[string]bool `json:"infoFolded,omitempty"`
 	// EndedOpen and ArchivedOpen tell the sidebar's sections of the
 	// agents' ended conversations unfolded (session-history).
 	EndedOpen    bool `json:"endedOpen,omitempty"`
@@ -1982,6 +1984,36 @@ func (a *App) toggleProject(id string) {
 	a.prefs.Collapsed[id] = !a.prefs.Collapsed[id]
 	if !a.prefs.Collapsed[id] {
 		delete(a.prefs.Collapsed, id)
+	}
+	a.savePrefs()
+}
+
+// allProjectsCollapsed reports whether every group the sidebar lists by
+// project is folded.
+func (a *App) allProjectsCollapsed() bool {
+	gs := a.groups()
+	if len(gs) == 0 {
+		return false
+	}
+	for _, g := range gs {
+		if !a.collapsed(g) {
+			return false
+		}
+	}
+	return true
+}
+
+// toggleAllProjects folds every group the sidebar lists by project, or
+// unfolds them all unless all are folded, so that one press always shows
+// a change.
+func (a *App) toggleAllProjects() {
+	collapse := !a.allProjectsCollapsed()
+	for _, g := range a.groups() {
+		if collapse {
+			a.prefs.Collapsed[g.key()] = true
+			continue
+		}
+		delete(a.prefs.Collapsed, g.key())
 	}
 	a.savePrefs()
 }

@@ -41,6 +41,36 @@ func TestInfoToggle(t *testing.T) {
 	}
 }
 
+// A card of the Info view folds as its header is clicked, and unfolds as
+// the header is clicked again, keeping its header row both ways.
+func TestInfoFoldCards(t *testing.T) {
+	a := testApp(t)
+	a.showSide(sideInfo)
+	tt := ui.NewTester(a.view, 1100, 640)
+	tt.Frame()
+	if !tt.HasText(locales.InfoCopyPath()) {
+		t.Fatalf("no directory card: %v", tt.Texts())
+	}
+	head := locales.InfoCollapse(locales.InfoProcess())
+	if err := tt.Click(head); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if !a.prefs.InfoFolded[infoFoldProcs] {
+		t.Fatal("the click did not fold the process card")
+	}
+	if !tt.HasText(locales.InfoCopyPath()) {
+		t.Errorf("folding the processes hid the directory: %v", tt.Texts())
+	}
+	if err := tt.Click(locales.InfoExpand(locales.InfoProcess())); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.prefs.InfoFolded[infoFoldProcs] {
+		t.Error("the second click left the process card folded")
+	}
+}
+
 // The side panel's Info tab shows the view, by the Changes and Files tabs.
 func TestSideInfoTab(t *testing.T) {
 	a := testApp(t)

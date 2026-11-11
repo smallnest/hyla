@@ -1326,6 +1326,26 @@ func (msgs Messages) SidebarExpand() string {
 	return Catalog.Format(msgs.locale, "sidebarExpand", nil)
 }
 
+// SidebarCollapseAll says "Collapse All Projects"
+// in the language the app shows.
+func SidebarCollapseAll() string { return In(i18n.Locale()).SidebarCollapseAll() }
+
+// SidebarCollapseAll says "Collapse All Projects"
+// in the language of msgs.
+func (msgs Messages) SidebarCollapseAll() string {
+	return Catalog.Format(msgs.locale, "sidebarCollapseAll", nil)
+}
+
+// SidebarExpandAll says "Expand All Projects"
+// in the language the app shows.
+func SidebarExpandAll() string { return In(i18n.Locale()).SidebarExpandAll() }
+
+// SidebarExpandAll says "Expand All Projects"
+// in the language of msgs.
+func (msgs Messages) SidebarExpandAll() string {
+	return Catalog.Format(msgs.locale, "sidebarExpandAll", nil)
+}
+
 // SidebarCloseProjectMenu says "Close Project…"
 // in the language the app shows.
 func SidebarCloseProjectMenu() string { return In(i18n.Locale()).SidebarCloseProjectMenu() }
@@ -8308,4 +8328,24 @@ func DropDirUnknown() string { return In(i18n.Locale()).DropDirUnknown() }
 // in the language of msgs.
 func (msgs Messages) DropDirUnknown() string {
 	return Catalog.Format(msgs.locale, "dropDirUnknown", nil)
+}
+
+// InfoCollapse says "Collapse {title}"
+// in the language the app shows.
+func InfoCollapse(title string) string { return In(i18n.Locale()).InfoCollapse(title) }
+
+// InfoCollapse says "Collapse {title}"
+// in the language of msgs.
+func (msgs Messages) InfoCollapse(title string) string {
+	return Catalog.Format(msgs.locale, "infoCollapse", map[string]any{"title": title})
+}
+
+// InfoExpand says "Expand {title}"
+// in the language the app shows.
+func InfoExpand(title string) string { return In(i18n.Locale()).InfoExpand(title) }
+
+// InfoExpand says "Expand {title}"
+// in the language of msgs.
+func (msgs Messages) InfoExpand(title string) string {
+	return Catalog.Format(msgs.locale, "infoExpand", map[string]any{"title": title})
 }

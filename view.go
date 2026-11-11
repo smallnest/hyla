@@ -285,6 +285,7 @@ func (a *App) sidebar(c *ui.Context, pal *palette, bar ui.TitleBar) {
 			ui.Spacer(c)
 		}
 		iconButton(c, "hide-sidebar", sidebarIcon, a.tip(locales.SidebarHide(), "sidebar.toggle"), pal, a.toggleSidebar)
+		a.foldButton(c, pal)
 		a.sortButton(c, pal)
 		iconButton(c, "new-session", plusIcon, a.tip(locales.ActionNewSession(), "session.new"), pal, func() { a.newSession("") })
 	})
@@ -328,6 +329,21 @@ func (a *App) sidebar(c *ui.Context, pal *palette, bar ui.TitleBar) {
 	})
 	a.sidebarFooter(c, pal)
 	c.After(20 * time.Second) // times ago move on
+}
+
+// foldButton folds every project in the sidebar, or unfolds them all once
+// all are folded. A sidebar grouped by none or by date lists no projects,
+// so it keeps the button out of the toolbar's way there.
+func (a *App) foldButton(c *ui.Context, pal *palette) {
+	g := a.prefs.SidebarGroup
+	if g != "" && g != "project" {
+		return
+	}
+	svg, label := foldAllIcon, locales.SidebarCollapseAll()
+	if a.allProjectsCollapsed() {
+		svg, label = unfoldAllIcon, locales.SidebarExpandAll()
+	}
+	iconButton(c, "fold-sidebar", svg, label, pal, a.toggleAllProjects)
 }
 
 // sortButton opens the sidebar's Group and Order menu, as Otty's sort

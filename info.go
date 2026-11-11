@@ -189,31 +189,82 @@ func (a *App) infoBody(c *ui.Context, pal *palette, s *proto.Session, p *proto.P
 }
 
 // infoCard is a card of the Info view: a row of a header, a tile's icon, a
-// title and an aside, with a hairline under it.
-func infoCard(c *ui.Context, pal *palette, svg *ui.SVG, title, aside string, body func()) {
+// title and an aside, with a hairline under it. fold is the card's key in
+// prefs.InfoFolded, or "" for a card that does not fold; a card folded
+// keeps its header, which a click unfolds.
+func (a *App) infoCard(c *ui.Context, pal *palette, fold string, svg *ui.SVG, title, aside string, body func()) {
+	collapsed := fold != "" && a.prefs.InfoFolded[fold]
 	ui.Column(c).Radius(12).Background(pal.chip).Clip().Children(func() {
-		infoHead(c, pal, func() {
+		a.infoHead(c, pal, fold, collapsed, title, func() {
 			infoTile(c, pal, svg)
 			ui.Text(c, title).FontSize(13).FontWeight(600).TextColor(pal.text).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
+			ui.Spacer(c)
 			if aside != "" {
 				if strings.ContainsRune(aside, '/') {
 					infoValue(c, pal, aside)
 				} else {
-					ui.Text(c, aside).FontSize(11.5).TextColor(pal.textFaint).FontFeatures("tnum").SingleLine().MinWidth(48).TextAlign(ui.End)
+					ui.Text(c, aside).FontSize(11.5).TextColor(pal.textFaint).FontFeatures("tnum").SingleLine().Shrink(0).TextAlign(ui.End)
 				}
 			}
 		})
-		body()
+		if !collapsed {
+			body()
+		}
 	})
 }
 
-// infoHead is a card's header: its row, then its hairline.
-func infoHead(c *ui.Context, pal *palette, fn func()) {
-	ui.Column(c).Children(func() {
-		ui.Row(c).Height(40).Padding(0, 12).Gap(9).AlignItems(ui.Center).Children(fn)
-		infoRule(c, pal)
+// infoHead is a card's header: its row, then its hairline, which a folded
+// card leaves out, its row closing the card. With fold, the header takes
+// the whole row as a button, and wears a chevron that points down while
+// the card is open and right while it is folded.
+func (a *App) infoHead(c *ui.Context, pal *palette, fold string, collapsed bool, title string, fn func()) {
+	if fold == "" {
+		ui.Column(c).Children(func() {
+			ui.Row(c).Height(40).Padding(0, 12).Gap(9).AlignItems(ui.Center).Children(fn)
+			infoRule(c, pal)
+		})
+		return
+	}
+	head := ui.ButtonBase(c.Key("info-head-"+fold)).Height(40).Padding(0, 12, 0, 12).Gap(9).AlignItems(ui.Center).Cursor(ui.CursorPointer)
+	label := locales.InfoCollapse(title)
+	if collapsed {
+		label = locales.InfoExpand(title)
+	}
+	turn := head.AnimateTo("fold", 90*(1-b2f(collapsed)), ui.Snappy)
+	head.Label(label).Tooltip(label).Children(func() {
+		fn()
+		ui.Icon(c, chevronIcon).Size(11, 11).TextColor(pal.textFaint).Shrink(0).Rotate(turn)
 	})
+	// The click lands in prefs, which reshape the cards after the frame.
+	if head.Clicked() {
+		a.defer_(func() { a.toggleInfoCard(fold) })
+	}
+	if !collapsed {
+		infoRule(c, pal)
+	}
 }
+
+// toggleInfoCard folds a card of the Info view, or unfolds it.
+func (a *App) toggleInfoCard(fold string) {
+	if a.prefs.InfoFolded[fold] {
+		delete(a.prefs.InfoFolded, fold)
+	} else {
+		if a.prefs.InfoFolded == nil {
+			a.prefs.InfoFolded = map[string]bool{}
+		}
+		a.prefs.InfoFolded[fold] = true
+	}
+	a.savePrefs()
+}
+
+// The cards of the Info view that fold, as prefs.InfoFolded remembers them.
+const (
+	infoFoldDir    = "dir"
+	infoFoldProcs  = "procs"
+	infoFoldPorts  = "ports"
+	infoFoldMagpie = "magpie"
+	infoFoldFeishu = "feishu"
+)
 
 // infoRows lists a card's rows, each divided from the one above.
 func infoRows(c *ui.Context, fn func()) {
@@ -260,7 +311,7 @@ func (a *App) infoDir(c *ui.Context, pal *palette, s *proto.Session, h *host, p 
 		a.copyText = dir
 	}
 	_, name := splitDir(dir)
-	infoCard(c, pal, folderIcon, name, dir, func() {
+	a.infoCard(c, pal, infoFoldDir, folderIcon, name, dir, func() {
 		ui.Row(c).Padding(8, 12, 12, 12).Gap(6).Wrap().Children(func() {
 			a.infoAction(c, pal, "app-editor", locales.InfoOpenEditor(mygo.App.Name()), docIcon, func() {
 				if file := indexFile(h, s, p, dir); file != "" {
@@ -371,7 +422,7 @@ func (a *App) infoProcs(c *ui.Context, pal *palette, p *proto.Pane, st *paneInfo
 	if len(st.procs) > 0 {
 		aside = itoa(len(st.procs))
 	}
-	infoCard(c, pal, cpuIcon, locales.InfoProcess(), aside, func() {
+	a.infoCard(c, pal, infoFoldProcs, cpuIcon, locales.InfoProcess(), aside, func() {
 		switch {
 		case st.listErr != "":
 			ui.Text(c, st.listErr).FontSize(12).TextColor(pal.danger).LineHeight(1.35).Padding(0, 12, 8, 12).Wrap()
@@ -433,7 +484,7 @@ func (a *App) infoPorts(c *ui.Context, pal *palette, p *proto.Pane, st *paneInfo
 	if st.ports > 0 {
 		aside = itoa(st.ports)
 	}
-	infoCard(c, pal, globeIcon, locales.InfoPorts(), aside, func() {
+	a.infoCard(c, pal, infoFoldPorts, globeIcon, locales.InfoPorts(), aside, func() {
 		switch {
 		case !st.procsAt && p.PID <= 0:
 			infoEmpty(c, pal, locales.InfoNoShell())
