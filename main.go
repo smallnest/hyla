@@ -77,6 +77,7 @@ func runApp() {
 	if !mygo.App.RequestSingleInstanceLock() {
 		return
 	}
+	startAppProfiling()
 	cli.SyncSkill()
 	// Updates from Hyla's GitHub releases, in a window of native UI.
 	mygo.Use(native.Plugin)
