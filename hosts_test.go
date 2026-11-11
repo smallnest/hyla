@@ -87,6 +87,26 @@ func TestHostsMergeState(t *testing.T) {
 	}
 }
 
+// A connection that failed before it was made leaves the host's own
+// connection alone, and a nil one is never taken for a new connection: a
+// dial's nil *remote.Conn in the interface panicked the app as it read
+// the welcome of no connection.
+func TestConnectedAfterFailedDial(t *testing.T) {
+	a := testApp(t)
+	h := withHost(t, a, "build")
+	h.conn, h.cl, h.rc = connConnecting, nil, nil
+	a.connected(h, h.gen, (*remote.Conn)(nil), nil, errors.New("postern: no route to host"))
+	if h.conn != connFailed || h.err != "postern: no route to host" {
+		t.Fatalf("conn %v, err %q", h.conn, h.err)
+	}
+	if h.rc != nil {
+		t.Errorf("rc %v", h.rc)
+	}
+	if _, ok := h.dialer().(lostDialer); !ok {
+		t.Errorf("a host with no connection dials through %T", h.dialer())
+	}
+}
+
 // The sidebar shows this machine's projects, unlabeled, then each host's
 // under its name; a session of a host keeps its host's name in the
 // window's title and its notifications.

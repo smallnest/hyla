@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"reflect"
 	"runtime"
 	"slices"
 	"strings"
@@ -66,7 +67,7 @@ func (h *host) remote() bool { return h.name != "" }
 // lost.
 func (h *host) dialer() client.Dialer {
 	switch {
-	case h.rc != nil:
+	case !nilLink(h.rc):
 		return h.rc
 	case h.remote():
 		return lostDialer(h.name)
@@ -84,6 +85,18 @@ type remoteLink interface {
 	// Host asks hylad to restart or update (remote.Conn.Host).
 	Host(ctx context.Context, req proto.HostRequest) error
 	Welcome() proto.MuxWelcome
+}
+
+// nilLink says whether a link is nil, or an interface holding a nil
+// connection, as a dial that failed leaves one: compared with a host's
+// connection, it would pass for a new one, and its welcome read from no
+// connection at all.
+func nilLink(l remoteLink) bool {
+	if l == nil {
+		return true
+	}
+	v := reflect.ValueOf(l)
+	return v.Kind() == reflect.Pointer && v.IsNil()
 }
 
 // lostDialer is the dialer of a host the app has no connection to.
@@ -351,8 +364,15 @@ func (a *App) connectHost(h *host) {
 				if h.addr.Scheme == "tailcat" {
 					port = h.tailcatPort()
 				}
-				rc, err = remote.Dial(ctx, h.addr, remote.Options{App: mygo.App.Version(), Client: appClientName(), Port: port})
+				// A failed dial leaves rc as it was. An interface holding a
+				// nil *remote.Conn is not nil, and connected would take it
+				// for a new connection and read the welcome of no connection.
+				var c *remote.Conn
+				c, err = remote.Dial(ctx, h.addr, remote.Options{App: mygo.App.Version(), Client: appClientName(), Port: port})
 				cancel()
+				if c != nil {
+					rc = c
+				}
 			}
 			if err == nil {
 				cl, err = client.ConnectVia(rc)
@@ -408,7 +428,7 @@ func (a *App) connected(h *host, gen int, rc remoteLink, cl *client.Client, err 
 		if cl != nil {
 			go cl.Close()
 		}
-		if rc != nil && rc != h.rc {
+		if !nilLink(rc) && rc != h.rc {
 			go rc.Close()
 		}
 		return
@@ -425,7 +445,7 @@ func (a *App) connected(h *host, gen int, rc remoteLink, cl *client.Client, err 
 			cl, rc, err = nil, h.rc, errors.New(locales.HostSameAs(other.label()))
 		}
 	}
-	if rc != nil && rc != h.rc {
+	if !nilLink(rc) && rc != h.rc {
 		h.rc, h.info = rc, rc.Welcome().Host
 		go func() {
 			<-rc.Done()
