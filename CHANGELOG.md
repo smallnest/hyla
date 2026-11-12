@@ -4,6 +4,21 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.6.5
+
+- The sidebar's **+** is a menu of the ways work begins: **New Session**,
+  **New Session in Home**, **Open Project…**, **Add SSH Host…** and **Add
+  K8s Pod…**, each with its icon. The foot keeps the palette, Settings and
+  the counts of what wants a look, so it stays quiet.
+- A Tailcat key keeps the region it picked: the app, `hyla hosts tailcat
+  code` and the host's listener name the same relay now, where a code made
+  for another relay reached nobody. A listener that could not join its
+  relay, as when the network is not up as hylad starts, tries again with a
+  longer wait each time, rather than giving up until the settings change.
+  A connection that times out says which relay and port did not answer,
+  and that the host's pair code may have changed.
+- A host that runs hylad gets these with its next update.
+
 ## 3.6.4
 
 - A group's message acts only when it @-mentions **this** bot: a message
