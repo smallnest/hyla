@@ -350,8 +350,7 @@ func (a *App) tailcatCode() {
 // rotateTailcatCode gives this machine a new pair code, which the old
 // one's no longer opens.
 func (a *App) rotateTailcatCode() {
-	k, err := remote.RotateTailcatKey(remote.TailcatKeyPath())
-	if err != nil {
+	if _, err := remote.RotateTailcatKey(remote.TailcatKeyPath()); err != nil {
 		a.toast(err.Error())
 		return
 	}
@@ -359,7 +358,11 @@ func (a *App) rotateTailcatCode() {
 	*d = tailcatDraft{port: d.port, relay: d.relay, listenPort: d.listenPort}
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-		code, err := remote.TailcatAddress(ctx, k)
+		k, err := remote.TailcatKeyAt(ctx, remote.TailcatKeyPath())
+		var code string
+		if err == nil {
+			code, err = remote.TailcatAddress(ctx, k)
+		}
 		cancel()
 		a.update(func() {
 			d.code, d.codeErr, d.at = errorText(err), errorText(err), time.Now()

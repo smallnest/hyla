@@ -282,31 +282,49 @@ func (l *listeners) serve(lis *listener) {
 
 // tailcatListener listens through a tailcat relay, whose pair code is the
 // listener's address: the key that makes it stays in hyla's directory, as
-// the code is.
+// the code is. A relay that cannot be joined, as one the network had not
+// reached when hylad started, is tried again, with a longer wait each
+// time, so that a listener the user turned on does not stay off until the
+// settings change again.
 func (l *listeners) tailcatListener(lis *listener) {
-	key, err := remote.LoadTailcatKey(filepath.Join(proto.Dir(), "tailcat.json"))
-	if err != nil {
-		l.d.log.Printf("listen %s: %v", lis.spec, err)
-		return
+	wait := time.Second
+	for {
+		err := l.joinTailcat(lis)
+		if err == nil || lis.ctx.Err() != nil {
+			return
+		}
+		l.d.log.Printf("listen %s: %v: trying again in %s", lis.spec, err, wait)
+		select {
+		case <-lis.ctx.Done():
+			return
+		case <-time.After(wait):
+		}
+		if wait < time.Minute {
+			wait *= 2
+		}
 	}
+}
+
+// joinTailcat starts the listener's relay, once, and keeps it.
+func (l *listeners) joinTailcat(lis *listener) error {
 	ctx, cancel := context.WithTimeout(lis.ctx, time.Minute)
+	defer cancel()
 	srv := l.d.remoteServer(identity{via: "tailcat"})
-	r, err := remote.ListenTailcat(ctx, key, lis.spec.Port, srv)
-	cancel()
+	r, err := remote.ListenTailcat(ctx, filepath.Join(proto.Dir(), "tailcat.json"), lis.spec.Port, srv)
 	if err != nil {
-		l.d.log.Printf("listen %s: %v", lis.spec, err)
-		return
+		return err
 	}
 	l.mu.Lock()
 	if lis.ctx.Err() != nil {
 		l.mu.Unlock()
 		r.Close()
-		return
+		return nil
 	}
 	lis.tailcat = r
 	lis.spec.Tailcat = strings.TrimPrefix(r.PairCode, "tailcat://")
 	l.mu.Unlock()
 	l.d.log.Printf("listening on %s (tailcat)", r.PairCode)
+	return nil
 }
 
 // selfStatus is this machine on the tailnet, as tailscaled last said, at
@@ -470,16 +488,11 @@ func (d *Daemon) remoteServer(id identity) *remote.Server {
 		Log:     d.log,
 	}
 	// A tailcat listener's address, for Hyla elsewhere: the pair code of
-	// its key.
+	// its key, at the region it keeps, which is the listener's.
 	s.PairCode = func() (string, error) {
-		key, err := remote.LoadTailcatKey(filepath.Join(proto.Dir(), "tailcat.json"))
-		if err != nil {
-			return "", err
-		}
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		defer cancel()
-		code, err := remote.TailcatAddress(ctx, key)
-		return "tailcat://" + code, err
+		return remote.LocalTailcatAddress(ctx)
 	}
 	if build.Server && update.Managed(filepath.Dir(d.exe)) {
 		s.Update = func(app string) error {

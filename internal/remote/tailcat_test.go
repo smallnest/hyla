@@ -81,6 +81,49 @@ func TestTailcatKeyFile(t *testing.T) {
 	}
 }
 
+// The region a key picks is kept with it, so that the app, the CLI and
+// hylad's listener make one code, at one relay; and a rotated key keeps
+// that relay.
+func TestTailcatKeyRegionKept(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "tailcat.json")
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	k, err := TailcatKeyAt(ctx, path)
+	if err != nil {
+		t.Skip("no relay: ", err)
+	}
+	if k.Region == "" {
+		t.Fatal("no region kept")
+	}
+	kept, err := LoadTailcatKey(path)
+	if err != nil || kept.Region != k.Region || kept.Key != k.Key {
+		t.Fatalf("kept %+v, %v; picked %q", kept, err, k.Region)
+	}
+	// The code names that region, and is the same next time.
+	code, err := TailcatAddress(ctx, kept)
+	if err != nil {
+		t.Fatal(err)
+	}
+	again, err := TailcatKeyAt(ctx, path)
+	if err != nil || again.Region != k.Region || again.Key != k.Key {
+		t.Fatalf("again %+v, %v", again, err)
+	}
+	if second, err := TailcatAddress(ctx, again); err != nil || second != code {
+		t.Errorf("code %q, %v, was %q", second, err, code)
+	}
+	// A rotated key is another code, at the same relay.
+	rotated, err := RotateTailcatCode(ctx, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rotated == code {
+		t.Error("the pair code stays")
+	}
+	if rk, err := LoadTailcatKey(path); err != nil || rk.Region != k.Region {
+		t.Errorf("rotated key %+v, %v", rk, err)
+	}
+}
+
 // A client of a tailcat listener gets to its remote server, as over
 // HTTP's.
 func TestTailcatMux(t *testing.T) {
@@ -89,8 +132,8 @@ func TestTailcatMux(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
-	k, err := NewTailcatKey()
-	if err != nil {
+	path := filepath.Join(t.TempDir(), "tailcat.json")
+	if _, err := LoadTailcatKey(path); err != nil {
 		t.Fatal(err)
 	}
 	port := "7374"
@@ -99,7 +142,7 @@ func TestTailcatMux(t *testing.T) {
 		defer s.Close()
 		s.Write([]byte("pong\n"))
 	}
-	r, err := ListenTailcat(ctx, k, port, srv)
+	r, err := ListenTailcat(ctx, path, port, srv)
 	if err != nil {
 		t.Fatal(err)
 	}

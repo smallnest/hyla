@@ -33,6 +33,11 @@ import (
 // The pair code is whole in the address. A code whose region is only a
 // number has the region's details looked up in the relay set (SetRelay),
 // as hylad makes codes when the client's relay is not that.
+//
+// The region a key picked is kept with it (TailcatKeyAt), so that the
+// listener, the app and `hyla hosts tailcat code` make one code, at one
+// relay, across restarts. A code that names a relay the host is not on
+// reaches nobody, as a code of a key the host has rotated does.
 
 // DefaultDERPMapURL is where tailcat finds its relays, unless SetRelay
 // names a map of others: Tailscale's public, rate-limited ones.
@@ -67,7 +72,7 @@ func TailcatKeyPath() string { return filepath.Join(proto.Dir(), "tailcat.json")
 // LocalTailcatAddress is this machine's tailcat address, as hylad's key
 // makes it: "tailcat://…", for hylad's listener at the settings' port.
 func LocalTailcatAddress(ctx context.Context) (string, error) {
-	k, err := LoadTailcatKey(TailcatKeyPath())
+	k, err := TailcatKeyAt(ctx, TailcatKeyPath())
 	if err != nil {
 		return "", err
 	}
@@ -96,8 +101,75 @@ func LoadTailcatKey(path string) (*TailcatKey, error) {
 	if err != nil {
 		return nil, err
 	}
-	b, _ = json.MarshalIndent(k, "", "  ")
-	if err := os.WriteFile(path, append(b, '\n'), 0o600); err != nil {
+	if err := SaveTailcatKey(path, k); err != nil {
+		return nil, err
+	}
+	return k, nil
+}
+
+// SaveTailcatKey keeps k at path, for the user alone: the pair code is a
+// secret. It writes a file beside it and renames that over it, so that a
+// reader finds a whole key or none, as hylad's listener and the app read
+// it at once.
+func SaveTailcatKey(path string, k *TailcatKey) error {
+	b, err := json.MarshalIndent(k, "", "  ")
+	if err != nil {
+		return err
+	}
+	f, err := os.CreateTemp(filepath.Dir(path), filepath.Base(path)+".*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(f.Name())
+	if _, err := f.Write(append(b, '\n')); err != nil {
+		f.Close()
+		return err
+	}
+	if err := f.Close(); err != nil {
+		return err
+	}
+	return os.Rename(f.Name(), path)
+}
+
+// tailcatKeyMu makes the pick of TailcatKeyAt one of a process's at a
+// time, as the app's settings and its pair code ask for one together.
+var tailcatKeyMu sync.Mutex
+
+// TailcatKeyAt reads the key at path, picks its region if it has none,
+// and keeps it there, so that this machine's pair code names one relay
+// for good: the listener's, the app's and `hyla hosts tailcat code`'s.
+// TailcatAddress then makes the code without a netcheck.
+func TailcatKeyAt(ctx context.Context, path string) (*TailcatKey, error) {
+	tailcatKeyMu.Lock()
+	defer tailcatKeyMu.Unlock()
+	k, err := LoadTailcatKey(path)
+	if err != nil {
+		return nil, err
+	}
+	before := k.Region
+	if _, err := TailcatAddress(ctx, k); err != nil {
+		return nil, err
+	}
+	if k.Region == before {
+		return k, nil
+	}
+	if before == "" {
+		// Another Hyla here may have kept a region meanwhile: the file's
+		// is this machine's, and the one its listener joined.
+		if cur, err := LoadTailcatKey(path); err == nil && cur.Region != "" {
+			kept := cur.Region
+			if _, err := TailcatAddress(ctx, cur); err != nil {
+				return nil, err
+			}
+			if cur.Region != kept {
+				if err := SaveTailcatKey(path, cur); err != nil {
+					return nil, err
+				}
+			}
+			return cur, nil
+		}
+	}
+	if err := SaveTailcatKey(path, k); err != nil {
 		return nil, err
 	}
 	return k, nil
@@ -116,14 +188,24 @@ func RotateTailcatKey(path string) (*TailcatKey, error) {
 		return nil, err
 	}
 	k.Region = old.Region
-	b, err := json.MarshalIndent(k, "", "  ")
-	if err != nil {
-		return nil, err
-	}
-	if err := os.WriteFile(path, append(b, '\n'), 0o600); err != nil {
+	if err := SaveTailcatKey(path, k); err != nil {
 		return nil, err
 	}
 	return k, nil
+}
+
+// RotateTailcatCode is RotateTailcatKey, and the code the new key makes:
+// the one its listener joins through, which it picks and keeps if the
+// old key kept no region.
+func RotateTailcatCode(ctx context.Context, path string) (string, error) {
+	if _, err := RotateTailcatKey(path); err != nil {
+		return "", err
+	}
+	k, err := TailcatKeyAt(ctx, path)
+	if err != nil {
+		return "", err
+	}
+	return TailcatAddress(ctx, k)
 }
 
 // NewTailcatKey makes a key for a tailcat listener.
@@ -140,10 +222,10 @@ func NewTailcatKey() (*TailcatKey, error) {
 	return &TailcatKey{Key: string(node), PSK: string(psk)}, nil
 }
 
-// TailcatAddress is k's pair code at the relay set's nearest region,
-// which k keeps for the next time. The code names the region, as
-// "derp302" in this list, without the relay's details: a client looks
-// them up in its relay set, which is the one hylad listens with.
+// TailcatAddress is k's pair code at the region k keeps, as "derp302" in
+// the relay set's list, and at the nearest one if k has none, which it
+// then keeps, for TailcatKeyAt to save with the key. The code names the
+// region without its details, which a client finds in its relay set.
 func TailcatAddress(ctx context.Context, k *TailcatKey) (string, error) {
 	t := &tailcat.PrivateKey{Public: tailcat.ConnInfo{RegionID: -1}}
 	if err := t.Private.UnmarshalText([]byte(k.Key)); err != nil {
@@ -158,14 +240,19 @@ func TailcatAddress(ctx context.Context, k *TailcatKey) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("the tailcat relay: %w", err)
 		}
-		id, err := tailcat.PickBestRegion(ctx, dm)
-		if err != nil {
-			return "", fmt.Errorf("the tailcat relay: %w", err)
+		// The region the key kept, as the listener joined it; the
+		// nearest, for a key that has none, or one the relay set no
+		// longer names.
+		if region = relayRegion(dm, k.Region); region == nil {
+			id, err := tailcat.PickBestRegion(ctx, dm)
+			if err != nil {
+				return "", fmt.Errorf("the tailcat relay: %w", err)
+			}
+			if region = dm.Regions[id]; region == nil {
+				return "", errors.New("the tailcat relay: no region reached")
+			}
+			k.Region = regionNode(region)
 		}
-		if region = dm.Regions[id]; region == nil {
-			return "", errors.New("the tailcat relay: no region reached")
-		}
-		k.Region = regionNode(region)
 	}
 	t.Public.ServerPublic = tailcat.NodePublic{NodePublic: t.Private.Public()}
 	t.Public.ServerDiscoPublic = tailcat.DiscoPublicForNode(t.Private)
@@ -289,7 +376,12 @@ func openTailcat(ctx context.Context, code, port string) (*tailcatTransport, err
 	conn, err := c.DialTCPPort(ctx, uint16(n))
 	if err != nil {
 		c.Close()
-		return nil, err
+		if errors.Is(err, context.DeadlineExceeded) {
+			// A host that does not answer through the relay is one that
+			// is not on it, or one whose pair code this is no longer.
+			return nil, fmt.Errorf("tailcat: no answer from the host through %s on port %s: it may not listen over tailcat, or its pair code may have changed (hyla hosts tailcat there prints it)", relayName(addr), port)
+		}
+		return nil, fmt.Errorf("tailcat: %w", err)
 	}
 	c.Streams.Store(1) // the remote connection's
 	t := &tailcatTransport{Conn: conn, client: c, done: make(chan struct{})}
@@ -337,6 +429,29 @@ func pathOf(res *ipnstate.PingResult) string {
 		return res.DERPRegionCode
 	}
 	return "relay"
+}
+
+// relayName names the relay that an address reaches its host through, as
+// the node's name, for a failure that the host did not answer: the one
+// its pair code names.
+func relayName(a tailcat.Addr) string {
+	ci, err := tailcat.ParseAddr(a)
+	if err != nil {
+		return "the tailcat relay"
+	}
+	for _, r := range ci.Region {
+		for _, n := range r.Nodes {
+			switch {
+			case n.HostName != "":
+				return n.HostName
+			case n.IPv4 != "":
+				return n.IPv4
+			case n.IPv6 != "":
+				return n.IPv6
+			}
+		}
+	}
+	return "the tailcat relay"
 }
 
 // tailcatTransport is a remote connection's stream over tailcat: the
