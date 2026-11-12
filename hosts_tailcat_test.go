@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/egoist/mygo/ui"
+	"github.com/xingkaixin/mygo-native-ui/ui/qrcode"
 
 	"hyla/internal/remote"
 	"hyla/internal/settings"
@@ -209,6 +210,16 @@ func TestTailcatSettingRows(t *testing.T) {
 		if !tt.HasText(want) {
 			t.Errorf("no %q; texts %q", want, tt.Texts())
 		}
+	}
+	// The code as a picture, above the code, for a phone to scan.
+	qr, err := qrcode.Encode(a.ss.tailcat.code, qrcode.L)
+	if err != nil {
+		t.Fatal(err)
+	}
+	a.ss.tailcat.qr, a.ss.tailcat.code = qr, "tailcat://"+testCode
+	tt.Frame()
+	if info, ok := tt.AccessByRole(ui.RoleImage, ""); !ok || info.Bounds.W != 160 || info.Bounds.H != 160 {
+		t.Errorf("no QR code of the pair code, 160 a side: %+v %v", info.Bounds, ok)
 	}
 	shot(t, tt, "settings-tailcat")
 }

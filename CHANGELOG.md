@@ -4,6 +4,14 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## Unreleased
+
+- Settings › Hyla Hosts › Tailcat shows this computer's pair code as a QR
+  code, above the code: a phone scans it to carry the code to another
+  machine, without copying it. The app makes the QR code with
+  [xingkaixin/mygo-native-ui](https://github.com/xingkaixin/mygo-native-ui)'s
+  `ui/qrcode`.
+
 ## 3.6.5
 
 - The sidebar's **+** is a menu of the ways work begins: **New Session**,

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
+	"github.com/xingkaixin/mygo-native-ui/ui/qrcode"
 
 	"hyla/internal/remote"
 	"hyla/internal/settings"
@@ -36,9 +37,10 @@ type tailcatDraft struct {
 	listenPort  string // this machine's listener's, while a host
 	port, relay string
 	err         tailcatField
-	code        string    // this machine's pair code, as hylad's key makes it
-	codeErr     string    // why there is none, as a failure
-	at          time.Time // when the key was last read, or rotated
+	code        string       // this machine's pair code, as hylad's key makes it
+	codeErr     string       // why there is none, as a failure
+	qr          *qrcode.Code // code as a QR code, for a phone to scan
+	at          time.Time    // when the key was last read, or rotated
 	copied      time.Time
 	looking     bool
 }
@@ -201,6 +203,11 @@ func (a *App) tailcatListen(c *ui.Context, pal *palette, d *tailcatDraft) {
 			ui.Text(c, locales.SetTailcatCode()).FontSize(13.5).TextColor(pal.text)
 			ui.Text(c, locales.SetTailcatCodeDetail()).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
 		})
+		// What other machines add with the code, as a phone scans it:
+		// nothing where there is none.
+		if d.qr != nil {
+			qrcode.View(c, d.qr).Size(160, 160).Shrink(0)
+		}
 		ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
 			code, col := d.code, pal.text
 			switch {
@@ -307,7 +314,7 @@ func (a *App) addTailcatHost() {
 		d.err = tailcatField{"tailcat-addr", err.Error()}
 		return
 	}
-	*d = tailcatDraft{port: d.port, relay: d.relay, listenPort: d.listenPort, code: d.code, codeErr: d.codeErr}
+	*d = tailcatDraft{port: d.port, relay: d.relay, listenPort: d.listenPort, code: d.code, codeErr: d.codeErr, qr: d.qr}
 }
 
 // addTailcatHost adds a tailcat host to s, if its code and name are new.
@@ -341,8 +348,14 @@ func (a *App) tailcatCode() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		code, err := remote.LocalTailcatAddress(ctx)
 		cancel()
+		// The code drawn as a phone's camera reads it: the key alone here,
+		// since nothing else adds the scheme a pair code needs.
+		var qr *qrcode.Code
+		if err == nil {
+			qr, _ = qrcode.Encode("tailcat://"+code, qrcode.L)
+		}
 		a.update(func() {
-			d.code, d.codeErr, d.looking, d.at = code, errorText(err), false, time.Now()
+			d.code, d.codeErr, d.qr, d.looking, d.at = code, errorText(err), qr, false, time.Now()
 		})
 	}()
 }

@@ -14,6 +14,7 @@ require (
 	github.com/larksuite/oapi-sdk-go/v3 v3.12.2
 	github.com/pkg/sftp v1.13.12
 	github.com/tailscale/tailcat v0.7.0
+	github.com/xingkaixin/mygo-native-ui v0.4.0
 	golang.org/x/image v0.46.0
 	golang.org/x/sys v0.49.0
 	golang.org/x/term v0.47.0
