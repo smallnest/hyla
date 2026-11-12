@@ -10,8 +10,8 @@
 This repository is `smallnest/hyla`, which was the fork `smallnest/kero` of
 `egoist/kero` and is a project of its own now.
 
-- `master` is where Hyla lives: build, test and tag releases from it.
-  Features branch from `master` and merge back into it.
+- `master` is where Hyla lives: build, test and tag releases from it,
+  and commit features to it: no feature branches, no merges of them.
 - `main` and `dev` are the fork's branches, from before the rename: the
   history `master` comes from. Do not branch from them, and do not
   release them.
@@ -34,9 +34,7 @@ Resolve conflicts on `master`, keeping both sides: the fork's features
 
 ```sh
 git checkout master
-git checkout -b feat/<name>
-# ... commit ...
-# merge back into master when done
+# ... commit, on master ...
 ```
 
 ### Take one upstream commit
