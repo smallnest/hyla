@@ -287,7 +287,7 @@ func (a *App) sidebar(c *ui.Context, pal *palette, bar ui.TitleBar) {
 		iconButton(c, "hide-sidebar", sidebarIcon, a.tip(locales.SidebarHide(), "sidebar.toggle"), pal, a.toggleSidebar)
 		a.foldButton(c, pal)
 		a.sortButton(c, pal)
-		iconButton(c, "new-session", plusIcon, a.tip(locales.ActionNewSession(), "session.new"), pal, func() { a.newSession("") })
+		a.newSessionButton(c, pal)
 	})
 	ui.Scroll(c.Key("sessions")).Grow(1).Padding(0, 10, 16, 10).Children(func() {
 		n := 0 // the rows shown, for ⌘1–9 (Ctrl+1–9 elsewhere)
@@ -389,6 +389,38 @@ func (a *App) sortButton(c *ui.Context, pal *palette) {
 		}
 	})
 	b.Children(func() { ui.Icon(c, sortIcon).Size(16, 16) })
+}
+
+// newSessionButton opens the menu that starts work: a session, in a
+// project of its own or this machine's home, and what the app connects
+// to, a project to open, an SSH host or a K8s pod. It takes the place of
+// the buttons the sidebar's foot used to hold for those last three, so
+// that one menu holds what begins anything, and the foot stays quiet.
+func (a *App) newSessionButton(c *ui.Context, pal *palette) {
+	b := ui.ButtonBase(c.Key("new-session")).Size(28, 26).Radius(6).Center().TextColor(pal.textMuted).
+		Label(locales.ActionNewSession()).Tooltip(a.tip(locales.ActionNewSession(), "session.new"))
+	if b.Hovered() {
+		b.Background(pal.rowHover).TextColor(pal.text)
+	}
+	b.Menu(func(m *ui.Menu) {
+		if a.menuShortcut(m.Item(locales.ActionNewSession()), "session.new").Chosen() {
+			a.newSession("")
+		}
+		if a.menuShortcut(m.Item(locales.ActionNewSessionHome()), "session.newHome").Chosen() {
+			a.run("session.newHome", nil)
+		}
+		m.Separator()
+		if a.menuShortcut(m.Item(locales.ActionOpenProject()), "project.open").Chosen() {
+			a.openProject()
+		}
+		if m.Item(locales.ActionAddSSHHost()).Chosen() {
+			a.askSSHHost()
+		}
+		if m.Item(locales.ActionAddK8sPod()).Chosen() {
+			a.askK8sPod()
+		}
+	})
+	b.Children(func() { ui.Icon(c, plusIcon).Size(16, 16) })
 }
 
 // sessionSidebar lists every session, without projects: flat, or under
@@ -990,16 +1022,12 @@ func (a *App) sessionMenu(m *ui.Menu, s *proto.Session) {
 	}
 }
 
-// sidebarFooter is the sidebar's foot: the buttons for projects, the
-// palette and Settings; then, at the right, what across the sessions
-// wants a look, each a button going to the next session of it, and
-// nothing while nothing does, or the connection to hylad while there is
-// none.
+// sidebarFooter is the sidebar's foot: the buttons for the palette and
+// Settings; then, at the right, what across the sessions wants a look,
+// each a button going to the next session of it, and nothing while
+// nothing does, or the connection to hylad while there is none.
 func (a *App) sidebarFooter(c *ui.Context, pal *palette) {
 	ui.Row(c).Height(36).Shrink(0).Padding(0, 12, 4, 12).Gap(2).AlignItems(ui.Center).DragWindow().Children(func() {
-		iconButton(c, "open-project", folderIcon, a.tip(locales.ActionOpenProject(), "project.open"), pal, a.openProject)
-		iconButton(c, "add-ssh", hostIcon, a.tip(locales.ActionAddSSHHost(), ""), pal, a.askSSHHost)
-		iconButton(c, "add-k8s", k8sIcon, a.tip(locales.ActionAddK8sPod(), ""), pal, a.askK8sPod)
 		iconButton(c, "palette", searchIcon, a.tip(locales.ActionGoToSession(), "palette.open"), pal, a.openPalette)
 		iconButton(c, "settings", gearIcon, a.tip(locales.SettingsTitle(), "settings.open"), pal, func() { a.openSettings("") })
 		ui.Spacer(c)

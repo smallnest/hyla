@@ -324,6 +324,27 @@ func TestCopyOnSelectToast(t *testing.T) {
 	}
 }
 
+// The sidebar's + opens the menu that begins work: a session, in a
+// project or this machine's home, a project to open, and an SSH host or a
+// K8s pod to connect to, which the foot no longer holds as buttons.
+func TestSidebarNewSessionMenu(t *testing.T) {
+	a := testApp(t)
+	a.local().conn = connReady
+	tt := ui.NewTester(a.view, 1100, 700)
+	tt.Frame()
+	if err := tt.Click(locales.ActionNewSession()); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	want := []string{locales.ActionNewSession(), locales.ActionNewSessionHome(), "-",
+		locales.ActionOpenProject(), locales.ActionAddSSHHost(), locales.ActionAddK8sPod()}
+	if got := tt.Menu(); !slices.Equal(got, want) {
+		t.Fatalf("the + menu shows %q, want %q", got, want)
+	}
+	shot(t, tt, "sidebar-new-session-menu")
+	tt.CloseMenu()
+}
+
 // The sidebar's foot counts what wants a look, each count going to the
 // next session of it, and says nothing while nothing does ($HYLA_SHOTS).
 func TestSidebarFooter(t *testing.T) {

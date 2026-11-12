@@ -49,7 +49,13 @@ func TestAddK8sPodFromSidebar(t *testing.T) {
 
 	tt := ui.NewTester(a.view, 1100, 700)
 	tt.Frame()
-	if err := tt.Click(locales.ActionAddK8sPod()); err != nil {
+	// Add K8s Pod is in the sidebar's New Session menu, where the app's
+	// ways of beginning work are.
+	if err := tt.Click(locales.ActionNewSession()); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if err := tt.ChooseMenuItem(locales.ActionAddK8sPod()); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()

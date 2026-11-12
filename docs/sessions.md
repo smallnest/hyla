@@ -51,13 +51,13 @@ hyla new -p my-app       # start a session in a project by name
 
 ### SSH hosts
 
-The sidebar's foot has **Add SSH Host**. Type an address as ssh takes it, such as `root@example.com:2222`, and a name (the address's host by default): Hyla opens a terminal running `ssh` to that machine. It is ssh in a terminal like any other, with your `~/.ssh/config`, keys and agent; the machine needs an SSH server and nothing else, no Hyla.
+The sidebar's **+** offers **Add SSH Host**. Type an address as ssh takes it, such as `root@example.com:2222`, and a name (the address's host by default): Hyla opens a terminal running `ssh` to that machine. It is ssh in a terminal like any other, with your `~/.ssh/config`, keys and agent; the machine needs an SSH server and nothing else, no Hyla.
 
-All the machines live in one project, **SSH Hosts**, with the host's icon. Each row is a machine, its name over the address ssh runs to; a click shows its terminal, or starts one. The project's **+** or the sidebar's **Add SSH Host** adds another machine, and a right-click removes one.
+All the machines live in one project, **SSH Hosts**, with the host's icon. Each row is a machine, its name over the address ssh runs to; a click shows its terminal, or starts one. The project's **+**, or **Add SSH Host** in the sidebar's **+** menu, adds another machine, and a right-click removes one.
 
 ### K8s pods
 
-The sidebar's foot has **Add K8s Pod** too. Type a command as kubectl exec takes it, such as `kubectl exec -it web-0 -n prod -- /bin/bash`: Hyla opens a terminal running it on this computer, with your kubeconfig, and names the pod from the command.
+The sidebar's **+** offers **Add K8s Pod** too. Type a command as kubectl exec takes it, such as `kubectl exec -it web-0 -n prod -- /bin/bash`: Hyla opens a terminal running it on this computer, with your kubeconfig, and names the pod from the command.
 
 The pods live in one project, **K8s Pods**, with the Kubernetes icon. Each row is a pod, its name over its command; a click shows its terminal, or starts one, **+** adds another, and a right-click removes one.
 

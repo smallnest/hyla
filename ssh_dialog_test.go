@@ -51,7 +51,13 @@ func TestAddSSHHostFromSidebar(t *testing.T) {
 
 	tt := ui.NewTester(a.view, 1100, 700)
 	tt.Frame()
-	if err := tt.Click(locales.ActionAddSSHHost()); err != nil {
+	// Add SSH Host is in the sidebar's New Session menu, where the app's
+	// ways of beginning work are.
+	if err := tt.Click(locales.ActionNewSession()); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if err := tt.ChooseMenuItem(locales.ActionAddSSHHost()); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
