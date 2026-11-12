@@ -403,20 +403,20 @@ func (a *App) newSessionButton(c *ui.Context, pal *palette) {
 		b.Background(pal.rowHover).TextColor(pal.text)
 	}
 	b.Menu(func(m *ui.Menu) {
-		if a.menuShortcut(m.Item(locales.ActionNewSession()), "session.new").Chosen() {
+		if a.menuShortcut(m.Item(locales.ActionNewSession()).Icon(newSessionMenuIcon), "session.new").Chosen() {
 			a.newSession("")
 		}
 		if a.menuShortcut(m.Item(locales.ActionNewSessionHome()), "session.newHome").Chosen() {
 			a.run("session.newHome", nil)
 		}
 		m.Separator()
-		if a.menuShortcut(m.Item(locales.ActionOpenProject()), "project.open").Chosen() {
+		if a.menuShortcut(m.Item(locales.ActionOpenProject()).Icon(openProjectMenuIcon), "project.open").Chosen() {
 			a.openProject()
 		}
-		if m.Item(locales.ActionAddSSHHost()).Chosen() {
+		if m.Item(locales.ActionAddSSHHost()).Icon(addSSHMenuIcon).Chosen() {
 			a.askSSHHost()
 		}
-		if m.Item(locales.ActionAddK8sPod()).Chosen() {
+		if m.Item(locales.ActionAddK8sPod()).Icon(addK8sMenuIcon).Chosen() {
 			a.askK8sPod()
 		}
 	})

@@ -3,6 +3,7 @@ package main
 import (
 	"embed"
 
+	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 	"hyla/internal/proto"
 )
@@ -70,6 +71,26 @@ var (
 	// k8sIcon is the Kubernetes wheel: a heptagon around a ship's wheel,
 	// as the logo draws it, in Hyla's stroke.
 	k8sIcon = icon(`<path d="M8 1.7 13.2 4.2 14.4 9.8 10.9 14.3 5.1 14.3 1.6 9.8 2.8 4.2Z"/><circle cx="8" cy="8.3" r="1.9"/><path d="M8 6.4V3.3M9.5 7.2l2.7-2M9.8 8.6l3.4.7M8.9 9.9l1.5 3.1M7.1 9.9l-1.5 3.1M6.2 8.6l-3.4.7M6.5 7.2l-2.7-2"/>`)
+)
+
+// menuIcon is an icon as a menu item's image, made once: the items that
+// show it share what the backend makes of it (MenuItem.Icon).
+func menuIcon(s *ui.SVG) *mygo.MenuIcon {
+	ic, err := mygo.NewMenuIconSVG(s, true)
+	if err != nil {
+		panic("hyla: menu icon: " + err.Error())
+	}
+	return ic
+}
+
+// The sidebar's + menu, its items' icons: each is the icon the item's
+// subject wears elsewhere in the app, a terminal, a folder, a machine and
+// the Kubernetes wheel. Starting a session at home has none.
+var (
+	newSessionMenuIcon  = menuIcon(terminalIcon)
+	openProjectMenuIcon = menuIcon(folderIcon)
+	addSSHMenuIcon      = menuIcon(hostIcon)
+	addK8sMenuIcon      = menuIcon(k8sIcon)
 )
 
 // programIcons are the logos of programs a pane may run, by the name hylad
