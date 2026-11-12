@@ -434,19 +434,15 @@ func tailcatCmd(args []string) error {
 		set.SetTailcatListen(args[1])
 		return settings.Save(set)
 	case "rotate":
-		k, err := remote.RotateTailcatKey(remote.TailcatKeyPath())
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		code, err := remote.RotateTailcatCode(ctx, remote.TailcatKeyPath())
+		cancel()
 		if err != nil {
 			return err
 		}
 		// hylad starts its listener with the key again, which follow finds.
 		set.TailcatRotate = !set.TailcatRotate
 		if err := settings.Save(set); err != nil {
-			return err
-		}
-		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-		code, err := remote.TailcatAddress(ctx, k)
-		cancel()
-		if err != nil {
 			return err
 		}
 		fmt.Println("tailcat://" + code)

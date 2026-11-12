@@ -27,10 +27,15 @@ type TailcatServer struct {
 	PairCode string // hylad's address, tailcat:// and the pair code
 }
 
-// ListenTailcat starts hylad's tailcat listener on port for k's key,
-// whose pair code it makes, and answers the connections it takes with
-// srv, within ctx. Hylad is "hyla", for whomever lists the clients.
-func ListenTailcat(ctx context.Context, k *TailcatKey, port string, srv *Server) (*TailcatRelay, error) {
+// ListenTailcat starts hylad's tailcat listener on port for the key at
+// path (TailcatKeyAt), whose pair code it makes, and answers the
+// connections it takes with srv, within ctx. Hylad is "hyla", for
+// whomever lists the clients.
+func ListenTailcat(ctx context.Context, path, port string, srv *Server) (*TailcatRelay, error) {
+	k, err := TailcatKeyAt(ctx, path)
+	if err != nil {
+		return nil, err
+	}
 	code, err := TailcatAddress(ctx, k)
 	if err != nil {
 		return nil, err
