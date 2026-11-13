@@ -3,7 +3,7 @@ import { Dynamic } from 'solid-js/web';
 import { Link } from './Link';
 import AppWindow from './AppWindow';
 import CliShowcase from './CliShowcase';
-import ParticleMorph from './ParticleMorph';
+import SessionWall from './SessionWall';
 import HeroTerminal from './HeroTerminal';
 import { ArrowUpRightIcon, BellIcon, BotIcon, DownloadIcon, LayersIcon, PauseIcon, PlayIcon, ServerIcon, TerminalIcon } from './Icons';
 import { localize, pageHead, type Locale } from '../lib/i18n';
@@ -367,9 +367,9 @@ export default function HomePage(props: { locale: Locale }) {
             </ul>
           </div>
           <div class="hx-art">
-            <ParticleMorph />
+            <SessionWall />
             <div class="hx-art__scan" />
-            <span class="hx-art__tag">render · ghostty 1.3</span>
+            <span class="hx-art__tag">sessions · live</span>
           </div>
         </div>
       </section>

@@ -6,10 +6,11 @@ number; the notes of the upstream releases it includes follow its own.
 
 ## Unreleased
 
-- The website has a new landing page: a dark, orange-lit hero over a grid the
-  pointer lights, the window tilting into place as it scrolls in, a terminal
-  that plays a turn, and the features as a bento. Its download page adds
-  **HylaPocket** for Android, whose APK comes from its releases.
+- The website has a new landing page: a dark, orange-lit hero whose art is a
+  wall of live session panes drifting past an eye line that lights the one
+  needing you, with dust over it; the window tilting into place as it scrolls
+  in, a terminal that plays a turn, and the features as a bento. Its download
+  page adds **HylaPocket** for Android, whose APK comes from its releases.
 
 ## 3.8.1
 
