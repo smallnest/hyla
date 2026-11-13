@@ -6,6 +6,12 @@ number; the notes of the upstream releases it includes follow its own.
 
 ## Unreleased
 
+- HylaPocket, an Android client made from rexpocket, reads this machine's
+  sessions on a phone: hylad answers it on its Tailcat listener, and the
+  pair code that opens the connection is the only secret a phone needs.
+  `hyla hosts pocket qr` draws the code to scan; `hyla hosts pocket code`
+  prints it to paste in. A tcp listener serves it too, behind the
+  `listen-token` of the configuration.
 - Settings › Hyla Hosts › Tailcat shows this computer's pair code as a QR
   code, above the code: a phone scans it to carry the code to another
   machine, without copying it. The app makes the QR code with
