@@ -38,13 +38,10 @@ const tabs: { id: string; lines: Line[] }[] = [
   {
     id: 'remote',
     lines: [
-      { cmd: 'hyla hosts add devbox me@devbox' },
-      { cmd: 'hyla -H devbox new -n migrate -- claude' },
-      { out: 'm4e7b1' },
-      { cmd: 'hyla -H devbox ls' },
-      { out: 'devbox' },
-      { out: '  m4e7b1  migrate         working   claude' },
-      { out: '# close your laptop; it keeps running on devbox', dim: true },
+      { cmd: 'hyla pocket tcp enable 0.0.0.0:7297' },
+      { cmd: 'hyla pocket addr' },
+      { out: '192.168.1.5:7297' },
+      { out: '# add it on another machine, or scan the code on a phone', dim: true },
     ],
   },
   {

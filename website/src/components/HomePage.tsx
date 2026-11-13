@@ -8,7 +8,7 @@ import { ArrowUpRightIcon, BellIcon, BotIcon, LayersIcon, ServerIcon, TerminalIc
 import { localize, pageHead, type Locale } from '../lib/i18n';
 
 const icons = [LayersIcon, BellIcon, BotIcon, TerminalIcon, ServerIcon];
-const featureLinks = ['/docs/sessions', '/docs/status', '/docs/agents', '/docs/configuration', '/docs/remote'];
+const featureLinks = ['/docs/sessions', '/docs/status', '/docs/agents', '/docs/configuration', '/docs/configuration'];
 
 const copy = {
   en: {
@@ -55,14 +55,14 @@ const copy = {
         label: 'Configuration',
       },
       {
-        title: 'Agents on Every Machine',
-        body: 'Run sessions on a Linux box, a cloud VM, a Windows PC or the Mac mini under your desk. They join your sidebar, tagged with the host, and keep running when your laptop sleeps.',
+        title: 'On Another Machine, or a Phone',
+        body: 'Reach another machine that runs Hyla by its address and a password, and its sessions join your sidebar with your own. A phone takes the same code, tcp://host:port?token=…, and reads them there.',
         points: [
-          'Reach hosts over SSH, Tailscale or WSL',
-          'The same statuses, notifications and hyla command',
-          'One script installs the server build, no root needed',
+          'Add a machine in Settings › Remote Connection',
+          'Its sessions, terminals and files in the same window',
+          'No relay, no account: an address and a password',
         ],
-        label: 'Remote hosts',
+        label: 'Remote connection',
       },
     ],
     ctaTitle: 'Hop In',
@@ -169,10 +169,10 @@ const copy = {
         label: '配置',
       },
       {
-        title: '每台机器上的智能体',
-        body: '在 Linux 服务器、云虚拟机、Windows 电脑或桌下的 Mac mini 上运行会话。它们出现在你的边栏中，标有所在主机，笔记本合上后依然运行。',
-        points: ['通过 SSH、Tailscale 或 WSL 连接主机', '同样的状态、通知和 hyla 命令', '一个脚本安装服务器版，无需 root'],
-        label: '远程主机',
+        title: '另一台机器，或者一部手机',
+        body: '用地址和密码连上另一台运行 Hyla 的机器，它的会话就和本机的并排出现在边栏里。手机用同一个码 tcp://host:port?token=… 就能看到它们。',
+        points: ['在 设置 › 远程连接 里添加机器', '会话、终端和文件都在同一个窗口', '不需要中继，不需要账号：地址加密码'],
+        label: '远程连接',
       },
     ],
     ctaTitle: '上车吧',
