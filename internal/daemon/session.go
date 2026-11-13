@@ -614,6 +614,17 @@ func (s *pane) claim(c *attachment) {
 	s.fit()
 }
 
+// release gives the pane back to its clients' size, as when the client
+// that took it lets it go (HylaPocket's session.disown_block): the client
+// the user is in takes it, as one leaving does for those left (detach).
+// The phone sized the pane for its own screen, and the desktop showing the
+// pane went narrow with it.
+func (s *pane) release() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.fit()
+}
+
 // sizer returns the client whose size the pane takes: of those that
 // asked one, the one claimed in last, else, none claimed, the one that
 // asked last. s.mu is held.

@@ -194,9 +194,10 @@ func (s *Server) drop(c *control) {
 	for pane, o := range s.owners {
 		if o == c {
 			delete(s.owners, pane)
-			if size, ok := s.sized[pane]; ok {
-				_ = s.d.PocketResize(c.viewed[pane], pane, size[0], size[1], size[2], size[3])
-			}
+			// The pane goes back to the size of the clients still showing
+			// it, as the desktop's; with none of them it keeps the size it
+			// has, the last one a client asked for.
+			_ = s.d.PocketRelease(c.viewed[pane], pane)
 		}
 	}
 	for k, t := range s.tickets {

@@ -453,12 +453,20 @@ func (c *control) call(method string, payload json.RawMessage) (any, string, err
 			return nil, "invalid_request", err
 		}
 		c.s.mu.Lock()
+		var released []string
 		for _, b := range p.BlockIDs {
 			if c.s.owners[b] == c {
 				delete(c.s.owners, b)
+				released = append(released, b)
 			}
 		}
 		c.s.mu.Unlock()
+		// The panes left go back to the size of the clients still showing
+		// them, as the desktop's: the phone sized them for its own screen,
+		// and a pane keeps that size otherwise.
+		for _, b := range released {
+			_ = d.PocketRelease(p.SessionID, b)
+		}
 		return true, "", nil
 
 	case "data.connect":

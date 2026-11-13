@@ -561,6 +561,18 @@ func (d *Daemon) PocketResize(sid, pane string, cols, rows, cellW, cellH int) er
 	return nil
 }
 
+// PocketRelease gives a pane back to the size of the clients still showing
+// it, as the desktop's: a phone that lets the pane go leaves it at its own
+// size otherwise. A pane with no client keeps the size it has.
+func (d *Daemon) PocketRelease(sid, pane string) error {
+	p := d.pocketPane(sid, pane)
+	if p == nil {
+		return fmt.Errorf("no pane %q in session %q", pane, sid)
+	}
+	p.release()
+	return nil
+}
+
 func (d *Daemon) pocketPane(sid, id string) *pane {
 	d.mu.Lock()
 	defer d.mu.Unlock()
