@@ -13,7 +13,7 @@ const HOLD = 3.4; // seconds a shape holds
 const MORPH = 2.0; // seconds a morph takes
 // Lime, then the status colors (waiting, done), then the frog's belly,
 // cheeks and, dimmer so its lines stand out, its body.
-const COLORS = ['#c3ec74', '#f5b84a', '#7cc7ff', '#e6dc8e', '#ff9f98', '#6f8f36'];
+const COLORS = ['#fb6f02', '#ffb35c', '#6fe3ff', '#ff8a3d', '#b78cff', '#ffd7a8'];
 // Shapes drawn flat, which turn less while they hold so they face you.
 const FLAT = new Set<string>(['prompt', 'frog']);
 

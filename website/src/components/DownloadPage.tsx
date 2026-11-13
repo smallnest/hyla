@@ -2,7 +2,7 @@ import { For, Show, createSignal, onCleanup, onMount } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
 import { createServerFn } from '@tanstack/solid-start';
 import { Link } from './Link';
-import { AppleIcon, ArrowUpRightIcon, CheckIcon, CopyIcon, DownloadIcon, LinuxIcon, WindowsIcon } from './Icons';
+import { AppleIcon, ArrowUpRightIcon, CheckIcon, CopyIcon, DownloadIcon, LinuxIcon, PhoneIcon, WindowsIcon } from './Icons';
 import { GITHUB_URL } from './SiteHeader';
 import { localize, pageHead, type Locale } from '../lib/i18n';
 
@@ -46,6 +46,8 @@ const copy = {
     allReleases: 'All Releases',
     copyCommand: 'Copy command',
     copiedCommand: 'Copied',
+    androidNote: 'Hyla in your pocket: the sessions of this machine on a phone, by a tailcat pair code or an address and a password.',
+    apk: 'Download APK',
   },
   ja: {
     title: 'ダウンロード | Hyla',
@@ -70,6 +72,8 @@ const copy = {
     allReleases: 'すべてのリリース',
     copyCommand: 'コマンドをコピー',
     copiedCommand: 'コピーしました',
+    androidNote: 'ポケットの中の Hyla: tailcat のペアコード、またはアドレスとパスワードで、このマシンのセッションをスマートフォンから。',
+    apk: 'APK をダウンロード',
   },
   zh: {
     title: '下载 | Hyla',
@@ -93,12 +97,16 @@ const copy = {
     allReleases: '所有版本',
     copyCommand: '复制命令',
     copiedCommand: '已复制',
+    androidNote: '口袋里的 Hyla：用 tailcat 配对码，或地址与密码，在手机上读取这台机器的会话。',
+    apk: '下载 APK',
   },
 };
 
 export function downloadHead(locale: Locale) {
   return pageHead(locale, '/download', copy[locale].title, copy[locale].description);
 }
+
+const POCKET_URL = 'https://github.com/smallnest/hyla-pocket';
 
 const INSTALL_SCRIPTS: Partial<Record<OS, string>> = {
   mac: 'brew install --cask hyla',
@@ -261,6 +269,23 @@ export default function DownloadPage(props: { locale: Locale; version: string })
             </article>
           )}
         </For>
+        <article class="platform">
+          <div class="platform__head">
+            <PhoneIcon size={26} class="platform__icon" />
+            <h2>Android</h2>
+          </div>
+          <p>{c().androidNote}</p>
+          <div class="platform__files">
+            <a href={`${POCKET_URL}/releases/latest`} class="button button--primary">
+              <DownloadIcon size={16} />
+              {c().apk}
+              <span class="platform__kind">.apk</span>
+            </a>
+            <a href={`${POCKET_URL}/releases`} class="button">
+              {c().allReleases}
+            </a>
+          </div>
+        </article>
       </section>
 
       <section class="wrapper cta">

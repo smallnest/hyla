@@ -1,0 +1,1185 @@
+/* The landing page: near-black, Hyla's orange as neon, a grid that moves,
+   and motion everywhere it does not get in the way. Its own file, so that
+   the docs keep the quieter look of global.css. */
+
+.hx {
+  --hx-bg: #08090a;
+  --hx-panel: #0e1012;
+  --hx-panel-2: #121417;
+  --hx-line: rgba(255, 255, 255, 0.08);
+  --hx-line-2: rgba(255, 255, 255, 0.14);
+  --hx-text: #f4f6f4;
+  --hx-dim: #98a09a;
+  --hx-dim-2: #6b736d;
+  --hx-orange: #fb6f02;
+  --hx-orange-2: #ff9d3c;
+  --hx-orange-soft: rgba(251, 111, 2, 0.12);
+  --hx-cyan: #6fe3ff;
+  --hx-violet: #b78cff;
+  --hx-radius: 18px;
+  position: relative;
+  background: var(--hx-bg);
+  color: var(--hx-text);
+  overflow-x: clip;
+}
+
+.hx ::selection {
+  background: var(--hx-orange);
+  color: #100a04;
+}
+
+.hx a {
+  color: inherit;
+}
+
+.hx-wrap {
+  width: min(1240px, 100% - 48px);
+  margin-inline: auto;
+}
+
+@media (max-width: 720px) {
+  .hx-wrap {
+    width: min(1240px, 100% - 32px);
+  }
+}
+
+/* ---------- Small parts ---------- */
+
+.hx-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 22px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hx-dim);
+}
+
+.hx-eyebrow__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--hx-orange);
+  box-shadow: 0 0 0 0 rgba(251, 111, 2, 0.6);
+}
+
+@keyframes hx-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(251, 111, 2, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(251, 111, 2, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(251, 111, 2, 0);
+  }
+}
+
+.hx-btn {
+  --hx-btn-bg: rgba(255, 255, 255, 0.04);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  height: 46px;
+  padding: 0 22px;
+  border: 1px solid var(--hx-line-2);
+  border-radius: 999px;
+  background: var(--hx-btn-bg);
+  color: var(--hx-text);
+  font-size: 14.5px;
+  font-weight: 550;
+  text-decoration: none;
+  white-space: nowrap;
+  transition:
+    border-color 0.2s,
+    background 0.2s,
+    transform 0.2s,
+    box-shadow 0.2s;
+}
+
+.hx-btn:hover {
+  border-color: rgba(251, 111, 2, 0.55);
+  background: rgba(251, 111, 2, 0.08);
+  transform: translateY(-1px);
+}
+
+.hx-btn:active {
+  transform: translateY(0);
+}
+
+.hx-btn--primary {
+  border-color: transparent;
+  background: linear-gradient(180deg, var(--hx-orange-2), var(--hx-orange));
+  color: #160b02;
+  box-shadow:
+    0 10px 30px -12px rgba(251, 111, 2, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.hx-btn--primary:hover {
+  background: linear-gradient(180deg, #ffb05b, #ff7a10);
+  border-color: transparent;
+  box-shadow:
+    0 14px 40px -12px rgba(251, 111, 2, 1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.hx-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 30px;
+}
+
+.hx-note {
+  margin: 14px 0 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--hx-dim-2);
+}
+
+/* Reveal: the page shows everything without JavaScript; the script marks
+   the page, and only then do rows wait below their place. */
+.hx--anim .hx-reveal {
+  opacity: 0;
+  translate: 0 22px;
+  transition:
+    opacity 0.7s cubic-bezier(0.2, 0.8, 0.2, 1),
+    translate 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.hx--anim .hx-reveal.is-in {
+  opacity: 1;
+  translate: 0 0;
+}
+
+/* ---------- Hero ---------- */
+
+.hx-hero {
+  position: relative;
+  isolation: isolate;
+  padding: 96px 0 72px;
+  overflow: clip;
+}
+
+.hx-hero__bg {
+  position: absolute;
+  inset: -20% -10% auto;
+  height: 150%;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.hx-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, var(--hx-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--hx-line) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse 75% 60% at 50% 35%, #000 25%, transparent 78%);
+}
+
+@keyframes hx-grid-drift {
+  to {
+    background-position: 64px 64px;
+  }
+}
+
+.hx-beams {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.hx-beam {
+  position: absolute;
+  top: -40%;
+  width: 1px;
+  height: 90%;
+  background: linear-gradient(to bottom, transparent, var(--hx-orange), transparent);
+  opacity: 0.5;
+  filter: drop-shadow(0 0 10px rgba(251, 111, 2, 0.7));
+}
+
+.hx-beam--a {
+  left: 22%;
+}
+
+.hx-beam--b {
+  left: 74%;
+  background: linear-gradient(to bottom, transparent, var(--hx-cyan), transparent);
+  opacity: 0.35;
+}
+
+@keyframes hx-beam {
+  0%,
+  100% {
+    transform: translateY(-12%) scaleY(0.7);
+    opacity: 0;
+  }
+  35% {
+    opacity: 0.55;
+  }
+  60% {
+    transform: translateY(28%) scaleY(1.15);
+    opacity: 0.35;
+  }
+}
+
+.hx-spot {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    420px circle at var(--hx-mx, 62%) var(--hx-my, 38%),
+    rgba(251, 111, 2, 0.16),
+    rgba(251, 111, 2, 0.05) 38%,
+    transparent 62%
+  );
+  transition: background 0.25s ease-out;
+}
+
+.hx-hero__inner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.02fr);
+  align-items: center;
+  gap: 56px;
+}
+
+.hx-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(42px, 6.2vw, 76px);
+  font-weight: 680;
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+}
+
+.hx-title__line {
+  display: block;
+  overflow: hidden;
+}
+
+.hx-title__line > span {
+  display: block;
+}
+
+@keyframes hx-rise {
+  to {
+    transform: translateY(0);
+  }
+}
+
+.hx-title__line--accent > span {
+  background: linear-gradient(100deg, var(--hx-orange) 10%, #ffd7a8 42%, var(--hx-orange) 78%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@keyframes hx-shine {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.hx-lead {
+  max-width: 46ch;
+  margin: 24px 0 0;
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--hx-dim);
+}
+
+.hx-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 26px;
+  margin: 38px 0 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--hx-dim-2);
+}
+
+.hx-stats li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hx-stats li::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  background: var(--hx-orange);
+  transform: rotate(45deg);
+}
+
+/* The art: the particles, in a frame of their own. */
+
+.hx-art {
+  position: relative;
+  aspect-ratio: 1 / 0.92;
+  border: 1px solid var(--hx-line-2);
+  border-radius: var(--hx-radius);
+  background:
+    radial-gradient(circle at 50% 45%, rgba(251, 111, 2, 0.1), transparent 62%),
+    var(--hx-panel);
+  overflow: hidden;
+  box-shadow:
+    0 40px 120px -60px rgba(251, 111, 2, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.hx-art::before,
+.hx-art::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 1px solid rgba(251, 111, 2, 0.7);
+  z-index: 3;
+}
+
+.hx-art::before {
+  top: 12px;
+  left: 12px;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.hx-art::after {
+  right: 12px;
+  bottom: 12px;
+  border-left: 0;
+  border-top: 0;
+}
+
+.hx-art .morph {
+  position: absolute;
+  inset: 0;
+}
+
+.hx-art__scan {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.035) 0 1px,
+    transparent 1px 3px
+  );
+  mix-blend-mode: overlay;
+}
+
+@keyframes hx-scan {
+  to {
+    background-position: 0 120px;
+  }
+}
+
+.hx-art__tag {
+  position: absolute;
+  left: 18px;
+  bottom: 16px;
+  z-index: 3;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+/* ---------- Ticker ---------- */
+
+.hx-ticker {
+  position: relative;
+  border-block: 1px solid var(--hx-line);
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.hx-ticker__mask {
+  padding: 18px 0;
+  overflow: hidden;
+  mask-image: linear-gradient(to right, transparent, #000 8%, #000 92%, transparent);
+}
+
+.hx-ticker__pause {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  translate: 0 -50%;
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--hx-line-2);
+  border-radius: 50%;
+  background: rgba(8, 9, 10, 0.72);
+  color: var(--hx-dim);
+  cursor: pointer;
+  transition:
+    color 0.2s,
+    border-color 0.2s;
+}
+
+.hx-ticker__pause:hover,
+.hx-ticker__pause:focus-visible {
+  color: var(--hx-orange-2);
+  border-color: rgba(251, 111, 2, 0.5);
+}
+
+.hx-ticker__scroller {
+  display: flex;
+  width: max-content;
+}
+
+.hx-ticker__row {
+  display: flex;
+  flex: none;
+}
+
+.hx-ticker span {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 26px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--hx-dim-2);
+  white-space: nowrap;
+}
+
+.hx-ticker span::after {
+  content: '◆';
+  font-size: 8px;
+  color: var(--hx-orange);
+  opacity: 0.7;
+}
+
+@keyframes hx-marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* ---------- Sections ---------- */
+
+.hx-section {
+  position: relative;
+  padding: 96px 0;
+}
+
+.hx-section--tight {
+  padding: 72px 0;
+}
+
+.hx-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 32px;
+  margin-bottom: 44px;
+}
+
+.hx-head__copy {
+  max-width: 62ch;
+}
+
+.hx-kicker {
+  display: block;
+  margin: 0 0 14px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--hx-orange);
+}
+
+.hx-title2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(30px, 3.4vw, 44px);
+  font-weight: 640;
+  line-height: 1.06;
+  letter-spacing: -0.02em;
+}
+
+.hx-sub {
+  margin: 16px 0 0;
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--hx-dim);
+}
+
+/* ---------- The app window ---------- */
+
+.hx-app {
+  position: relative;
+}
+
+.hx-stage {
+  position: relative;
+  padding: 18px;
+  border: 1px solid var(--hx-line-2);
+  border-radius: 24px;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(251, 111, 2, 0.12), transparent 60%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 40%),
+    var(--hx-panel);
+  box-shadow:
+    0 60px 140px -70px rgba(0, 0, 0, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+
+.hx-stage__inner {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--hx-line);
+  background: #0b0d0e;
+}
+
+@supports ((animation-timeline: view()) and (animation-range: entry)) {
+  @media (prefers-reduced-motion: no-preference) {
+    .hx-stage {
+      transform-origin: 50% 0%;
+      animation: hx-tilt linear both;
+      animation-timeline: view();
+      animation-range: entry 5% cover 45%;
+    }
+  }
+}
+
+@keyframes hx-tilt {
+  from {
+    transform: perspective(1400px) rotateX(9deg) scale(0.965);
+    opacity: 0.4;
+  }
+  to {
+    transform: perspective(1400px) rotateX(0deg) scale(1);
+    opacity: 1;
+  }
+}
+
+/* ---------- Terminal demo ---------- */
+
+.hx-demo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 48px;
+  align-items: center;
+}
+
+.hx-term {
+  border: 1px solid var(--hx-line-2);
+  border-radius: 14px;
+  background: linear-gradient(180deg, #101315, #0b0d0e);
+  box-shadow:
+    0 40px 100px -60px rgba(251, 111, 2, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.hx-term__bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--hx-line);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.hx-term__bar i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #3a3f42;
+}
+
+.hx-term__bar i:first-child {
+  background: #ff5f57;
+}
+
+.hx-term__bar i:nth-child(2) {
+  background: #febc2e;
+}
+
+.hx-term__bar i:nth-child(3) {
+  background: #28c840;
+}
+
+.hx-term__bar span {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--hx-dim-2);
+}
+
+.hx-term__body {
+  min-height: 268px;
+  padding: 18px 18px 22px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.75;
+  color: #cfd6d0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.hx-term__line {
+  display: block;
+}
+
+.hx-prompt {
+  color: var(--hx-orange);
+  user-select: none;
+}
+
+.hx-cmd {
+  color: #f2f6f1;
+}
+
+.hx-out {
+  color: var(--hx-dim);
+}
+
+.hx-ok {
+  color: #7de08a;
+}
+
+.hx-caret {
+  display: inline-block;
+  width: 8px;
+  height: 15px;
+  translate: 0 2px;
+  background: var(--hx-orange);
+}
+
+@keyframes hx-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* ---------- CLI ---------- */
+
+.hx .cli-stage {
+  --t-accent: var(--hx-orange);
+  padding: 56px 24px 0;
+  background:
+    radial-gradient(ellipse 60% 70% at 50% 100%, rgba(255, 157, 60, 0.42), rgba(251, 111, 2, 0.14) 45%, transparent 75%),
+    linear-gradient(180deg, #0b0d0e 0%, #1a1109 55%, #40200a 100%);
+}
+
+.hx .cli-stage__rays {
+  background: repeating-conic-gradient(
+    from -90deg at 50% 115%,
+    rgba(255, 157, 60, 0) 0deg 3.2deg,
+    rgba(255, 157, 60, 0.2) 3.6deg 4.2deg,
+    rgba(255, 157, 60, 0) 4.6deg 7deg
+  );
+}
+
+.hx .cli-window {
+  background: #0b0d0e;
+}
+
+/* ---------- Bento ---------- */
+
+.hx-bento {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.hx-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  grid-column: span 2;
+  padding: 26px 24px 24px;
+  border: 1px solid var(--hx-line);
+  border-radius: 16px;
+  background:
+    radial-gradient(120% 100% at 0% 0%, rgba(255, 255, 255, 0.04), transparent 55%),
+    var(--hx-panel);
+  text-decoration: none;
+  overflow: hidden;
+  transition:
+    border-color 0.25s,
+    transform 0.25s,
+    background 0.25s;
+}
+
+.hx-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    340px circle at var(--hx-cx, 50%) var(--hx-cy, 0%),
+    rgba(251, 111, 2, 0.14),
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+.hx-card:hover {
+  border-color: rgba(251, 111, 2, 0.45);
+  transform: translateY(-3px);
+}
+
+.hx-card:hover::after {
+  opacity: 1;
+}
+
+.hx-card--wide {
+  grid-column: span 3;
+}
+
+.hx-card--half {
+  grid-column: span 2;
+}
+
+.hx-card__num {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--hx-orange);
+}
+
+.hx-card__icon {
+  color: var(--hx-orange);
+}
+
+.hx-card h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.hx-card p {
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--hx-dim);
+}
+
+.hx-card__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--hx-dim-2);
+}
+
+.hx-card__list li::before {
+  content: '› ';
+  color: var(--hx-orange);
+}
+
+.hx-card__go {
+  margin-top: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--hx-dim);
+}
+
+.hx-card:hover .hx-card__go {
+  color: var(--hx-orange-2);
+}
+
+/* ---------- Pocket ---------- */
+
+.hx-pocket {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr);
+  gap: 56px;
+  align-items: center;
+  padding: 56px;
+  border: 1px solid var(--hx-line-2);
+  border-radius: 26px;
+  background:
+    radial-gradient(ellipse at 0% 0%, rgba(251, 111, 2, 0.14), transparent 55%),
+    radial-gradient(ellipse at 100% 100%, rgba(111, 227, 255, 0.07), transparent 55%),
+    var(--hx-panel);
+  overflow: hidden;
+}
+
+.hx-pocket::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse 60% 70% at 20% 20%, #000, transparent 70%);
+  pointer-events: none;
+}
+
+.hx-pocket__art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 420px;
+}
+
+.hx-phone {
+  position: relative;
+  width: min(268px, 80%);
+  aspect-ratio: 9 / 18.6;
+  border-radius: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: linear-gradient(180deg, #141719, #0a0c0d);
+  box-shadow:
+    0 50px 120px -50px rgba(0, 0, 0, 0.9),
+    inset 0 0 0 3px #050607,
+    0 0 0 1px rgba(251, 111, 2, 0.18);
+  padding: 16px 14px;
+}
+
+@keyframes hx-float {
+  0%,
+  100% {
+    transform: translateY(-6px) rotate(-1.2deg);
+  }
+  50% {
+    transform: translateY(8px) rotate(1.2deg);
+  }
+}
+
+.hx-phone__notch {
+  width: 86px;
+  height: 18px;
+  margin: 0 auto 12px;
+  border-radius: 999px;
+  background: #050607;
+}
+
+.hx-phone__screen {
+  height: calc(100% - 30px);
+  border-radius: 22px;
+  background: #08090a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 14px 12px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1.7;
+  color: #cfd6d0;
+  overflow: hidden;
+}
+
+.hx-phone__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 2px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.hx-phone__row i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--hx-orange);
+  box-shadow: 0 0 8px rgba(251, 111, 2, 0.8);
+  flex: none;
+}
+
+.hx-phone__row--dim i {
+  background: #3d4448;
+  box-shadow: none;
+}
+
+.hx-phone__row b {
+  font-weight: 500;
+  color: #edf2ee;
+}
+
+.hx-phone__row span {
+  color: var(--hx-dim-2);
+  font-size: 9.5px;
+}
+
+.hx-phone__keys {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.hx-phone__keys i {
+  height: 16px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.hx-pocket__points {
+  display: grid;
+  gap: 10px;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hx-pocket__points li {
+  display: flex;
+  gap: 10px;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--hx-dim);
+}
+
+.hx-pocket__points li::before {
+  content: '▸';
+  color: var(--hx-orange);
+}
+
+.hx-pocket__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 26px 0 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--hx-dim-2);
+}
+
+/* ---------- CTA ---------- */
+
+.hx-cta {
+  position: relative;
+  padding: 110px 0 120px;
+  text-align: center;
+  overflow: hidden;
+}
+
+.hx-cta::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  width: min(900px, 120%);
+  aspect-ratio: 2 / 1;
+  translate: -50% -50%;
+  background: radial-gradient(ellipse, rgba(251, 111, 2, 0.18), transparent 62%);
+  filter: blur(20px);
+  pointer-events: none;
+}
+
+.hx-cta__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(34px, 4.6vw, 60px);
+  font-weight: 660;
+  letter-spacing: -0.03em;
+}
+
+.hx-cta__lead {
+  margin: 18px auto 0;
+  max-width: 52ch;
+  font-size: 16.5px;
+  line-height: 1.6;
+  color: var(--hx-dim);
+}
+
+.hx-cmdbox {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin: 34px auto 0;
+  padding: 16px 22px;
+  border: 1px solid var(--hx-line-2);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  line-height: 1.9;
+  color: #e9efe9;
+  text-align: left;
+  overflow-x: auto;
+}
+
+.hx-cmdbox span {
+  color: var(--hx-orange);
+}
+
+.hx-phone__code {
+  margin: 10px 0 0;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  line-height: 1.7;
+  color: var(--hx-dim-2);
+  white-space: pre-wrap;
+}
+
+.hx-cta .hx-actions {
+  justify-content: center;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 1000px) {
+  .hx-hero {
+    padding: 68px 0 48px;
+  }
+
+  .hx-hero__inner,
+  .hx-demo,
+  .hx-pocket {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hx-art {
+    aspect-ratio: 1 / 0.75;
+  }
+
+  .hx-pocket {
+    padding: 32px 24px;
+    gap: 32px;
+  }
+
+  .hx-pocket__art {
+    min-height: 340px;
+  }
+
+  .hx-card,
+  .hx-card--wide,
+  .hx-card--half {
+    grid-column: span 6;
+  }
+
+  .hx-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 18px;
+  }
+}
+
+@media (max-width: 720px) {
+  .hx-section {
+    padding: 68px 0;
+  }
+
+  .hx-title {
+    font-size: clamp(38px, 10vw, 56px);
+  }
+
+  .hx-lead {
+    font-size: 15.5px;
+  }
+
+  .hx-bento {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hx-card {
+    grid-column: span 1;
+  }
+
+  .hx-term__body {
+    min-height: 240px;
+    font-size: 12px;
+  }
+
+  .hx-cta {
+    padding: 72px 0 84px;
+  }
+}
+
+/* ---------- Motion, or none of it ---------- */
+
+/* The page is complete and still without any of this: the hero's lines are
+   where they land, the ticker rests, and nothing moves. The script starts
+   only when the reader has not asked for less motion, and so does this. */
+@media (prefers-reduced-motion: no-preference) {
+  .hx-title__line > span {
+    transform: translateY(115%);
+    animation: hx-rise 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: calc(var(--i, 0) * 110ms + 80ms);
+  }
+
+  .hx-title__line--accent > span {
+    animation:
+      hx-rise 1s cubic-bezier(0.16, 1, 0.3, 1) forwards,
+      hx-shine 7s ease-in-out infinite;
+    animation-delay: calc(var(--i, 0) * 110ms + 80ms), 1.4s;
+  }
+
+  .hx-eyebrow__dot {
+    animation: hx-pulse 2.4s ease-out infinite;
+  }
+
+  .hx-grid {
+    animation: hx-grid-drift 24s linear infinite;
+  }
+
+  .hx-beam--a {
+    animation: hx-beam 9s ease-in-out infinite;
+  }
+
+  .hx-beam--b {
+    animation: hx-beam 12s ease-in-out infinite 1.4s;
+  }
+
+  .hx-art__scan {
+    animation: hx-scan 12s linear infinite;
+  }
+
+  .hx-ticker__scroller {
+    animation: hx-marquee 34s linear infinite;
+  }
+
+  .hx-caret {
+    animation: hx-blink 1.05s steps(1) infinite;
+  }
+
+  .hx-phone {
+    animation: hx-float 7s ease-in-out infinite;
+  }
+
+  /* The ticker stops where the reader asked it to, and starts again. */
+  .hx-ticker.is-paused .hx-ticker__scroller {
+    animation-play-state: paused;
+  }
+}
+
+/* A reader who asked for less motion gets the ticker's list as it is, with
+   no way to restart what does not move. */
+@media (prefers-reduced-motion: reduce) {
+  .hx-ticker__pause {
+    display: none;
+  }
+}

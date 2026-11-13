@@ -4,6 +4,13 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## Unreleased
+
+- The website has a new landing page: a dark, orange-lit hero over a grid the
+  pointer lights, the window tilting into place as it scrolls in, a terminal
+  that plays a turn, and the features as a bento. Its download page adds
+  **HylaPocket** for Android, whose APK comes from its releases.
+
 ## 3.8.1
 
 - Hyla keeps its own directory, configuration file and variables alone: it

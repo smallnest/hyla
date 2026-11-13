@@ -126,6 +126,22 @@ export const FileTextIcon = icon(() => (
   </>
 ));
 
+export const PauseIcon = icon(() => (
+  <>
+    <rect x="7" y="5" width="3.5" height="14" rx="1" />
+    <rect x="13.5" y="5" width="3.5" height="14" rx="1" />
+  </>
+));
+
+export const PlayIcon = icon(() => <path d="M8 5.5v13l11-6.5z" />);
+
+export const PhoneIcon = icon(() => (
+  <>
+    <rect x="6" y="2" width="12" height="20" rx="2.5" />
+    <path d="M11 18h2" />
+  </>
+));
+
 export const DownloadIcon = icon(() => (
   <>
     <path d="M12 15V3" />

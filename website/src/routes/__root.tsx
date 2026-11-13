@@ -5,6 +5,7 @@ import '@fontsource-variable/geist-mono';
 import '@fontsource-variable/jetbrains-mono';
 import '../styles/markdown.css';
 import '../styles/global.css';
+import '../styles/home.css';
 import type { JSX } from 'solid-js';
 import { HeadContent, Outlet, Scripts, createRootRoute, useLocation } from '@tanstack/solid-router';
 import { HydrationScript } from 'solid-js/web';

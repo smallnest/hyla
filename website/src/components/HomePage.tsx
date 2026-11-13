@@ -1,183 +1,274 @@
-import { For } from 'solid-js';
+import { For, createSignal, onCleanup, onMount } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
 import { Link } from './Link';
 import AppWindow from './AppWindow';
 import CliShowcase from './CliShowcase';
 import ParticleMorph from './ParticleMorph';
-import { ArrowUpRightIcon, BellIcon, BotIcon, LayersIcon, ServerIcon, TerminalIcon } from './Icons';
+import HeroTerminal from './HeroTerminal';
+import { ArrowUpRightIcon, BellIcon, BotIcon, DownloadIcon, LayersIcon, PauseIcon, PlayIcon, ServerIcon, TerminalIcon } from './Icons';
 import { localize, pageHead, type Locale } from '../lib/i18n';
 
 const icons = [LayersIcon, BellIcon, BotIcon, TerminalIcon, ServerIcon];
-const featureLinks = ['/docs/sessions', '/docs/status', '/docs/agents', '/docs/configuration', '/docs/configuration'];
+const featureLinks = ['/docs/sessions', '/docs/status', '/docs/agents', '/docs/configuration', '/docs/quick-start'];
+
+// Every machine Hyla drives, or is made of: the ticker between the hero and
+// the window.
+const ticker = [
+  'Claude Code',
+  'Codex',
+  'OpenCode',
+  'Pi',
+  'Gemini',
+  'Ghostty',
+  'tmux',
+  'lazygit',
+  'yazi',
+  'Android',
+  'pair code',
+  'hyla CLI',
+];
+
+const LINUX_POCKET = 'https://github.com/smallnest/hyla-pocket';
 
 const copy = {
   en: {
-    title: 'A terminal for coding agents | Hyla',
+    title: 'Hyla — a terminal for coding agents',
     description:
-      'Hyla is a terminal for coding agents. Sessions keep running when you quit, on your computer or a remote host, and the sidebar shows which ones need you.',
-    hero: ['Run your agents.', 'Keep your place.'],
-    heroLead:
-      'Hyla is a terminal for coding agents. Sessions keep running when you quit, and the sidebar shows which ones are working, which need you, and which are done.',
-    getStarted: 'Get Started',
+      'Hyla is a terminal for coding agents. Sessions keep running when you quit, on your computer or another machine, and a phone reads them too.',
+    eyebrow: 'Hyla · protocol 4',
+    hero: ['Run your', 'agents.'],
+    heroAccent: 'Keep your place.',
+    lead: 'One window for every agent in flight. Sessions outlive the window, the sidebar says who needs you, and your phone reads the same sessions from anywhere.',
+    getStarted: 'Get started',
     download: 'Download',
-    appTitle: 'Every Agent, One Window',
+    stats: ['sessions outlive the window', 'agents: claude · codex · opencode', 'macos · windows · linux'],
+    appKicker: '01 — the window',
+    appTitle: 'Every agent, one window',
     appLead:
-      'An agent reviews your change, lazygit shows the diff, and the program runs beside them. The sidebar tells you which session needs you.',
-    cliTitle: 'Drive It From the Shell',
+      'An agent reviews your change, lazygit shows the diff, and the program runs beside them. The sidebar answers the only question that matters: who needs you right now?',
+    demoKicker: '02 — the loop',
+    demoTitle: 'Start it, close it, come back',
+    demoLead:
+      'Sessions run in hylad, a daemon of their own: quit Hyla and they keep going, on this machine or another. Open it again and everything is where you left it.',
+    demoLabels: { working: 'working', done: 'turn done' },
+    cliKicker: '03 — the shell',
+    cliTitle: 'Drive it from the shell',
     cliLead:
       "Start sessions, split panes, type into them, wait for them and read their screens, from your shell or your agent's.",
-    featuresTitle: 'Built for Many Agents at Once',
+    featuresKicker: '04 — what is inside',
+    featuresTitle: 'Built for many agents at once',
     featuresLead:
-      'One window for every task in flight, and a clear answer to the only question that matters: who needs you right now?',
+      'A terminal drawn by Ghostty, a daemon that keeps sessions, a CLI agents can drive, and a sidebar that tells the truth.',
     features: [
       {
-        title: 'Sessions That Outlive the Window',
-        body: 'Sessions run in hylad, a daemon of their own. Quit Hyla and they keep going; open it again and everything is where you left it.',
-        points: ['Scrollback survives quitting', 'Sessions start again after a reboot', 'Grouped by project in the sidebar'],
+        title: 'Sessions that outlive the window',
+        body: 'Every session runs in hylad, which keeps it, its scrollback and its panes after Hyla closes.',
+        points: ['survives quitting', 'restored after a reboot', 'grouped by project'],
         label: 'Sessions & projects',
       },
       {
-        title: 'Know Which Ones Need You',
-        body: 'Every pane is working, waiting, idle, done or failed. The ones waiting on you stand out, and one shortcut takes you there.',
-        points: ['⌘J jumps to the session needing you', 'Notifies you when an agent finishes', 'Dock badge counts who is waiting'],
+        title: 'Know which one needs you',
+        body: 'Working, waiting, idle, done or failed: the ones waiting on you stand out, and one shortcut takes you there.',
+        points: ['⌘J jumps to it', 'notified when an agent finishes', 'dock badge counts them'],
         label: 'Status & notifications',
       },
       {
-        title: 'A CLI Your Agents Can Drive',
-        body: 'Agents start dev servers beside themselves, hand work to other agents, wait for tests and report their own progress.',
-        points: ['hyla split, send, wait and read', 'One command installs the agent skill', 'Works with Claude Code, Codex and more'],
+        title: 'A CLI agents can drive',
+        body: 'Agents start dev servers, hand work to other agents, wait for tests and report their own progress.',
+        points: ['split, send, wait, read'],
         label: 'Coding agents',
       },
       {
-        title: 'Ghostty Under the Hood',
-        body: 'Terminals render with libghostty: fast, correct and familiar. Ghostty themes and configuration keys work as you expect.',
-        points: ['Every Ghostty theme, light and dark', 'Plain-text config with live reload', 'Rebind any action'],
+        title: 'Ghostty under the hood',
+        body: 'Terminals render with libghostty: fast, correct and familiar.',
+        points: ['every Ghostty theme', 'plain-text config'],
         label: 'Configuration',
       },
       {
-        title: 'On Another Machine, or a Phone',
-        body: 'Reach another machine that runs Hyla by its address and a password, and its sessions join your sidebar with your own. A phone takes the same code, tcp://host:port?token=…, and reads them there.',
-        points: [
-          'Add a machine in Settings › Remote Connection',
-          'Its sessions, terminals and files in the same window',
-          'No relay, no account: an address and a password',
-        ],
-        label: 'Remote connection',
+        title: 'Another machine, or a phone',
+        body: 'Reach another machine by its address and a password, or scan one code with your phone.',
+        points: ['no relay needed', 'no account'],
+        label: 'Remote access',
       },
     ],
-    ctaTitle: 'Hop In',
+    pocketKicker: '05 — android',
+    pocketTitle: 'Hyla, in your pocket',
+    pocketLead:
+      'HylaPocket is an Android client for the sessions on this machine: it reaches hylad over tailcat by its pair code, or by the address and password of a network listener, and shows the same sessions, terminals and splits.',
+    pocketPoints: [
+      'Every session, live, with the panes of each',
+      'Type with the terminal key row: esc, tab, ctrl, alt, arrows',
+      'Split panes, and come back to where you left off',
+    ],
+    pocketMeta: ['signed APK', 'android 9+', 'free'],
+    pocketDownload: 'Download APK',
+    pocketReleases: 'All releases',
+    pocketSource: 'Source',
+    pauseTicker: 'Stop the scrolling band',
+    playTicker: 'Start the scrolling band',
+    ctaKicker: '06 — start',
+    ctaTitle: 'Hop in.',
     ctaLead: 'Install Hyla, teach your agents to use it, and stop losing track of them.',
     ctaComment: '# after installing the command line tool',
-    cliReference: 'CLI Reference',
+    getStarted2: 'Quick start',
+    cliReference: 'CLI reference',
   },
   ja: {
-    title: 'コーディングエージェントのためのターミナル | Hyla',
+    title: 'Hyla — コーディングエージェントのためのターミナル',
     description:
-      'Hyla はコーディングエージェントのためのターミナルです。終了してもセッションは動き続け、手元のコンピュータでもリモートホストでも、対応が必要なセッションをサイドバーが教えてくれます。',
+      'Hyla はコーディングエージェントのためのターミナルです。終了してもセッションは動き続け、スマートフォンからも同じセッションを読めます。',
+    eyebrow: 'Hyla · protocol 4',
     hero: ['走らせたまま、', '続きはそのまま。'],
-    heroLead:
-      'Hyla はコーディングエージェントのためのターミナルです。終了してもセッションは動き続け、どれが作業中で、どれが対応待ちで、どれが完了したかをサイドバーが示します。',
+    heroAccent: '',
+    lead: '進行中のすべてのエージェントをひとつのウインドウに。セッションはウインドウより長生きし、サイドバーが対応が必要なものを教え、スマートフォンからも同じセッションを読めます。',
     getStarted: 'はじめる',
     download: 'ダウンロード',
+    stats: ['セッションはウインドウより長生き', 'claude · codex · opencode', 'macos · windows · linux'],
+    appKicker: '01 — ウインドウ',
     appTitle: 'すべてのエージェントを、ひとつのウインドウに',
     appLead:
       'エージェントが変更をレビューし、lazygit が差分を表示し、その横でプログラムが動く。対応が必要なセッションはサイドバーが教えてくれます。',
+    demoKicker: '02 — ループ',
+    demoTitle: '始めて、閉じて、また戻る',
+    demoLead:
+      'セッションは専用のデーモン hylad の中で動きます。Hyla を終了しても、別のマシンでも動き続け、再び開けばすべてが元のままです。',
+    demoLabels: { working: '作業中', done: 'ターン完了' },
+    cliKicker: '03 — シェル',
     cliTitle: 'シェルから操作する',
     cliLead:
       'あなたのシェルからでもエージェントのシェルからでも、セッションの開始、ペインの分割、入力の送信、完了の待機、画面の読み取りができます。',
-    featuresTitle: 'たくさんのエージェントを同時に動かすために',
+    featuresKicker: '04 — 中身',
+    featuresTitle: 'たくさんのエージェントを同時に',
     featuresLead:
-      '進行中のすべてのタスクをひとつのウインドウに。そして、本当に大事な問いにはっきり答えます: 今、誰があなたを必要としているか？',
+      'Ghostty が描くターミナル、セッションを保つデーモン、エージェントが操作できる CLI、そして正直なサイドバー。',
     features: [
       {
         title: 'ウインドウより長生きするセッション',
-        body: 'セッションは専用のデーモン hylad の中で動きます。Hyla を終了しても動き続け、再び開けばすべてが元のままです。',
-        points: ['終了してもスクロールバックが残る', '再起動後にセッションが再開する', 'サイドバーでプロジェクトごとにまとまる'],
+        body: 'セッションは hylad の中で動き、Hyla を閉じた後もスクロールバックとペインを保ちます。',
+        points: ['終了しても残る', '再起動後に復元', 'プロジェクトごとにまとまる'],
         label: 'セッションとプロジェクト',
       },
       {
-        title: '対応が必要なセッションがわかる',
-        body: 'すべてのペインは、作業中、待機中、アイドル、完了、失敗のいずれかです。あなたを待っているものは目立ち、ショートカットひとつでそこへ移動できます。',
-        points: ['⌘J で対応待ちのセッションへ移動', 'エージェントが完了したら通知', 'Dock のバッジで待機中の数がわかる'],
+        title: '対応が必要なものがわかる',
+        body: '作業中、待機中、アイドル、完了、失敗。あなたを待っているものが目立ち、ショートカットひとつで移動できます。',
+        points: ['⌘J で移動', '完了時に通知', 'Dock のバッジ'],
         label: '状態と通知',
       },
       {
         title: 'エージェントが操作できる CLI',
-        body: 'エージェントは自分の横で開発サーバーを起動し、ほかのエージェントに作業を任せ、テストを待ち、自分の進捗を報告できます。',
-        points: ['hyla split、send、wait、read', 'コマンドひとつでエージェント用スキルをインストール', 'Claude Code や Codex などに対応'],
+        body: 'エージェントは開発サーバーを起動し、作業を任せ、テストを待ち、進捗を報告できます。',
+        points: ['split、send、wait、read'],
         label: 'コーディングエージェント',
       },
       {
         title: '中身は Ghostty',
-        body: 'ターミナルの描画は libghostty: 速く、正確で、おなじみです。Ghostty のテーマや設定キーが期待どおりに使えます。',
-        points: ['Ghostty のすべてのテーマ、ライトもダークも', 'ライブリロード付きのプレーンテキスト設定', 'どのアクションも割り当て直せる'],
+        body: '描画は libghostty: 速く、正確で、おなじみです。',
+        points: ['Ghostty の全テーマ', 'プレーンテキスト設定'],
         label: '設定',
       },
       {
-        title: 'どのマシンでもエージェントを',
-        body: 'Linux マシン、クラウドの VM、Windows PC、机の下の Mac mini でセッションを動かせます。ホスト名付きでサイドバーに並び、ノートパソコンがスリープしても動き続けます。',
-        points: [
-          'SSH、Tailscale、WSL でホストに接続',
-          '同じ状態表示、通知、hyla コマンド',
-          'スクリプトひとつでサーバー版をインストール、root 不要',
-        ],
-        label: 'リモートホスト',
+        title: '別のマシンでも、スマートフォンでも',
+        body: 'アドレスとパスワードで別のマシンへ。スマートフォンはコードをひとつスキャンするだけ。',
+        points: ['リレー不要', 'アカウント不要'],
+        label: 'リモートアクセス',
       },
     ],
-    ctaTitle: 'さあ、はじめよう',
-    ctaLead: 'Hyla をインストールして、エージェントに使い方を教えれば、もう見失うことはありません。',
-    ctaComment: '# コマンドラインツールをインストールしたあとで',
+    pocketKicker: '05 — android',
+    pocketTitle: 'ポケットの中の Hyla',
+    pocketLead:
+      'HylaPocket はこのマシンのセッションを読む Android クライアントです。tailcat のペアコード、またはネットワークリスナーのアドレスとパスワードで hylad に接続し、同じセッション、ターミナル、分割を表示します。',
+    pocketPoints: [
+      'すべてのセッションをライブで、ペインごと',
+      'esc、tab、ctrl、alt、矢印のキー行で入力',
+      'ペインを分割し、前回の場所に戻る',
+    ],
+    pocketMeta: ['署名済み APK', 'android 9+', '無料'],
+    pocketDownload: 'APK をダウンロード',
+    pocketReleases: 'すべてのリリース',
+    pocketSource: 'ソース',
+    pauseTicker: '流れる帯を止める',
+    playTicker: '流れる帯を再開する',
+    ctaKicker: '06 — はじめる',
+    ctaTitle: '飛び込もう。',
+    ctaLead: 'Hyla をインストールし、エージェントに使い方を教え、見失うのをやめましょう。',
+    ctaComment: '# コマンドラインツールをインストールした後',
+    getStarted2: 'クイックスタート',
     cliReference: 'CLI リファレンス',
   },
   zh: {
-    title: '为编程智能体打造的终端 | Hyla',
+    title: 'Hyla —— 为编程智能体打造的终端',
     description:
-      'Hyla 是为编程智能体打造的终端。退出后会话照常运行，无论在你的电脑上还是远程主机上；边栏告诉你哪些会话需要你。',
+      'Hyla 是为编程智能体打造的终端。退出后会话照常运行，手机也能读取同一批会话。',
+    eyebrow: 'Hyla · protocol 4',
     hero: ['智能体一直跑，', '关闭应用也不停。'],
-    heroLead: 'Hyla 是为编程智能体打造的终端。退出后会话照常运行，边栏告诉你哪些在工作、哪些需要你、哪些已完成。',
+    heroAccent: '',
+    lead: '所有进行中的智能体都在一个窗口里。会话比窗口活得更久，边栏告诉你谁需要你，手机也能随时读到同一批会话。',
     getStarted: '快速上手',
     download: '下载',
+    stats: ['会话比窗口活得更久', 'claude · codex · opencode', 'macos · windows · linux'],
+    appKicker: '01 — 窗口',
     appTitle: '所有智能体，一个窗口',
-    appLead: '一个智能体在审查你的改动，lazygit 显示差异，程序在一旁运行。边栏告诉你哪个会话需要你。',
+    appLead:
+      '一个智能体在审查你的改动，lazygit 显示差异，程序在一旁运行。边栏回答唯一重要的问题：现在谁需要你？',
+    demoKicker: '02 — 循环',
+    demoTitle: '启动、关掉、再回来',
+    demoLead:
+      '会话跑在专属守护进程 hylad 里：退出 Hyla、甚至换台机器都不影响，重新打开一切都在原处。',
+    demoLabels: { working: '工作中', done: '本轮完成' },
+    cliKicker: '03 — 命令行',
     cliTitle: '在 Shell 里驱动它',
-    cliLead: '在你的 Shell 或智能体的 Shell 里新建会话、拆分窗格、向它们输入、等待它们，并读取屏幕内容。',
-    featuresTitle: '为同时运行许多智能体而生',
-    featuresLead: '一个窗口装下所有进行中的任务，并清楚回答唯一要紧的问题：现在谁需要你？',
+    cliLead: '在你的 Shell 或智能体的 Shell 里新建、拆分、输入、等待并读取屏幕。',
+    featuresKicker: '04 — 里面有什么',
+    featuresTitle: '为同时跑很多智能体而生',
+    featuresLead: 'Ghostty 渲染的终端、保活会话的守护进程、智能体能驱动的 CLI，还有一个不说谎的边栏。',
     features: [
       {
-        title: '会话比窗口活得更久',
-        body: '会话运行在独立的守护进程 hylad 中。退出 Hyla，它们继续运行；再次打开，一切都还在原处。',
-        points: ['退出后回滚缓冲依然保留', '重启电脑后会话自动恢复', '在边栏中按项目分组'],
+        title: '比窗口活得更久的会话',
+        body: '每个会话都在 hylad 里，关闭 Hyla 后仍保留会话、回滚缓冲和窗格。',
+        points: ['退出不中断', '重启后恢复', '按项目分组'],
         label: '会话与项目',
       },
       {
         title: '一眼看出谁需要你',
-        body: '每个窗格都处于工作中、等待中、空闲、已完成或失败之一。等待你的会话格外醒目，一个快捷键就能跳过去。',
-        points: ['⌘J 跳到需要你的会话', '智能体完成时通知你', '程序坞徽标显示等待中的数量'],
+        body: '工作中、等待中、空闲、已完成、失败：等你的那个最醒目，一个快捷键就跳过去。',
+        points: ['⌘J 直达', '完成时通知', '程序坞徽标计数'],
         label: '状态与通知',
       },
       {
-        title: '智能体也能驱动的命令行',
-        body: '智能体可以在自己旁边启动开发服务器、把工作交给其他智能体、等待测试结果，并报告自己的进度。',
-        points: ['hyla split、send、wait 和 read', '一条命令安装智能体技能', '支持 Claude Code、Codex 等'],
+        title: '智能体能驱动的 CLI',
+        body: '智能体可以起开发服务器、把活交给别的智能体、等测试并报告进度。',
+        points: ['split、send、wait、read'],
         label: '编程智能体',
       },
       {
         title: '底层是 Ghostty',
-        body: '终端由 libghostty 渲染：快速、准确、熟悉。Ghostty 的主题和配置项都如你所料地生效。',
-        points: ['所有 Ghostty 主题，浅色和深色', '纯文本配置，实时重新加载', '任意操作都可以重新绑定'],
+        body: '终端由 libghostty 渲染：快、准、熟悉。',
+        points: ['全部 Ghostty 主题', '纯文本配置'],
         label: '配置',
       },
       {
         title: '另一台机器，或者一部手机',
-        body: '用地址和密码连上另一台运行 Hyla 的机器，它的会话就和本机的并排出现在边栏里。手机用同一个码 tcp://host:port?token=… 就能看到它们。',
-        points: ['在 设置 › 远程连接 里添加机器', '会话、终端和文件都在同一个窗口', '不需要中继，不需要账号：地址加密码'],
-        label: '远程连接',
+        body: '用地址和密码连另一台机器；手机扫一个码就行。',
+        points: ['不需要中继', '不需要账号'],
+        label: '远程访问',
       },
     ],
-    ctaTitle: '上车吧',
-    ctaLead: '安装 Hyla，教会你的智能体使用它，从此不再找不到它们。',
+    pocketKicker: '05 — android',
+    pocketTitle: '口袋里的 Hyla',
+    pocketLead:
+      'HylaPocket 是读取这台机器会话的 Android 客户端：用 tailcat 配对码，或用网络监听的地址与密码连上 hylad，看到同样的会话、终端和分屏。',
+    pocketPoints: ['每个会话实时同步，含所有窗格', '用终端键行输入：esc、tab、ctrl、alt、方向键', '可以分屏，回来后接着上次的位置'],
+    pocketMeta: ['已签名 APK', 'android 9+', '免费'],
+    pocketDownload: '下载 APK',
+    pocketReleases: '所有版本',
+    pocketSource: '源码',
+    pauseTicker: '暂停滚动条',
+    playTicker: '继续滚动条',
+    ctaKicker: '06 — 开始',
+    ctaTitle: '上车吧。',
+    ctaLead: '安装 Hyla，教会智能体使用它，从此不再找不到它们。',
     ctaComment: '# 安装命令行工具之后',
+    getStarted2: '快速上手',
     cliReference: '命令行参考',
   },
 };
@@ -189,40 +280,135 @@ export function homeHead(locale: Locale) {
 export default function HomePage(props: { locale: Locale }) {
   const c = () => copy[props.locale];
   const to = (path: string) => localize(path, props.locale);
+
+  let main!: HTMLElement;
+  let hero!: HTMLElement;
+  const [tickerPaused, setTickerPaused] = createSignal(false);
+
+  onMount(() => {
+    const less = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (less) return;
+    // Reveal: nothing is hidden until the script says the page moves.
+    main.classList.add('hx--anim');
+    const rows = main.querySelectorAll<HTMLElement>('.hx-reveal');
+    if (typeof IntersectionObserver !== 'function') {
+      rows.forEach((el) => el.classList.add('is-in'));
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          e.target.classList.add('is-in');
+          io.unobserve(e.target);
+        }
+      },
+      { rootMargin: '0px 0px -12% 0px', threshold: 0.12 },
+    );
+    rows.forEach((el) => io.observe(el));
+    onCleanup(() => io.disconnect());
+  });
+
+  // The hero's light follows the pointer, in one write a frame.
+  let frame = 0;
+  let at: { x: number; y: number } | undefined;
+  const aim = (e: PointerEvent) => {
+    at = { x: e.clientX, y: e.clientY };
+    if (frame) return;
+    frame = requestAnimationFrame(() => {
+      frame = 0;
+      if (!at || !hero) return;
+      const r = hero.getBoundingClientRect();
+      hero.style.setProperty('--hx-mx', `${((at.x - r.left) / r.width) * 100}%`);
+      hero.style.setProperty('--hx-my', `${((at.y - r.top) / r.height) * 100}%`);
+    });
+  };
+  onCleanup(() => {
+    if (frame) cancelAnimationFrame(frame);
+  });
+
   return (
-    <main class="home">
+    <main class="hx" ref={main}>
       {/* Hero */}
-      <section class="wrapper hero">
-        <div class="hero__copy">
-          <h1 class="display">
-            <span>{c().hero[0]}</span>
-            <br />
-            <span>{c().hero[1]}</span>
-          </h1>
-          <p class="lead">{c().heroLead}</p>
-          <div class="actions">
-            <Link href={to('/docs/quick-start')} class="button button--primary">
-              {c().getStarted}
-            </Link>
-            <Link href={to('/download')} class="button">
-              {c().download}
-            </Link>
+      <section class="hx-hero" ref={hero} onPointerMove={aim}>
+        <div class="hx-hero__bg" aria-hidden="true">
+          <div class="hx-grid" />
+          <div class="hx-beams">
+            <div class="hx-beam hx-beam--a" />
+            <div class="hx-beam hx-beam--b" />
           </div>
+          <div class="hx-spot" />
         </div>
-        <div class="hero__art">
-          <div class="hero__glow" aria-hidden="true" />
-          <ParticleMorph />
+        <div class="hx-wrap hx-hero__inner">
+          <div>
+            <p class="hx-eyebrow">
+              <span class="hx-eyebrow__dot" />
+              {c().eyebrow}
+            </p>
+            <h1 class="hx-title">
+              <span class="hx-title__line">
+                <span style={{ '--i': 0 }}>{c().hero[0]}</span>
+              </span>
+              <span class="hx-title__line hx-title__line--accent">
+                <span style={{ '--i': 1 }}>{c().hero[1]}</span>
+              </span>
+            </h1>
+            <p class="hx-lead">{c().lead}</p>
+            <div class="hx-actions">
+              <Link href={to('/docs/quick-start')} class="hx-btn hx-btn--primary">
+                {c().getStarted} <ArrowUpRightIcon size={15} />
+              </Link>
+              <Link href={to('/download')} class="hx-btn">
+                <DownloadIcon size={15} /> {c().download}
+              </Link>
+            </div>
+            <ul class="hx-stats">
+              <For each={c().stats}>{(s) => <li>{s}</li>}</For>
+            </ul>
+          </div>
+          <div class="hx-art">
+            <ParticleMorph />
+            <div class="hx-art__scan" />
+            <span class="hx-art__tag">render · ghostty 1.3</span>
+          </div>
         </div>
       </section>
 
-      {/* The app */}
-      <section class="wrapper section-head">
-        <h2 class="title">{c().appTitle}</h2>
-        <p class="lead lead--center">{c().appLead}</p>
-      </section>
-      <section class="wrapper showcase">
-        <div class="stage">
-          <div class="glass">
+      {/* Ticker: a band of what Hyla drives, which a reader can stop. */}
+      <div class="hx-ticker" classList={{ 'is-paused': tickerPaused() }}>
+        <div class="hx-ticker__mask" aria-hidden="true">
+          <div class="hx-ticker__scroller">
+            <For each={[0, 1]}>
+              {() => (
+                <div class="hx-ticker__row">
+                  <For each={ticker}>{(t) => <span>{t}</span>}</For>
+                </div>
+              )}
+            </For>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="hx-ticker__pause"
+          aria-label={tickerPaused() ? c().playTicker : c().pauseTicker}
+          title={tickerPaused() ? c().playTicker : c().pauseTicker}
+          onClick={() => setTickerPaused(!tickerPaused())}
+        >
+          {tickerPaused() ? <PlayIcon size={13} /> : <PauseIcon size={13} />}
+        </button>
+      </div>
+
+      {/* The window */}
+      <section class="hx-section">
+        <div class="hx-wrap">
+          <header class="hx-head hx-reveal">
+            <div class="hx-head__copy">
+              <span class="hx-kicker">{c().appKicker}</span>
+              <h2 class="hx-title2">{c().appTitle}</h2>
+              <p class="hx-sub">{c().appLead}</p>
+            </div>
+          </header>
+          <div class="hx-stage hx-reveal">
             <div class="stage__frame">
               <AppWindow />
             </div>
@@ -230,70 +416,154 @@ export default function HomePage(props: { locale: Locale }) {
         </div>
       </section>
 
-      <section class="wrapper ticks" aria-hidden="true" />
+      {/* The loop */}
+      <section class="hx-section">
+        <div class="hx-wrap hx-demo">
+          <div class="hx-reveal">
+            <span class="hx-kicker">{c().demoKicker}</span>
+            <h2 class="hx-title2">{c().demoTitle}</h2>
+            <p class="hx-sub">{c().demoLead}</p>
+            <ul class="hx-stats">
+              <li>hylad</li>
+              <li>restore-sessions</li>
+              <li>resume-agents</li>
+            </ul>
+          </div>
+          <div class="hx-reveal">
+            <HeroTerminal labels={c().demoLabels} />
+          </div>
+        </div>
+      </section>
 
       {/* CLI */}
-      <section class="wrapper section-head">
-        <h2 class="title">{c().cliTitle}</h2>
-        <p class="lead lead--center">{c().cliLead}</p>
-      </section>
-      <section class="wrapper wrapper--flush">
-        <CliShowcase />
+      <section class="hx-section">
+        <div class="hx-wrap">
+          <header class="hx-head hx-reveal">
+            <div class="hx-head__copy">
+              <span class="hx-kicker">{c().cliKicker}</span>
+              <h2 class="hx-title2">{c().cliTitle}</h2>
+              <p class="hx-sub">{c().cliLead}</p>
+            </div>
+            <Link href={to('/docs/cli')} class="hx-btn">
+              {c().cliReference} <ArrowUpRightIcon size={15} />
+            </Link>
+          </header>
+          <div class="hx-reveal">
+            <CliShowcase />
+          </div>
+        </div>
       </section>
 
-      <section class="wrapper ticks" aria-hidden="true" />
-
-      {/* Features, on light */}
-      <div class="light">
-        <section class="wrapper section-head">
-          <h2 class="title">{c().featuresTitle}</h2>
-          <p class="lead lead--center">{c().featuresLead}</p>
-        </section>
-        <section class="wrapper features">
-          <For each={c().features}>
-            {(f, i) => (
-              <article class="feature" classList={{ 'feature--wide': i() === 4 }}>
-                <Dynamic component={icons[i()]} size={20} class="feature__icon" />
-                <h3>{f.title}</h3>
-                <p>{f.body}</p>
-                <ul class="checklist">
-                  <For each={f.points}>
-                    {(p) => (
-                      <li>
-                        <span class="checklist__mark">[✓]</span>
-                        {p}
-                      </li>
-                    )}
-                  </For>
-                </ul>
-                <Link href={to(featureLinks[i()]!)} class="pill-link">
-                  {f.label} <ArrowUpRightIcon size={14} />
+      {/* Features */}
+      <section class="hx-section">
+        <div class="hx-wrap">
+          <header class="hx-head hx-reveal">
+            <div class="hx-head__copy">
+              <span class="hx-kicker">{c().featuresKicker}</span>
+              <h2 class="hx-title2">{c().featuresTitle}</h2>
+              <p class="hx-sub">{c().featuresLead}</p>
+            </div>
+          </header>
+          <div class="hx-bento">
+            <For each={c().features}>
+              {(f, i) => (
+                <Link
+                  href={to(featureLinks[i()]!)}
+                  class="hx-card hx-reveal"
+                  classList={{ 'hx-card--wide': i() < 2 }}
+                >
+                  <span class="hx-card__num">{String(i() + 1).padStart(2, '0')}</span>
+                  <Dynamic component={icons[i()]} size={22} class="hx-card__icon" />
+                  <h3>{f.title}</h3>
+                  <p>{f.body}</p>
+                  <ul class="hx-card__list">
+                    <For each={f.points}>{(p) => <li>{p}</li>}</For>
+                  </ul>
+                  <span class="hx-card__go">
+                    {f.label} <ArrowUpRightIcon size={13} />
+                  </span>
                 </Link>
-              </article>
-            )}
-          </For>
-        </section>
-        <section class="wrapper ticks" aria-hidden="true" />
-      </div>
+              )}
+            </For>
+          </div>
+        </div>
+      </section>
+
+      {/* Pocket */}
+      <section class="hx-section" id="pocket">
+        <div class="hx-wrap">
+          <div class="hx-pocket hx-reveal">
+            <div>
+              <span class="hx-kicker">{c().pocketKicker}</span>
+              <h2 class="hx-title2">{c().pocketTitle}</h2>
+              <p class="hx-sub">{c().pocketLead}</p>
+              <ul class="hx-pocket__points">
+                <For each={c().pocketPoints}>{(p) => <li>{p}</li>}</For>
+              </ul>
+              <div class="hx-actions">
+                <a class="hx-btn hx-btn--primary" href={`${LINUX_POCKET}/releases/latest`}>
+                  <DownloadIcon size={15} /> {c().pocketDownload}
+                </a>
+                <a class="hx-btn" href={`${LINUX_POCKET}/releases`}>
+                  {c().pocketReleases} <ArrowUpRightIcon size={15} />
+                </a>
+                <a class="hx-btn" href={LINUX_POCKET}>
+                  {c().pocketSource}
+                </a>
+              </div>
+              <ul class="hx-pocket__meta">
+                <For each={c().pocketMeta}>{(m) => <li>{m}</li>}</For>
+              </ul>
+            </div>
+            <div class="hx-pocket__art" aria-hidden="true">
+              <div class="hx-phone">
+                <div class="hx-phone__notch" />
+                <div class="hx-phone__screen">
+                  <div class="hx-phone__row">
+                    <i />
+                    <b>review</b> <span>claude · working</span>
+                  </div>
+                  <div class="hx-phone__row hx-phone__row--dim">
+                    <i />
+                    <b>build</b> <span>npm test · waiting</span>
+                  </div>
+                  <div class="hx-phone__row hx-phone__row--dim">
+                    <i />
+                    <b>docs</b> <span>zsh · idle</span>
+                  </div>
+                  <pre class="hx-phone__code">{'$ git status\n M src/app.tsx\n$ '}</pre>
+                  <div class="hx-phone__keys">
+                    <i />
+                    <i />
+                    <i />
+                    <i />
+                    <i />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* CTA */}
-      <section class="wrapper cta">
-        <img src="/icon.png" alt="" width={88} height={88} class="cta__icon" />
-        <h2 class="title">{c().ctaTitle}</h2>
-        <p class="lead lead--center">{c().ctaLead}</p>
-        <pre class="cta__code">
-          <span class="t-dim">{c().ctaComment}</span>
-          {'\n'}
-          <span class="t-accent">$</span> hyla skill setup{'\n'}
-          <span class="t-accent">$</span> hyla new -n my-task -- claude
-        </pre>
-        <div class="actions actions--center">
-          <Link href={to('/docs/quick-start')} class="button button--primary">
-            {c().getStarted}
-          </Link>
-          <Link href={to('/docs/cli')} class="button">
-            {c().cliReference}
-          </Link>
+      <section class="hx-cta">
+        <div class="hx-wrap">
+          <span class="hx-kicker">{c().ctaKicker}</span>
+          <h2 class="hx-cta__title">{c().ctaTitle}</h2>
+          <p class="hx-cta__lead">{c().ctaLead}</p>
+          <pre class="hx-cmdbox">
+            <span>$</span> hyla skill setup{'\n'}
+            <span>$</span> hyla new -n my-task -- claude
+          </pre>
+          <div class="hx-actions">
+            <Link href={to('/docs/quick-start')} class="hx-btn hx-btn--primary">
+              {c().getStarted2} <ArrowUpRightIcon size={15} />
+            </Link>
+            <Link href={to('/download')} class="hx-btn">
+              <DownloadIcon size={15} /> {c().download}
+            </Link>
+          </div>
         </div>
       </section>
     </main>
