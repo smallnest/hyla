@@ -4,7 +4,7 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
-## Unreleased
+## 3.8.1
 
 - Hyla keeps its own directory, configuration file and variables alone: it
   no longer moves a Kero's directory or configuration into place, reads
