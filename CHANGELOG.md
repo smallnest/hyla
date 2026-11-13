@@ -9,8 +9,14 @@ number; the notes of the upstream releases it includes follow its own.
 - The website has a new landing page: a dark, orange-lit hero whose art is a
   wall of live session panes drifting past an eye line that lights the one
   needing you, with dust over it; the window tilting into place as it scrolls
-  in, a terminal that plays a turn, and the features as a bento. Its download
-  page adds **HylaPocket** for Android, whose APK comes from its releases.
+  in, a terminal that plays a turn, and the features as a bento that marks
+  which come from Kero and which are Hyla's. The window and the Android
+  client are shown as they are, screenshots and all. Its download page adds
+  **HylaPocket** for Android, whose APK comes from its releases. The docs
+  gain pages for what Hyla adds to the terminal it forked — files, drag and
+  drop, remote machines and Tailcat, Pocket, appearance and the frog — in
+  English, Japanese and Chinese, and the wordmark on the site says what
+  Hyla is: 雨蛙, the tree frog.
 
 ## 3.8.1
 

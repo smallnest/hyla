@@ -22,9 +22,14 @@ Hyla 是一款面向编程智能体的终端，支持 macOS、Windows 和 Linux�
 - **智能体可以驱动的命令行。** `hyla` 命令可以启动会话、拆分窗格、向其中输入、等待它们并读取屏幕内容。智能体可以在自己旁边运行任务，并汇报自身进度。
 - **底层是 Ghostty。** 终端由 libghostty 渲染，Ghostty 的主题、字体和配置项都会如你所料地生效。
 
-## 从 Kero 升级
+## 不止是终端
 
-Hyla 在 2.1.37 之前叫做 **Kero**。那些版本的应用不会自动升级到 Hyla，请手动安装一次。Hyla 使用自己的目录（`~/.config/hyla`，macOS 上为 `~/Library/Application Support/hyla`）和配置，不改动 Kero 的，两者可以并存。
+- **[文件](./files.md)**：侧面板里看文件，或者把它拖进窗格，不用离开窗口。
+- **[拖放](./drops.md)**：文件拖进窗格，窗格拖到窗格上，目录拖到边栏。
+- **[远程机器](./remote.md)**：SSH、WSL、Kubernetes Pod，或者另一台 Hyla，和本机会话并排。
+- **[Hyla Pocket](./pocket.md)**：同一批会话，在 Android 手机上。
+- **[外观](./appearance.md)**：半透明、玻璃、图片，以及切换会话的动画。
+- **[雨蛙](./frog.md)**：窗口边上的那只，留着的话。
 
 ## 下一步
 

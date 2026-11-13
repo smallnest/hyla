@@ -52,7 +52,7 @@ export default function SiteHeader(props: { path: string; locale: Locale }) {
       <div class="wrapper site-header__inner">
         <Link href={to('/')} class="logo" aria-label={s().home}>
           <img src="/icon.png" alt="" width={28} height={28} />
-          <span>Hyla.</span>
+          <span>Hyla<em class="logo__cn">雨蛙</em></span>
         </Link>
         <nav class="site-nav">{links()}</nav>
         <div class="site-header__end">

@@ -22,9 +22,14 @@ Quitting Hyla (<kbd>⌘</kbd> <kbd>Q</kbd>) leaves your sessions running. To end
 - **A CLI agents can drive.** The `hyla` command starts sessions, splits panes, types into them, waits for them and reads their screens. Agents can run work beside themselves and report their own progress.
 - **Ghostty under the hood.** Terminals render with libghostty, so Ghostty themes, fonts and configuration keys behave the way you expect.
 
-## Upgrading from Kero
+## More than a terminal
 
-Hyla was called **Kero** up to 2.1.37. An app of those releases does not update to Hyla on its own: install Hyla once. Hyla keeps its own directory (`~/.config/hyla`, `~/Library/Application Support/hyla` on macOS) and configuration, and leaves a Kero's where they are, so the two can live side by side.
+- **[Files](./files.md)** in the side panel: look at a file, or drag it into a pane, without leaving the window.
+- **[Drag & drop](./drops.md)**: files into panes, panes onto panes, folders onto the sidebar.
+- **[Remote machines](./remote.md)**: SSH, WSL, a Kubernetes pod or another Hyla, listed beside your own sessions.
+- **[Hyla Pocket](./pocket.md)**: the same sessions on an Android phone.
+- **[Appearance](./appearance.md)**: translucency, glass, pictures, and the animation between sessions.
+- **[The frog](./frog.md)** on the window's edge, if you keep it.
 
 ## Next steps
 

@@ -10,7 +10,7 @@ export default function SiteFooter(props: { locale: Locale }) {
       <div class="wrapper site-footer__inner">
         <div class="site-footer__brand">
           <img src="/icon.png" alt="" width={22} height={22} />
-          <span>Hyla</span>
+          <span>Hyla <em class="muted">雨蛙</em></span>
           <span class="muted">· {s().tagline}</span>
         </div>
         <nav>

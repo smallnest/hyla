@@ -98,8 +98,10 @@ const strings = {
     // docs/sidebar.json's section titles.
     sections: {
       'Getting Started': 'はじめに',
-      'Using hyla': 'Hyla を使う',
+      'Using Hyla': 'Hyla を使う',
       Automation: '自動化',
+      'Other machines & phones': '別のマシンとスマートフォン',
+      'Look & feel': '見た目',
       Reference: 'リファレンス',
     } as Record<string, string>,
   },
@@ -131,8 +133,10 @@ const strings = {
     // docs/sidebar.json's section titles.
     sections: {
       'Getting Started': '入门',
-      'Using hyla': '使用 Hyla',
+      'Using Hyla': '使用 Hyla',
       Automation: '自动化',
+      'Other machines & phones': '其他设备与手机',
+      'Look & feel': '外观',
       Reference: '参考',
     } as Record<string, string>,
   },
