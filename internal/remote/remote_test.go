@@ -230,8 +230,8 @@ func TestParseListen(t *testing.T) {
 		"tailnet://:7400":                {Kind: "tailnet", Port: "7400"},
 		"tailnet-serve://":               {Kind: "tailnet-serve"},
 		"tailnet-serve:///run/hyla.sock": {Kind: "tailnet-serve", Path: "/run/hyla.sock"},
-		"tailcat://":                     {Kind: "tailcat", Port: ListenPort()},
-		"tailcat://:7400":                {Kind: "tailcat", Port: "7400"},
+		"tailcat://":                     {Kind: "tailcat", Port: ListenPort(), PocketPort: PocketPort},
+		"tailcat://:7400":                {Kind: "tailcat", Port: "7400", PocketPort: PocketPort},
 	} {
 		got, err := ParseListen(in)
 		if err != nil || got != want {
@@ -243,7 +243,7 @@ func TestParseListen(t *testing.T) {
 	if ListenPort() == DefaultPort {
 		t.Errorf("a development build listens on %s, as the installed Hyla", DefaultPort)
 	}
-	for _, bad := range []string{"tcp://:80", "tailnet://0.0.0.0:7473", "tailnet-serve://host/x", ":7473", "tailnet://:0", "tailnet://:99999", "tailcat://host:7473", "tailcat://:0"} {
+	for _, bad := range []string{"tcp://", "tcp://:0", "tcp://:99999", "tcp://:7297", "tcp://0.0.0.0:7297", "tailnet://0.0.0.0:7473", "tailnet-serve://host/x", ":7473", "tailnet://:0", "tailnet://:99999", "tailcat://host:7473", "tailcat://:0"} {
 		if l, err := ParseListen(bad); err == nil {
 			t.Errorf("%q read as %+v", bad, l)
 		}

@@ -153,6 +153,10 @@ Usage:
   hyla hosts tailcat enable|disable|port|rotate|code
                                 this machine as a host over Tailcat, with
                                 a pair code instead of Tailscale (secret)
+  hyla hosts pocket enable|disable|qr
+                                this machine as a host for HylaPocket on a
+                                phone: its QR code, which carries the
+                                pair code of its tailcat listener (secret)
   hyla pets [ls]                the pets Hyla shows (hyla pets install --list)
   hyla pets install <pack>      install a Codex pet pack: a .codex-pet.zip,
                                 or a pet's directory, as ~/.codex/pets has

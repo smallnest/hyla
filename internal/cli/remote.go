@@ -252,6 +252,9 @@ func hostsCmd(args []string) error {
 	if sub == "tailcat" {
 		return tailcatCmd(f.pos[1:])
 	}
+	if sub == "pocket" {
+		return pocketCmd(f.pos[1:])
+	}
 	set := settings.Load()
 	switch sub {
 	case "ls", "list":

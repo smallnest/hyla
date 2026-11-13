@@ -40,6 +40,9 @@ type listeners struct {
 	// them.
 	on     map[string]*listener
 	closed bool
+	// pocket is HylaPocket's server, which the Tailscale Serve socket
+	// answers beside hylad's, under HylaPocket's own paths.
+	pocket PocketServer
 	// self is this machine on the tailnet, as tailscaled last said, and
 	// when; whoCache who connected from where.
 	self     tailscale.Self
@@ -62,7 +65,7 @@ type listener struct {
 
 // listen starts the network listeners.
 func (d *Daemon) listen() *listeners {
-	l := &listeners{d: d, on: map[string]*listener{}}
+	l := &listeners{d: d, on: map[string]*listener{}, pocket: NewPocket(d, d.log)}
 	set := settings.Load()
 	remote.SetRelay(set.TailcatRelay)
 	specs := d.opts.Listen
@@ -191,6 +194,9 @@ func (l *listeners) close() {
 	for _, ln := range l.on {
 		ln.stop()
 	}
+	if l.pocket != nil {
+		l.pocket.Close()
+	}
 }
 
 // stop stops a listener, and the connections it took; listeners.mu is
@@ -200,6 +206,7 @@ func (ln *listener) stop() {
 	for _, s := range ln.servers {
 		s.Close()
 	}
+
 	if ln.tailcat != nil {
 		ln.tailcat.Close()
 	}
@@ -275,9 +282,27 @@ func (l *listeners) serve(lis *listener) {
 	l.mu.Lock()
 	lis.socket = path
 	l.mu.Unlock()
-	if !l.start(lis, ln, "tailnet-serve") {
-		os.Remove(path)
+	// HylaPocket is served beside Hyla on this socket too, as hylad's own
+	// Hyla reaches it: a phone has no socket, and comes over tailcat.
+	h := l.handler(lis.ctx, "tailnet-serve")
+	if p := l.pocket; p != nil {
+		mux := http.NewServeMux()
+		mux.Handle(p.PocketPath(), p)
+		mux.Handle("/", h)
+		h = mux
 	}
+	srv := &http.Server{Handler: h, ReadHeaderTimeout: 10 * time.Second, ErrorLog: l.d.log}
+	l.mu.Lock()
+	if lis.ctx.Err() != nil {
+		l.mu.Unlock()
+		ln.Close()
+		os.Remove(path)
+		return
+	}
+	lis.servers = append(lis.servers, srv)
+	l.mu.Unlock()
+	l.d.log.Printf("listening on %s (tailnet-serve)", path)
+	go srv.Serve(ln)
 }
 
 // tailcatListener listens through a tailcat relay, whose pair code is the
@@ -309,8 +334,14 @@ func (l *listeners) tailcatListener(lis *listener) {
 func (l *listeners) joinTailcat(lis *listener) error {
 	ctx, cancel := context.WithTimeout(lis.ctx, time.Minute)
 	defer cancel()
-	srv := l.d.remoteServer(identity{via: "tailcat"})
-	r, err := remote.ListenTailcat(ctx, filepath.Join(proto.Dir(), "tailcat.json"), lis.spec.Port, srv)
+	// HylaPocket is the server's other port: a phone opens one beside
+	// Hyla's own connection, and the pair code admitted it (pocket.go).
+	if l.pocket != nil {
+		mux := http.NewServeMux()
+		mux.Handle(l.pocket.PocketPath(), l.pocket)
+		remote.ServePocket(lis.spec.PocketPort, mux)
+	}
+	r, err := remote.ListenTailcat(ctx, filepath.Join(proto.Dir(), "tailcat.json"), lis.spec.Port, l.remote(identity{via: "tailcat"}))
 	if err != nil {
 		return err
 	}
@@ -454,7 +485,7 @@ func (l *listeners) handler(ctx context.Context, via string) http.Handler {
 		conn := websocket.NetConn(ctx, ws, websocket.MessageBinary)
 		client := r.Header.Get(remote.ClientHeader)
 		l.d.log.Printf("%s connected over %s: %s", who, via, client)
-		err = l.d.remoteServer(identity{peer: who.String(), via: via, client: client}).Serve(conn)
+		err = l.remote(identity{peer: who.String(), via: via, client: client}).Serve(conn)
 		l.d.log.Printf("%s disconnected (%s): %v", who, via, err)
 	})
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -463,8 +494,24 @@ func (l *listeners) handler(ctx context.Context, via string) http.Handler {
 	return mux
 }
 
-// remoteServer answers a remote connection on hylad's behalf.
-func (d *Daemon) remoteServer(id identity) *remote.Server {
+// streamOf answers the streams a remote connection asks hylad for.
+func (d *Daemon) streamOf(id identity) func(net.Conn, []byte, proto.MuxHello) {
+	return func(conn net.Conn, hello []byte, mux proto.MuxHello) {
+		sid := id
+		if sid.client == "" {
+			sid.client = mux.Client
+		}
+		if mux.Peer != "" {
+			sid.peer = mux.Peer
+		}
+		d.serveHello(conn, bufio.NewReaderSize(conn, 64<<10), hello, sid)
+	}
+}
+
+// remote is the server that answers a remote connection on hylad's
+// behalf, with HylaPocket beside it, for a connection of tailcat's.
+func (l *listeners) remote(id identity) *remote.Server {
+	d := l.d
 	s := &remote.Server{
 		Info: func() proto.HostInfo {
 			h := remote.LocalInfo(id.peer)
@@ -473,16 +520,7 @@ func (d *Daemon) remoteServer(id identity) *remote.Server {
 			}
 			return h
 		},
-		Stream: func(conn net.Conn, hello []byte, mux proto.MuxHello) {
-			sid := id
-			if sid.client == "" {
-				sid.client = mux.Client
-			}
-			if mux.Peer != "" {
-				sid.peer = mux.Peer
-			}
-			d.serveHello(conn, bufio.NewReaderSize(conn, 64<<10), hello, sid)
-		},
+		Stream:  d.streamOf(id),
 		Restart: d.restart,
 		SFTP:    remote.ServeSFTP,
 		Log:     d.log,

@@ -60,7 +60,7 @@ func TestHostKeyProblems(t *testing.T) {
 		"host = devbox=me@devbox sudo",
 		"host = devbox=me@devbox color=chartreuse",
 		"host = a=x\nhost = A=y",
-		"listen = tcp://:80",
+		"listen = tcp://:0",
 	} {
 		if _, probs := parse(bad + "\n"); len(probs) == 0 {
 			t.Errorf("%q: no problem", bad)

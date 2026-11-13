@@ -56,9 +56,15 @@ type Daemon struct {
 	// as hyla events does, but are no app: no action, select or browser
 	// call goes to them, nor do they count as an app being open.
 	watchers map[*controlConn]struct{}
-	clients  map[*proto.ClientInfo]struct{} // the connections, for hyla clients
-	conns    int
-	idleAt   time.Time
+	// pocketWatch are HylaPocket's subscriptions, which hear of each
+	// state (pocket.go).
+	pocketWatch map[*PocketWatch]struct{}
+	// pocket serves HylaPocket over tailcat connections, a port of its
+	// own on each, made when one opens (pocket.go).
+	pocket  PocketServer
+	clients map[*proto.ClientInfo]struct{} // the connections, for hyla clients
+	conns   int
+	idleAt  time.Time
 	// bot is the connection to Feishu, nil unless feishu-app names one;
 	// feishuApp keeps for the app's other hosts (feishu.go).
 	bot       *bot
@@ -178,14 +184,15 @@ func Run(opts Options) error {
 	exe, _ := os.Executable()
 	d := &Daemon{
 		dir: dir, exe: exe, opts: opts, started: time.Now(), log: lg,
-		subs:     map[*controlConn]struct{}{},
-		watchers: map[*controlConn]struct{}{},
-		clients:  map[*proto.ClientInfo]struct{}{},
-		panes:    map[string]*pane{},
-		changeCh: make(chan struct{}, 1),
-		saveCh:   make(chan struct{}, 1),
-		quit:     make(chan struct{}),
-		idleAt:   time.Now(),
+		subs:        map[*controlConn]struct{}{},
+		watchers:    map[*controlConn]struct{}{},
+		pocketWatch: map[*PocketWatch]struct{}{},
+		clients:     map[*proto.ClientInfo]struct{}{},
+		panes:       map[string]*pane{},
+		changeCh:    make(chan struct{}, 1),
+		saveCh:      make(chan struct{}, 1),
+		quit:        make(chan struct{}),
+		idleAt:      time.Now(),
 	}
 	d.git = newGitFollow(d)
 	empty := ""
@@ -401,6 +408,14 @@ func (d *Daemon) broadcastLoop() {
 		d.mu.Lock()
 		st := d.stateLocked()
 		d.broadcastLocked(proto.Message{Event: "state", State: &st})
+		// HylaPocket's clients read the same changes, and the state under
+		// the lock.
+		for w := range d.pocketWatch {
+			select {
+			case w.C <- struct{}{}:
+			default:
+			}
+		}
 		d.mu.Unlock()
 	}
 }

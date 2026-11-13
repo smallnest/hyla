@@ -365,6 +365,7 @@ func (d *Daemon) split(p proto.CreateParams) (proto.Session, error) {
 	if s.layout == nil {
 		s.layout = &proto.Layout{Pane: s.panes[0].info.ID}
 	}
+	// Split reaches the anchor by its pane id however it is nested.
 	s.layout = s.layout.Split(atID, pn.info.ID, p.Direction, p.Ratio)
 	s.panes = append(s.panes, pn)
 	s.focus, s.zoomed = pn.info.ID, ""

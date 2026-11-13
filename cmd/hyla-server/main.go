@@ -18,6 +18,7 @@ import (
 	"hyla/internal/build"
 	"hyla/internal/cli"
 	"hyla/internal/daemon"
+	_ "hyla/internal/pocket"
 	"hyla/internal/proto"
 )
 

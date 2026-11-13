@@ -31,6 +31,10 @@ type Listen struct {
 	// Tailcat is the pair code of a tailcat listener, as hylad makes
 	// it: "" of a setting's, which hylad's key's is.
 	Tailcat string
+	// PocketPort is a tailcat listener's port for HylaPocket, whose
+	// pair code is the only address a phone needs: PocketPort, which
+	// hylad served on a tcp listener's port before.
+	PocketPort string
 }
 
 // ParseListen reads a listener.
@@ -62,10 +66,10 @@ func ParseListen(s string) (Listen, error) {
 			return Listen{}, fmt.Errorf("%q: a tailcat listener takes any port: write tailcat://:port", s)
 		}
 		code := strings.TrimPrefix(u.Path, "/")
-		if code != "" && !validPairCode(code) {
+		if code != "" && !ValidPairCode(code) {
 			return Listen{}, fmt.Errorf("%q: not a tailcat pair code", s)
 		}
-		l := Listen{Kind: "tailcat", Port: u.Port()}
+		l := Listen{Kind: "tailcat", Port: u.Port(), PocketPort: PocketPort}
 		if l.Port == "" {
 			l.Port = ListenPort()
 		}
@@ -87,6 +91,11 @@ func ListenPort() string {
 	}
 	return DefaultPort
 }
+
+// PocketPort is the port of a tailcat listener that serves HylaPocket:
+// the one hylad served it on a tcp listener, so a phone that had it there
+// keeps working.
+const PocketPort = "7297"
 
 func (l Listen) String() string {
 	if l.Kind == "tailnet" || l.Kind == "tailcat" {

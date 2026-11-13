@@ -351,7 +351,7 @@ var keys = append([]key{
 			}
 			return nil
 		}},
-	{name: "listen", doc: "let Hyla on other machines reach this one's sessions: tailnet://:7473 on its Tailscale addresses, tailnet-serve:// for Tailscale Serve, tailcat://:7473 through a relay with a pair code instead of Tailscale (tailcat = true), or hyla hosts tailcat enable; repeat it", list: true,
+	{name: "listen", doc: "let Hyla on other machines reach this one's sessions: tailnet://:7473 on its Tailscale addresses, tailnet-serve:// for Tailscale Serve, tailcat://:7473 through a relay with a pair code instead of Tailscale (tailcat = true), or for HylaPocket on a phone, which reaches HylaPocket over the same listener; repeat it", list: true,
 		get: func(s *Settings) []string { return slices.Clone(s.Listen) },
 		set: func(s *Settings, v []string) error {
 			s.Listen = nil

@@ -299,8 +299,23 @@ func regionNode(r *tailcfg.DERPRegion) string {
 	return strconv.Itoa(int(r.RegionID))
 }
 
-// validPairCode reports whether s may be a tailcat pair code.
-func validPairCode(s string) bool {
+// LooksLikePairCode reports whether s is shaped as a tailcat pair code
+// makes it: "tc", then base64url. A whole one decodes as a ConnInfo
+// (ValidPairCode); a code holds no dots, slashes or spaces.
+func LooksLikePairCode(s string) bool {
+	if len(s) < 16 || !strings.HasPrefix(s, "tc") {
+		return false
+	}
+	for _, r := range s {
+		if !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '-' || r == '_') {
+			return false
+		}
+	}
+	return true
+}
+
+// ValidPairCode reports whether s may be a tailcat pair code.
+func ValidPairCode(s string) bool {
 	_, err := tailcat.ParseAddr(tailcat.Addr(s))
 	return err == nil
 }
@@ -314,7 +329,7 @@ func parseTailcat(s string) (Addr, error) {
 	if code == "" || strings.ContainsAny(code, "/?# \t\r\n") {
 		return Addr{}, fmt.Errorf("%q: a tailcat address is tailcat:// and the pair code alone", s)
 	}
-	if !validPairCode(code) {
+	if !ValidPairCode(code) {
 		return Addr{}, fmt.Errorf("%q: not a tailcat pair code", s)
 	}
 	return Addr{Scheme: "tailcat", Code: code, Host: "tailcat"}, nil
@@ -396,6 +411,48 @@ func openTailcat(ctx context.Context, code, port string) (*tailcatTransport, err
 	}
 	return t, nil
 }
+
+// OpenTailcat opens a raw connection to a port of the host with the pair
+// code code, once a remote connection to the same host is up: the mux
+// connection's own stream count holds the tailcat client, so the listener
+// stays joined while any of them is open. HylaPocket opens one, on the
+// phone, which speaks tailcat under the sockets OkHttp asks for.
+func OpenTailcat(ctx context.Context, c *Conn, port string) (net.Conn, error) {
+	t := c.tc
+	if t == nil {
+		return nil, errors.New("the connection is not over tailcat")
+	}
+	n, err := strconv.ParseUint(port, 10, 16)
+	if err != nil || n == 0 {
+		return nil, fmt.Errorf("tailcat: %q is no port", port)
+	}
+	conn, err := t.client.DialTCPPort(ctx, uint16(n))
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return nil, fmt.Errorf("tailcat: no answer from the host on port %s: it may not serve HylaPocket there", port)
+		}
+		return nil, fmt.Errorf("tailcat: %w", err)
+	}
+	t.client.Streams.Add(1)
+	return &tailcatRaw{Conn: conn, t: t}, nil
+}
+
+// tailcatRaw is a tailcat connection of its own, which releases the
+// client's count as it closes.
+type tailcatRaw struct {
+	net.Conn
+	t *tailcatTransport
+}
+
+func (r *tailcatRaw) Close() error {
+	err := r.Conn.Close()
+	r.t.release()
+	return err
+}
+
+// TailcatCode is a pair code as the settings hold it: "tailcat://" and
+// the code, "tc…".
+func TailcatCode(s string) string { return strings.TrimPrefix(strings.TrimSpace(s), "tailcat://") }
 
 // watch tells now and then how the client reaches the host: directly,
 // where the networks let them, or through the relay.
@@ -487,4 +544,14 @@ type tailcatPortKey struct{}
 // WithTailcatPort gives ctx the port of a tailcat host's listener.
 func WithTailcatPort(ctx context.Context, port string) context.Context {
 	return context.WithValue(ctx, tailcatPortKey{}, port)
+}
+
+// LocalName is this machine's name, as a code gives it: the hostname
+// up to its first dot, which is the label HylaPocket saves a host under.
+func LocalName() string {
+	h, _ := os.Hostname()
+	if i := strings.IndexByte(h, '.'); i > 0 {
+		h = h[:i]
+	}
+	return h
 }

@@ -56,23 +56,47 @@ func (l *Layout) Split(at, pane, direction string, ratio float64) *Layout {
 		l = &Layout{Pane: at}
 	}
 	if l.Leaf() {
-		if l.Pane != at {
+		// A leaf with no pane of its own is where a pane that took its
+		// parent's place is: the panes say where the leaves are.
+		inherited := l.Pane == ""
+		if !inherited && l.Pane != at {
 			return l
 		}
-		old, nu := &Layout{Pane: at}, &Layout{Pane: pane}
+		var top *Layout
+		if !inherited {
+			top = &Layout{Pane: at}
+		}
+		nu := &Layout{Pane: pane}
 		switch direction {
 		case "left":
-			return &Layout{Row: true, Ratio: ratio, A: nu, B: old}
+			return &Layout{Row: true, Ratio: ratio, A: nu, B: top}
 		case "up":
-			return &Layout{Ratio: ratio, A: nu, B: old}
+			return &Layout{Ratio: ratio, A: nu, B: top}
 		case "down":
-			return &Layout{Ratio: 1 - ratio, A: old, B: nu}
+			return &Layout{Ratio: 1 - ratio, A: top, B: nu}
 		}
-		return &Layout{Row: true, Ratio: 1 - ratio, A: old, B: nu}
+		return &Layout{Row: true, Ratio: 1 - ratio, A: top, B: nu}
 	}
+	a := splitSide(l.A, at, pane, direction, ratio)
+	b := splitSide(l.B, at, pane, direction, ratio)
 	c := *l
-	c.A, c.B = l.A.Split(at, pane, direction, ratio), l.B.Split(at, pane, direction, ratio)
+	c.A, c.B = a, b
 	return &c
+}
+
+// splitSide splits the side that holds at, and leaves the other as it is,
+// a pane alone back in it if a split at this node took its place.
+func splitSide(side *Layout, at, pane, direction string, ratio float64) *Layout {
+	if side == nil {
+		return nil
+	}
+	if !contains(side.Panes(), at) {
+		if side.Leaf() && side.Pane == "" {
+			return &Layout{Pane: at}
+		}
+		return side
+	}
+	return side.Split(at, pane, direction, ratio)
 }
 
 // Remove returns the layout without a pane: its sibling takes its split's

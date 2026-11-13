@@ -77,6 +77,11 @@ type pane struct {
 	changed  chan struct{} // closed and replaced on every status change
 	// framing tells that frames for the clients are due, after output.
 	framing bool
+	// pocket is the stream HylaPocket reads this pane through, the one
+	// client of it; pocketAway is closed when another client takes the
+	// pane, which ends that stream (pocket.go).
+	pocket     *PocketStream
+	pocketAway chan struct{}
 	// bg is the command the session runs without a terminal (background.go).
 	bg *background
 }
@@ -600,6 +605,9 @@ func (s *pane) claim(c *attachment) {
 	if _, ok := s.clients[c]; !ok {
 		return
 	}
+	// A client that takes the pane takes its terminal from HylaPocket's
+	// stream, which ends here and opens a new one (pocketAway).
+	s.endPocketStream()
 	s.claimer = c
 	s.stamp++
 	c.claimed = s.stamp
@@ -701,6 +709,11 @@ const frameDelay = 4 * time.Millisecond
 
 // frameSoon sends the clients a frame shortly; s.mu is held.
 func (s *pane) frameSoon() {
+	// The pocket stream wakes at once: its mirror reads the terminal's
+	// record of changes, which goes to whichever mirror reads it first, so
+	// a delayed read can miss what this one sees. It wakes whether or not
+	// app clients are attached.
+	s.pocketPush()
 	if s.framing || len(s.clients) == 0 {
 		return
 	}
@@ -725,6 +738,7 @@ func (s *pane) frame() {
 		}
 		due = due || later
 	}
+	s.pocketPush()
 	if due && !s.framing {
 		s.framing = true
 		time.AfterFunc(50*time.Millisecond, func() {
@@ -796,6 +810,10 @@ func (s *pane) close() {
 		return
 	}
 	s.closed = true
+	if s.pocketAway != nil {
+		close(s.pocketAway)
+		s.pocketAway = nil
+	}
 	close(s.changed) // wakes those waiting on it
 	s.changed = make(chan struct{})
 	clients := s.clients

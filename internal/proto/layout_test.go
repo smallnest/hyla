@@ -90,3 +90,36 @@ func TestLayoutMoveSwap(t *testing.T) {
 		t.Error("a pane moved onto itself")
 	}
 }
+
+// The pocket listener splits a pane of any nesting, and keeps the panes
+// that a split left as leaves with no pane of their own.
+func TestLayoutSplitInherited(t *testing.T) {
+	l := (&Layout{Pane: "a"}).Split("a", "b", "right", 0.5)
+	l = l.Split("b", "c", "down", 0.5)
+	if got := l.Panes(); !slicesEqual(got, []string{"a", "b", "c"}) {
+		t.Fatalf("panes %v", got)
+	}
+	if l.A.Pane != "a" || !l.A.Leaf() {
+		t.Fatalf("the pane beside the column is gone: %+v", l.A)
+	}
+	// Splitting the pane that is the top of a side leaves the side for it.
+	l = l.Split("a", "d", "down", 0.5)
+	if got := l.Panes(); !slicesEqual(got, []string{"a", "d", "b", "c"}) {
+		t.Fatalf("panes %v", got)
+	}
+	if l.Remove("a").Panes()[0] != "d" {
+		t.Errorf("the pane below a is not where a was")
+	}
+}
+
+func slicesEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}

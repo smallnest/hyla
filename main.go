@@ -24,6 +24,7 @@ import (
 	"hyla/internal/cli"
 	"hyla/internal/clilink"
 	"hyla/internal/daemon"
+	_ "hyla/internal/pocket"
 	"hyla/internal/proto"
 
 	"hyla/locales"
