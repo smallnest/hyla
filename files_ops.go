@@ -223,7 +223,14 @@ func (a *App) askDelete(pane string, it fileItem) {
 // deleteEntry deletes a file or folder, as askDelete says.
 func (a *App) deleteEntry(h *host, it fileItem) {
 	go func() {
-		err := mygo.Shell.TrashItem(it.path)
+		var err error
+		if h.remote() && h.cl != nil {
+			// The machine's own hylad deletes it there: another machine's
+			// file is not this one's to put in its trash.
+			err = h.cl.Call("fs.delete", proto.FSDeleteParams{Path: it.path}, nil)
+		} else {
+			err = mygo.Shell.TrashItem(it.path)
+		}
 		a.update(func() {
 			if err != nil {
 				a.toast(locales.FilesDeleteFailed(it.Name, remoteError(err)))
