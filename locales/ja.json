@@ -821,7 +821,7 @@
   "setTailcatPort": "リモート Tailcat のポート",
   "setTailcatPortDetail": "追加するホストの tailcat リスナーのポートです: このコンピュータで別のものを指定しなければ 7473。",
   "setTailcatRelay": "リレー",
-  "setTailcatRelayDetail": "マシンどうしがリレーを見つける DERP マップです。自分で実行しない限り（derper など）、既定は https://tailcat.dev/derpmap.json です。Tailcat をホストとして使うマシンもここからリレーを選びます。",
+  "setTailcatRelayDetail": "",
   "setTailcatOn": "",
   "setTailcatStarting": "ペアコードはまもなく表示されます。",
   "setTailcatOff": "Tailcat はオフです。",

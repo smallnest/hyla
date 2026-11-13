@@ -6,6 +6,8 @@ number; the notes of the upstream releases it includes follow its own.
 
 ## Unreleased
 
+- Settings › Remote Connection › Tailcat sets the relay its machines are
+  found through again (`tailcat-relay`), and the app reads it as hylad does.
 - Settings › Remote Connection › Tailcat takes machines reached by a pair
   code again: a name, the code (`hyla pocket code` on that machine prints
   it, or its QR code as a phone reads it) and its listener's port, 7473

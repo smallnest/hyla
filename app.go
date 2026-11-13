@@ -26,6 +26,7 @@ import (
 	"hyla/internal/client"
 	"hyla/internal/pets"
 	"hyla/internal/proto"
+	"hyla/internal/remote"
 	"hyla/internal/settings"
 
 	"hyla/locales"
@@ -273,6 +274,7 @@ func newApp() *App {
 		refs: map[string]*ui.Handle{}, focus: map[string]string{}, arrived: map[string]bool{}}
 	a.loadPrefs()
 	a.set = settings.Load()
+	remote.SetRelay(a.set.TailcatRelay)
 	applied.Lock()
 	applied.s = a.set
 	applied.Unlock()
@@ -1330,6 +1332,8 @@ func (a *App) zoom(steps int, reset bool) {
 // what changed at once, and are attached again for what only a new
 // terminal takes.
 func (a *App) applySettings(s settings.Settings) {
+	// Where tailcat finds its relays, which a pair code's region names.
+	remote.SetRelay(s.TailcatRelay)
 	a.apply(s, true)
 	a.rememberEnv()
 }

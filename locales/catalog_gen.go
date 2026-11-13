@@ -8110,11 +8110,11 @@ func (msgs Messages) SetTailcatRelay() string {
 	return Catalog.Format(msgs.locale, "setTailcatRelay", nil)
 }
 
-// SetTailcatRelayDetail says "The DERP map where the machines find their relay, https://tailcat.dev/derpmap.json unless you run your own, as derper…"
+// SetTailcatRelayDetail says ""
 // in the language the app shows.
 func SetTailcatRelayDetail() string { return In(i18n.Locale()).SetTailcatRelayDetail() }
 
-// SetTailcatRelayDetail says "The DERP map where the machines find their relay, https://tailcat.dev/derpmap.json unless you run your own, as derper…"
+// SetTailcatRelayDetail says ""
 // in the language of msgs.
 func (msgs Messages) SetTailcatRelayDetail() string {
 	return Catalog.Format(msgs.locale, "setTailcatRelayDetail", nil)

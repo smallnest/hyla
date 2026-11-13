@@ -1429,7 +1429,7 @@
   "setTailcatPort": "Remote Tailcat Port",
   "setTailcatPortDetail": "The port of the tailcat listener of the hosts you add: 7473 unless one names another.",
   "setTailcatRelay": "Relay",
-  "setTailcatRelayDetail": "The DERP map where the machines find their relay, https://tailcat.dev/derpmap.json unless you run your own, as derper does. This computer's listener takes its relay from it too.",
+  "setTailcatRelayDetail": "",
   "setTailcatOn": "",
   "setTailcatStarting": "The pair code comes in a moment.",
   "setTailcatOff": "Tailcat is off.",

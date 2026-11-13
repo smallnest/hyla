@@ -821,7 +821,7 @@
   "setTailcatPort": "远程 Tailcat 服务端口",
   "setTailcatPortDetail": "要添加的机器的 tailcat 监听端口：这台电脑没有另设时是 7473。",
   "setTailcatRelay": "中继",
-  "setTailcatRelayDetail": "两台机器在这里查找中继（DERP map）。默认是 Tailscale 的公共、有限流的中继 https://tailcat.dev/derpmap.json；也可以像 derper 那样自建。本机作为主机时也从这里选择中继。",
+  "setTailcatRelayDetail": "",
   "setTailcatOn": "",
   "setTailcatStarting": "配对码稍后显示。",
   "setTailcatOff": "Tailcat 已关闭。",

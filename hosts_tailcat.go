@@ -165,6 +165,13 @@ func (a *App) tailcatListen(c *ui.Context, pal *palette, d *tailcatDraft) {
 			}
 		})
 		tailcatFieldErr(c, pal, d, "tailcat-listen-port")
+		ui.Column(c).Gap(6).Children(func() {
+			ui.Text(c, locales.SetTailcatRelay()).FontSize(13.5).TextColor(pal.text)
+			if in := textField(c, "tailcat-relay", &d.relay, remote.DefaultDERPMapURL, 0, pal); in.Submitted() {
+				d.save(a, "tailcat-relay")
+			}
+		})
+		tailcatFieldErr(c, pal, d, "tailcat-relay")
 		ui.Column(c).Gap(3).Children(func() {
 			ui.Text(c, locales.SetTailcatCode()).FontSize(13.5).TextColor(pal.text)
 			if d := locales.SetTailcatCodeDetail(); d != "" {
