@@ -275,6 +275,29 @@ func TestSidebarK8sPod(t *testing.T) {
 	}
 }
 
+// Dragging a pod's row moves it in the K8s project, as a project's
+// sessions move among themselves.
+func TestK8sPodDrag(t *testing.T) {
+	a := testApp(t)
+	a.st.Projects = append(a.st.Projects, proto.Project{ID: "p-k8s", Name: locales.K8sPodsProject()})
+	a.prefs.K8sProject = "p-k8s"
+	a.prefs.K8sPods = []k8sPod{
+		{Name: "one", Command: "kubectl exec -it one -- sh"},
+		{Name: "two", Command: "kubectl exec -it two -- sh"},
+	}
+	tt := ui.NewTester(a.view, 1100, 700)
+	tt.Frame()
+	dragRow(t, tt, "two", "one", false)
+	var cmds []string
+	for _, p := range a.prefs.K8sPods {
+		cmds = append(cmds, p.Command)
+	}
+	want := []string{"kubectl exec -it two -- sh", "kubectl exec -it one -- sh"}
+	if !slices.Equal(cmds, want) {
+		t.Errorf("the K8s project lists %v, want %v", cmds, want)
+	}
+}
+
 // A pod offers to reconnect whatever its terminal does: one that ended,
 // as kubectl's does when the pod goes, and one still open, which
 // reconnecting replaces. Either way it starts a new terminal, in the

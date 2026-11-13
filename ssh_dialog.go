@@ -308,6 +308,33 @@ func (a *App) sshHostOfSession(id string) *sshHost {
 	return nil
 }
 
+// sshDrag is a machine dragged by its row to another place in the SSH
+// project.
+type sshDrag struct {
+	addr string
+}
+
+// moveSSHHost puts the machine named by from where the machine named by
+// to is, before or after it, and keeps the order in the app's
+// preferences.
+func (a *App) moveSSHHost(from, to string, after bool) {
+	at := func(addr string) int {
+		return slices.IndexFunc(a.prefs.SSHHosts, func(h sshHost) bool { return h.Addr == addr })
+	}
+	i, j := at(from), at(to)
+	if from == "" || from == to || i < 0 || j < 0 {
+		return
+	}
+	h := a.prefs.SSHHosts[i]
+	a.prefs.SSHHosts = slices.Delete(a.prefs.SSHHosts, i, i+1)
+	j = at(to)
+	if after {
+		j++
+	}
+	a.prefs.SSHHosts = slices.Insert(a.prefs.SSHHosts, j, h)
+	a.savePrefs()
+}
+
 // removeSSHHost removes a machine from the SSH project, ending its
 // terminal as closing one does.
 func (a *App) removeSSHHost(addr string) {
@@ -377,6 +404,29 @@ func (a *App) sshHostRow(c *ui.Context, pal *palette, i int) {
 		bg = translucentGlass(pal.rowHover, pal, a.set)
 	}
 	row.Background(row.AnimateColor("bg", bg, ui.Animation{Duration: 110 * time.Millisecond}))
+	// The row is its machine's handle: dragged, it moves the machine to
+	// another place in the project, its terminal with it.
+	row.Drag(sshDrag{addr: h.Addr}).Cursor(ui.CursorGrab)
+	if row.Dragging() {
+		row.Opacity(0.35)
+	}
+	if d, over := ui.DragOver[sshDrag](row); over && d.addr != h.Addr {
+		_, y, _ := row.PointerPosition()
+		after := y > height/2
+		a.dragAt, a.dragAfter = h.Addr, after
+		row.Background(pal.rowHover)
+		dragLine(row, pal, after)
+	}
+	if d, ok := ui.Drop[sshDrag](row); ok && d.addr != h.Addr {
+		_, y, _ := row.PointerPosition()
+		after := y > height/2
+		if a.dragAt == h.Addr {
+			// The side the insertion line last showed.
+			after = a.dragAfter
+		}
+		to := h.Addr
+		a.defer_(func() { a.moveSSHHost(d.addr, to, after) })
+	}
 	pointerTooltip(c, row, "tip-ssh-"+h.Addr, h.Addr)
 	row.ContextMenu(func(m *ui.Menu) {
 		// Reconnecting goes on a terminal that ended, as ssh's does when

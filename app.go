@@ -52,6 +52,10 @@ type prefs struct {
 	// ProjectOrder is the order the user dragged projects into, by id,
 	// across every host; unlisted projects follow in the daemon's order.
 	ProjectOrder []string `json:"projectOrder,omitempty"`
+	// SessionOrder is the order the user dragged sessions into within
+	// their projects, by id, across every host; a session it does not
+	// name follows the ones it does, in the sidebar's order.
+	SessionOrder []string `json:"sessionOrder,omitempty"`
 	// SidebarGroup is how the sidebar groups sessions: "" or "project",
 	// "none" or "date"; SidebarOrder is "created" or "updated".
 	SidebarGroup string  `json:"sidebarGroup,omitempty"`
@@ -200,10 +204,12 @@ type App struct {
 	// Panes dragged: the zone last under the pointer, the pane whose
 	// drop preview shows and since when, and the panes just moved, which
 	// spring in.
-	lastZone     dropZone
-	previewKey   string
-	projectAt    string // the project a drag last hovered, and its side
-	projectAfter bool
+	lastZone   dropZone
+	previewKey string
+	// dragAt is the row a drag last hovered, and dragAfter the side of it
+	// a drop lands on: a project's, a session's, a machine's or a pod's.
+	dragAt       string
+	dragAfter    bool
 	previewSince time.Time
 	previewShown bool
 	arrived      map[string]bool
@@ -571,6 +577,16 @@ func (g group) key() string {
 	return g.project.ID
 }
 
+// dragKey is what a session drag stays within: the group's key, which a
+// local host's sessions of no project have none of, so it takes its
+// host's name as a remote host's does.
+func (g group) dragKey() string {
+	if g.project.ID == "" {
+		return "other:" + g.host.name
+	}
+	return g.project.ID
+}
+
 // groups returns the projects of every host, as the sidebar lists them.
 func (a *App) groups() []group {
 	var gs []group
@@ -600,6 +616,7 @@ func (a *App) hostGroups(h *host) []group {
 			}
 		}
 		a.sortSessions(g.sessions)
+		a.orderSessions(g.sessions)
 		gs = append(gs, g)
 	}
 	other := group{host: h, project: proto.Project{ID: "", Name: locales.SidebarOtherProject()}}
@@ -610,6 +627,7 @@ func (a *App) hostGroups(h *host) []group {
 	}
 	if len(other.sessions) > 0 {
 		a.sortSessions(other.sessions)
+		a.orderSessions(other.sessions)
 		gs = append(gs, other)
 	}
 	return gs
@@ -631,6 +649,35 @@ func (a *App) orderProjects(ps []proto.Project) {
 	sort.SliceStable(ps, func(i, j int) bool {
 		ii, iok := at[ps[i].ID]
 		jj, jok := at[ps[j].ID]
+		switch {
+		case iok && jok:
+			return ii < jj
+		case iok:
+			return true
+		case jok:
+			return false
+		}
+		return false
+	})
+}
+
+// orderSessions puts a project's sessions in the order the user dragged
+// them into, by the ids in SessionOrder; the sessions it does not name
+// follow them, in the order the sidebar's Order By gave them, as the
+// projects ProjectOrder does not name follow the ones it does.
+func (a *App) orderSessions(ss []*proto.Session) {
+	if len(a.prefs.SessionOrder) == 0 {
+		return
+	}
+	at := map[string]int{}
+	for i, id := range a.prefs.SessionOrder {
+		if _, ok := at[id]; !ok {
+			at[id] = i
+		}
+	}
+	sort.SliceStable(ss, func(i, j int) bool {
+		ii, iok := at[ss[i].ID]
+		jj, jok := at[ss[j].ID]
 		switch {
 		case iok && jok:
 			return ii < jj
@@ -688,6 +735,56 @@ func (a *App) moveProject(d projectDrag, target string, after bool) {
 		}
 	}
 	a.prefs.ProjectOrder = append(kept, order...)
+	a.savePrefs()
+}
+
+// sessionDrag is a session dragged by its row to another place in its
+// project's list, which group says by its dragKey.
+type sessionDrag struct {
+	group string
+	id    string
+}
+
+// reorderSession puts a session drag before or after target, in the list of
+// the group it comes from, and keeps the order in the app's preferences.
+func (a *App) reorderSession(d sessionDrag, target string, after bool) {
+	if d.id == "" || target == "" || d.id == target || d.group == "" {
+		return
+	}
+	var sessions []*proto.Session
+	for _, g := range a.groups() {
+		if g.dragKey() == d.group {
+			sessions = g.sessions
+			break
+		}
+	}
+	var order []string
+	for _, s := range sessions {
+		order = append(order, s.ID)
+	}
+	i := slices.Index(order, d.id)
+	if i < 0 || !slices.Contains(order, target) {
+		return
+	}
+	order = slices.Delete(order, i, i+1)
+	j := slices.Index(order, target)
+	if after {
+		j++
+	}
+	order = slices.Insert(order, j, d.id)
+	// Replace these sessions' ids in the order, leaving the others' as
+	// they are: only their order among themselves matters.
+	ids := map[string]bool{}
+	for _, s := range sessions {
+		ids[s.ID] = true
+	}
+	kept := a.prefs.SessionOrder[:0]
+	for _, id := range a.prefs.SessionOrder {
+		if !ids[id] {
+			kept = append(kept, id)
+		}
+	}
+	a.prefs.SessionOrder = append(kept, order...)
 	a.savePrefs()
 }
 
