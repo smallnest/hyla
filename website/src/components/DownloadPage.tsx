@@ -1,26 +1,46 @@
 import { For, Show, createSignal, onCleanup, onMount } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
-import { createServerFn } from '@tanstack/solid-start';
 import { Link } from './Link';
 import { AppleIcon, ArrowUpRightIcon, CheckIcon, CopyIcon, DownloadIcon, LinuxIcon, PhoneIcon, WindowsIcon } from './Icons';
 import { GITHUB_URL } from './SiteHeader';
 import { localize, pageHead, type Locale } from '../lib/i18n';
 
-// The latest published release, whose assets the download links point at:
-// mygo.json's version may be a draft still building, or not released at all.
-// GitHub redirects releases/latest to its tag, which, unlike the API, has no
-// rate limit for the Worker's shared IPs to run into. Cloudflare keeps the
-// redirect for a few minutes, as the latest release changes only when one is
-// published.
-export const latestVersion = createServerFn().handler(async () => {
-  const res = await fetch(`${GITHUB_URL}/releases/latest`, {
-    redirect: 'manual',
-    cf: { cacheTtlByStatus: { '300-399': 300 } },
-  } as RequestInit);
-  const tag = res.headers.get('location')?.match(/\/releases\/tag\/v([^/?#]+)$/)?.[1];
-  if (!tag) throw new Error(`No latest release: ${res.status} ${res.headers.get('location') ?? ''}`);
-  return { version: tag };
-});
+// The page is static, so the latest release is found in the browser: ask
+// GitHub for it, keep it for a few hours, and until it answers (or if it
+// never does) send every link to the releases page, which is always right.
+const VERSION_KEY = 'hyla.release';
+
+function cachedVersion(): string | undefined {
+  try {
+    const raw = localStorage.getItem(VERSION_KEY);
+    if (!raw) return undefined;
+    const { v, at } = JSON.parse(raw) as { v?: string; at?: number };
+    if (typeof v === 'string' && typeof at === 'number' && Date.now() - at < 6 * 3600_000) return v;
+  } catch {
+    /* a storage that refuses is a storage we do without */
+  }
+  return undefined;
+}
+
+async function fetchVersion(): Promise<string | undefined> {
+  try {
+    const res = await fetch('https://api.github.com/repos/smallnest/hyla/releases/latest', {
+      headers: { accept: 'application/vnd.github+json' },
+    });
+    if (!res.ok) return undefined;
+    const tag = ((await res.json()) as { tag_name?: string }).tag_name;
+    const v = tag?.replace(/^v/, '');
+    if (!v) return undefined;
+    try {
+      localStorage.setItem(VERSION_KEY, JSON.stringify({ v, at: Date.now() }));
+    } catch {
+      /* the links still work without the cache */
+    }
+    return v;
+  } catch {
+    return undefined;
+  }
+}
 
 const copy = {
   en: {
@@ -29,6 +49,7 @@ const copy = {
     heading: 'Download Hyla',
     lead: 'For macOS, Windows and Linux.',
     notes: (v: string) => `${v} release notes`,
+    latestNotes: 'Latest release',
     yours: 'Your system',
     platformNotes: {
       mac: 'Install with Homebrew, or open the disk image and drag Hyla into your Applications folder.',
@@ -55,6 +76,7 @@ const copy = {
     heading: 'Hyla をダウンロード',
     lead: 'macOS、Windows、Linux に対応。',
     notes: (v: string) => `${v} リリースノート`,
+    latestNotes: '最新リリース',
     yours: 'お使いのシステム',
     platformNotes: {
       mac: 'Homebrew でインストールするか、ディスクイメージを開いて Hyla を“アプリケーション”フォルダにドラッグしてください。',
@@ -81,6 +103,7 @@ const copy = {
     heading: '下载 Hyla',
     lead: '支持 macOS、Windows 和 Linux。',
     notes: (v: string) => `${v} 更新说明`,
+    latestNotes: '最新版本',
     yours: '你的系统',
     platformNotes: {
       mac: '用 Homebrew 安装，或打开磁盘映像，把 Hyla 拖进“应用程序”文件夹。',
@@ -209,19 +232,24 @@ function InstallScript(props: { script: string; copyLabel: string; copiedLabel: 
   );
 }
 
-export default function DownloadPage(props: { locale: Locale; version: string }) {
+export default function DownloadPage(props: { locale: Locale }) {
   const c = () => copy[props.locale];
   const [os, setOS] = createSignal<OS>();
   const [arch, setArch] = createSignal<Arch>();
+  const [version, setVersion] = createSignal<string>();
 
   onMount(() => {
     setOS(detectOS());
     detectArch().then(setArch);
+    setVersion(cachedVersion());
+    fetchVersion().then((v) => v && setVersion(v));
   });
 
-  const tag = () => `v${props.version}`;
-  const href = (asset: (v: string) => string) =>
-    `${GITHUB_URL}/releases/download/${tag()}/${asset(props.version)}`;
+  const tag = () => (version() ? `v${version()}` : undefined);
+  const href = (asset: (v: string) => string) => {
+    const v = version();
+    return v ? `${GITHUB_URL}/releases/download/v${v}/${asset(v)}` : `${GITHUB_URL}/releases/latest`;
+  };
   const isPick = (p: (typeof platforms)[number], f: (typeof platforms)[number]['files'][number]) =>
     p.os === os() && (arch() ? f.arch === arch() : f === p.files[0]);
 
@@ -232,8 +260,8 @@ export default function DownloadPage(props: { locale: Locale; version: string })
         <h1 class="display">{c().heading}</h1>
         <p class="lead lead--center">{c().lead}</p>
         <p class="download-head__version">
-          <a href={`${GITHUB_URL}/releases/tag/${tag()}`}>
-            {c().notes(tag())} <ArrowUpRightIcon size={13} />
+          <a href={version() ? `${GITHUB_URL}/releases/tag/${tag()}` : `${GITHUB_URL}/releases/latest`}>
+            {version() ? c().notes(tag()!) : c().latestNotes} <ArrowUpRightIcon size={13} />
           </a>
         </p>
       </section>

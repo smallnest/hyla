@@ -1,0 +1,64 @@
+# Serving the built site from nginx.
+#
+# The build (`bun run build`, or ./scripts/deploy-static.sh) writes every page
+# as a file in dist/client. Copy that folder's contents to `root`; the server
+# needs nothing else.
+#
+#   /docs/remote        docs/remote.html
+#   /docs               docs.html
+#   /docs/              docs/index.html
+#   /zh, /zh/docs/...   zh.html, zh/docs/*.html
+#   /download           download.html
+#
+# /zh/ and /ja/ are the same pages as /zh and /ja: the routes carry the
+# trailing slash, the files do not.
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name hyla.rpcx.io;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name hyla.rpcx.io;
+
+    ssl_certificate     /etc/letsencrypt/live/hyla.rpcx.io/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/hyla.rpcx.io/privkey.pem;
+
+    root /opt/hyla;
+    index index.html;
+
+    # Prerendered pages, without their .html in the address.
+    location / {
+        try_files $uri $uri.html $uri/index.html =404;
+    }
+
+    # The locale roots, with or without the slash.
+    location = /zh/ { try_files /zh.html =404; }
+    location = /ja/ { try_files /ja.html =404; }
+
+    # Assets carry a content hash in their name: cache them for good.
+    location /assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        access_log off;
+    }
+
+    # Pages do not: a deploy must show up on the next load.
+    location ~ \.html$ {
+        add_header Cache-Control "no-cache";
+    }
+
+    add_header X-Content-Type-Options nosniff;
+    add_header Referrer-Policy strict-origin-when-cross-origin;
+
+    gzip on;
+    gzip_comp_level 6;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css text/javascript application/javascript application/json image/svg+xml;
+
+    # For a certificate: `certbot --nginx -d hyla.rpcx.io`.
+}

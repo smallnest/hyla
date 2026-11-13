@@ -10,14 +10,14 @@ export default defineConfig({
     // Compiles the Markdown in ../docs, which src/lib/docs.ts imports.
     markdown(),
     tanstackStart({
-      // Every page but /download, in each language, is prerendered at
-      // build time; that one is rendered by the Worker, so it links to the
-      // latest release. A link's #hash or trailing slash isn't another page.
+      // Every page is prerendered, in each language, so the build is a folder
+      // of files a plain web server can serve: no Worker, no runtime. A link's
+      // #hash is not another page.
       prerender: {
         enabled: true,
         crawlLinks: true,
         autoSubfolderIndex: false,
-        filter: (page) => !/\/download$|#|.\/$/.test(page.path),
+        filter: (page) => !/#/.test(page.path),
       },
     }),
     solid({ ssr: true }),
