@@ -4,16 +4,21 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
-## Unreleased
+## 3.8.0
 
-- Settings › Remote Connection › Tailcat is always on: the switch that
-  turned it off is gone, and the relay its machines are found through comes
-  first in the group (`tailcat-relay`), read by the app as by hylad.
 - Settings › Remote Connection › Tailcat takes machines reached by a pair
   code again: a name, the code (`hyla pocket code` on that machine prints
   it, or its QR code as a phone reads it) and its listener's port, 7473
   unless it names another. Their sessions show in the sidebar as an
-  address's do, and the switch there turns them all on and off.
+  address's do, read and written through the relay the code names.
+- Tailcat is always on, and its relay heads the group: the switch that
+  turned it off is gone, and `tailcat-relay`, which both the machines added
+  and this machine's listener go through, is a field of the settings now,
+  read by the app as by hylad.
+- The Remote Connection page names its groups above their panels, as the
+  other pages do.
+- **HylaPocket** lists each session's project, and makes a new session in
+  one: a host that runs hylad gets both with its next update.
 
 ## 3.7.0
 
