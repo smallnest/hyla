@@ -45,6 +45,12 @@ and until it answers every link goes to `releases/latest`, which GitHub
 redirects to the current release. A blocked API, an ad blocker or a rate limit
 leaves the page working, one click further from the file.
 
+## Where it is published
+
+`VITE_SITE_URL` is the address the pages say they live at: the canonical link
+and the `hreflang` alternates use it. It defaults to `https://hyla.rpcx.io`;
+a build for kero.sh sets it to `https://kero.sh`.
+
 ## kero.sh
 
 `wrangler.jsonc` still describes the Cloudflare Worker that serves `kero.sh`.

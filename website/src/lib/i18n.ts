@@ -28,16 +28,26 @@ export function useLocale() {
   return () => localeOf(location().pathname);
 }
 
-// The page's title and description, with links to the page in each locale.
+// Where the site is published: set VITE_SITE_URL to change it (kero.sh builds
+// with its own), and the canonical and alternate links follow.
+const SITE_URL = (import.meta.env?.VITE_SITE_URL as string | undefined)?.replace(/\/$/, '') ?? 'https://hyla.rpcx.io';
+
+// The page's title and description, the address it is published at, and links
+// to the page in each locale.
 export function pageHead(locale: Locale, path: string, title: string, description: string) {
+  const here = `${SITE_URL}${localize(path, locale)}`;
   return {
     meta: [
       { title },
       { name: 'description', content: description },
       { property: 'og:title', content: title },
       { property: 'og:description', content: description },
+      { property: 'og:url', content: here },
     ],
-    links: locales.map((l) => ({ rel: 'alternate', hrefLang: htmlLang[l], href: `https://kero.sh${localize(path, l)}` })),
+    links: [
+      { rel: 'canonical', href: here },
+      ...locales.map((l) => ({ rel: 'alternate', hrefLang: htmlLang[l], href: `${SITE_URL}${localize(path, l)}` })),
+    ],
   };
 }
 
