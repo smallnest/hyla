@@ -452,7 +452,7 @@ func (a *App) sessionSidebar(c *ui.Context, pal *palette, group string, n *int) 
 				a.dateHeader(c, pal, "date-"+h.name+"-"+dateLabel(dg.day, c.Now()), dateLabel(dg.day, c.Now()), len(dg.sessions), top)
 				gi++
 				for _, s := range dg.sessions {
-					a.sessionRow(c, pal, s, n, rowInset)
+					a.sessionRow(c, pal, s, n, rowInset, "")
 				}
 			}
 		} else {
@@ -467,7 +467,7 @@ func (a *App) sessionSidebar(c *ui.Context, pal *palette, group string, n *int) 
 				gi++
 			}
 			for _, s := range ss {
-				a.sessionRow(c, pal, s, n, rowInset)
+				a.sessionRow(c, pal, s, n, rowInset, "")
 			}
 		}
 		if h == local && empty && h.conn == connReady && len(a.hosts) == 1 {
@@ -536,24 +536,18 @@ func (a *App) groupView(c *ui.Context, pal *palette, g group, gi int, n *int) {
 	}
 	if id != "" {
 		if d, over := ui.DragOver[projectDrag](hdr); over && d.host == g.host && d.id != id {
-			y, _, _ := hdr.PointerPosition()
+			_, y, _ := hdr.PointerPosition()
 			after := y > 14
-			a.projectAt, a.projectAfter = id, after
+			a.dragAt, a.dragAfter = id, after
 			hdr.Background(pal.rowHover)
-			hdr.Draw(func(p *ui.Painter, r ui.Rect) {
-				ly := r.Y
-				if after {
-					ly = r.Y + r.H - 2
-				}
-				p.Fill(ui.Rect{X: r.X, Y: ly, W: r.W, H: 2}, pal.accent, 1)
-			})
+			dragLine(hdr, pal, after)
 		}
 		if d, ok := ui.Drop[projectDrag](hdr); ok && d.host == g.host && d.id != id {
-			y, _, _ := hdr.PointerPosition()
+			_, y, _ := hdr.PointerPosition()
 			after := y > 14
-			if a.projectAt == id {
+			if a.dragAt == id {
 				// The side the insertion line last showed.
-				after = a.projectAfter
+				after = a.dragAfter
 			}
 			target := id
 			a.defer_(func() { a.moveProject(d, target, after) })
@@ -700,7 +694,7 @@ func (a *App) groupView(c *ui.Context, pal *palette, g group, gi int, n *int) {
 		if ssh && a.sshHostOfSession(s.ID) != nil || k8s && a.k8sPodOfSession(s.ID) != nil {
 			continue
 		}
-		a.sessionRow(c, pal, s, n, float32(rowInset+projectBadge+projectBadgeGap))
+		a.sessionRow(c, pal, s, n, float32(rowInset+projectBadge+projectBadgeGap), g.dragKey())
 	}
 	if ssh {
 		for i := range a.prefs.SSHHosts {
@@ -762,7 +756,19 @@ func projectInitial(name string) string {
 	return ""
 }
 
-func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int, inset float32) {
+// dragLine draws the line that tells where a dragged row lands: along its
+// top edge, or its bottom one to go after it.
+func dragLine(row ui.Element, pal *palette, after bool) {
+	row.Draw(func(p *ui.Painter, r ui.Rect) {
+		ly := r.Y
+		if after {
+			ly = r.Y + r.H - 2
+		}
+		p.Fill(ui.Rect{X: r.X, Y: ly, W: r.W, H: 2}, pal.accent, 1)
+	})
+}
+
+func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int, inset float32, group string) {
 	*n++
 	index := *n
 	selected := s.ID == a.selected
@@ -799,6 +805,33 @@ func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int, 
 	}
 	if row.DoubleClicked() {
 		a.startRename(s.ID)
+	}
+	// The row is its session's handle within its project: dragged, it
+	// moves the session to another place there, past the row of the one
+	// it is dropped on, above or below its middle.
+	if group != "" && a.renaming != s.ID {
+		drag := sessionDrag{group: group, id: s.ID}
+		row.Drag(drag).Cursor(ui.CursorGrab)
+		if row.Dragging() {
+			row.Opacity(0.35)
+		}
+		if d, over := ui.DragOver[sessionDrag](row); over && d.group == group && d.id != s.ID {
+			_, y, _ := row.PointerPosition()
+			after := y > h/2
+			a.dragAt, a.dragAfter = s.ID, after
+			row.Background(pal.rowHover)
+			dragLine(row, pal, after)
+		}
+		if d, ok := ui.Drop[sessionDrag](row); ok && d.group == group && d.id != s.ID {
+			_, y, _ := row.PointerPosition()
+			after := y > h/2
+			if a.dragAt == s.ID {
+				// The side the insertion line last showed.
+				after = a.dragAfter
+			}
+			target := s.ID
+			a.defer_(func() { a.reorderSession(d, target, after) })
+		}
 	}
 	tip := a.hostOf(s.ID).shortDir(s.WorkDir())
 	// An SSH or K8s terminal says where it runs to, here and below.

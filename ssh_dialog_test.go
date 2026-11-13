@@ -245,6 +245,25 @@ func TestSidebarSSHHost(t *testing.T) {
 	shot(t, tt, "sidebar-ssh-host")
 }
 
+// Dragging a machine's row moves it in the SSH project, as a project's
+// sessions move among themselves.
+func TestSSHHostDrag(t *testing.T) {
+	a := testApp(t)
+	a.st.Projects = append(a.st.Projects, proto.Project{ID: "p-ssh", Name: locales.SshHostsProject()})
+	a.prefs.SSHProject = "p-ssh"
+	a.prefs.SSHHosts = []sshHost{{Name: "one", Addr: "me@one"}, {Name: "two", Addr: "me@two"}}
+	tt := ui.NewTester(a.view, 1100, 700)
+	tt.Frame()
+	dragRow(t, tt, "two", "one", false)
+	var addrs []string
+	for _, h := range a.prefs.SSHHosts {
+		addrs = append(addrs, h.Addr)
+	}
+	if want := []string{"me@two", "me@one"}; !slices.Equal(addrs, want) {
+		t.Errorf("the SSH project lists %v, want %v", addrs, want)
+	}
+}
+
 // A machine whose terminal ended, as ssh's does when the connection
 // drops, offers to reconnect it, and reconnecting starts a new terminal.
 func TestSSHHostReconnect(t *testing.T) {

@@ -11,6 +11,13 @@ number; the notes of the upstream releases it includes follow its own.
   machine, without copying it. The app makes the QR code with
   [xingkaixin/mygo-native-ui](https://github.com/xingkaixin/mygo-native-ui)'s
   `ui/qrcode`.
+- A project's sessions keep the order the user drags them into: a session's
+  row dragged onto another row of its project goes above or below it, a line
+  saying where it lands, and the sidebar remembers the order across runs.
+  The sessions the user has not moved follow in **Order By**'s order. The
+  SSH project's machines and the K8s project's pods drag the same way, their
+  terminals with them. A project's name now lands on the side of the row
+  the pointer is on, where before it went below it wherever it was let go.
 
 ## 3.6.5
 

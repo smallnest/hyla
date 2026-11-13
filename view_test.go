@@ -1066,6 +1066,116 @@ func TestProjectDrag(t *testing.T) {
 	}
 }
 
+// dragRow drags the row showing from onto the row showing to, above its
+// middle, or below it when below: as the pointer does, a few DIPs at a
+// time, then lets go.
+func dragRow(t *testing.T, tt *ui.Tester, from, to string, below bool) {
+	t.Helper()
+	tt.Frame()
+	src, ok := tt.Find(from)
+	if !ok {
+		t.Fatalf("no %q row; texts %q", from, tt.Texts())
+	}
+	dst, ok := tt.Find(to)
+	if !ok {
+		t.Fatalf("no %q row; texts %q", to, tt.Texts())
+	}
+	// A detailed row is rowH2 high, its name on the first line: a point 2
+	// DIPs past the name's top is above its middle, 30 past it below.
+	y := dst.Y + 2
+	if below {
+		y = dst.Y + 30
+	}
+	tt.Press(src.X+10, src.Y+src.H/2)
+	for i := 1; i <= 10; i++ {
+		f := float32(i) / 10
+		tt.Move(src.X+10, src.Y+src.H/2+(y-src.Y-src.H/2)*f)
+		tt.Advance(16 * time.Millisecond)
+		tt.Frame()
+	}
+	tt.Release(src.X+10, y)
+	tt.Frame()
+	tt.Advance(50 * time.Millisecond)
+	tt.Frame()
+}
+
+// Dragging a session's row moves it among its project's sessions, above
+// or below the row it is let go on, and the sidebar keeps that order.
+func TestSessionDrag(t *testing.T) {
+	a := testApp(t)
+	a.st.Sessions[0].Name = "one"
+	a.st.Sessions = append(a.st.Sessions,
+		proto.Session{ID: "s2", Project: "p1", Name: "two", Created: 200},
+		proto.Session{ID: "s3", Project: "p1", Name: "three", Created: 300})
+	tt := ui.NewTester(a.view, 1100, 640)
+	ids := func() []string {
+		var out []string
+		for _, g := range a.hostGroups(a.local()) {
+			for _, s := range g.sessions {
+				out = append(out, s.ID)
+			}
+		}
+		return out
+	}
+	// three, let go on one's upper half, goes before it; the sessions it
+	// does not pass keep their order.
+	dragRow(t, tt, "three", "one", false)
+	if got := ids(); !slices.Equal(got, []string{"s3", "s1", "s2"}) {
+		t.Errorf("three before one: %v", got)
+	}
+	if !slices.Equal(a.prefs.SessionOrder, []string{"s3", "s1", "s2"}) {
+		t.Errorf("kept %v, want s3 s1 s2", a.prefs.SessionOrder)
+	}
+	// one, let go on two's lower half, goes after it.
+	dragRow(t, tt, "one", "two", true)
+	if got := ids(); !slices.Equal(got, []string{"s3", "s2", "s1"}) {
+		t.Errorf("one after two: %v", got)
+	}
+	if got := a.visibleOrder(); !slices.Equal(got, []string{"s3", "s2", "s1"}) {
+		t.Errorf("the sidebar lists %v, want s3 s2 s1", got)
+	}
+}
+
+// A session drag reorders its project's sessions alone, and the sessions
+// of no project, which a project has no id for, have an order of their
+// own too.
+func TestReorderSession(t *testing.T) {
+	a := testApp(t)
+	a.st.Projects = append(a.st.Projects, proto.Project{ID: "p2", Name: "two"})
+	a.st.Sessions = append(a.st.Sessions,
+		proto.Session{ID: "s2", Project: "p1", Created: 200},
+		proto.Session{ID: "s3", Project: "p2", Created: 300},
+		proto.Session{ID: "s4", Project: "", Created: 400},
+		proto.Session{ID: "s5", Project: "", Created: 500})
+	order := func() [][]string {
+		var out [][]string
+		for _, g := range a.hostGroups(a.local()) {
+			var ids []string
+			for _, s := range g.sessions {
+				ids = append(ids, s.ID)
+			}
+			out = append(out, ids)
+		}
+		return out
+	}
+	a.reorderSession(sessionDrag{group: "p1", id: "s1"}, "s2", true)
+	// A drag of another group's session, or onto another group, moves
+	// nothing.
+	a.reorderSession(sessionDrag{group: "p2", id: "s1"}, "s3", false)
+	a.reorderSession(sessionDrag{group: "p1", id: "s1"}, "s3", false)
+	if got := order(); !slices.Equal(got[0], []string{"s2", "s1"}) {
+		t.Errorf("p1 holds %v, want s2 s1", got[0])
+	}
+	if got := order(); !slices.Equal(got[1], []string{"s3"}) {
+		t.Errorf("p2 holds %v, want s3", got[1])
+	}
+	// This machine's sessions of no project drag under "other:<host>".
+	a.reorderSession(sessionDrag{group: "other:" + a.local().name, id: "s5"}, "s4", false)
+	if got := order(); !slices.Equal(got[2], []string{"s5", "s4"}) {
+		t.Errorf("the sessions of no project are %v, want s5 s4", got[2])
+	}
+}
+
 // The Order choice sorts a project's sessions by created or updated time.
 func TestSidebarOrder(t *testing.T) {
 	a := testApp(t)

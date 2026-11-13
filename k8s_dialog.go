@@ -263,6 +263,33 @@ func (a *App) k8sPodOfSession(id string) *k8sPod {
 	return nil
 }
 
+// k8sDrag is a pod dragged by its row to another place in the K8s
+// project.
+type k8sDrag struct {
+	command string
+}
+
+// moveK8sPod puts the pod of the command from where the pod of the
+// command to is, before or after it, and keeps the order in the app's
+// preferences.
+func (a *App) moveK8sPod(from, to string, after bool) {
+	at := func(cmd string) int {
+		return slices.IndexFunc(a.prefs.K8sPods, func(p k8sPod) bool { return p.Command == cmd })
+	}
+	i, j := at(from), at(to)
+	if from == "" || from == to || i < 0 || j < 0 {
+		return
+	}
+	pod := a.prefs.K8sPods[i]
+	a.prefs.K8sPods = slices.Delete(a.prefs.K8sPods, i, i+1)
+	j = at(to)
+	if after {
+		j++
+	}
+	a.prefs.K8sPods = slices.Insert(a.prefs.K8sPods, j, pod)
+	a.savePrefs()
+}
+
 // removeK8sPod removes a pod from the K8s project, ending its terminal
 // as closing one does.
 func (a *App) removeK8sPod(cmd string) {
@@ -374,6 +401,29 @@ func (a *App) k8sPodRow(c *ui.Context, pal *palette, i int) {
 		bg = translucentGlass(pal.rowHover, pal, a.set)
 	}
 	row.Background(row.AnimateColor("bg", bg, ui.Animation{Duration: 110 * time.Millisecond}))
+	// The row is its pod's handle: dragged, it moves the pod to another
+	// place in the project, its terminal with it.
+	row.Drag(k8sDrag{command: pod.Command}).Cursor(ui.CursorGrab)
+	if row.Dragging() {
+		row.Opacity(0.35)
+	}
+	if d, over := ui.DragOver[k8sDrag](row); over && d.command != pod.Command {
+		_, y, _ := row.PointerPosition()
+		after := y > height/2
+		a.dragAt, a.dragAfter = pod.Command, after
+		row.Background(pal.rowHover)
+		dragLine(row, pal, after)
+	}
+	if d, ok := ui.Drop[k8sDrag](row); ok && d.command != pod.Command {
+		_, y, _ := row.PointerPosition()
+		after := y > height/2
+		if a.dragAt == pod.Command {
+			// The side the insertion line last showed.
+			after = a.dragAfter
+		}
+		to := pod.Command
+		a.defer_(func() { a.moveK8sPod(d.command, to, after) })
+	}
 	pointerTooltip(c, row, "tip-k8s-"+pod.Command, pod.Command)
 	row.ContextMenu(func(m *ui.Menu) {
 		// Reconnecting goes on a terminal that ended, as kubectl's does
