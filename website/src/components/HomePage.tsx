@@ -1,15 +1,32 @@
 import { For, createSignal, onCleanup, onMount } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
 import { Link } from './Link';
-import AppWindow from './AppWindow';
 import CliShowcase from './CliShowcase';
 import SessionWall from './SessionWall';
 import HeroTerminal from './HeroTerminal';
-import { ArrowUpRightIcon, BellIcon, BotIcon, DownloadIcon, LayersIcon, PauseIcon, PlayIcon, ServerIcon, TerminalIcon } from './Icons';
+import {
+  ArrowUpRightIcon,
+  BellIcon,
+  BotIcon,
+  DownloadIcon,
+  LayersIcon,
+  PauseIcon,
+  PhoneIcon,
+  PlayIcon,
+  ServerIcon,
+  TerminalIcon,
+} from './Icons';
 import { localize, pageHead, type Locale } from '../lib/i18n';
 
-const icons = [LayersIcon, BellIcon, BotIcon, TerminalIcon, ServerIcon];
-const featureLinks = ['/docs/sessions', '/docs/status', '/docs/agents', '/docs/configuration', '/docs/quick-start'];
+const icons = [TerminalIcon, LayersIcon, ServerIcon, BellIcon, BotIcon, PhoneIcon];
+const featureLinks = [
+  '/docs/configuration',
+  '/docs/panes',
+  '/docs/sessions',
+  '/docs/status',
+  '/docs/agents',
+  '/docs/quick-start',
+];
 
 // Every machine Hyla drives, or is made of: the ticker between the hero and
 // the window.
@@ -30,76 +47,90 @@ const ticker = [
 
 const LINUX_POCKET = 'https://github.com/smallnest/hyla-pocket';
 
+// Each card says where it comes from: the terminal Hyla forked, or Hyla
+// itself.
+type Feature = {
+  from: 'kero' | 'hyla';
+  title: string;
+  body: string;
+  points: string[];
+  label: string;
+};
+
 const copy = {
   en: {
     title: 'Hyla — a terminal for coding agents',
     description:
-      'Hyla is a terminal for coding agents. Sessions keep running when you quit, on your computer or another machine, and a phone reads them too.',
+      'A terminal for coding agents: sessions outlive the window, the sidebar says who needs you, and a phone reads the same sessions.',
     eyebrow: 'Hyla · protocol 4',
     hero: ['Run your', 'agents.'],
-    heroAccent: 'Keep your place.',
-    lead: 'One window for every agent in flight. Sessions outlive the window, the sidebar says who needs you, and your phone reads the same sessions from anywhere.',
+    lead: 'One window for every agent in flight. Sessions outlive the window, and the sidebar says who needs you.',
     getStarted: 'Get started',
     download: 'Download',
-    stats: ['sessions outlive the window', 'agents: claude · codex · opencode', 'macos · windows · linux'],
+    stats: ['sessions outlive the window', 'ghostty · panes · themes', 'macos · windows · linux'],
     appKicker: '01 — the window',
     appTitle: 'Every agent, one window',
-    appLead:
-      'An agent reviews your change, lazygit shows the diff, and the program runs beside them. The sidebar answers the only question that matters: who needs you right now?',
+    appLead: 'An agent reviews, lazygit shows the diff, and the dev server runs beside them.',
+    appAlt: 'Hyla’s window: a session list in the sidebar, and an agent working in the pane beside it',
     demoKicker: '02 — the loop',
     demoTitle: 'Start it, close it, come back',
-    demoLead:
-      'Sessions run in hylad, a daemon of their own: quit Hyla and they keep going, on this machine or another. Open it again and everything is where you left it.',
+    demoLead: 'Sessions live in hylad, so quitting Hyla leaves them running.',
     demoLabels: { working: 'working', done: 'turn done' },
     cliKicker: '03 — the shell',
     cliTitle: 'Drive it from the shell',
-    cliLead:
-      "Start sessions, split panes, type into them, wait for them and read their screens, from your shell or your agent's.",
+    cliLead: 'Start, split, type, wait and read — from your shell or your agent’s.',
     featuresKicker: '04 — what is inside',
-    featuresTitle: 'Built for many agents at once',
-    featuresLead:
-      'A terminal drawn by Ghostty, a daemon that keeps sessions, a CLI agents can drive, and a sidebar that tells the truth.',
+    featuresTitle: 'Kero’s terminal, Hyla’s sessions',
+    featuresLead: 'Rendering, panes and config come from Kero. Sessions, agents and phones are Hyla’s own.',
     features: [
       {
-        title: 'Sessions that outlive the window',
-        body: 'Every session runs in hylad, which keeps it, its scrollback and its panes after Hyla closes.',
-        points: ['survives quitting', 'restored after a reboot', 'grouped by project'],
-        label: 'Sessions & projects',
-      },
-      {
-        title: 'Know which one needs you',
-        body: 'Working, waiting, idle, done or failed: the ones waiting on you stand out, and one shortcut takes you there.',
-        points: ['⌘J jumps to it', 'notified when an agent finishes', 'dock badge counts them'],
-        label: 'Status & notifications',
-      },
-      {
-        title: 'A CLI agents can drive',
-        body: 'Agents start dev servers, hand work to other agents, wait for tests and report their own progress.',
-        points: ['split, send, wait, read'],
-        label: 'Coding agents',
-      },
-      {
-        title: 'Ghostty under the hood',
-        body: 'Terminals render with libghostty: fast, correct and familiar.',
+        from: 'kero',
+        title: 'Ghostty draws it',
+        body: 'libghostty renders every pane: fast, correct, familiar.',
         points: ['every Ghostty theme', 'plain-text config'],
         label: 'Configuration',
       },
       {
-        title: 'Another machine, or a phone',
-        body: 'Reach another machine by its address and a password, or scan one code with your phone.',
-        points: ['no relay needed', 'no account'],
-        label: 'Remote access',
+        from: 'kero',
+        title: 'Panes, tabs, splits',
+        body: 'Split, zoom and rearrange; tmux habits keep working.',
+        points: ['tmux-style keys', 'drag to split'],
+        label: 'Panes',
       },
-    ],
+      {
+        from: 'hyla',
+        title: 'Sessions outlive the window',
+        body: 'Every session runs in hylad, scrollback and panes included.',
+        points: ['survives quitting', 'back after a reboot'],
+        label: 'Sessions',
+      },
+      {
+        from: 'hyla',
+        title: 'Know which one needs you',
+        body: 'Working, waiting, done: the one waiting on you stands out.',
+        points: ['⌘J jumps to it', 'notified when a turn ends'],
+        label: 'Status',
+      },
+      {
+        from: 'hyla',
+        title: 'Agents drive the CLI',
+        body: 'They split panes, wait for tests and report progress. Feishu chats run the same turns.',
+        points: ['split · send · wait · read', 'Feishu / Lark'],
+        label: 'Agents',
+      },
+      {
+        from: 'hyla',
+        title: 'Another machine, or a phone',
+        body: 'An address and a password reach another machine; the APK reads the same sessions.',
+        points: ['no relay, no account', 'Android APK'],
+        label: 'Remote',
+      },
+    ] as Feature[],
     pocketKicker: '05 — android',
     pocketTitle: 'Hyla, in your pocket',
-    pocketLead:
-      'HylaPocket is an Android client for the sessions on this machine: it reaches hylad over tailcat by its pair code, or by the address and password of a network listener, and shows the same sessions, terminals and splits.',
-    pocketPoints: [
-      'Every session, live, with the panes of each',
-      'Type with the terminal key row: esc, tab, ctrl, alt, arrows',
-      'Split panes, and come back to where you left off',
-    ],
+    pocketLead: 'HylaPocket reads this machine’s sessions from an Android phone.',
+    pocketAlt: 'Hyla Pocket on Android: a session’s transcript and the terminal key row',
+    pocketPoints: ['Every session, with its panes', 'Key row: esc, tab, ctrl, alt', 'Split, and pick up where you left off'],
     pocketMeta: ['signed APK', 'android 9+', 'free'],
     pocketDownload: 'Download APK',
     pocketReleases: 'All releases',
@@ -108,80 +139,83 @@ const copy = {
     playTicker: 'Start the scrolling band',
     ctaKicker: '06 — start',
     ctaTitle: 'Hop in.',
-    ctaLead: 'Install Hyla, teach your agents to use it, and stop losing track of them.',
-    ctaComment: '# after installing the command line tool',
+    ctaLead: 'Install Hyla, and stop losing track of your agents.',
     getStarted2: 'Quick start',
     cliReference: 'CLI reference',
   },
   ja: {
     title: 'Hyla — コーディングエージェントのためのターミナル',
     description:
-      'Hyla はコーディングエージェントのためのターミナルです。終了してもセッションは動き続け、スマートフォンからも同じセッションを読めます。',
+      'コーディングエージェントのためのターミナル。セッションは終了後も動き続け、サイドバーが対応が必要なものを教え、スマートフォンからも同じセッションを読めます。',
     eyebrow: 'Hyla · protocol 4',
     hero: ['走らせたまま、', '続きはそのまま。'],
-    heroAccent: '',
-    lead: '進行中のすべてのエージェントをひとつのウインドウに。セッションはウインドウより長生きし、サイドバーが対応が必要なものを教え、スマートフォンからも同じセッションを読めます。',
+    lead: '進行中のエージェントをひとつのウインドウに。セッションはウインドウより長生きし、サイドバーが対応が必要なものを教えます。',
     getStarted: 'はじめる',
     download: 'ダウンロード',
-    stats: ['セッションはウインドウより長生き', 'claude · codex · opencode', 'macos · windows · linux'],
+    stats: ['セッションはウインドウより長生き', 'ghostty · ペイン · テーマ', 'macos · windows · linux'],
     appKicker: '01 — ウインドウ',
     appTitle: 'すべてのエージェントを、ひとつのウインドウに',
-    appLead:
-      'エージェントが変更をレビューし、lazygit が差分を表示し、その横でプログラムが動く。対応が必要なセッションはサイドバーが教えてくれます。',
+    appLead: 'エージェントがレビューし、lazygit が差分を出し、その横で開発サーバーが動く。',
+    appAlt: 'Hyla のウインドウ: サイドバーのセッション一覧と、その横で動くエージェント',
     demoKicker: '02 — ループ',
     demoTitle: '始めて、閉じて、また戻る',
-    demoLead:
-      'セッションは専用のデーモン hylad の中で動きます。Hyla を終了しても、別のマシンでも動き続け、再び開けばすべてが元のままです。',
+    demoLead: 'セッションは hylad の中で動くので、Hyla を終了してもそのままです。',
     demoLabels: { working: '作業中', done: 'ターン完了' },
     cliKicker: '03 — シェル',
     cliTitle: 'シェルから操作する',
-    cliLead:
-      'あなたのシェルからでもエージェントのシェルからでも、セッションの開始、ペインの分割、入力の送信、完了の待機、画面の読み取りができます。',
+    cliLead: '開始、分割、入力、待機、読み取り。あなたのシェルからでも、エージェントのシェルからでも。',
     featuresKicker: '04 — 中身',
-    featuresTitle: 'たくさんのエージェントを同時に',
-    featuresLead:
-      'Ghostty が描くターミナル、セッションを保つデーモン、エージェントが操作できる CLI、そして正直なサイドバー。',
+    featuresTitle: 'Kero のターミナル、Hyla のセッション',
+    featuresLead: '描画、ペイン、設定は Kero から。セッション、エージェント、スマートフォンは Hyla のもの。',
     features: [
       {
-        title: 'ウインドウより長生きするセッション',
-        body: 'セッションは hylad の中で動き、Hyla を閉じた後もスクロールバックとペインを保ちます。',
-        points: ['終了しても残る', '再起動後に復元', 'プロジェクトごとにまとまる'],
-        label: 'セッションとプロジェクト',
-      },
-      {
-        title: '対応が必要なものがわかる',
-        body: '作業中、待機中、アイドル、完了、失敗。あなたを待っているものが目立ち、ショートカットひとつで移動できます。',
-        points: ['⌘J で移動', '完了時に通知', 'Dock のバッジ'],
-        label: '状態と通知',
-      },
-      {
-        title: 'エージェントが操作できる CLI',
-        body: 'エージェントは開発サーバーを起動し、作業を任せ、テストを待ち、進捗を報告できます。',
-        points: ['split、send、wait、read'],
-        label: 'コーディングエージェント',
-      },
-      {
-        title: '中身は Ghostty',
-        body: '描画は libghostty: 速く、正確で、おなじみです。',
+        from: 'kero',
+        title: '描画は Ghostty',
+        body: 'libghostty がすべてのペインを描きます: 速く、正確で、おなじみ。',
         points: ['Ghostty の全テーマ', 'プレーンテキスト設定'],
         label: '設定',
       },
       {
-        title: '別のマシンでも、スマートフォンでも',
-        body: 'アドレスとパスワードで別のマシンへ。スマートフォンはコードをひとつスキャンするだけ。',
-        points: ['リレー不要', 'アカウント不要'],
-        label: 'リモートアクセス',
+        from: 'kero',
+        title: 'ペイン、タブ、分割',
+        body: '分割、ズーム、並べ替え。tmux の習慣もそのまま。',
+        points: ['tmux 風のキー', 'ドラッグで分割'],
+        label: 'ペイン',
       },
-    ],
+      {
+        from: 'hyla',
+        title: 'ウインドウより長生きするセッション',
+        body: 'セッションは hylad の中で、スクロールバックもペインも保ちます。',
+        points: ['終了しても残る', '再起動後に復元'],
+        label: 'セッション',
+      },
+      {
+        from: 'hyla',
+        title: '対応が必要なものがわかる',
+        body: '作業中、待機中、完了。待っているものが目立ちます。',
+        points: ['⌘J で移動', '完了時に通知'],
+        label: '状態',
+      },
+      {
+        from: 'hyla',
+        title: 'エージェントが CLI を動かす',
+        body: 'ペインを分割し、テストを待ち、進捗を報告。Feishu の会話も同じターンです。',
+        points: ['split · send · wait · read', 'Feishu / Lark'],
+        label: 'エージェント',
+      },
+      {
+        from: 'hyla',
+        title: '別のマシンでも、スマートフォンでも',
+        body: 'アドレスとパスワードで別のマシンへ。APK は同じセッションを読みます。',
+        points: ['リレーもアカウントも不要', 'Android APK'],
+        label: 'リモート',
+      },
+    ] as Feature[],
     pocketKicker: '05 — android',
     pocketTitle: 'ポケットの中の Hyla',
-    pocketLead:
-      'HylaPocket はこのマシンのセッションを読む Android クライアントです。tailcat のペアコード、またはネットワークリスナーのアドレスとパスワードで hylad に接続し、同じセッション、ターミナル、分割を表示します。',
-    pocketPoints: [
-      'すべてのセッションをライブで、ペインごと',
-      'esc、tab、ctrl、alt、矢印のキー行で入力',
-      'ペインを分割し、前回の場所に戻る',
-    ],
+    pocketLead: 'HylaPocket は、このマシンのセッションを Android から読むクライアントです。',
+    pocketAlt: 'Android の Hyla Pocket: セッションの記録とターミナルのキー行',
+    pocketPoints: ['すべてのセッションを、ペインごと', 'キー行: esc、tab、ctrl、alt', '分割して、前回の場所へ'],
     pocketMeta: ['署名済み APK', 'android 9+', '無料'],
     pocketDownload: 'APK をダウンロード',
     pocketReleases: 'すべてのリリース',
@@ -190,74 +224,82 @@ const copy = {
     playTicker: '流れる帯を再開する',
     ctaKicker: '06 — はじめる',
     ctaTitle: '飛び込もう。',
-    ctaLead: 'Hyla をインストールし、エージェントに使い方を教え、見失うのをやめましょう。',
-    ctaComment: '# コマンドラインツールをインストールした後',
+    ctaLead: 'Hyla を入れて、エージェントを見失うのをやめましょう。',
     getStarted2: 'クイックスタート',
     cliReference: 'CLI リファレンス',
   },
   zh: {
     title: 'Hyla —— 为编程智能体打造的终端',
-    description:
-      'Hyla 是为编程智能体打造的终端。退出后会话照常运行，手机也能读取同一批会话。',
+    description: '为编程智能体打造的终端：退出后会话照常运行，边栏告诉你谁需要你，手机也能读同一批会话。',
     eyebrow: 'Hyla · protocol 4',
     hero: ['智能体一直跑，', '关闭应用也不停。'],
-    heroAccent: '',
-    lead: '所有进行中的智能体都在一个窗口里。会话比窗口活得更久，边栏告诉你谁需要你，手机也能随时读到同一批会话。',
+    lead: '所有进行中的智能体都在一个窗口里。会话比窗口活得更久，边栏告诉你谁需要你。',
     getStarted: '快速上手',
     download: '下载',
-    stats: ['会话比窗口活得更久', 'claude · codex · opencode', 'macos · windows · linux'],
+    stats: ['会话比窗口活得更久', 'ghostty · 窗格 · 主题', 'macos · windows · linux'],
     appKicker: '01 — 窗口',
     appTitle: '所有智能体，一个窗口',
-    appLead:
-      '一个智能体在审查你的改动，lazygit 显示差异，程序在一旁运行。边栏回答唯一重要的问题：现在谁需要你？',
+    appLead: '一个智能体在审查改动，lazygit 显示差异，开发服务器在一旁运行。',
+    appAlt: 'Hyla 窗口：边栏是会话列表，旁边是一个正在工作的智能体',
     demoKicker: '02 — 循环',
     demoTitle: '启动、关掉、再回来',
-    demoLead:
-      '会话跑在专属守护进程 hylad 里：退出 Hyla、甚至换台机器都不影响，重新打开一切都在原处。',
+    demoLead: '会话跑在 hylad 里，退出 Hyla 也不影响。',
     demoLabels: { working: '工作中', done: '本轮完成' },
     cliKicker: '03 — 命令行',
     cliTitle: '在 Shell 里驱动它',
-    cliLead: '在你的 Shell 或智能体的 Shell 里新建、拆分、输入、等待并读取屏幕。',
+    cliLead: '新建、拆分、输入、等待、读屏：在你的 Shell 里，或在智能体的 Shell 里。',
     featuresKicker: '04 — 里面有什么',
-    featuresTitle: '为同时跑很多智能体而生',
-    featuresLead: 'Ghostty 渲染的终端、保活会话的守护进程、智能体能驱动的 CLI，还有一个不说谎的边栏。',
+    featuresTitle: 'Kero 的终端，Hyla 的会话',
+    featuresLead: '渲染、窗格和配置来自 Kero；会话、智能体和手机是 Hyla 自己的。',
     features: [
       {
-        title: '比窗口活得更久的会话',
-        body: '每个会话都在 hylad 里，关闭 Hyla 后仍保留会话、回滚缓冲和窗格。',
-        points: ['退出不中断', '重启后恢复', '按项目分组'],
-        label: '会话与项目',
-      },
-      {
-        title: '一眼看出谁需要你',
-        body: '工作中、等待中、空闲、已完成、失败：等你的那个最醒目，一个快捷键就跳过去。',
-        points: ['⌘J 直达', '完成时通知', '程序坞徽标计数'],
-        label: '状态与通知',
-      },
-      {
-        title: '智能体能驱动的 CLI',
-        body: '智能体可以起开发服务器、把活交给别的智能体、等测试并报告进度。',
-        points: ['split、send、wait、read'],
-        label: '编程智能体',
-      },
-      {
+        from: 'kero',
         title: '底层是 Ghostty',
-        body: '终端由 libghostty 渲染：快、准、熟悉。',
+        body: 'libghostty 渲染每个窗格：快、准、熟悉。',
         points: ['全部 Ghostty 主题', '纯文本配置'],
         label: '配置',
       },
       {
-        title: '另一台机器，或者一部手机',
-        body: '用地址和密码连另一台机器；手机扫一个码就行。',
-        points: ['不需要中继', '不需要账号'],
-        label: '远程访问',
+        from: 'kero',
+        title: '窗格、标签与分屏',
+        body: '拆分、缩放、重排；tmux 的习惯照旧。',
+        points: ['tmux 风格按键', '拖动即分屏'],
+        label: '窗格',
       },
-    ],
+      {
+        from: 'hyla',
+        title: '比窗口活得更久的会话',
+        body: '每个会话都在 hylad 里，回滚缓冲和窗格一起保留。',
+        points: ['退出不中断', '重启后恢复'],
+        label: '会话',
+      },
+      {
+        from: 'hyla',
+        title: '一眼看出谁需要你',
+        body: '工作中、等待中、已完成：等你的那个最醒目。',
+        points: ['⌘J 直达', '完成时通知'],
+        label: '状态',
+      },
+      {
+        from: 'hyla',
+        title: '智能体能驱动 CLI',
+        body: '拆分窗格、等待测试、报告进度；飞书的对话也是同一轮会话。',
+        points: ['split · send · wait · read', '飞书 / Lark'],
+        label: '智能体',
+      },
+      {
+        from: 'hyla',
+        title: '另一台机器，或者一部手机',
+        body: '地址加密码就连上另一台机器；APK 读同一批会话。',
+        points: ['不需要中继和账号', 'Android APK'],
+        label: '远程',
+      },
+    ] as Feature[],
     pocketKicker: '05 — android',
     pocketTitle: '口袋里的 Hyla',
-    pocketLead:
-      'HylaPocket 是读取这台机器会话的 Android 客户端：用 tailcat 配对码，或用网络监听的地址与密码连上 hylad，看到同样的会话、终端和分屏。',
-    pocketPoints: ['每个会话实时同步，含所有窗格', '用终端键行输入：esc、tab、ctrl、alt、方向键', '可以分屏，回来后接着上次的位置'],
+    pocketLead: 'HylaPocket 用 Android 手机读这台机器的会话。',
+    pocketAlt: 'Android 上的 Hyla Pocket：会话记录与终端键行',
+    pocketPoints: ['每个会话，连同窗格', '键行：esc、tab、ctrl、alt', '分屏，回来接着上次'],
     pocketMeta: ['已签名 APK', 'android 9+', '免费'],
     pocketDownload: '下载 APK',
     pocketReleases: '所有版本',
@@ -266,8 +308,7 @@ const copy = {
     playTicker: '继续滚动条',
     ctaKicker: '06 — 开始',
     ctaTitle: '上车吧。',
-    ctaLead: '安装 Hyla，教会智能体使用它，从此不再找不到它们。',
-    ctaComment: '# 安装命令行工具之后',
+    ctaLead: '装上 Hyla，从此不再找不到你的智能体。',
     getStarted2: '快速上手',
     cliReference: '命令行参考',
   },
@@ -398,7 +439,7 @@ export default function HomePage(props: { locale: Locale }) {
         </button>
       </div>
 
-      {/* The window */}
+      {/* The window, as it is */}
       <section class="hx-section">
         <div class="hx-wrap">
           <header class="hx-head hx-reveal">
@@ -409,8 +450,8 @@ export default function HomePage(props: { locale: Locale }) {
             </div>
           </header>
           <div class="hx-stage hx-reveal">
-            <div class="stage__frame">
-              <AppWindow />
+            <div class="hx-shot">
+              <img src="/hyla.jpg" alt={c().appAlt} width={2750} height={1652} loading="lazy" decoding="async" />
             </div>
           </div>
         </div>
@@ -423,11 +464,6 @@ export default function HomePage(props: { locale: Locale }) {
             <span class="hx-kicker">{c().demoKicker}</span>
             <h2 class="hx-title2">{c().demoTitle}</h2>
             <p class="hx-sub">{c().demoLead}</p>
-            <ul class="hx-stats">
-              <li>hylad</li>
-              <li>restore-sessions</li>
-              <li>resume-agents</li>
-            </ul>
           </div>
           <div class="hx-reveal">
             <HeroTerminal labels={c().demoLabels} />
@@ -454,7 +490,7 @@ export default function HomePage(props: { locale: Locale }) {
         </div>
       </section>
 
-      {/* Features */}
+      {/* What is inside, and where it came from */}
       <section class="hx-section">
         <div class="hx-wrap">
           <header class="hx-head hx-reveal">
@@ -472,7 +508,12 @@ export default function HomePage(props: { locale: Locale }) {
                   class="hx-card hx-reveal"
                   classList={{ 'hx-card--wide': i() < 2 }}
                 >
-                  <span class="hx-card__num">{String(i() + 1).padStart(2, '0')}</span>
+                  <div class="hx-card__top">
+                    <span class="hx-card__num">{String(i() + 1).padStart(2, '0')}</span>
+                    <span class="hx-card__tag" classList={{ 'hx-card__tag--hyla': f.from === 'hyla' }}>
+                      {f.from}
+                    </span>
+                  </div>
                   <Dynamic component={icons[i()]} size={22} class="hx-card__icon" />
                   <h3>{f.title}</h3>
                   <p>{f.body}</p>
@@ -515,31 +556,9 @@ export default function HomePage(props: { locale: Locale }) {
                 <For each={c().pocketMeta}>{(m) => <li>{m}</li>}</For>
               </ul>
             </div>
-            <div class="hx-pocket__art" aria-hidden="true">
-              <div class="hx-phone">
-                <div class="hx-phone__notch" />
-                <div class="hx-phone__screen">
-                  <div class="hx-phone__row">
-                    <i />
-                    <b>review</b> <span>claude · working</span>
-                  </div>
-                  <div class="hx-phone__row hx-phone__row--dim">
-                    <i />
-                    <b>build</b> <span>npm test · waiting</span>
-                  </div>
-                  <div class="hx-phone__row hx-phone__row--dim">
-                    <i />
-                    <b>docs</b> <span>zsh · idle</span>
-                  </div>
-                  <pre class="hx-phone__code">{'$ git status\n M src/app.tsx\n$ '}</pre>
-                  <div class="hx-phone__keys">
-                    <i />
-                    <i />
-                    <i />
-                    <i />
-                    <i />
-                  </div>
-                </div>
+            <div class="hx-pocket__art">
+              <div class="hx-phone-shot">
+                <img src="/pocket.jpg" alt={c().pocketAlt} width={1280} height={2772} loading="lazy" decoding="async" />
               </div>
             </div>
           </div>

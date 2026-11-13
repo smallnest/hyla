@@ -527,10 +527,6 @@
 
 /* ---------- The app window ---------- */
 
-.hx-app {
-  position: relative;
-}
-
 .hx-stage {
   position: relative;
   padding: 18px;
@@ -546,11 +542,18 @@
   overflow: hidden;
 }
 
-.hx-stage__inner {
+/* The window, as it is: a screenshot in the same frame. */
+.hx-shot {
   border-radius: 14px;
   overflow: hidden;
   border: 1px solid var(--hx-line);
   background: #0b0d0e;
+}
+
+.hx-shot img {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
 @supports ((animation-timeline: view()) and (animation-range: entry)) {
@@ -759,11 +762,36 @@
   grid-column: span 2;
 }
 
+.hx-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 .hx-card__num {
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.2em;
   color: var(--hx-orange);
+}
+
+/* kero or hyla: the terminal Hyla forked, or what Hyla added. */
+.hx-card__tag {
+  padding: 2px 8px;
+  border: 1px solid var(--hx-line-2);
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--hx-dim-2);
+}
+
+.hx-card__tag--hyla {
+  border-color: rgba(251, 111, 2, 0.45);
+  background: rgba(251, 111, 2, 0.08);
+  color: var(--hx-orange-2);
 }
 
 .hx-card__icon {
@@ -854,94 +882,23 @@
   min-height: 420px;
 }
 
-.hx-phone {
+.hx-phone-shot {
   position: relative;
-  width: min(268px, 80%);
-  aspect-ratio: 9 / 18.6;
+  width: min(232px, 78%);
+  padding: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 34px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: linear-gradient(180deg, #141719, #0a0c0d);
+  background: #050607;
   box-shadow:
     0 50px 120px -50px rgba(0, 0, 0, 0.9),
-    inset 0 0 0 3px #050607,
-    0 0 0 1px rgba(251, 111, 2, 0.18);
-  padding: 16px 14px;
+    0 0 0 1px rgba(251, 111, 2, 0.16);
 }
 
-@keyframes hx-float {
-  0%,
-  100% {
-    transform: translateY(-6px) rotate(-1.2deg);
-  }
-  50% {
-    transform: translateY(8px) rotate(1.2deg);
-  }
-}
-
-.hx-phone__notch {
-  width: 86px;
-  height: 18px;
-  margin: 0 auto 12px;
-  border-radius: 999px;
-  background: #050607;
-}
-
-.hx-phone__screen {
-  height: calc(100% - 30px);
-  border-radius: 22px;
-  background: #08090a;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 14px 12px;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  line-height: 1.7;
-  color: #cfd6d0;
-  overflow: hidden;
-}
-
-.hx-phone__row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 2px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.hx-phone__row i {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--hx-orange);
-  box-shadow: 0 0 8px rgba(251, 111, 2, 0.8);
-  flex: none;
-}
-
-.hx-phone__row--dim i {
-  background: #3d4448;
-  box-shadow: none;
-}
-
-.hx-phone__row b {
-  font-weight: 500;
-  color: #edf2ee;
-}
-
-.hx-phone__row span {
-  color: var(--hx-dim-2);
-  font-size: 9.5px;
-}
-
-.hx-phone__keys {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 5px;
-  margin-top: 10px;
-}
-
-.hx-phone__keys i {
-  height: 16px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.06);
+.hx-phone-shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 27px;
 }
 
 .hx-pocket__points {
@@ -1034,15 +991,6 @@
 
 .hx-cmdbox span {
   color: var(--hx-orange);
-}
-
-.hx-phone__code {
-  margin: 10px 0 0;
-  font-family: var(--font-mono);
-  font-size: 9.5px;
-  line-height: 1.7;
-  color: var(--hx-dim-2);
-  white-space: pre-wrap;
 }
 
 .hx-cta .hx-actions {
@@ -1166,7 +1114,7 @@
     animation: hx-blink 1.05s steps(1) infinite;
   }
 
-  .hx-phone {
+  .hx-phone-shot {
     animation: hx-float 7s ease-in-out infinite;
   }
 
