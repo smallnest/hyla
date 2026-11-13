@@ -144,7 +144,6 @@ func runApp() {
 		a.syncPet()
 		go a.watchReturn()
 		a.connect()
-		a.syncHosts()
 		go a.watchConfig()
 	})
 	if err := mygo.App.Run(); err != nil {

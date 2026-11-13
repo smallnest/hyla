@@ -79,11 +79,16 @@ type settingsState struct {
 	menus           map[string]*searchMenu     // the search menus', by key
 	problems        []string                   // what the configuration file got wrong
 	scrolls         map[string]*ui.ScrollState // each page's, for its scroll edge
-	host            hostDraft                  // the Hosts page's form
-	tailcat         tailcatDraft               // and the Tailcat group's
-	hostEdit        hostDraft                  // a host's, as the user edits it
+	tailcat         tailcatDraft               // the Tailcat group's
 	feishu          feishuDraft                // the Feishu page's form
 	confirm         *confirmation              // a question, asked in this window
+}
+
+// checkUpdates asks the updater for a newer app, which none does where
+// the app has no updater, as in a test.
+func (a *App) checkUpdates() {
+	defer func() { recover() }() // no updater: the panic of mygo's CheckForUpdates
+	updater.CheckForUpdates()
 }
 
 // openSettings shows the Settings window, on a page.
@@ -277,7 +282,7 @@ func (a *App) settingsView(c *ui.Context) {
 							case "agents":
 								a.agentsPage(c, pal)
 							case "hosts":
-								a.hostsPage(c, pal)
+								a.tailcatGroup(c, pal)
 							case "advanced":
 								a.advancedPage(c, pal)
 							}

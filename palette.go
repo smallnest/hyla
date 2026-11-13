@@ -115,9 +115,6 @@ func (a *App) conversationItems() []paletteItem {
 		if n := names[cv.Project]; n != "" {
 			detail += " · " + n
 		}
-		if cv.host.remote() {
-			detail = cv.host.name + " · " + detail
-		}
 		if cv.Session != "" {
 			detail += " · " + locales.PaletteConversationRunning()
 		} else {
@@ -177,9 +174,6 @@ func (a *App) paletteItems() []paletteItem {
 				detail += " · " + s.Process
 			}
 			h := a.hostOf(id)
-			if h.remote() {
-				detail = h.name + " · " + detail
-			}
 			items = append(items, paletteItem{session: s, title: s.DisplayName(a.set.SessionName), detail: detail + " · " + h.shortDir(s.WorkDir()),
 				run: func() { delete(a.prefs.Collapsed, s.Project); a.selectSession(id) }})
 		}
@@ -211,18 +205,8 @@ func (a *App) paletteItems() []paletteItem {
 		words: en.PaletteRestartService() + " " + en.PaletteRestartServiceDetail(), run: a.restartDaemon})
 	for _, p := range a.st.Projects {
 		id := p.ID
-		h := a.hostOf(id)
-		detail := h.shortDir(p.Dir)
-		if h.remote() {
-			detail = h.name + " · " + detail
-		}
+		detail := a.local().shortDir(p.Dir)
 		cmds = append(cmds, paletteItem{title: locales.NewSessionIn(p.Name), detail: detail, words: en.NewSessionIn(p.Name), run: func() { a.newSession(id) }})
-	}
-	for _, h := range a.hosts[1:] {
-		cmds = append(cmds,
-			paletteItem{title: locales.NewSessionIn(h.name), detail: h.addr.String(), words: en.NewSessionIn(h.name), run: func() { a.newSessionOn(h, "") }},
-			paletteItem{title: locales.PickerTitle(h.name), detail: h.addr.String(), words: en.PickerTitle(h.name), run: func() { a.openProjectOn(h) }},
-			paletteItem{title: locales.HostReconnectTo(h.name), detail: h.addr.String(), words: en.HostReconnectTo(h.name), run: func() { a.reconnectHost(h) }})
 	}
 	convs := a.conversationItems()
 	if a.pal.query == "" && len(convs) > recentConversations {

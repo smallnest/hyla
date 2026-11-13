@@ -100,7 +100,7 @@ func (a *App) readInfo(p *proto.Pane, st *paneInfo) {
 		return
 	}
 	st.readAt, st.busy = time.Now(), true
-	dir, remote := a.workDir(p.ID), a.hostOf(p.ID).remote()
+	dir, remote := a.workDir(p.ID), false
 	go func() {
 		abs := ""
 		if !remote {
@@ -315,7 +315,7 @@ func (a *App) infoDir(c *ui.Context, pal *palette, s *proto.Session, h *host, p 
 		ui.Row(c).Padding(8, 12, 12, 12).Gap(6).Wrap().Children(func() {
 			// This machine's folder alone opens here: another machine's
 			// files are its own, its Zed's to open.
-			if dir != "" && !h.remote() {
+			if dir != "" {
 				a.infoAction(c, pal, "zed", locales.InfoOpenEditor("Zed"), zedIcon, func() {
 					if cur := a.session(sid); cur != nil {
 						a.setFocus(cur, pid)
@@ -331,9 +331,7 @@ func (a *App) infoDir(c *ui.Context, pal *palette, s *proto.Session, h *host, p 
 				a.split(s, proto.CreateParams{Split: p.ID, Direction: "right", Command: editorCommand(h, dir)})
 			})
 			a.infoAction(c, pal, "copy-dir", locales.InfoCopyPath(), infoCopyIcon, copyDir)
-			if !h.remote() {
-				a.infoAction(c, pal, "reveal", locales.InfoReveal(), folderIcon, func() { revealPath(dir) })
-			}
+			a.infoAction(c, pal, "reveal", locales.InfoReveal(), folderIcon, func() { revealPath(dir) })
 		})
 	})
 }
@@ -406,7 +404,7 @@ func openInZed(dir string) {
 // editorName names the editor the editor button opens the directory in:
 // the shell's, $VISUAL or $EDITOR, by its command's name.
 func editorName(h *host) string {
-	if h.remote() || runtime.GOOS != "darwin" {
+	if runtime.GOOS != "darwin" {
 		return "vi"
 	}
 	for _, v := range []string{os.Getenv("VISUAL"), os.Getenv("EDITOR")} {

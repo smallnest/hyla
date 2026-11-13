@@ -236,9 +236,6 @@ func (a *App) petCurrent(at time.Time) (petMood, int) {
 	waiting, failed, done, working := 0, 0, 0, 0
 	for i := range a.st.Sessions {
 		s := &a.st.Sessions[i]
-		if h := a.hostOf(s.ID); h.remote() && h.conn != connReady {
-			continue
-		}
 		switch {
 		case s.Status == proto.Waiting:
 			waiting++

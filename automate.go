@@ -24,11 +24,7 @@ const browseTimeout = 10 * time.Second
 func (a *App) browse(h *host, r *proto.BrowserRequest, answer func(*proto.BrowserResult, error)) {
 	fail := func(format string, args ...any) { answer(nil, fmt.Errorf(format, args...)) }
 	if !a.remoteControl(h) {
-		if h.remote() {
-			fail("Remote Control of %s is off: turn it on in Hyla's Settings › Hosts", h.name)
-		} else {
-			fail("Remote Control is off: turn it on in Hyla's Settings › Agents")
-		}
+		fail("Remote Control is off: turn it on in Hyla's Settings › Agents")
 		return
 	}
 	s := a.sessionOfPane(r.Pane)
@@ -49,10 +45,6 @@ func (a *App) browse(h *host, r *proto.BrowserRequest, answer func(*proto.Browse
 	// The cookies are every page's, not this one's, which a host's
 	// sessions have no business with: they stay on this machine.
 	if r.Op == "cookies" {
-		if h.remote() {
-			fail("cookies stay on this machine: hyla browser cookies works in its own sessions, not %s's", h.name)
-			return
-		}
 		go func() { answer(cookies(r.Text, r.Domain, r.Cookies)) }()
 		return
 	}

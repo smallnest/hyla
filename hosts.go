@@ -1,220 +1,59 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"fmt"
-	"net"
 	"os"
-	"path"
-	"reflect"
+	"path/filepath"
 	"runtime"
 	"slices"
 	"strings"
 	"time"
 
 	"github.com/egoist/mygo"
+	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/client"
 	"hyla/internal/proto"
-	"hyla/internal/remote"
 	"hyla/internal/settings"
+	"hyla/internal/shell"
 	"hyla/internal/update"
 
 	"hyla/locales"
 )
 
-// host is a hylad the app shows: this machine's, first, then those of
-// the machines Settings › Hosts lists (the configuration's host keys),
-// each with a connection of its own, so that one far away, or gone,
-// holds up no other.
+// host is this machine's hylad, as the app has it: its connection, and
+// what it holds.
 type host struct {
-	name string        // "" for this machine
-	cfg  settings.Host // a remote host's, as configured
-	tc   bool          // reached over tailcat, whose list it is of
-	addr remote.Addr
+	name string // "" for this machine
 
-	rc        remoteLink // a remote host's connection, nil while there is none
 	cl        *client.Client
 	conn      connState
 	err       string // why the last connection failed
-	errKind   error  // remote.ErrNotInstalled, remote.ErrAuth, else nil
 	daemonApp string // the version of Hyla hylad runs
 	daemonFP  string // what its code is made of (proto.Welcome.Build)
 	info      proto.HostInfo
 	retries   int
-	gen       int    // connection attempts: the results of one another followed are dropped
-	dialing   bool   // a connection attempt is under way
-	hylad     string // which hylad it is (hyladID), once connected
-	loaded    bool   // a state came
-	// convs are the conversations the host's hylad remembers, for the
-	// sidebar, as of its count of their changes convGen; convAsked tells
-	// that they're asked for.
+	gen       int  // connection attempts: the results of one another followed are dropped
+	dialing   bool // a connection attempt is under way
+	hylad     string
+	loaded    bool // a state came
+	// convs are the conversations hylad remembers, for the sidebar, as of
+	// its count of their changes convGen; convAsked tells that they're
+	// asked for.
 	convs     []proto.Conversation
 	convGen   uint64
 	convKnown bool
 	convAsked bool
 	viewSent  *string
-	// busy is what the app does on the host for the user: install, update
-	// or restart.
-	busy string
 }
 
-func (h *host) remote() bool { return h.name != "" }
+// relaunchedEnv is the environment a relaunched app finds, which says it
+// went into that Hyla already: a loop of relaunches stops there.
+const relaunchedEnv = "HYLA_RELAUNCHED"
 
-// dialer opens connections to the host's hylad: this machine's socket,
-// or a remote host's connection, never this machine's for a host the app
-// lost.
-func (h *host) dialer() client.Dialer {
-	switch {
-	case !nilLink(h.rc):
-		return h.rc
-	case h.remote():
-		return lostDialer(h.name)
-	}
-	return client.Local{NoStart: true}
-}
-
-// remoteLink is what the app needs of a remote connection
-// (remote.Conn): streams to the host, and its end, which comes once.
-type remoteLink interface {
-	client.Dialer
-	remote.Opener
-	Close() error
-	Done() <-chan struct{}
-	// Host asks hylad to restart or update (remote.Conn.Host).
-	Host(ctx context.Context, req proto.HostRequest) error
-	Welcome() proto.MuxWelcome
-}
-
-// nilLink says whether a link is nil, or an interface holding a nil
-// connection, as a dial that failed leaves one: compared with a host's
-// connection, it would pass for a new one, and its welcome read from no
-// connection at all.
-func nilLink(l remoteLink) bool {
-	if l == nil {
-		return true
-	}
-	v := reflect.ValueOf(l)
-	return v.Kind() == reflect.Pointer && v.IsNil()
-}
-
-// lostDialer is the dialer of a host the app has no connection to.
-type lostDialer string
-
-func (d lostDialer) Dial() (net.Conn, error) {
-	return nil, errors.New(locales.HostNotConnected(string(d)))
-}
-
-// label names the host for the user: its name, "This Computer" for this
-// one.
-func (h *host) label() string {
-	if !h.remote() {
-		return locales.HostThisComputer()
-	}
-	return h.name
-}
-
-// home is the host's home directory, as hylad there told.
-func (h *host) home() string {
-	if !h.remote() {
-		return proto.Home()
-	}
-	return h.info.Home
-}
-
-// windows reports whether the host runs Windows, whose paths have drives
-// and backslashes.
-func (h *host) windows() bool {
-	if !h.remote() {
-		return runtime.GOOS == "windows"
-	}
-	return h.info.OS == "windows"
-}
-
-// shortDir writes a directory of the host with ~ for its home.
-func (h *host) shortDir(dir string) string {
-	if !h.remote() {
-		return proto.ShortDir(dir)
-	}
-	sep, same := "/", func(a, b string) bool { return a == b }
-	if h.windows() {
-		sep, same = `\`, strings.EqualFold
-	}
-	home := strings.TrimSuffix(h.info.Home, sep)
-	switch {
-	case home == "":
-	case same(dir, home):
-		return "~"
-	case len(dir) > len(home) && same(dir[:len(home)], home) && dir[len(home):len(home)+1] == sep:
-		return "~" + dir[len(home):]
-	}
-	return dir
-}
-
-// joinPath joins a directory of the host and a name in it.
-func (h *host) joinPath(dir, name string) string {
-	if h.windows() {
-		return strings.TrimRight(dir, `\/`) + `\` + name
-	}
-	return path.Join(dir, name)
-}
-
-// stale reports whether hylad runs another version of Hyla than the one
-// installed on the host, as after an update, or, for a remote host, than
-// this app.
-func (h *host) stale() bool {
-	if h.conn != connReady || h.daemonApp == "" {
-		return false
-	}
-	if h.remote() {
-		// Older than the bridge that answered, which a later update of the
-		// host leaves behind it, never ahead of it.
-		return h.info.Hyla != "" && update.Compare(h.daemonApp, h.info.Hyla) < 0
-	}
-	return hyladStale(h.daemonApp, h.daemonFP)
-}
-
-// hyla is the version of Hyla on a remote host: hylad's, else the one
-// that answered.
-func (h *host) hyla() string {
-	if h.daemonApp != "" {
-		return h.daemonApp
-	}
-	return h.info.Hyla
-}
-
-// behind reports whether Hyla on a remote host is older than this app,
-// of a server build that updates itself, which the app offers to update
-// to its own version: never back from a newer one.
-func (h *host) behind() bool {
-	return h.remote() && h.info.Updates && released(mygo.App.Version()) && h.hyla() != "" &&
-		update.Compare(h.hyla(), mygo.App.Version()) < 0
-}
-
-// older reports whether Hyla on a remote host is older than this app,
-// whether or not it updates itself: an update from here writes this
-// app's version into it.
-func (h *host) older() bool {
-	return h.remote() && h.hyla() != "" && released(mygo.App.Version()) &&
-		update.Compare(h.hyla(), mygo.App.Version()) < 0
-}
-
-// ahead reports whether Hyla on a remote host is newer than this app,
-// which then wants updating itself.
-func (h *host) ahead() bool {
-	return h.remote() && h.hyla() != "" && released(h.hyla()) && released(mygo.App.Version()) &&
-		update.Compare(h.hyla(), mygo.App.Version()) > 0
-}
-
-// relaunchedEnv names the version of hylad the app relaunched for, which
-// the app it starts again inherits: should the app on disk be no newer
-// after all, it relaunches once, not on and on.
-const relaunchedEnv = "HYLA_RELAUNCHED_FOR"
-
-// relaunchForHylad relaunches the app into a newer Hyla that this
-// machine's hylad runs, as after Hyla on another machine updated the app
-// here (remote-updates) and hylad restarted into it.
+// relaunchForHylad relaunches the app into the Hyla hylad runs, when it
+// is newer, which a remote machine's update leaves it in.
 func relaunchForHylad(v string) {
 	app := mygo.App.Version()
 	if !released(v) || !released(app) || update.Compare(v, app) <= 0 ||
@@ -232,118 +71,49 @@ func released(v string) bool { return v != "" && !strings.Contains(v, "dev") && 
 func (a *App) local() *host { return a.hosts[0] }
 
 // hostOf returns the host of a session, a pane or a project, by id: this
-// machine when none has it.
-func (a *App) hostOf(id string) *host {
-	if h := a.owner[id]; h != nil {
-		return h
+// machine, which is the only one the app has.
+func (a *App) hostOf(id string) *host { return a.local() }
+
+// label names the host in words: this machine, which has no name of its
+// own.
+func (h *host) label() string {
+	if h.name == "" {
+		return "local"
 	}
-	return a.local()
+	return h.name
 }
 
-// hostNamed returns a remote host, by name, else nil.
-func (a *App) hostNamed(name string) *host {
-	for _, h := range a.hosts[1:] {
-		if strings.EqualFold(h.name, name) {
-			return h
-		}
+// shortDir is a directory as the sidebar and the tooltips show it, from
+// this machine's home.
+func (h *host) shortDir(dir string) string { return proto.ShortDir(dir) }
+
+// joinPath makes a path of this machine, whose separator is its own.
+func (h *host) joinPath(parts ...string) string { return filepath.Join(parts...) }
+
+// windows reports whether this machine is one of Windows: a path is
+// absolute there only with a drive, and its programs are PowerShell's.
+func (h *host) windows() bool { return runtime.GOOS == "windows" }
+
+// editorCommand edits a file in a pane, with the editor this machine's
+// shell names, $VISUAL or $EDITOR, else vi, or on Windows edit.
+func editorCommand(h *host, file string) []string {
+	if !h.windows() {
+		return []string{"sh", "-c", `exec ${VISUAL:-${EDITOR:-vi}} "$1"`, "sh", file}
 	}
-	return nil
+	return []string{"powershell.exe", "-NoProfile", "-Command",
+		`$e = if ($env:VISUAL) { $env:VISUAL } elseif ($env:EDITOR) { $env:EDITOR } else { 'edit' }; Invoke-Expression ($e + ' ' + ` + shell.PSQuote(shell.PSQuote(file)) + `)`}
 }
 
-// selectedHost is the host of the session shown, this machine's when
-// none is.
-func (a *App) selectedHost() *host { return a.hostOf(a.selected) }
+// dialer opens connections to this machine's hylad.
+func (h *host) dialer() client.Dialer { return client.Local{NoStart: true} }
 
-// syncHosts follows the configuration's hosts: it connects to those added,
-// lets go of those removed, and again of those whose address changed.
-func (a *App) syncHosts() {
-	keep := []*host{a.local()}
-	for _, cfg := range a.set.Hosts {
-		addr, err := remote.ParseAddr(cfg.Addr)
-		h := a.hostNamed(cfg.Name)
-		if h != nil && (err != nil || addr != h.addr) {
-			a.closeHost(h)
-			h = nil
-		}
-		if h == nil {
-			h = &host{name: cfg.Name, cfg: cfg, addr: addr, conn: connConnecting}
-			if err != nil {
-				h.conn, h.err = connFailed, err.Error()
-			}
-		}
-		h.cfg, h.name = cfg, cfg.Name
-		keep = append(keep, h)
-	}
-	if a.set.Tailcat {
-		for _, cfg := range a.set.TailcatHosts {
-			addr, err := remote.ParseAddr(cfg.Addr)
-			h := a.hostNamed(cfg.Name)
-			if h != nil && (err != nil || addr != h.addr || !h.tc) {
-				a.closeHost(h)
-				h = nil
-			}
-			if h == nil {
-				h = &host{name: cfg.Name, addr: addr, conn: connConnecting, tc: true}
-				if err != nil {
-					h.conn, h.err = connFailed, err.Error()
-				}
-			}
-			h.name = cfg.Name
-			keep = append(keep, h)
-		}
-	}
-	for _, h := range a.hosts[1:] {
-		if !slices.Contains(keep, h) {
-			a.closeHost(h)
-		}
-	}
-	added := []*host{}
-	for _, h := range keep[1:] {
-		if !slices.Contains(a.hosts, h) {
-			added = append(added, h)
-		}
-	}
-	a.hosts = keep
-	// The sessions shown follow the hosts' order.
-	a.mergeState(a.local(), proto.State{Projects: a.projectsOf(a.local()), Sessions: a.sessionsOf(a.local())})
-	for _, h := range added {
-		if h.err == "" {
-			a.connectHost(h)
-		}
-	}
-	// The session shown may have gone with its host.
-	a.reselect()
-	a.updateTitle()
-}
-
-// closeHost lets go of a host: its connection, its terminals, and its
-// sessions in the sidebar.
-func (a *App) closeHost(h *host) {
-	h.gen++
-	a.dropTerms(h)
-	if h.cl != nil {
-		go h.cl.Close()
-		h.cl = nil
-	}
-	if h.rc != nil {
-		go h.rc.Close() // ssh takes a moment to end: never on the main thread
-		h.rc = nil
-	}
-	a.mergeState(h, proto.State{})
-	h.loaded = false
-	// Its browser panes' pages, which this machine shows, go with it.
-	for id := range a.webs {
-		if a.sessionOfPane(id) == nil {
-			a.dropWeb(id)
-		}
-	}
-}
+// selectedHost is the host of the session shown: this machine.
+func (a *App) selectedHost() *host { return a.local() }
 
 // connect connects to this machine's hylad, starting it.
 func (a *App) connect() { a.connectHost(a.local()) }
 
-// connectHost connects to a host's hylad: through the remote connection
-// it has, else a new one.
+// connectHost connects to this machine's hylad.
 func (a *App) connectHost(h *host) {
 	h.gen++
 	gen := h.gen
@@ -351,34 +121,9 @@ func (a *App) connectHost(h *host) {
 		h.conn = connConnecting
 	}
 	h.dialing = true
-	rc := h.rc
 	go func() {
-		var cl *client.Client
-		var err error
-		if !h.remote() {
-			cl, err = connectLocal()
-		} else {
-			if rc == nil {
-				ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-				port := ""
-				if h.addr.Scheme == "tailcat" {
-					port = h.tailcatPort()
-				}
-				// A failed dial leaves rc as it was. An interface holding a
-				// nil *remote.Conn is not nil, and connected would take it
-				// for a new connection and read the welcome of no connection.
-				var c *remote.Conn
-				c, err = remote.Dial(ctx, h.addr, remote.Options{App: mygo.App.Version(), Client: appClientName(), Port: port})
-				cancel()
-				if c != nil {
-					rc = c
-				}
-			}
-			if err == nil {
-				cl, err = client.ConnectVia(rc)
-			}
-		}
-		a.update(func() { a.connected(h, gen, rc, cl, err) })
+		cl, err := connectLocal()
+		a.update(func() { a.connected(h, gen, cl, err) })
 	}()
 }
 
@@ -401,84 +146,34 @@ func connectLocal() (*client.Client, error) {
 	return client.Connect(false)
 }
 
-// tailcatPort is the port of a tailcat host's listener, as the settings
-// say, which arrive with the app's settings.
-func (h *host) tailcatPort() string {
-	if p := settings.Load().TailcatPort; p != "" {
-		return p
-	}
-	return settings.TailcatPortDefault()
-}
-
-// appClientName says what the app is, for hyla clients on a host.
-func appClientName() string {
-	s := "Hyla"
-	if v := mygo.App.Version(); v != "" {
-		s += " " + v
-	}
-	if name, err := os.Hostname(); err == nil {
-		s += " on " + name
-	}
-	return s
-}
-
 // connected takes the result of connectHost.
-func (a *App) connected(h *host, gen int, rc remoteLink, cl *client.Client, err error) {
+func (a *App) connected(h *host, gen int, cl *client.Client, err error) {
 	if h.gen != gen || !slices.Contains(a.hosts, h) {
 		if cl != nil {
 			go cl.Close()
 		}
-		if !nilLink(rc) && rc != h.rc {
-			go rc.Close()
-		}
 		return
 	}
 	h.dialing = false
-	if err == nil && h.remote() {
-		if other := a.sameHylad(h, rc, cl); other != nil {
-			// One hylad, reached twice, as over SSH and tailcat: its
-			// sessions would show twice, and pass for one another.
-			go cl.Close()
-			if rc != h.rc {
-				go rc.Close()
-			}
-			cl, rc, err = nil, h.rc, errors.New(locales.HostSameAs(other.label()))
-		}
-	}
-	if !nilLink(rc) && rc != h.rc {
-		h.rc, h.info = rc, rc.Welcome().Host
-		go func() {
-			<-rc.Done()
-			a.update(func() { a.lost(h, rc) })
-		}()
-	}
 	if err != nil {
 		h.cl = nil
 		if errors.Is(err, client.ErrVersion) {
-			h.conn, h.err, h.errKind = connVersion, "", nil
+			h.conn, h.err = connVersion, ""
 			return
 		}
-		h.conn, h.err, h.errKind = connFailed, err.Error(), nil
-		for _, k := range []error{remote.ErrNotInstalled, remote.ErrAuth} {
-			if errors.Is(err, k) {
-				h.errKind = k
-				h.err = strings.TrimPrefix(strings.TrimPrefix(err.Error(), k.Error()), ": ")
-			}
-		}
+		h.conn, h.err = connFailed, err.Error()
 		h.retries++
 		a.retryLater(h)
-		// The session shown last may be of this host, which failed.
+		// The session shown last may be of the hylad that failed.
 		if !h.loaded {
 			a.reselect()
 		}
 		return
 	}
-	h.cl, h.conn, h.err, h.errKind, h.retries = cl, connReady, "", nil, 0
+	h.cl, h.conn, h.err, h.retries = cl, connReady, "", 0
 	h.hylad = hyladID(h, cl)
 	h.daemonApp, h.daemonFP = cl.Welcome.App, cl.Welcome.Build
-	if !h.remote() {
-		relaunchForHylad(h.daemonApp)
-	}
+	relaunchForHylad(h.daemonApp)
 	cl.OnEvent(func(m proto.Message) { a.update(func() { a.event(h, cl, m) }) })
 	cl.Go("subscribe", nil, nil)
 	h.viewSent = nil
@@ -489,24 +184,14 @@ func (a *App) connected(h *host, gen int, rc remoteLink, cl *client.Client, err 
 	}()
 }
 
-// retryLater connects to a host again after a failure: this machine's a
-// few times, as hylad may be starting; another's for as long as the app
-// runs, waiting longer each time, up to a minute, and a minute at once
-// when it has no Hyla, or refuses the app, which the user fixes.
+// retryLater connects again after a failure, a few times, as hylad may be
+// starting.
 func (a *App) retryLater(h *host) {
 	gen := h.gen
-	var wait time.Duration
-	switch {
-	case !h.remote():
-		if h.retries >= 4 {
-			return
-		}
-		wait = time.Duration(h.retries) * 400 * time.Millisecond
-	case h.errKind != nil:
-		wait = time.Minute
-	default:
-		wait = min(time.Second<<min(h.retries-1, 6), time.Minute)
+	if h.retries >= 4 {
+		return
 	}
+	wait := time.Duration(h.retries) * 400 * time.Millisecond
 	time.AfterFunc(wait, func() {
 		a.update(func() {
 			if h.gen == gen && h.conn == connFailed && slices.Contains(a.hosts, h) {
@@ -516,32 +201,8 @@ func (a *App) retryLater(h *host) {
 	})
 }
 
-// lost follows a remote connection that ended, as on a network gone, or
-// a laptop that slept: the host's terminals and hylad are reached again
-// through a new one.
-func (a *App) lost(h *host, rc remoteLink) {
-	if h.rc != rc {
-		return
-	}
-	h.rc = nil
-	go rc.Close()
-	if h.cl == nil && h.conn != connFailed {
-		// Nothing else follows the end: hylad was of another version.
-		h.conn = connConnecting
-		time.AfterFunc(time.Second, func() { a.update(func() { a.reconnect(h) }) })
-	}
-}
-
-// reconnect connects to a host again, unless it is.
-func (a *App) reconnect(h *host) {
-	if slices.Contains(a.hosts, h) && h.cl == nil && h.busy == "" && !h.dialing {
-		a.connectHost(h)
-	}
-}
-
-// disconnected follows a host's hylad going away, as when it was
-// restarted, or its connection ended: the terminals attached to it are
-// done, and the app connects again.
+// disconnected follows hylad going away, as when it was restarted: the
+// terminals attached to it are done, and the app connects again.
 func (a *App) disconnected(h *host, cl *client.Client) {
 	if h.cl != cl {
 		return
@@ -556,152 +217,64 @@ func (a *App) disconnected(h *host, cl *client.Client) {
 	time.AfterFunc(300*time.Millisecond, func() { a.update(func() { a.reconnect(h) }) })
 }
 
-// dropTerms lets go of a host's terminals, which attach again as they
-// show.
+// reconnect connects again, unless it is.
+func (a *App) reconnect(h *host) {
+	if slices.Contains(a.hosts, h) && h.cl == nil && !h.dialing {
+		a.connectHost(h)
+	}
+}
+
+// dropTerms lets go of the terminals, which attach again as they show.
 func (a *App) dropTerms(h *host) {
 	for id := range a.terms {
-		if a.hostOf(id) == h {
-			a.dropTerm(id)
-		}
+		a.dropTerm(id)
 	}
 }
 
-// sessionsOf returns a host's sessions, in the state the app shows.
-func (a *App) sessionsOf(h *host) []proto.Session {
-	var out []proto.Session
-	for _, s := range a.st.Sessions {
-		if a.hostOf(s.ID) == h {
-			out = append(out, s)
-		}
-	}
-	return out
-}
+// sessionsOf returns the sessions, in the state the app shows.
+func (a *App) sessionsOf(h *host) []proto.Session { return a.st.Sessions }
 
-func (a *App) projectsOf(h *host) []proto.Project {
-	var out []proto.Project
-	for _, p := range a.st.Projects {
-		if a.hostOf(p.ID) == h {
-			out = append(out, p)
-		}
-	}
-	return out
-}
+func (a *App) projectsOf(h *host) []proto.Project { return a.st.Projects }
 
-// mergeState makes st a host's part of the state the app shows, the
-// hosts' parts in their order: what the app changed in the others before
-// their hylads' states come stays.
+// mergeState makes st the state the app shows.
 func (a *App) mergeState(h *host, st proto.State) {
-	var projects []proto.Project
-	var sessions []proto.Session
-	owner := map[string]*host{}
-	for _, o := range a.hosts {
-		ps, ss := st.Projects, st.Sessions
-		if o != h {
-			ps, ss = a.projectsOf(o), a.sessionsOf(o)
-		}
-		for _, p := range ps {
-			owner[p.ID] = o
-		}
-		for _, s := range ss {
-			owner[s.ID] = o
-			for _, p := range s.Panes {
-				owner[p.ID] = o
-			}
-		}
-		projects = append(projects, ps...)
-		sessions = append(sessions, ss...)
-	}
-	a.st.Projects, a.st.Sessions, a.owner = projects, sessions, owner
+	a.st.Projects, a.st.Sessions = st.Projects, st.Sessions
 }
 
-// own records a session the app just made as a host's, before its
-// hylad's state, which has it, comes.
-func (a *App) own(h *host, s proto.Session) {
-	if a.owner == nil {
-		a.owner = map[string]*host{}
-	}
-	a.owner[s.ID] = h
-	a.owner[s.Project] = h
-	for _, p := range s.Panes {
-		a.owner[p.ID] = h
-	}
-}
-
-// remoteControl reports whether a host's programs may drive the app (hyla
-// focus, hyla do): this machine's as Settings › Agents says, another's as
-// Settings › Hosts does.
+// remoteControl reports whether programs may drive the app (hyla focus,
+// hyla do), as Settings › Agents says, or a Feishu bot, which takes
+// prompts as the agent runs them.
 func (a *App) remoteControl(h *host) bool {
-	// Feishu takes prompts as the agent runs them, without the app.
 	if settings.Load().Feishu != nil && settings.Load().Feishu.App != "" {
 		return true
 	}
-	if !h.remote() {
-		return a.set.RemoteControl
-	}
-	return h.cfg.RemoteControl
+	return a.set.RemoteControl
 }
 
-// hostedName is a session's name, with its host's for a remote one, as
-// a notification and the window's title say it, so that a host cannot
-// pass for this machine.
+// hostedName is a session's name, as a notification and the window's
+// title say it.
 func (a *App) hostedName(s *proto.Session) string {
-	name := s.DisplayName(a.set.SessionName)
-	if h := a.hostOf(s.ID); h.remote() {
-		return name + " · " + h.name
-	}
-	return name
+	return s.DisplayName(a.set.SessionName)
 }
 
-// allLoaded reports whether every host's state came, or failed to: the
-// session the app showed last may be of one still connecting.
+// allLoaded reports whether the state came, or failed to: the session the
+// app showed last may be of a hylad still connecting.
 func (a *App) allLoaded() bool {
-	for _, h := range a.hosts {
-		if !h.loaded && h.conn == connConnecting {
-			return false
-		}
-	}
-	return true
+	return a.local().loaded || a.local().conn != connConnecting
 }
 
-// actionHost is the host an action runs for: the one whose program asked
-// for it (hyla do), else the shown session's.
-func (a *App) actionHost() *host {
-	if a.from != nil {
-		return a.from
-	}
-	return a.selectedHost()
-}
+// actionHost is the host an action runs for: this machine.
+func (a *App) actionHost() *host { return a.local() }
 
 // hyladID tells a hylad apart from any other: its machine, its pid and
 // when it started.
 func hyladID(h *host, cl *client.Client) string {
-	name := h.info.Hostname
-	if !h.remote() {
-		name, _ = os.Hostname()
-	}
+	name, _ := os.Hostname()
 	return fmt.Sprintf("%s/%d/%d", name, cl.Welcome.PID, cl.Welcome.Started)
 }
 
-// sameHylad returns the host whose hylad a connection reaches already,
-// as this machine's over ssh://localhost, or one host added twice; nil
-// for none.
-func (a *App) sameHylad(h *host, rc remoteLink, cl *client.Client) *host {
-	name := h.info.Hostname
-	if rc != nil {
-		name = rc.Welcome().Host.Hostname
-	}
-	id := fmt.Sprintf("%s/%d/%d", name, cl.Welcome.PID, cl.Welcome.Started)
-	for _, o := range a.hosts {
-		if o != h && o.hylad == id {
-			return o
-		}
-	}
-	return nil
-}
-
 // reselect shows another session when the one shown is gone: the first,
-// once every host's state came or failed to, as the one the app showed
-// last may be of a host still connecting.
+// once the state came or failed to.
 func (a *App) reselect() {
 	if a.session(a.selected) != nil {
 		return
@@ -713,4 +286,61 @@ func (a *App) reselect() {
 	case len(ids) > 0 && (a.selected == "" || a.allLoaded()):
 		a.selectSession(ids[0])
 	}
+}
+
+// hostDot says how the app stands with this machine's hylad: a dot, and
+// its words as the tooltip.
+func (a *App) hostDot(c *ui.Context, pal *palette, col ui.Color, label string) {
+	ui.Box(c).Size(7, 7).Radius(3.5).Background(col).Shrink(0).Margin(0, 4, 0, 0).Label(label).Tooltip(label)
+}
+
+// hostState says how the app stands with this machine's hylad: a dot
+// while it connects or failed to, a chip when it wants restarting.
+func (a *App) hostState(c *ui.Context, pal *palette, h *host) {
+	switch {
+	case h.conn == connConnecting && h.loaded:
+		a.hostDot(c, pal, pal.attention, locales.HostReconnecting())
+	case h.conn == connConnecting:
+		a.hostDot(c, pal, pal.textFaint, locales.StatusConnecting())
+	case h.conn == connFailed:
+		a.hostDot(c, pal, pal.danger, locales.HostCantConnect(h.name))
+	case h.conn == connVersion || h.stale():
+		b := ui.ButtonBase(c.Key("restart")).Height(22).Padding(0, 7).Gap(5).Radius(11).AlignItems(ui.Center).
+			Label(locales.CommonRestart()).Tooltip(locales.HostStaleTip(h.name, h.daemonApp, mygo.App.Version()))
+		if b.Hovered() {
+			b.Background(pal.rowHover)
+		}
+		b.Children(func() {
+			ui.Box(c).Size(6, 6).Radius(3).Background(pal.attention)
+			ui.Text(c, locales.CommonRestart()).FontSize(12).FontWeight(500).TextColor(pal.attention).SingleLine()
+		})
+		if b.Clicked() {
+			a.offerHostRestart(h)
+		}
+	}
+}
+
+// offerHostRestart restarts hylad, asking first while programs run in its
+// sessions.
+func (a *App) offerHostRestart(h *host) {
+	a.confirm = &confirmation{
+		open:    true,
+		title:   locales.HostRestartTitle(h.label()),
+		detail:  locales.HostRestartDetail(h.label()),
+		action:  locales.CommonRestart(),
+		destroy: true,
+		run:     func() { a.restartDaemon() },
+	}
+	if a.win != nil {
+		a.win.Focus()
+	}
+}
+
+// stale reports whether hylad runs an older Hyla than the app: what this
+// machine's hylad is, before it is restarted into the app's.
+func (h *host) stale() bool {
+	if h.conn != connReady || h.daemonApp == "" {
+		return false
+	}
+	return hyladStale(h.daemonApp, h.daemonFP)
 }

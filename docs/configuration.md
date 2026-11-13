@@ -126,7 +126,6 @@ hyla config check             # report unknown keys and bad values
 
 ## Hosts
 
-Other machines whose sessions the app shows, and `hyla -H` reaches. See [Remote Hosts](./remote.md).
 
 | Key            | Default | Description |
 | -------------- | ------- | ----------- |

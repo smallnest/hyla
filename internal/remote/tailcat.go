@@ -5,19 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/tailscale/tailcat"
 
 	"hyla/internal/proto"
-	"tailscale.com/ipn/ipnstate"
 	"tailscale.com/tailcfg"
 )
 
@@ -320,232 +317,12 @@ func ValidPairCode(s string) bool {
 	return err == nil
 }
 
-func tailcatURL(a Addr) string { return "tailcat://" + a.Code }
-
-// parseTailcat reads an address whose pair code is in it, as its String
-// writes it: tailcat://tc….
-func parseTailcat(s string) (Addr, error) {
-	code := strings.TrimPrefix(s, "tailcat://")
-	if code == "" || strings.ContainsAny(code, "/?# \t\r\n") {
-		return Addr{}, fmt.Errorf("%q: a tailcat address is tailcat:// and the pair code alone", s)
-	}
-	if !ValidPairCode(code) {
-		return Addr{}, fmt.Errorf("%q: not a tailcat pair code", s)
-	}
-	return Addr{Scheme: "tailcat", Code: code, Host: "tailcat"}, nil
-}
-
-// tailcatClient is a client of a tailcat host, with its client's streams
-// open, and how the last one reaches the host.
-type tailcatClient struct {
-	*tailcat.Client
-	addr    net.Addr     // of each connection it opens, as the server's
-	Streams atomic.Int32 // open, and which may open
-	mu      sync.Mutex
-	path    string
-	at      time.Time
-}
-
-func (c *tailcatClient) setPath(p string) {
-	c.mu.Lock()
-	c.path, c.at = p, time.Now()
-	c.mu.Unlock()
-}
-
-var (
-	tailcatMu      sync.Mutex
-	tailcatClients = map[string]*tailcatClient{} // by pair code
-)
-
-// TailcatPath is how the clients of an address reach the host, as of
-// when one last told: "direct" for a path between the machines, or the
-// region of the relay between them.
-func TailcatPath(a Addr) (string, time.Time, bool) {
-	if a.Scheme != "tailcat" {
-		return "", time.Time{}, false
-	}
-	tailcatMu.Lock()
-	c := tailcatClients[a.Code]
-	tailcatMu.Unlock()
-	if c == nil {
-		return "", time.Time{}, false
-	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return c.path, c.at, !c.at.IsZero()
-}
-
-// openTailcat opens a tailcat connection to the listener on port of the
-// host with the pair code code, as a remote connection runs over: the
-// client's streams are the remote connection's.
-func openTailcat(ctx context.Context, code, port string) (*tailcatTransport, error) {
-	addr, err := tailcat.Addr(code).Resolve(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("tailcat: finding the relay: %w", err)
-	}
-	n, err := strconv.ParseUint(port, 10, 16)
-	if err != nil || n == 0 {
-		return nil, fmt.Errorf("tailcat: %q is no port", port)
-	}
-	c := &tailcatClient{Client: tailcat.NewClient(addr)}
-	conn, err := c.DialTCPPort(ctx, uint16(n))
-	if err != nil {
-		c.Close()
-		if errors.Is(err, context.DeadlineExceeded) {
-			// A host that does not answer through the relay is one that
-			// is not on it, or one whose pair code this is no longer.
-			return nil, fmt.Errorf("tailcat: no answer from the host through %s on port %s: it may not listen over tailcat, or its pair code may have changed (hyla hosts tailcat there prints it)", relayName(addr), port)
-		}
-		return nil, fmt.Errorf("tailcat: %w", err)
-	}
-	c.Streams.Store(1) // the remote connection's
-	t := &tailcatTransport{Conn: conn, client: c, done: make(chan struct{})}
-	t.watch()
-	// A host's last connection, which this one replaces.
-	tailcatMu.Lock()
-	old := tailcatClients[code]
-	tailcatClients[code] = c
-	tailcatMu.Unlock()
-	if old != nil && old != c {
-		old.Close()
-	}
-	return t, nil
-}
-
-// OpenTailcat opens a raw connection to a port of the host with the pair
-// code code, once a remote connection to the same host is up: the mux
-// connection's own stream count holds the tailcat client, so the listener
-// stays joined while any of them is open. HylaPocket opens one, on the
-// phone, which speaks tailcat under the sockets OkHttp asks for.
-func OpenTailcat(ctx context.Context, c *Conn, port string) (net.Conn, error) {
-	t := c.tc
-	if t == nil {
-		return nil, errors.New("the connection is not over tailcat")
-	}
-	n, err := strconv.ParseUint(port, 10, 16)
-	if err != nil || n == 0 {
-		return nil, fmt.Errorf("tailcat: %q is no port", port)
-	}
-	conn, err := t.client.DialTCPPort(ctx, uint16(n))
-	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded) {
-			return nil, fmt.Errorf("tailcat: no answer from the host on port %s: it may not serve HylaPocket there", port)
-		}
-		return nil, fmt.Errorf("tailcat: %w", err)
-	}
-	t.client.Streams.Add(1)
-	return &tailcatRaw{Conn: conn, t: t}, nil
-}
-
-// tailcatRaw is a tailcat connection of its own, which releases the
-// client's count as it closes.
-type tailcatRaw struct {
-	net.Conn
-	t *tailcatTransport
-}
-
-func (r *tailcatRaw) Close() error {
-	err := r.Conn.Close()
-	r.t.release()
-	return err
-}
-
 // TailcatCode is a pair code as the settings hold it: "tailcat://" and
 // the code, "tc…".
 func TailcatCode(s string) string { return strings.TrimPrefix(strings.TrimSpace(s), "tailcat://") }
 
 // watch tells now and then how the client reaches the host: directly,
 // where the networks let them, or through the relay.
-func (t *tailcatTransport) watch() {
-	c := t.client
-	go func() {
-		tc := time.NewTicker(10 * time.Second)
-		defer tc.Stop()
-		for {
-			select {
-			case <-t.done:
-				return
-			case <-tc.C:
-			}
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			res, err := c.DiscoPing(ctx)
-			cancel()
-			if err == nil {
-				c.setPath(pathOf(res))
-			}
-		}
-	}()
-}
-
-// pathOf says how a ping came back.
-func pathOf(res *ipnstate.PingResult) string {
-	switch {
-	case res.Endpoint != "":
-		return "direct"
-	case res.DERPRegionCode != "":
-		return res.DERPRegionCode
-	}
-	return "relay"
-}
-
-// relayName names the relay that an address reaches its host through, as
-// the node's name, for a failure that the host did not answer: the one
-// its pair code names.
-func relayName(a tailcat.Addr) string {
-	ci, err := tailcat.ParseAddr(a)
-	if err != nil {
-		return "the tailcat relay"
-	}
-	for _, r := range ci.Region {
-		for _, n := range r.Nodes {
-			switch {
-			case n.HostName != "":
-				return n.HostName
-			case n.IPv4 != "":
-				return n.IPv4
-			case n.IPv6 != "":
-				return n.IPv6
-			}
-		}
-	}
-	return "the tailcat relay"
-}
-
-// tailcatTransport is a remote connection's stream over tailcat: the
-// client runs while a stream of the connection's does, which the remote
-// connection counts.
-type tailcatTransport struct {
-	net.Conn
-	client *tailcatClient
-	done   chan struct{}
-	once   sync.Once
-}
-
-func (t *tailcatTransport) Close() error {
-	err := t.Conn.Close()
-	t.release()
-	return err
-}
-
-func (t *tailcatTransport) release() {
-	if t.client.Streams.Add(-1) < 0 {
-		t.once.Do(func() {
-			close(t.done)
-			t.client.Close()
-		})
-	}
-}
-
-// tailcatPortKey is the context key of the port of the host's tailcat
-// listener, which its pair code, in whose port is always a registration
-// port, does not name.
-type tailcatPortKey struct{}
-
-// WithTailcatPort gives ctx the port of a tailcat host's listener.
-func WithTailcatPort(ctx context.Context, port string) context.Context {
-	return context.WithValue(ctx, tailcatPortKey{}, port)
-}
-
 // LocalName is this machine's name, as a code gives it: the hostname
 // up to its first dot, which is the label HylaPocket saves a host under.
 func LocalName() string {

@@ -227,16 +227,6 @@ func TestFeishuCardBodyIsGone(t *testing.T) {
 	}
 }
 
-func TestRemoteUpdatesOptIn(t *testing.T) {
-	if Default().RemoteUpdates {
-		t.Error("remote updates are on by default")
-	}
-	s, probs := parse("remote-updates = true\n")
-	if !s.RemoteUpdates || len(probs) != 0 {
-		t.Errorf("remote-updates = true: %v, problems %q", s.RemoteUpdates, probs)
-	}
-}
-
 func TestMigratesSettingsJSON(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HYLA_HOME", dir)

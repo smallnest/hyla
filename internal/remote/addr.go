@@ -1,18 +1,10 @@
-// Package remote connects Hyla to hylad on another machine: an Addr names
-// the host and how to reach it, Dial opens one connection that carries
-// every stream a client needs (proto.MuxHello), and Server answers one,
-// for `hyla __bridge` and hylad's network listeners.
+// Package remote reads the addresses of the machines Hyla's SSH project
+// adds, and makes the tailcat key of this machine's listener, which
+// HylaPocket reaches it by.
 //
-// Three ways reach a host:
-//
-//   - ssh://[user@]host[:port], or just [user@]host: OpenSSH runs `hyla
-//     __bridge` on the host, with the user's ~/.ssh/config, keys and agent,
-//     and nothing to set up there but Hyla itself.
-//   - wsl://[distro]: Hyla in a WSL distribution of this Windows machine,
-//     through wsl.exe, as SSH would.
-//
-// Tailcat addresses reach a machine anywhere, over a relay, by its pair
-// code: see tailcat.go.
+// An address is ssh://[user@]host[:port], or [user@]host[:port] as
+// ssh(1) takes it, an alias of ~/.ssh/config too, or wsl://[distro] for a
+// WSL distribution of this Windows machine.
 package remote
 
 import (
@@ -29,16 +21,13 @@ const DefaultPort = "7473"
 
 // Addr is how to reach a host.
 type Addr struct {
-	Scheme string // "ssh", "wsl", "http", "https" or "tailcat"
+	Scheme string // "ssh" or "wsl"
 	User   string // ssh's
 	Host   string // the host, or for wsl the distribution, "" its default
 	Port   string
 	// Hyla is the hyla executable on the host, for ssh and wsl, when it is
 	// not where the bridge looks (BridgeLocations).
 	Hyla string
-	// Code is a tailcat address's pair code: the host's key, its
-	// pre-shared key, and the relay to reach it by.
-	Code string
 }
 
 // ParseAddr reads an address: a URL of a scheme above, or an SSH
@@ -48,9 +37,6 @@ func ParseAddr(s string) (Addr, error) {
 	s = strings.TrimSpace(s)
 	if s == "" {
 		return Addr{}, errors.New("no address")
-	}
-	if strings.HasPrefix(s, "tailcat://") {
-		return parseTailcat(s)
 	}
 	if strings.ContainsFunc(s, func(r rune) bool { return r <= ' ' || r == 0x7f }) {
 		return Addr{}, fmt.Errorf("%q: an address has no spaces", s)
@@ -110,9 +96,6 @@ func ParseAddr(s string) (Addr, error) {
 // without its scheme.
 func (a Addr) String() string {
 	var b strings.Builder
-	if a.Scheme == "tailcat" {
-		return tailcatURL(a)
-	}
 	if a.Scheme != "ssh" {
 		b.WriteString(a.Scheme + "://")
 	}

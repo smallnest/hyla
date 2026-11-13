@@ -15,7 +15,7 @@ import (
 	"hyla/internal/settings"
 )
 
-// pocketCmd is `hyla hosts pocket`: this machine as a host for
+// pocketCmd is `hyla pocket`: this machine as a host for
 // HylaPocket on a phone. The phone reaches it over tailcat, on this
 // machine's tailcat listener, and the code it scans is that listener's
 // pair code: one secret, which is the address and the admission both.
@@ -34,7 +34,7 @@ func pocketCmd(args []string) error {
 	case "qr":
 		return pocketCode(true)
 	}
-	return usageErr("hyla hosts pocket enable|disable|code|qr")
+	return usageErr("hyla pocket enable|disable|code|qr")
 }
 
 // pocketCode shows this machine's code: as the line HylaPocket takes
@@ -42,10 +42,10 @@ func pocketCmd(args []string) error {
 func pocketCode(draw bool) error {
 	s := settings.Load()
 	if !s.Tailcat {
-		return errors.New("tailcat is off, so HylaPocket cannot reach this machine: hyla hosts pocket enable")
+		return errors.New("tailcat is off, so HylaPocket cannot reach this machine: hyla pocket enable")
 	}
 	if _, _, ok := s.TailcatListen(); !ok {
-		return errors.New("hylad has no tailcat listener for HylaPocket to reach: hyla hosts pocket enable")
+		return errors.New("hylad has no tailcat listener for HylaPocket to reach: hyla pocket enable")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
@@ -77,6 +77,6 @@ func pocketCode(draw bool) error {
 		}
 	}
 	fmt.Println(text)
-	fmt.Fprintln(os.Stderr, "the pair code in it reaches every session of this machine, to anyone who has it: hyla tailcat rotate makes another, and hyla hosts pocket disable stops HylaPocket")
+	fmt.Fprintln(os.Stderr, "the pair code in it reaches every session of this machine, to anyone who has it: hyla tailcat rotate makes another, and hyla pocket disable stops HylaPocket")
 	return nil
 }

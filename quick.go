@@ -233,7 +233,7 @@ func (a *App) attachQuick() {
 		if h.cl == nil || h.conn == connFailed || h.conn == connVersion {
 			// It shows that, with Try Again, instead of a spinner that
 			// never ends. Connecting goes on to a terminal, or this.
-			q.err = a.hostProblem(h)
+			q.err = h.err
 			if h.conn != connFailed {
 				q.err = locales.HostNotConnected(h.label())
 			}

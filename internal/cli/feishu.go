@@ -22,7 +22,7 @@ const feishuUsage = `Usage:
   hyla feishu test                 ask Feishu for an access token, as a check
   hyla feishu send <chat> <text>   send a message to a chat, by its ID`
 
-func feishuCmd(args []string, host string) error {
+func feishuCmd(args []string) error {
 	sub := ""
 	if len(args) > 0 {
 		sub, args = args[0], args[1:]
@@ -31,11 +31,11 @@ func feishuCmd(args []string, host string) error {
 	case "setup":
 		return feishuSetup(args)
 	case "status":
-		return feishuStatusCmd(args, host)
+		return feishuStatusCmd(args)
 	case "test":
 		return feishuTest()
 	case "send":
-		return feishuSend(args, host)
+		return feishuSend(args)
 	case "", "help", "--help", "-h":
 		fmt.Print(feishuUsage)
 		return nil
@@ -130,7 +130,7 @@ func feishuSetup(args []string) error {
 		return err
 	}
 	fmt.Println("feishu-app is in the configuration.")
-	if c, done, err := connect(""); err == nil {
+	if c, done, err := connect(); err == nil {
 		c.Call("feishu.restart", nil, nil)
 		var st proto.FeishuState
 		if err := c.Call("feishu.status", nil, &st); err == nil && st.Connected {
@@ -186,7 +186,7 @@ func feishuTest() error {
 
 // feishuSend sends text to a chat, or to a person by open_id, by the
 // machine's app: a test, or a notice.
-func feishuSend(args []string, host string) error {
+func feishuSend(args []string) error {
 	if len(args) < 2 {
 		return usageErr("hyla feishu send <chat> <text…>")
 	}
@@ -196,9 +196,6 @@ func feishuSend(args []string, host string) error {
 		kind = "open_id"
 	}
 	secret, err := settings.LoadFeishuSecret()
-	if errors.Is(err, settings.ErrFeishuNotConfigured) && len(host) > 0 {
-		return fmt.Errorf("%s: %w", host, err)
-	}
 	if err != nil {
 		return err
 	}
@@ -210,12 +207,12 @@ func feishuSend(args []string, host string) error {
 }
 
 // feishuStatusCmd tells whether the bot is connected.
-func feishuStatusCmd(args []string, host string) error {
+func feishuStatusCmd(args []string) error {
 	f, err := parse(args, nil, map[string]string{"json": "json"})
 	if err != nil {
 		return err
 	}
-	c, done, err := connect(host)
+	c, done, err := connect()
 	if err != nil {
 		return err
 	}

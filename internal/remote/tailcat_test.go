@@ -2,20 +2,15 @@ package remote
 
 import (
 	"context"
-	"encoding/json"
-	"net"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
-
-	"hyla/internal/proto"
 )
 
-// A pair code is the address of a tailcat host, as its String writes it,
-// and reads back.
-func TestTailcatAddr(t *testing.T) {
+// A pair code names the key of a tailcat listener, as its region does.
+func TestTailcatCode(t *testing.T) {
 	k, err := NewTailcatKey()
 	if err != nil {
 		t.Fatal(err)
@@ -29,26 +24,16 @@ func TestTailcatAddr(t *testing.T) {
 	if !strings.HasPrefix(code, "tc") {
 		t.Errorf("pair code %q", code)
 	}
-	a, err := ParseAddr("tailcat://" + code)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if a.Scheme != "tailcat" || a.Code != code || a.String() != "tailcat://"+code || a.Bridged() || a.Label() == "" {
-		t.Errorf("parsed %+v, String %q", a, a.String())
-	}
 	// The same key's code is the same, its region kept.
 	again, err := TailcatAddress(ctx, k)
 	if err != nil || again != code {
 		t.Errorf("again %q, %v", again, err)
 	}
-	// The one who has the code has the host's keys.
-	if _, err := ParseAddr("tailcat://tcnope"); err == nil {
-		t.Error("a bad pair code read")
+	if TailcatCode("tailcat://"+code) != code || TailcatCode(code) != code {
+		t.Errorf("TailcatCode(%q)", code)
 	}
-	for _, bad := range []string{"tailcat://", "tailcat://tc/a", "tailcat://tc?x", "tailcat://tc "} {
-		if _, err := ParseAddr(bad); err == nil {
-			t.Errorf("%q read", bad)
-		}
+	if !LooksLikePairCode(code) || LooksLikePairCode("nope") {
+		t.Errorf("LooksLikePairCode(%q)", code)
 	}
 }
 
@@ -121,59 +106,5 @@ func TestTailcatKeyRegionKept(t *testing.T) {
 	}
 	if rk, err := LoadTailcatKey(path); err != nil || rk.Region != k.Region {
 		t.Errorf("rotated key %+v, %v", rk, err)
-	}
-}
-
-// A client of a tailcat listener gets to its remote server, as over
-// HTTP's.
-func TestTailcatMux(t *testing.T) {
-	if testing.Short() {
-		t.Skip("tailcat starts its relay and network stacks")
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-	defer cancel()
-	path := filepath.Join(t.TempDir(), "tailcat.json")
-	if _, err := LoadTailcatKey(path); err != nil {
-		t.Fatal(err)
-	}
-	port := "7374"
-	srv := echoServer(t)
-	srv.Stream = func(s net.Conn, hello []byte, mux proto.MuxHello) {
-		defer s.Close()
-		s.Write([]byte("pong\n"))
-	}
-	r, err := ListenTailcat(ctx, path, port, srv)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer r.Close()
-	a, err := ParseAddr(r.PairCode)
-	if err != nil {
-		t.Fatal(err)
-	}
-	dctx := WithTailcatPort(ctx, port)
-	tr, err := transport(dctx, a, "test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	c, err := handshake(ctx, tr, a, Options{App: "1.0", Client: "test"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer c.Close()
-	if c.Welcome().Mux != proto.MuxVersion || c.Welcome().Host.Hostname != "box" {
-		t.Fatalf("welcome %+v", c.Welcome())
-	}
-	st, err := c.Open()
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer st.Close()
-	b, _ := json.Marshal(proto.Hello{Kind: "control", Version: proto.Version})
-	st.Write(append(b, '\n'))
-	buf := make([]byte, 5)
-	st.SetReadDeadline(time.Now().Add(20 * time.Second))
-	if n, err := st.Read(buf); err != nil || string(buf[:n]) != "pong\n" {
-		t.Errorf("echo %q, %v", buf[:n], err)
 	}
 }

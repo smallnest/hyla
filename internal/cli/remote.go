@@ -2,16 +2,10 @@ package cli
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"net"
 	"os"
-	"path/filepath"
 	"strings"
-	"sync"
-	"text/tabwriter"
 	"time"
 
 	"hyla/internal/build"
@@ -21,51 +15,20 @@ import (
 	"hyla/internal/remote"
 	"hyla/internal/service"
 	"hyla/internal/settings"
-	"hyla/internal/update"
 )
 
-// splitHost takes the global -H/--host off the front of the arguments:
-// the host to act on, else $HYLA_HOST, else "" for this machine; env
-// tells a host of $HYLA_HOST's. Inside a pane, $HYLA_HOST, which a
-// shell's profile may set, gives way to the pane's own machine.
-func splitHost(args []string) (host string, env bool, rest []string, err error) {
-	if os.Getenv("HYLA_PANE") == "" {
-		host = os.Getenv("HYLA_HOST")
-		env = host != ""
+// connect opens a control connection to this machine's hylad, started as
+// needed.
+func connect() (*client.Client, func(), error) {
+	c, err := client.Connect(false)
+	if err != nil {
+		return nil, nil, err
 	}
-	for len(args) > 0 {
-		a := args[0]
-		switch {
-		case a == "-H" || a == "--host":
-			if len(args) < 2 {
-				return "", false, nil, usageErr("%s needs a host: a name of hyla hosts, or an address", a)
-			}
-			host, env, args = args[1], false, args[2:]
-		case strings.HasPrefix(a, "--host="):
-			host, env, args = strings.TrimPrefix(a, "--host="), false, args[1:]
-		case strings.HasPrefix(a, "-H") && len(a) > 2:
-			host, env, args = a[2:], false, args[1:]
-		default:
-			if strings.EqualFold(host, "local") {
-				host = ""
-			}
-			return host, env, args, nil
-		}
-	}
-	return "", false, nil, usageErr("hyla -H <host> <command> (see hyla help)")
+	return c, func() { c.Close() }, nil
 }
 
-// localOnly are the commands of this machine alone, which -H takes
-// nothing of.
-var localOnly = map[string]bool{"report": true, "actions": true, "skill": true, "hook": true, "answer": true, "config": true,
-	"hosts": true, "__bridge": true, "help": true, "--help": true, "-h": true}
-
-// onHost is the host the command acts on, "" for this machine: whose
-// panes $HYLA_PANE and $HYLA_SESSION name nothing on another.
-var onHost string
-
-// versionCmd prints the version of Hyla, and of a host's.
-func versionCmd(host string) error {
+// versionCmd prints the version of Hyla.
+func versionCmd() error {
 	v := build.Version()
 	if v == "" {
 		v = "dev"
@@ -74,312 +37,11 @@ func versionCmd(host string) error {
 		v += ", server build"
 	}
 	fmt.Printf("hyla %s (protocol %d)\n", v, proto.Version)
-	if host == "" {
-		return nil
-	}
-	rc, err := dialHost(host)
-	if err != nil {
-		return err
-	}
-	defer rc.Close()
-	h := rc.Welcome().Host
-	fmt.Printf("%s: hyla %s (protocol %d) on %s/%s\n", host, orDash(h.Hyla), h.Version, h.OS, h.Arch)
 	return nil
 }
 
-// hostAddr is the address of a host: a saved host's, by name, else the
-// address given.
-func hostAddr(host string) (string, remote.Addr, error) {
-	set := settings.Load()
-	if h := set.Host(host); h != nil {
-		a, err := remote.ParseAddr(h.Addr)
-		return h.Name, a, err
-	}
-	if i := set.TailcatHostByName(host); i >= 0 && set.Tailcat {
-		h := set.TailcatHosts[i]
-		a, err := remote.ParseAddr(h.Addr)
-		return h.Name, a, err
-	}
-	a, err := remote.ParseAddr(host)
-	if err != nil {
-		return "", a, fmt.Errorf("%w: %q is no host of hyla hosts, nor an address: %v", errNotFound, host, err)
-	}
-	if a.Scheme == "tailcat" && !set.Tailcat {
-		return "", a, fmt.Errorf("Tailcat is off: turn it on with tailcat = true")
-	}
-	return a.Label(), a, nil
-}
-
-// dialHost connects to a host.
-func dialHost(host string) (*remote.Conn, error) { return dialHostWithin(host, 30*time.Second) }
-
-// dialHostWithin connects to a host, giving up after a while.
-func dialHostWithin(host string, d time.Duration) (*remote.Conn, error) {
-	_, a, err := hostAddr(host)
-	if err != nil {
-		return nil, err
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), d)
-	defer cancel()
-	c, err := remote.Dial(ctx, a, remote.Options{App: build.Version(), Client: clientName("hyla CLI"), Port: settings.Load().TailcatPort})
-	if err != nil {
-		return nil, fmt.Errorf("%w: %s: %v", errUnreachable, host, err)
-	}
-	return c, nil
-}
-
-// clientName says what a client is, for hyla clients on the host.
-func clientName(what string) string {
-	h, _ := os.Hostname()
-	s := what
-	if v := build.Version(); v != "" {
-		s += " " + v
-	}
-	if h != "" {
-		s += " on " + h
-	}
-	return s
-}
-
-// connect opens a control connection to hylad: this machine's, started
-// as needed, or a host's.
-func connect(host string) (*client.Client, func(), error) { return connectWithin(host, 30*time.Second) }
-
-// connectWithin is connect, giving up on reaching a host after a while.
-func connectWithin(host string, d time.Duration) (*client.Client, func(), error) {
-	if host == "" {
-		c, err := client.Connect(false)
-		if err != nil {
-			return nil, nil, err
-		}
-		return c, func() { c.Close() }, nil
-	}
-	rc, err := dialHostWithin(host, d)
-	if err != nil {
-		return nil, nil, err
-	}
-	c, err := client.ConnectVia(rc)
-	if err != nil {
-		rc.Close()
-		if errors.Is(err, client.ErrVersion) {
-			return nil, nil, fmt.Errorf("%w: hylad on %s runs Hyla %s: update it, or this one (hyla -H %s daemon update)", errUnreachable, host, rc.Welcome().Host.Hyla, host)
-		}
-		return nil, nil, fmt.Errorf("%w: %s: %v", errUnreachable, host, err)
-	}
-	return c, func() { c.Close(); rc.Close() }, nil
-}
-
-// hostSessions are the sessions of a machine, for hyla ls --all: Host is
-// what -H takes to act on them, "local" for this machine.
-type hostSessions struct {
-	Host     string          `json:"host"`
-	Addr     string          `json:"addr,omitempty"`
-	Error    string          `json:"error,omitempty"`
-	Sessions []proto.Session `json:"sessions"`
-	state    proto.State
-}
-
-// listAll lists the sessions of this machine and of every host of hyla
-// hosts, asking them all at once; a host out of reach says why in place
-// of its sessions, and fails nothing.
-func listAll(asJSON bool) error {
-	hosts := settings.Load().Hosts
-	all := make([]hostSessions, len(hosts)+1)
-	all[0].Host = "local"
-	for i, h := range hosts {
-		all[i+1].Host, all[i+1].Addr = h.Name, h.Addr
-	}
-	var wg sync.WaitGroup
-	for i := range all {
-		hs := &all[i]
-		wg.Go(func() {
-			host := hs.Host
-			if i == 0 {
-				host = ""
-			}
-			const within = 10 * time.Second
-			c, done, err := connectWithin(host, within)
-			if err == nil {
-				err = c.Call("state", nil, &hs.state)
-				done()
-			}
-			if err != nil {
-				hs.Error = strings.TrimPrefix(strings.TrimPrefix(err.Error(), errUnreachable.Error()+": "), hs.Host+": ")
-				if strings.HasSuffix(hs.Error, context.DeadlineExceeded.Error()) {
-					hs.Error = fmt.Sprintf("no answer in %s", within)
-				}
-			}
-			hs.Sessions = hs.state.Sessions
-			if hs.Sessions == nil {
-				hs.Sessions = []proto.Session{}
-			}
-		})
-	}
-	wg.Wait()
-	if asJSON {
-		return printJSON(all)
-	}
-	for i, hs := range all {
-		if i > 0 {
-			fmt.Println()
-		}
-		head := hs.Host
-		if hs.Addr != "" {
-			head += " (" + hs.Addr + ")"
-		}
-		if hs.Error != "" {
-			fmt.Printf("%s: %s\n", head, hs.Error)
-			continue
-		}
-		fmt.Println(head)
-		listSessions(hs.state)
-	}
-	return nil
-}
-
-// hostsCmd manages the hosts the app shows and -H reaches, which the
-// configuration keeps (host = name=address).
-func hostsCmd(args []string) error {
-	f, err := parse(args, map[string]string{"version": "version"},
-		map[string]string{"remote-control": "rc", "json": "json"})
-	if err != nil {
-		return err
-	}
-	sub := "ls"
-	if len(f.pos) > 0 {
-		sub = f.pos[0]
-	}
-	if sub == "tailcat" {
-		return tailcatCmd(f.pos[1:])
-	}
-	if sub == "pocket" {
-		return pocketCmd(f.pos[1:])
-	}
-	set := settings.Load()
-	switch sub {
-	case "ls", "list":
-		if set.Tailcat {
-			for _, h := range set.TailcatHosts {
-				fmt.Printf("%s\ttailcat://%s…\ttailcat\n", h.Name, shortCode(h.Addr))
-			}
-		}
-		if f.set["json"] {
-			if set.Hosts == nil {
-				set.Hosts = []settings.Host{}
-			}
-			return printJSON(set.Hosts)
-		}
-		if len(set.Hosts) == 0 {
-			fmt.Println("no hosts (add one with hyla hosts add <name> <address>)")
-			return nil
-		}
-		w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-		fmt.Fprintln(w, "NAME\tADDRESS\tREMOTE CONTROL")
-		for _, h := range set.Hosts {
-			rc := "off"
-			if h.RemoteControl {
-				rc = "on"
-			}
-			fmt.Fprintf(w, "%s\t%s\t%s\n", h.Name, h.Addr, rc)
-		}
-		return w.Flush()
-
-	case "add":
-		if len(f.pos) != 3 {
-			return usageErr("hyla hosts add <name> <address> [--remote-control]")
-		}
-		line := f.pos[1] + "=" + f.pos[2]
-		if f.set["rc"] {
-			line += " remote-control"
-		}
-		h, err := settings.ParseHost(line)
-		if err != nil {
-			return usageErr("%v", err)
-		}
-		if old := set.Host(h.Name); old != nil {
-			*old = h
-		} else {
-			set.Hosts = append(set.Hosts, h)
-		}
-		if err := settings.Save(set); err != nil {
-			return err
-		}
-		fmt.Printf("added %s (%s): hyla -H %s ls\n", h.Name, h.Addr, h.Name)
-		return nil
-
-	case "remove", "rm":
-		if len(f.pos) != 2 {
-			return usageErr("hyla hosts remove <name>")
-		}
-		h := set.Host(f.pos[1])
-		if h == nil {
-			return fmt.Errorf("%w: no host %q", errNotFound, f.pos[1])
-		}
-		name := h.Name
-		set.Hosts = deleteHost(set.Hosts, name)
-		return settings.Save(set)
-
-	case "check":
-		if len(f.pos) != 2 {
-			return usageErr("hyla hosts check <name|address>")
-		}
-		start := time.Now()
-		rc, err := dialHost(f.pos[1])
-		if err != nil {
-			return err
-		}
-		defer rc.Close()
-		h := rc.Welcome().Host
-		fmt.Printf("%s: connected in %s, compression %s\n", f.pos[1], time.Since(start).Round(time.Millisecond), orDash(rc.Welcome().Compress))
-		fmt.Printf("host: %s (%s/%s), as %s, home %s\n", h.Hostname, h.OS, h.Arch, h.User, h.Home)
-		kind := "the desktop app"
-		if h.Server {
-			kind = "the server build"
-		}
-		fmt.Printf("hyla: %s (protocol %d), %s\n", orDash(h.Hyla), h.Version, kind)
-		if rtt, err := rc.Ping(); err == nil {
-			fmt.Printf("round trip: %s\n", rtt.Round(100*time.Microsecond))
-		}
-		c, err := client.ConnectVia(rc)
-		if err != nil {
-			return fmt.Errorf("hylad: %w", err)
-		}
-		defer c.Close()
-		var st proto.State
-		c.Call("state", nil, &st)
-		fmt.Printf("hylad: Hyla %s, pid %d, %d sessions\n", orDash(c.Welcome.App), c.Welcome.PID, len(st.Sessions))
-		return nil
-
-	case "install":
-		if len(f.pos) != 2 {
-			return usageErr("hyla hosts install <name|address> [--version v]")
-		}
-		_, a, err := hostAddr(f.pos[1])
-		if err != nil {
-			return err
-		}
-		version := f.vals["version"]
-		if version == "" {
-			version = releasedVersion()
-		}
-		// A host of Windows, whose shell has no sh, installs with
-		// PowerShell.
-		if err := remote.FindShell(a, false); err != nil {
-			return err
-		}
-		cmd, err := remote.InstallCommand(a, version, false)
-		if err != nil {
-			return err
-		}
-		cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, os.Stdout, os.Stderr
-		return cmd.Run()
-	}
-	return usageErr("hyla hosts ls|add|remove|check|install|tailcat")
-}
-
-// tailcatCmd is `hyla hosts tailcat enable|disable|rotate|code`: this
-// machine as a host over Tailcat, and its pair code. The code is a
-// secret, so only the command that means to show it prints it.
+// tailcatCmd is `hyla tailcat`: this machine as a host for HylaPocket,
+// which reaches it with its pair code instead of an SSH login.
 func tailcatCmd(args []string) error {
 	set := settings.Load()
 	_, port, on := set.TailcatListen()
@@ -390,7 +52,7 @@ func tailcatCmd(args []string) error {
 	switch sub {
 	case "code":
 		if !set.Tailcat {
-			return errors.New("Tailcat is off: hyla hosts tailcat enable")
+			return errors.New("Tailcat is off: hyla tailcat enable")
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		code, err := remote.LocalTailcatAddress(ctx)
@@ -399,11 +61,11 @@ func tailcatCmd(args []string) error {
 			return err
 		}
 		fmt.Println(code)
-		fmt.Fprintln(os.Stderr, "the pair code is the secret: anyone with it can connect; hyla hosts tailcat rotate makes a new one")
+		fmt.Fprintln(os.Stderr, "the pair code is the secret: anyone with it can connect; hyla tailcat rotate makes a new one")
 		if !on {
-			fmt.Fprintln(os.Stderr, "hylad does not listen through Tailcat here: hyla hosts tailcat enable")
+			fmt.Fprintln(os.Stderr, "hylad does not listen through Tailcat here: hyla tailcat enable")
 		} else {
-			fmt.Fprintf(os.Stderr, "hylad listens on port %s: the Port setting of the other machines is this one (hyla hosts tailcat port sets it)\n", port)
+			fmt.Fprintf(os.Stderr, "hylad listens on port %s (hyla tailcat port sets it)\n", port)
 		}
 		return nil
 	case "enable":
@@ -414,7 +76,7 @@ func tailcatCmd(args []string) error {
 			set.SetTailcatListen(settings.TailcatListenPortDefault())
 		}
 		if len(args) > 1 {
-			if !settings.ValidTailcatPort(args[1]) {
+			if !settings.ValidListenPort(args[1]) {
 				return usageErr("%q is not a port", args[1])
 			}
 			set.SetTailcatListen(args[1])
@@ -422,17 +84,17 @@ func tailcatCmd(args []string) error {
 		if err := settings.Save(set); err != nil {
 			return err
 		}
-		fmt.Println("hylad listens through Tailcat: hyla hosts tailcat code")
+		fmt.Println("hylad listens through Tailcat: hyla tailcat code")
 		return nil
 	case "disable":
 		set.SetTailcatListen("")
 		return settings.Save(set)
 	case "port":
-		if len(args) != 2 || !settings.ValidTailcatPort(args[1]) {
-			return usageErr("hyla hosts tailcat port <port>")
+		if len(args) != 2 || !settings.ValidListenPort(args[1]) {
+			return usageErr("hyla tailcat port <port>")
 		}
 		if !on {
-			return errors.New("hylad does not listen through Tailcat here: hyla hosts tailcat enable")
+			return errors.New("hylad does not listen through Tailcat here: hyla tailcat enable")
 		}
 		set.SetTailcatListen(args[1])
 		return settings.Save(set)
@@ -449,132 +111,10 @@ func tailcatCmd(args []string) error {
 			return err
 		}
 		fmt.Println("tailcat://" + code)
-		fmt.Fprintln(os.Stderr, "the old pair code no longer connects: add this computer again on your other machines")
+		fmt.Fprintln(os.Stderr, "the old pair code no longer connects: the phone needs this one")
 		return nil
 	}
-	return usageErr("hyla hosts tailcat enable [port]|disable|port <port>|rotate|code")
-}
-
-// releasedVersion is this Hyla's version, to install the same on a host,
-// "" for a development build, which installs the latest release.
-func releasedVersion() string {
-	v := build.Version()
-	if v == "" || strings.Contains(v, "dev") {
-		return ""
-	}
-	return v
-}
-
-func deleteHost(hosts []settings.Host, name string) []settings.Host {
-	var out []settings.Host
-	for _, h := range hosts {
-		if !strings.EqualFold(h.Name, name) {
-			out = append(out, h)
-		}
-	}
-	return out
-}
-
-// clientsCmd lists who is connected to hylad.
-func clientsCmd(c *client.Client, args []string) error {
-	f, err := parse(args, nil, map[string]string{"json": "json"})
-	if err != nil {
-		return err
-	}
-	var list []proto.ClientInfo
-	if err := c.Call("clients", nil, &list); err != nil {
-		return err
-	}
-	if f.set["json"] {
-		return printJSON(list)
-	}
-	now := time.Now()
-	w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
-	fmt.Fprintln(w, "KIND\tPEER\tVIA\tSINCE\tCLIENT\tSESSION")
-	for _, ci := range list {
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", ci.Kind, ci.Peer, ci.Via, proto.Ago(ci.Since, now), orDash(ci.Client), orDash(ci.Session))
-	}
-	return w.Flush()
-}
-
-// bridge is `hyla __bridge`, which ssh or wsl.exe runs for a client on
-// another machine: it answers the client's remote connection on its
-// standard input and output, and passes each stream on to this machine's
-// hylad, starting it as needed, as a local client would connect. It
-// speaks to hylad as any client does, so that it bridges to a hylad of
-// another version too, for the client to tell the user so, and to update
-// and restart it.
-func bridge(args []string) error {
-	f, err := parse(args, map[string]string{"via": "via"}, nil)
-	if err != nil {
-		return err
-	}
-	via := f.vals["via"]
-	if via == "" {
-		via = "ssh"
-	}
-	peer := ""
-	if c := strings.Fields(os.Getenv("SSH_CONNECTION")); len(c) > 0 {
-		peer = c[0]
-	}
-	info := remote.LocalInfo("")
-	if peer == "" {
-		peer = info.User
-	} else {
-		peer = info.User + " from " + peer
-	}
-	info.Peer = info.User
-	srv := &remote.Server{
-		Info: func() proto.HostInfo { return info },
-		Stream: func(s net.Conn, hello []byte, mux proto.MuxHello) {
-			defer s.Close()
-			conn, err := client.Local{}.Dial()
-			if err != nil {
-				b, _ := json.Marshal(proto.Welcome{Version: proto.Version, Error: "hylad: " + err.Error()})
-				s.Write(append(b, '\n'))
-				return
-			}
-			defer conn.Close()
-			// Who connects, for hyla clients, in the stream's own Hello,
-			// which a hylad of any version takes.
-			var h map[string]any
-			if json.Unmarshal(hello, &h) == nil {
-				h["peer"], h["via"], h["client"] = peer, via, mux.Client
-				if b, err := json.Marshal(h); err == nil {
-					hello = append(b, '\n')
-				}
-			}
-			if _, err := conn.Write(hello); err != nil {
-				return
-			}
-			splice(s, conn)
-		},
-		Restart: func() (func(), error) { return nil, restartLocal() },
-		// Done once the client is: the session's end, as when ssh's link
-		// dropped, can wait on a read of the standard input that only the
-		// end of the process ends.
-		Closed: func() { os.Exit(0) },
-	}
-	if !info.Server && daemon.AppUpdates() {
-		// The desktop app updates itself, then hylad restarts into it.
-		info.Updates = true
-		srv.Update = func(app string) error {
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-			defer cancel()
-			return daemon.UpdateApp(ctx, app)
-		}
-	} else if info.Updates {
-		dir := update.InstallDir()
-		// hylad starts from the install, as an update moves this one aside.
-		client.Exe = filepath.Join(dir, "hyla")
-		srv.Update = func(app string) error {
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-			defer cancel()
-			// Never back to an older Hyla: the app asks for its own version.
-			return update.Install(ctx, app, dir, build.Version(), false)
-		}
-	}
-	return srv.Serve(stdio{})
+	return usageErr("hyla tailcat enable [port]|disable|port <port>|rotate|code")
 }
 
 // restartLocal restarts this machine's hylad into the Hyla installed: its
@@ -589,31 +129,6 @@ func restartLocal() error {
 		return err
 	}
 	return client.StartDaemon()
-}
-
-// splice copies both ways between two connections until either ends.
-func splice(a, b net.Conn) {
-	var once sync.Once
-	done := make(chan struct{})
-	cp := func(dst, src net.Conn) {
-		io.Copy(dst, src)
-		once.Do(func() { close(done) })
-	}
-	go cp(a, b)
-	go cp(b, a)
-	<-done
-	a.Close()
-	b.Close()
-}
-
-// stdio is the bridge's connection: its standard input and output.
-type stdio struct{}
-
-func (stdio) Read(p []byte) (int, error)  { return os.Stdin.Read(p) }
-func (stdio) Write(p []byte) (int, error) { return os.Stdout.Write(p) }
-func (stdio) Close() error {
-	os.Stdin.Close()
-	return os.Stdout.Close()
 }
 
 // serveCmd is `hyla daemon serve`: hylad in the foreground, for a service
@@ -641,14 +156,4 @@ func serveCmd(args []string) error {
 		}
 	}
 	return daemon.Run(daemon.Options{Serve: true, Listen: listen})
-}
-
-// shortCode is an address's pair code, as far as it can show it: it is
-// the host's secret.
-func shortCode(addr string) string {
-	a, err := remote.ParseAddr(addr)
-	if err != nil || a.Scheme != "tailcat" {
-		return addr
-	}
-	return a.Code[:min(8, len(a.Code))]
 }

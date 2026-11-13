@@ -17,7 +17,6 @@ import (
 
 	"hyla/internal/adblock"
 	"hyla/internal/proto"
-	"hyla/internal/remote"
 )
 
 // Settings are the user's choices. The zero value of a field is never a
@@ -147,59 +146,20 @@ type Settings struct {
 	// Keyboard: accelerators by action, over the defaults; "" unbinds.
 	Shortcuts map[string]string `json:"shortcuts,omitempty"`
 
-	// Hosts are other machines' hylads, which the app shows beside this
-	// one's and the CLI reaches with -H.
-	Hosts []Host `json:"hosts,omitempty"`
 	// Listen are hylad's listeners, for clients on other machines
 	// (tailcat://:7473), admitted by the pair code of the key that makes
 	// one.
 	Listen []string `json:"listen,omitempty"`
-	// TailcatHosts are hosts Hyla reaches over tailcat, and TailcatPort
-	// the port of their listeners. Tailcat, false, stops the app from
-	// connecting to them, and from listing them, for whom its relay is
-	// not one to trust, and hylad from listening through tailcat (a
-	// tailcat:// listen). TailcatRelay is the DERP map where tailcat
-	// finds relays: "" for remote.DefaultDERPMapURL, Tailscale's public
-	// ones.
-	TailcatHosts []TailcatHost `json:"tailcatHosts,omitempty"`
-	TailcatPort  string        `json:"tailcatPort,omitempty"`
-	Tailcat      bool          `json:"tailcat"`
-	TailcatRelay string        `json:"tailcatRelay,omitempty"`
+	// Tailcat is hylad's tailcat listener, which serves HylaPocket: off,
+	// it starts none, and the app shows no pair code. TailcatRelay is the
+	// DERP map where tailcat finds relays: "" for
+	// remote.DefaultDERPMapURL, Tailscale's public ones.
+	Tailcat      bool   `json:"tailcat"`
+	TailcatRelay string `json:"tailcatRelay,omitempty"`
 	// TailcatRotate makes hylad start its tailcat listener with the key
 	// again, whose pair code changed: this machine's, as `hyla tailcat
 	// rotate` sets it.
 	TailcatRotate bool `json:"tailcatRotate,omitempty"`
-	// RemoteUpdates lets Hyla on another machine that connects update the
-	// app here to its version, and restart hylad into it, as it can a
-	// server build: off unless the user turns it on here.
-	RemoteUpdates bool `json:"remoteUpdates,omitempty"`
-}
-
-// Host is a machine whose hylad the app shows: its name, and its address
-// (package remote).
-type Host struct {
-	Name string `json:"name"`
-	Addr string `json:"addr"`
-	// RemoteControl lets the host's programs drive the app, as hyla focus
-	// and hyla do, which remote-control lets this machine's: off unless the
-	// user trusts the host with it.
-	RemoteControl bool `json:"remoteControl,omitempty"`
-	// Color marks the host's sessions in the sidebar and its panes: one of
-	// HostColors, "" for the one its name picks.
-	Color string `json:"color,omitempty"`
-}
-
-// HostColors are the colors a host takes.
-var HostColors = []string{"red", "orange", "amber", "green", "teal", "blue", "purple", "pink"}
-
-// Host returns the host of a name, else nil.
-func (s *Settings) Host(name string) *Host {
-	for i := range s.Hosts {
-		if strings.EqualFold(s.Hosts[i].Name, name) {
-			return &s.Hosts[i]
-		}
-	}
-	return nil
 }
 
 // DefaultWindowOpacity is how much of the window's background the wash
@@ -490,7 +450,6 @@ func clone(s Settings) Settings {
 	s.Env = append([]string(nil), s.Env...)
 	s.FontFeatures = slices.Clone(s.FontFeatures)
 	s.AdLists = slices.Clone(s.AdLists)
-	s.Hosts = slices.Clone(s.Hosts)
 	s.Listen = slices.Clone(s.Listen)
 	if s.Feishu != nil {
 		f := *s.Feishu
@@ -501,7 +460,6 @@ func clone(s Settings) Settings {
 		}
 		s.Feishu = &f
 	}
-	s.TailcatHosts = slices.Clone(s.TailcatHosts)
 	if s.Shortcuts != nil {
 		m := make(map[string]string, len(s.Shortcuts))
 		for k, v := range s.Shortcuts {
@@ -648,14 +606,10 @@ func (s *Settings) normalize() {
 	if s.Scrollback < 0 || s.Scrollback > 256 {
 		s.Scrollback = d.Scrollback
 	}
-	if !ValidTailcatPort(s.TailcatPort) {
-		s.TailcatPort = d.TailcatPort
-	}
 	normalizeFeishu(s.Feishu)
 	if s.TailcatRelay != "" && !ValidDERPMapURL(s.TailcatRelay) {
 		s.TailcatRelay = d.TailcatRelay
 	}
-	s.TailcatHosts = slices.DeleteFunc(s.TailcatHosts, func(h TailcatHost) bool { return !validTailcatAddr(h.Addr) })
 	if s.LightTheme == "" {
 		s.LightTheme = d.LightTheme
 	}
@@ -672,37 +626,4 @@ func (s *Settings) normalize() {
 	if s.DarkTheme == "kero" {
 		s.DarkTheme = d.DarkTheme
 	}
-}
-
-// ParseHost reads a host as the configuration's host key writes it:
-// name=address, then its options: remote-control, color=<one of
-// HostColors>.
-func ParseHost(line string) (Host, error) {
-	name, rest, ok := strings.Cut(strings.TrimSpace(line), "=")
-	name = strings.TrimSpace(name)
-	fields := strings.Fields(rest)
-	if !ok || len(fields) == 0 {
-		return Host{}, fmt.Errorf("%q is not name=address", line)
-	}
-	if !remote.ValidName(name) {
-		return Host{}, fmt.Errorf("%q can't name a host: use letters, digits, dots and dashes (and not local)", name)
-	}
-	a, err := remote.ParseAddr(fields[0])
-	if err != nil {
-		return Host{}, err
-	}
-	h := Host{Name: name, Addr: a.String()}
-	for _, o := range fields[1:] {
-		switch k, v, _ := strings.Cut(o, "="); {
-		case o == "remote-control":
-			h.RemoteControl = true
-		case k == "color" && slices.Contains(HostColors, v):
-			h.Color = v
-		case k == "color":
-			return Host{}, fmt.Errorf("%s: no color %q (%s)", name, v, strings.Join(HostColors, ", "))
-		default:
-			return Host{}, fmt.Errorf("%s: no option %q (remote-control, color=…)", name, o)
-		}
-	}
-	return h, nil
 }

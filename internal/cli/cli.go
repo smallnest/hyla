@@ -142,19 +142,10 @@ Usage:
   hyla projects [--json]
   hyla skill setup|status|show|remove
                                 teach coding agents to use hyla
-  hyla clients [--json]         list who is connected to hylad
-  hyla hosts [ls]               the other machines Hyla reaches
-  hyla hosts add <name> <address> [--remote-control]
-                                save one: [user@]host or ssh://… over SSH,
-                                wsl://distro, or tailcat://… with the pair
-                                code of its listener
-  hyla hosts remove|check <name>
-  hyla hosts install <name|address> [--version v]
-                                install Hyla there, over SSH
-  hyla hosts tailcat enable|disable|port|rotate|code
-                                this machine as a host over Tailcat, with
+  hyla tailcat enable|disable|port|rotate|code
+                                this machine as a host, over a relay, with
                                 a pair code (secret)
-  hyla hosts pocket enable|disable|qr
+  hyla pocket enable|disable|code|qr
                                 this machine as a host for HylaPocket on a
                                 phone: its QR code, which carries the
                                 pair code of its tailcat listener (secret)
@@ -175,10 +166,6 @@ Usage:
                                 run hylad with the machine (systemd, launchd)
   hyla daemon update [version]  update the server build of Hyla
 
-Global options:
-  -H, --host <name|address>     act on hylad on another machine: a host of
-                                hyla hosts, or an address ($HYLA_HOST)
-
 A target is a session or a pane: an id, a prefix of it, or a session's
 name; a session stands for its focused pane. Inside hyla, $HYLA_PANE and
 $HYLA_SESSION name the pane and session a command runs in, the default
@@ -191,12 +178,12 @@ ambiguous one), 4 hylad unreachable.
 // Commands lists the subcommands, which main sends here.
 var Commands = []string{"ls", "list", "new", "split", "send", "key", "prompt", "read", "capture", "wait", "events", "status", "diff",
 	"history", "resume", "rename", "focus", "close", "kill", "restart", "notify", "report", "projects", "skill", "hook", "answer", "daemon", "do", "actions", "config",
-	"browser", "hosts", "clients", "pets", "feishu", "__bridge", "-H", "--host", "help", "--help", "-h", "version", "--version"}
+	"browser", "tailcat", "pocket", "pets", "feishu", "help", "--help", "-h", "version", "--version"}
 
 // IsCommand reports whether an argument starts a command of the CLI, as
 // main tells them from the app's.
 func IsCommand(arg string) bool {
-	return slices.Contains(Commands, arg) || strings.HasPrefix(arg, "--host=") || strings.HasPrefix(arg, "-H") && len(arg) > 2
+	return slices.Contains(Commands, arg)
 }
 
 // Errors of exit statuses other than 1.
@@ -215,20 +202,7 @@ func (e exitStatus) Error() string { return fmt.Sprintf("exit status %d", int(e)
 // Run runs a subcommand, returning the exit code.
 func Run(args []string) int {
 	SyncSkill()
-	host, env, args, err := splitHost(args)
-	if err == nil && host != "" && len(args) > 0 && localOnly[args[0]] {
-		// $HYLA_HOST is for what acts on sessions: the rest is of this
-		// machine, as an agent's hook in a shell whose profile sets it.
-		if env {
-			host = ""
-		} else {
-			err = usageErr("hyla %s is of this machine: run it on the host itself, without -H", args[0])
-		}
-	}
-	if err == nil {
-		onHost = host
-		err = run(args, host)
-	}
+	err := run(args)
 	if err == nil {
 		return 0
 	}
@@ -294,13 +268,9 @@ func parse(args []string, valued, boolean map[string]string) (*flags, error) {
 	return f, nil
 }
 
-func run(args []string, host string) error {
+func run(args []string) error {
 	cmd, args := args[0], args[1:]
 	switch cmd {
-	case "__bridge":
-		return bridge(args)
-	case "hosts":
-		return hostsCmd(args)
 	case "help", "--help", "-h":
 		u := usage
 		if build.Server {
@@ -310,9 +280,9 @@ func run(args []string, host string) error {
 		fmt.Print(u)
 		return nil
 	case "version", "--version":
-		return versionCmd(host)
+		return versionCmd()
 	case "daemon":
-		return daemonCmd(args, host)
+		return daemonCmd(args)
 	case "report":
 		return report(args)
 	case "actions":
@@ -332,21 +302,16 @@ func run(args []string, host string) error {
 		return answerCmd(args)
 	case "config":
 		return configCmd(args)
+	case "tailcat":
+		return tailcatCmd(args)
+	case "pocket":
+		return pocketCmd(args)
 	case "pets":
 		return petsCmd(args)
 	case "feishu":
-		return feishuCmd(args, host)
+		return feishuCmd(args)
 	}
-	if cmd == "ls" || cmd == "list" {
-		f, err := parse(args, nil, map[string]string{"json": "json", "j": "json", "all": "all", "a": "all"})
-		if err != nil {
-			return err
-		}
-		if f.set["all"] {
-			return listAll(f.set["json"])
-		}
-	}
-	c, done, err := connect(host)
+	c, done, err := connect()
 	if err != nil {
 		if errors.Is(err, client.ErrVersion) {
 			return fmt.Errorf("%w: the running hylad is of another version: run `hyla daemon restart` (it restarts sessions)", errUnreachable)
@@ -357,9 +322,6 @@ func run(args []string, host string) error {
 		return fmt.Errorf("%w: %v", errUnreachable, err)
 	}
 	defer done()
-	if cmd == "clients" {
-		return clientsCmd(c, args)
-	}
 	var st proto.State
 	if err := c.Call("state", nil, &st); err != nil {
 		return err
@@ -419,7 +381,7 @@ func run(args []string, host string) error {
 		dir := f.vals["dir"]
 		// Here, unless the session is of another machine, whose hylad
 		// then starts it in the project's directory, or the home.
-		if dir == "" && f.vals["project"] == "" && host == "" {
+		if dir == "" && f.vals["project"] == "" {
 			dir, _ = os.Getwd()
 		}
 		var s proto.Session
@@ -686,7 +648,7 @@ func run(args []string, host string) error {
 			paths = []string{""}
 		}
 		for _, p := range paths {
-			rel, err := repoPath(pane.Git.Root, p, host != "")
+			rel, err := repoPath(pane.Git.Root, p, false)
 			if err != nil {
 				return err
 			}
@@ -954,10 +916,6 @@ func repoPath(root, p string, remote bool) (string, error) {
 
 // current is the pane a command runs in, inside hyla.
 func current() string {
-	// A pane of this machine names nothing on another.
-	if onHost != "" {
-		return ""
-	}
 	if p := os.Getenv("HYLA_PANE"); p != "" {
 		return p
 	}
@@ -974,13 +932,10 @@ func findOrCurrent(st proto.State, pos []string) (target, error) {
 	return target{}, usageErr("which session? (outside hyla, name one)")
 }
 
-func daemonCmd(args []string, host string) error {
+func daemonCmd(args []string) error {
 	sub := "status"
 	if len(args) > 0 {
 		sub = args[0]
-	}
-	if host != "" {
-		return remoteDaemonCmd(sub, args[min(1, len(args)):], host)
 	}
 	switch sub {
 	case "status":
@@ -1013,20 +968,13 @@ func daemonCmd(args []string, host string) error {
 			fmt.Println("listening:", strings.Join(l, ", "))
 		}
 		// A tailcat listener's address, as hylad's key makes it: a pair
-		// code only it knows, here or on another machine's hylad.
-		if (c.Remote != nil && c.Remote.Addr.Scheme == "tailcat") || slices.ContainsFunc(settings.Load().Listen, func(l string) bool {
+		// code only it knows.
+		if slices.ContainsFunc(settings.Load().Listen, func(l string) bool {
 			spec, err := remote.ParseListen(l)
 			return err == nil && spec.Kind == "tailcat"
 		}) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-			var code string
-			var err error
-			if c.Remote != nil {
-				code, err = c.PairCode(ctx)
-			} else {
-				// Over the socket: the key makes it, as hylad's does.
-				code, err = remote.LocalTailcatAddress(ctx)
-			}
+			code, err := remote.LocalTailcatAddress(ctx)
 			cancel()
 			if err != nil {
 				fmt.Println("tailcat:", err)
@@ -1144,59 +1092,6 @@ func daemonCmd(args []string, host string) error {
 		return nil
 	}
 	return usageErr("unknown daemon command %q", sub)
-}
-
-// remoteDaemonCmd is hyla -H <host> daemon …: how hylad on the host is,
-// and restarting it, or updating Hyla there, as the app does.
-func remoteDaemonCmd(sub string, args []string, host string) error {
-	rc, err := dialHost(host)
-	if err != nil {
-		return err
-	}
-	defer rc.Close()
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-	defer cancel()
-	switch sub {
-	case "status":
-		h := rc.Welcome().Host
-		fmt.Printf("%s: %s (%s/%s), Hyla %s (protocol %d)\n", host, h.Hostname, h.OS, h.Arch, orDash(h.Hyla), h.Version)
-		c, err := client.ConnectVia(rc)
-		if err != nil {
-			fmt.Println("hylad:", err)
-			return nil
-		}
-		defer c.Close()
-		var st proto.State
-		c.Call("state", nil, &st)
-		fmt.Printf("hylad %d running (Hyla %s, pid %d) for %s: %d sessions\n", c.Welcome.Version, orDash(c.Welcome.App), c.Welcome.PID,
-			time.Since(time.UnixMilli(c.Welcome.Started)).Round(time.Second), len(st.Sessions))
-		return nil
-	case "restart":
-		if err := rc.Host(ctx, proto.HostRequest{Kind: proto.KindRestart}); err != nil {
-			return err
-		}
-		fmt.Printf("hylad on %s restarted\n", host)
-		return nil
-	case "update":
-		version := releasedVersion()
-		if len(args) > 0 {
-			version = strings.TrimPrefix(args[0], "v")
-		}
-		if version == "" {
-			v, err := update.Latest(ctx)
-			if err != nil {
-				return err
-			}
-			version = v
-		}
-		fmt.Printf("updating Hyla on %s to %s…\n", host, version)
-		if err := rc.Host(ctx, proto.HostRequest{Kind: proto.KindUpdate, App: version}); err != nil {
-			return err
-		}
-		fmt.Printf("installed: hylad on %s runs it as it restarts (hyla -H %s daemon restart), its sessions with it\n", host, host)
-		return nil
-	}
-	return usageErr("hyla -H <host> daemon status|restart|update [version]")
 }
 
 // StopDaemon stops the running daemon, which saves its sessions to start

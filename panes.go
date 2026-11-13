@@ -494,24 +494,13 @@ func (z dropZone) side() string {
 // pastes their paths there; one of this machine's pastes their paths, as
 // they are (drop_upload.go). It reports whether the pane shows a drop.
 func (a *App) dropFiles(c *ui.Context, pal *palette, s *proto.Session, p *proto.Pane) bool {
-	h := a.hostOf(p.ID)
 	body := ui.Box(c.Key("drop")).Absolute().Fill().PassThrough()
 	files := body.DroppedFiles()
 	over := body.FileDragOver()
 	if len(files) > 0 {
-		if h.remote() && h.conn != connReady {
-			a.toast(locales.HostNotConnected(h.label()))
-			return a.droppedNow(p.ID)
-		}
-		a.defer_(func() {
-			if h.remote() {
-				a.dropUpload(p.ID, files)
-			} else {
-				a.pasteDrop(p.ID, files)
-			}
-		})
+		a.defer_(func() { a.pasteDrop(p.ID, files) })
 	}
-	return over || a.droppedNow(p.ID)
+	return over
 }
 
 // dropPreview shows, over the pane under the pointer, the room the
@@ -638,19 +627,9 @@ func (a *App) paneHeader(c *ui.Context, pal *palette, bar ui.TitleBar, shown flo
 				a.startRename(s.ID)
 			}
 			// The home directory names itself "~", which the title may
-			// already say; another machine's, as scp writes it: devbox:~/api.
-			h := a.hostOf(p.ID)
-			if dir := h.shortDir(p.WorkDir()); dir != title || h.remote() {
-				if !h.remote() {
-					ui.Text(c, dir).FontSize(13).TextColor(pal.textFaint).SingleLine().Ellipsis("…").Shrink(2).MinWidth(0)
-				} else {
-					// The host's name in its color, as the sidebar's strip
-					// marks it: no pane passes for another machine's.
-					ui.Row(c.Key("where")).Shrink(2).MinWidth(0).AlignItems(ui.Center).Children(func() {
-						ui.Text(c, h.name+":").FontSize(13).FontWeight(500).TextColor(pal.hostColor(h)).SingleLine().Shrink(0)
-						ui.Text(c, dir).FontSize(13).TextColor(pal.textFaint).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
-					})
-				}
+			// already say.
+			if dir := a.hostOf(p.ID).shortDir(p.WorkDir()); dir != title {
+				ui.Text(c, dir).FontSize(13).TextColor(pal.textFaint).SingleLine().Ellipsis("…").Shrink(2).MinWidth(0)
 			}
 		})
 		if p.Git != nil {
@@ -833,18 +812,6 @@ func (a *App) paneTerminal(c *ui.Context, pal *palette, s *proto.Session, p *pro
 			if a.find.pane == p.ID {
 				a.findBar(c, pal, p, e.term)
 			}
-		case e == nil && a.hostOf(p.ID).remote() && a.hostOf(p.ID).conn != connReady:
-			// Shown as it was, until its host is back.
-			h := a.hostOf(p.ID)
-			switch {
-			case h.conn == connConnecting || h.busy != "":
-				ui.Column(c).Fill().Center().Gap(10).Children(func() {
-					ui.Spinner(c)
-					ui.Text(c, locales.HostReconnectingTo(h.name)).FontSize(12.5).TextColor(pal.textFaint)
-				})
-			default:
-				a.message(c, pal, a.hostProblem(h), h.err, locales.CommonTryAgain(), func() { a.reconnectHost(h) })
-			}
 		case e != nil && e.err != "":
 			a.message(c, pal, locales.PaneCantShow(), e.err, locales.CommonTryAgain(), func() {
 				a.dropTerm(p.ID)
@@ -922,8 +889,6 @@ func (a *App) split(s *proto.Session, p proto.CreateParams) {
 // replaceSession puts a session as hylad answered into the state, before
 // the state that has it comes.
 func (a *App) replaceSession(h *host, ns proto.Session) {
-	// Its new pane is the host's from now, as its terminal attaches there.
-	a.own(h, ns)
 	for i := range a.st.Sessions {
 		if a.st.Sessions[i].ID == ns.ID {
 			a.st.Sessions[i] = ns

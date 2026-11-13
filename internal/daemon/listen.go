@@ -1,12 +1,7 @@
 package daemon
 
 import (
-	"bufio"
 	"context"
-	"errors"
-	"fmt"
-	"github.com/egoist/mygo"
-	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -15,11 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"hyla/internal/build"
 	"hyla/internal/proto"
 	"hyla/internal/remote"
 	"hyla/internal/settings"
-	"hyla/internal/update"
 )
 
 // listeners are hylad's network listeners (Options.Listen, else the
@@ -217,7 +210,7 @@ func (l *listeners) joinTailcat(lis *listener) error {
 		mux.Handle(l.pocket.PocketPath(), l.pocket)
 		remote.ServePocket(lis.spec.PocketPort, mux)
 	}
-	r, err := remote.ListenTailcat(ctx, filepath.Join(proto.Dir(), "tailcat.json"), lis.spec.Port, l.remote(identity{via: "tailcat"}))
+	r, err := remote.ListenTailcat(ctx, filepath.Join(proto.Dir(), "tailcat.json"), lis.spec.Port)
 	if err != nil {
 		return err
 	}
@@ -232,116 +225,4 @@ func (l *listeners) joinTailcat(lis *listener) error {
 	l.mu.Unlock()
 	l.d.log.Printf("listening on %s (tailcat)", r.PairCode)
 	return nil
-}
-
-// streamOf answers the streams a remote connection asks hylad for.
-func (d *Daemon) streamOf(id identity) func(net.Conn, []byte, proto.MuxHello) {
-	return func(conn net.Conn, hello []byte, mux proto.MuxHello) {
-		sid := id
-		if sid.client == "" {
-			sid.client = mux.Client
-		}
-		if mux.Peer != "" {
-			sid.peer = mux.Peer
-		}
-		d.serveHello(conn, bufio.NewReaderSize(conn, 64<<10), hello, sid)
-	}
-}
-
-// remote is the server that answers a remote connection on hylad's
-// behalf, with HylaPocket beside it, for a connection of tailcat's.
-func (l *listeners) remote(id identity) *remote.Server {
-	d := l.d
-	s := &remote.Server{
-		Info: func() proto.HostInfo {
-			h := remote.LocalInfo(id.peer)
-			if !h.Server {
-				h.Updates = AppUpdates()
-			}
-			return h
-		},
-		Stream:  d.streamOf(id),
-		Restart: d.restart,
-		SFTP:    remote.ServeSFTP,
-		Log:     d.log,
-	}
-	// A tailcat listener's address, for Hyla elsewhere: the pair code of
-	// its key, at the region it keeps, which is the listener's.
-	s.PairCode = func() (string, error) {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-		defer cancel()
-		return remote.LocalTailcatAddress(ctx)
-	}
-	if build.Server && update.Managed(filepath.Dir(d.exe)) {
-		s.Update = func(app string) error {
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-			defer cancel()
-			d.log.Printf("updating to Hyla %s, as %s asked", app, id.peer)
-			if err := update.Install(ctx, app, filepath.Dir(d.exe), build.Version(), false); err != nil {
-				d.log.Printf("update: %v", err)
-				return err
-			}
-			return nil
-		}
-	} else if !build.Server {
-		s.Update = func(app string) error {
-			if !AppUpdates() {
-				return errors.New("Hyla on this host takes updates from other machines only with remote-updates on: update it there")
-			}
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-			defer cancel()
-			d.log.Printf("updating the app to Hyla %s, as %s asked", app, id.peer)
-			if err := UpdateApp(ctx, app); err != nil {
-				d.log.Printf("update: %v", err)
-				return err
-			}
-			return nil
-		}
-	}
-	return s
-}
-
-// AppUpdates reports whether the desktop app here takes updates from
-// Hyla on other machines: the user let it (remote-updates), and it can
-// update itself, as a development build or a package manager's can't.
-func AppUpdates() bool {
-	return settings.Load().RemoteUpdates && mygo.Updater.Enabled()
-}
-
-// UpdateApp installs the newest release of the desktop app in place of
-// this one, as the app of version app asks, from its own signed feed: the
-// release hylad restarts into, and the window here relaunches into as it
-// finds hylad newer (App.relaunchForHylad). Never back to an older one.
-func UpdateApp(ctx context.Context, app string) error {
-	up, err := mygo.Updater.Check(ctx)
-	if err != nil {
-		return err
-	}
-	if up == nil {
-		if update.Compare(build.Version(), app) >= 0 {
-			return nil
-		}
-		return fmt.Errorf("no release of Hyla %s or newer to update to", app)
-	}
-	if update.Compare(up.Version, app) < 0 {
-		return fmt.Errorf("the newest release is Hyla %s, older than %s", up.Version, app)
-	}
-	return up.Install(ctx, nil)
-}
-
-// restart restarts hylad, as a remote client asks after an update: it
-// saves the sessions, which the next hylad starts again, as after a
-// reboot, then ends; its service's manager, or its successor, starts the
-// next.
-func (d *Daemon) restart() (then func(), err error) {
-	d.log.Printf("restarting, as a client asked")
-	// Once the answer is written.
-	return func() {
-		d.saveHistories(true)
-		d.saveState()
-		d.mu.Lock()
-		d.restarting = true
-		d.mu.Unlock()
-		d.stop()
-	}, nil
 }

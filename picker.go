@@ -135,11 +135,8 @@ func (a *App) pickerView(c *ui.Context, pal *palette) {
 		floating(panel.Width(600).MaxHeight(500).Radius(14).Background(pal.popover), pal).Clip().
 			Label(locales.PickerTitle(h.label()))
 		ui.Row(c).Height(42).Shrink(0).Padding(0, 16).Gap(8).AlignItems(ui.Center).Children(func() {
-			ui.Icon(c, hostIcon).Size(14, 14).TextColor(pal.hostColor(h))
-			// The machine it lists, which any other can take the place of.
-			if len(a.hosts) > 1 {
-				a.pickerHosts(c, pal, h)
-			} else {
+			ui.Icon(c, hostIcon).Size(14, 14).TextColor(pal.textMuted)
+			{
 				ui.Text(c, locales.PickerTitle(h.label())).FontSize(13).FontWeight(600).TextColor(pal.text).SingleLine().Shrink(0)
 			}
 			if p.list != nil {
@@ -277,9 +274,6 @@ func (a *App) pickerHosts(c *ui.Context, pal *palette, shown *host) {
 				fg = pal.text
 			case b.Hovered():
 				b.Background(pal.rowHover)
-			}
-			if h.remote() && h.conn != connReady {
-				b.Opacity(0.5)
 			}
 			b.Children(func() {
 				ui.Text(c, label).FontSize(12.5).FontWeight(600).TextColor(fg).SingleLine()

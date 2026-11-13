@@ -221,7 +221,6 @@ hyla feishu send <会话> <文字…>   # 按会话 ID 发送一条消息
 
 ## 其他机器
 
-在命令前加 `-H <host>`，或设置 `$HYLA_HOST`，可以让操作会话的命令指向另一台机器上的 hylad：可以是你添加过的主机，也可以是 `me@devbox`、`wsl://Ubuntu` 这样的地址。见 [远程主机](./remote.md)。
 
 ```sh
 hyla hosts                       # 你添加过的主机

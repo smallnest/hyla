@@ -437,7 +437,7 @@ func (a *App) fileViewer(c *ui.Context, pal *palette, s *proto.Session, fv *file
 			iconButton(c, "files-edit", docIcon, locales.FilesOpenInPane(), pal, func() { a.defer_(func() { a.openFileInPane(pid, file) }) })
 			iconButton(c, "files-editor", splitRightIcon, locales.FilesOpenInEditor(), pal, func() { a.defer_(func() { a.openFileInEditor(pid, file) }) })
 		}
-		if !h.remote() && !fv.gone {
+		if !fv.gone {
 			full := fv.path
 			iconButton(c, "open", openFileIcon, locales.ChangesOpenFile(), pal, func() { openPath(full) })
 		}

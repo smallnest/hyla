@@ -149,9 +149,6 @@ func (a *App) endedRow(c *ui.Context, pal *palette, h *host, cv proto.Conversati
 		ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
 			ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
 				ui.Text(c, cv.Label()).FontSize(13).TextColor(pal.text).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
-				if h.remote() {
-					a.hostTag(c, pal, h)
-				}
 			})
 			ui.Text(c, proto.DirName(cv.Dir)).FontSize(12).TextColor(pal.textFaint).SingleLine().Ellipsis("…")
 		})
@@ -197,7 +194,7 @@ func (a *App) endedMenu(m *ui.Menu, h *host, cv proto.Conversation) {
 	if m.Item(locales.SessionCopyDirectory()).Disabled(cv.Dir == "").Chosen() {
 		a.copyText = cv.Dir
 	}
-	if m.Item(locales.SessionRevealIn(fileManager())).Disabled(cv.Dir == "" || h.remote()).Chosen() {
+	if m.Item(locales.SessionRevealIn(fileManager())).Disabled(cv.Dir == "").Chosen() {
 		openPath(cv.Dir)
 	}
 	if !cv.Archived {

@@ -25,7 +25,7 @@ func unit(exe string) string {
 	return fmt.Sprintf(`# Hyla's daemon, which runs the sessions: written by hyla daemon install-service.
 [Unit]
 Description=Hyla sessions (hylad)
-Documentation=https://github.com/smallnest/hyla/blob/main/docs/remote.md
+Documentation=https://github.com/smallnest/hyla
 
 [Service]
 Type=simple

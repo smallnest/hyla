@@ -32,10 +32,6 @@ its own, and the features below that Kero never had.
   **Settings › Appearance**.
 - **A CLI agents can drive.** `hyla` starts sessions, splits panes, types into
   them, waits on them and reads their screens.
-- **Remote hosts.** Run agents on a Linux box, a cloud VM, a Mac, a Windows PC
-  or WSL and see them in the same sidebar, over SSH or a Tailcat pair
-  code. They keep running when your laptop sleeps. See
-  [Remote Hosts](docs/remote.md).
 - **Agents in a Feishu chat.** Send the bot a message and the turn runs in a
   Hyla session; the answer comes back as a card, permission requests and
   choices as buttons, and the conversation continues there. The session stays

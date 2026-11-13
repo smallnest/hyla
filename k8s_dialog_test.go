@@ -89,10 +89,6 @@ func TestAddK8sPodFromSidebar(t *testing.T) {
 	if pod := a.prefs.K8sPods[0]; pod.Name != "web-0" || pod.Session != "k8s-s" {
 		t.Errorf("the pod is %+v", pod)
 	}
-	// A kubectl terminal is no Hyla host: nothing is added to Settings.
-	if len(a.set.Hosts) != 0 {
-		t.Errorf("the dialog added a Hyla host: %+v", a.set.Hosts)
-	}
 	tt.Frame()
 	if !tt.HasText(locales.K8sPodsProject()) || !tt.HasText("web-0") {
 		t.Errorf("the sidebar shows no K8s project row; texts %q", tt.Texts())
@@ -165,9 +161,6 @@ func TestAddK8sPodOnlyExec(t *testing.T) {
 		if a.k8sAsk == nil || a.k8sAsk.err != c.want {
 			t.Errorf("%q: the dialog said %v, want %q", c.cmd, a.k8sAsk, c.want)
 		}
-	}
-	if len(a.set.Hosts) != 0 {
-		t.Errorf("the dialog added a Hyla host: %+v", a.set.Hosts)
 	}
 }
 

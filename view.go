@@ -303,27 +303,8 @@ func (a *App) sidebar(c *ui.Context, pal *palette, bar ui.TitleBar) {
 				a.groupView(c, pal, g, gi, &n)
 				gi++
 			}
-			if len(a.st.Sessions) == 0 && local.conn == connReady && len(a.hosts) == 1 {
+			if len(a.st.Sessions) == 0 && local.conn == connReady {
 				ui.Text(c, locales.SidebarNoSessions()).FontSize(12.5).TextColor(pal.textFaint).Padding(8, 10)
-			}
-		}
-		// Then each host's, flat, tagged with its name: a host has a row
-		// of its own while it needs one (hostNeedsRow), or while it has
-		// no project to show, where its machine can be started on.
-		for _, h := range a.hosts[1:] {
-			groups := a.hostGroups(h)
-			if a.hostNeedsRow(h) || len(groups) == 0 {
-				top := float32(18)
-				if gi == 0 {
-					top = 2
-				}
-				a.hostRows(c, pal, h, top, len(groups) == 0)
-				gi++
-			}
-			for i, g := range groups {
-				g.first = i == 0
-				a.groupView(c, pal, g, gi, &n)
-				gi++
 			}
 		}
 	})
@@ -436,14 +417,6 @@ func (a *App) sessionSidebar(c *ui.Context, pal *palette, group string, n *int) 
 		if group == "date" {
 			dgs := a.dateGroups(h)
 			empty = len(dgs) == 0
-			if h.remote() {
-				top := float32(18)
-				if gi == 0 && *n == 0 {
-					top = 2
-				}
-				a.hostRows(c, pal, h, top, empty)
-				gi++
-			}
 			for _, dg := range dgs {
 				top := float32(18)
 				if gi == 0 && *n == 0 {
@@ -458,14 +431,6 @@ func (a *App) sessionSidebar(c *ui.Context, pal *palette, group string, n *int) 
 		} else {
 			ss := a.flatSessions(h)
 			empty = len(ss) == 0
-			if h.remote() {
-				top := float32(18)
-				if gi == 0 && *n == 0 {
-					top = 2
-				}
-				a.hostRows(c, pal, h, top, empty)
-				gi++
-			}
 			for _, s := range ss {
 				a.sessionRow(c, pal, s, n, rowInset, "")
 			}
@@ -573,10 +538,6 @@ func (a *App) groupView(c *ui.Context, pal *palette, g group, gi int, n *int) {
 			a.startProjectRename(id)
 		}
 		m.Separator()
-		// A remote group's menu has its host's, as the host has no header.
-		if g.host.remote() {
-			m.Submenu(g.host.name, func(m *ui.Menu) { a.hostMenu(m, g.host) })
-		}
 		// Close All Sessions ends the sessions the project holds, not the
 		// project itself, asking first as closing the project does: what
 		// runs in them ends with them.
@@ -658,17 +619,14 @@ func (a *App) groupView(c *ui.Context, pal *palette, g group, gi int, n *int) {
 			return
 		}
 		ui.Text(c, g.project.Name).FontSize(13).FontWeight(500).TextColor(pal.group).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
-		if g.host.remote() {
-			a.hostTag(c, pal, g.host)
-		}
 		ui.Textf(c, "%d", len(g.sessions)).FontSize(12.5).TextColor(pal.textFaint).FontFeatures("tnum")
 		chev := ui.Icon(c, chevronIcon).Size(11, 11).TextColor(pal.textFaint)
 		turn := chev.AnimateTo("turn", 90*(1-b2f(collapsed)), ui.Snappy)
 		chev.Rotate(turn).Opacity(chev.Animate("shown", b2f(hovered || collapsed), 120*time.Millisecond))
 		ui.Spacer(c)
-		// A host with no row of its own tells how the app stands with it
-		// here: reconnecting, or wanting an update or restart.
-		if g.first && g.host.remote() && !a.hostNeedsRow(g.host) {
+		// This machine's hylad says how the app stands with it here, when
+		// it reconnects, or wants restarting: the first group's header.
+		if g.first {
 			a.hostState(c, pal, g.host)
 		}
 		if needs > 0 {
@@ -795,11 +753,6 @@ func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int, 
 		bg = translucentGlass(pal.rowHover, pal, a.set)
 	}
 	row.Background(row.AnimateColor("bg", bg, ui.Animation{Duration: 110 * time.Millisecond}))
-	// A session of a host the app lost shows as it was, faded, until the
-	// host is back.
-	if h := a.hostOf(s.ID); h.remote() && h.conn != connReady {
-		row.Opacity(0.55)
-	}
 	if (row.Pressed() || row.Clicked()) && !selected {
 		a.selectSession(s.ID)
 	}
@@ -1046,7 +999,7 @@ func (a *App) sessionMenu(m *ui.Menu, s *proto.Session) {
 	if m.Item(locales.SessionCopyDirectory()).Disabled(s.WorkDir() == "").Chosen() {
 		a.copyText = s.WorkDir()
 	}
-	if m.Item(locales.SessionRevealIn(fileManager())).Disabled(s.WorkDir() == "" || h.remote()).Chosen() {
+	if m.Item(locales.SessionRevealIn(fileManager())).Disabled(s.WorkDir() == "").Chosen() {
 		a.openLink(id, s.WorkDir())
 	}
 	m.Separator()
@@ -1090,10 +1043,6 @@ func (a *App) sidebarFooter(c *ui.Context, pal *palette) {
 func (a *App) footerChip(c *ui.Context, pal *palette, st proto.Status, unread bool, is func(*proto.Session) bool, fg ui.Color, say func(int) string, hint string, jump func()) {
 	n := 0
 	for i := range a.st.Sessions {
-		// A host the app lost says nothing new, as for the Dock's badge.
-		if h := a.hostOf(a.st.Sessions[i].ID); h.remote() && h.conn != connReady {
-			continue
-		}
 		if is(&a.st.Sessions[i]) {
 			n++
 		}
@@ -1412,12 +1361,9 @@ func (a *App) cardFor(c *ui.Context, pal *palette, bar ui.TitleBar, shown float3
 		})
 		ui.Column(c).Grow(1).MinHeight(0).Children(func() {
 			switch {
-			case h.conn == connVersion && h.remote():
-				title, detail := a.hostVersion(h)
-				a.message(c, pal, title, detail, locales.HostUpdateAction(h.name), func() { a.offerHostUpdate(h) })
 			case h.conn == connVersion:
 				a.message(c, pal, locales.UpdatedTitle(), locales.UpdatedDetail(), locales.CommonRestartService(), a.restartDaemon)
-			case h.conn == connFailed && h.cl == nil && !h.remote():
+			case h.conn == connFailed && h.cl == nil:
 				a.message(c, pal, locales.ConnCantReach(), h.err, locales.CommonTryAgain(), func() { h.retries = 0; h.conn = connConnecting; a.connect() })
 			case !a.loaded:
 				ui.Column(c).Fill().Center().Children(func() {

@@ -317,40 +317,6 @@ var keys = append([]key{
 	boolKey("dock-bounce", "once, when a session comes to need you", func(s *Settings) *bool { return &s.BounceDock }),
 
 	boolKey("remote-control", "hyla do, hyla focus and hyla browser drive the app", func(s *Settings) *bool { return &s.RemoteControl }),
-	{name: "host", doc: "another machine whose sessions the app shows, as name=address: [user@]host or ssh://… over SSH, wsl://distro, or tailcat://… with the pair code of its listener; add remote-control after it to let its programs drive the app, and color=red, orange, amber, green, teal, blue, purple or pink to mark its sessions; repeat it", list: true,
-		get: func(s *Settings) []string {
-			var out []string
-			for _, h := range s.Hosts {
-				v := h.Name + "=" + h.Addr
-				if h.RemoteControl {
-					v += " remote-control"
-				}
-				if h.Color != "" {
-					v += " color=" + h.Color
-				}
-				out = append(out, v)
-			}
-			return out
-		},
-		set: func(s *Settings, v []string) error {
-			s.Hosts = nil
-			var bad []string
-			for _, line := range v {
-				h, err := ParseHost(line)
-				if err == nil && s.Host(h.Name) != nil {
-					err = fmt.Errorf("%q is named twice", h.Name)
-				}
-				if err != nil {
-					bad = append(bad, err.Error())
-					continue
-				}
-				s.Hosts = append(s.Hosts, h)
-			}
-			if bad != nil {
-				return fmt.Errorf("%s", strings.Join(bad, "; "))
-			}
-			return nil
-		}},
 	{name: "listen", doc: "let Hyla on other machines reach this one's sessions: tailcat://:7473 through a relay with a pair code (tailcat = true), which also serves HylaPocket on a phone; repeat it", list: true,
 		get: func(s *Settings) []string { return slices.Clone(s.Listen) },
 		set: func(s *Settings, v []string) error {
@@ -381,53 +347,6 @@ var keys = append([]key{
 			return nil
 		}},
 	boolKey("tailcat", "give Hyla other ways to reach its hosts: a relay with a pair code. Off, Hyla lists none of those hosts and connects to none, and hylad starts no tailcat listener", func(s *Settings) *bool { return &s.Tailcat }),
-	{name: "tailcat-host", doc: "a host Hyla reaches over tailcat, as name=tailcat:// plus the pair code of its tailcat listener (tailcat = true); repeat it", list: true,
-		get: func(s *Settings) []string {
-			out := make([]string, len(s.TailcatHosts))
-			for i, h := range s.TailcatHosts {
-				out[i] = h.Name + "=" + h.Addr
-			}
-			return out
-		},
-		set: func(s *Settings, v []string) error {
-			s.TailcatHosts = nil
-			var bad []string
-			for _, line := range v {
-				name, addr, ok := strings.Cut(strings.TrimSpace(line), "=")
-				name, addr = strings.TrimSpace(name), strings.TrimSpace(addr)
-				var err error
-				switch {
-				case !ok:
-					err = fmt.Errorf("%q: write name=tailcat://paircode", line)
-				case !hostName(name):
-					err = fmt.Errorf("%q: a name is letters, digits, dots, dashes and underscores", name)
-				case !validTailcatAddr(addr):
-					err = fmt.Errorf("%q: %q is not a tailcat address", line, addr)
-				case s.TailcatNameTaken(name, s.TailcatHostByName(name)):
-					err = fmt.Errorf("%q is named twice", name)
-				}
-				if err != nil {
-					bad = append(bad, err.Error())
-					continue
-				}
-				// A host named here asks for no switch of its own: the
-				// file's tailcat line says, and the app's switch sets it.
-				s.TailcatHosts = append(s.TailcatHosts, TailcatHost{Name: name, Addr: addr})
-			}
-			if bad != nil {
-				return fmt.Errorf("%s", strings.Join(bad, "; "))
-			}
-			return nil
-		}},
-	{name: "tailcat-port", doc: "the port of the tailcat listeners of the hosts Hyla adds, which their pair codes do not have: the default, 7473; set it to the Listener port of a host that names another",
-		get: func(s *Settings) []string { return []string{s.TailcatPort} },
-		set: func(s *Settings, v []string) error {
-			if p := strings.TrimSpace(v[len(v)-1]); p != "" && !ValidTailcatPort(p) {
-				return fmt.Errorf("%q is not a port", p)
-			}
-			s.TailcatPort = strings.TrimSpace(v[len(v)-1])
-			return nil
-		}},
 	{name: "tailcat-relay", doc: "where tailcat finds its relays, a DERP map as https://tailcat.dev/derpmap.json: Tailscale's public, rate-limited relays unless you run your own, as derper does; the host and the other machines set the same map",
 		get: func(s *Settings) []string { return []string{s.TailcatRelay} },
 		set: func(s *Settings, v []string) error {
@@ -438,7 +357,6 @@ var keys = append([]key{
 			return nil
 		}},
 	boolKey("tailcat-rotate", "start hylad's tailcat listener with the key again, whose pair code changed: hyla tailcat rotate sets it", func(s *Settings) *bool { return &s.TailcatRotate }),
-	boolKey("remote-updates", "let Hyla on another machine that connects update the Hyla app here to its version, which restarts it", func(s *Settings) *bool { return &s.RemoteUpdates }),
 
 	boolKey("git-status", "show the git branch and changes of each session", func(s *Settings) *bool { return &s.GitStatus }),
 	choiceKey("worktree-base", "what a session's own git worktree branches from: the repository's default branch, or the branch of the session you're in", func(s *Settings) *string { return &s.WorktreeBase }, "default", "current"),
@@ -666,14 +584,6 @@ func parse(data string) (Settings, []string) {
 			problems = append(problems, name+": "+err.Error())
 		}
 	}
-	// A file from before the switch that named a tailcat host asked for
-	// Tailcat; one that names the switch has said which way it wants it,
-	// whichever its lines' order.
-	if _, named := values["tailcat"]; !named {
-		for _, h := range s.TailcatHosts {
-			s.Tailcat = s.Tailcat || !h.Added
-		}
-	}
 	// After every key, as a file may write listen before tailcat.
 	for _, name := range order {
 		if k := findKey(name); k.list && k.check != nil {
@@ -728,12 +638,7 @@ func format(s Settings, data string) string {
 			continue
 		}
 		if slices.Equal(k.get(&s), k.get(&def)) {
-			// A file that names tailcat hosts and says nothing of the
-			// switch asked for Tailcat, as one from before the switch did:
-			// off is written, that the file keeps it off.
-			if k.name != "tailcat" || len(s.TailcatHosts) == 0 {
-				continue
-			}
+			continue
 		}
 		emit(k)
 	}

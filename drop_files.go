@@ -2,8 +2,6 @@ package main
 
 import (
 	"hyla/internal/proto"
-
-	"hyla/locales"
 )
 
 // Files dragged from this machine onto what a session shows, its panes or
@@ -24,15 +22,6 @@ func (a *App) cardDrop(s *proto.Session, files []string) {
 	}
 	p := a.dropPane(s)
 	if p == nil {
-		return
-	}
-	h := a.hostOf(p.ID)
-	if h.remote() {
-		if h.conn != connReady {
-			a.toast(locales.HostNotConnected(h.label()))
-			return
-		}
-		a.dropUpload(p.ID, files)
 		return
 	}
 	// The file stays where it is, of this machine, and its path goes into

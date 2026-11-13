@@ -210,9 +210,6 @@ func (a *App) askDelete(pane string, it fileItem) {
 		title = locales.FilesDeleteFolderTitle(it.Name)
 	}
 	detail, action := locales.FilesDeleteTrashDetail(), locales.FilesMoveToTrash()
-	if h.remote() {
-		detail, action = locales.FilesDeleteForGoodDetail(), locales.FilesDelete()
-	}
 	a.confirm = &confirmation{
 		open:    true,
 		title:   title,
@@ -225,17 +222,8 @@ func (a *App) askDelete(pane string, it fileItem) {
 
 // deleteEntry deletes a file or folder, as askDelete says.
 func (a *App) deleteEntry(h *host, it fileItem) {
-	cl := h.cl
-	if cl == nil && h.remote() {
-		return
-	}
 	go func() {
-		var err error
-		if h.remote() {
-			err = cl.Call("fs.delete", proto.FSDeleteParams{Path: it.path}, nil)
-		} else {
-			err = mygo.Shell.TrashItem(it.path)
-		}
+		err := mygo.Shell.TrashItem(it.path)
 		a.update(func() {
 			if err != nil {
 				a.toast(locales.FilesDeleteFailed(it.Name, remoteError(err)))

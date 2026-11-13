@@ -18,7 +18,6 @@ func TestQuitEndsSessions(t *testing.T) {
 
 	// A shell alone: the quit is let through, to end the sessions as it
 	// goes, not to close the window and leave them.
-	a.own(a.local(), a.st.Sessions[0])
 	a.local().conn, a.local().loaded = connReady, true
 	a.set.QuitEndsSessions = true
 	if !a.quitRequested() {
@@ -27,7 +26,6 @@ func TestQuitEndsSessions(t *testing.T) {
 
 	// A program runs: the quit asks, and the question takes a click.
 	a = testApp(t)
-	a.own(a.local(), a.st.Sessions[0])
 	a.local().conn, a.local().loaded = connReady, true
 	a.set.QuitEndsSessions, a.st.Sessions[0].Process = true, "claude" // the sessions came
 	if a.quitRequested() {
@@ -65,7 +63,6 @@ func TestQuitEndsSessions(t *testing.T) {
 func TestQuitAllQuestionCancel(t *testing.T) {
 	for _, answer := range []string{"click", "esc"} {
 		a := testApp(t)
-		a.own(a.local(), a.st.Sessions[0])
 		a.local().conn, a.local().loaded = connReady, true
 		a.set.QuitEndsSessions, a.st.Sessions[0].Process = true, "claude"
 		if a.quitRequested() || a.confirm == nil {
@@ -110,7 +107,6 @@ func TestQuitEndsSessionsNotLoaded(t *testing.T) {
 // nothing go until it is answered.
 func TestQuitLeavesTheQuickTerminal(t *testing.T) {
 	a := testApp(t)
-	a.own(a.local(), a.st.Sessions[0])
 	a.local().conn, a.local().loaded = connReady, true
 	if !a.quitRequested() {
 		t.Fatal("a quit was taken back")
@@ -120,7 +116,6 @@ func TestQuitLeavesTheQuickTerminal(t *testing.T) {
 	}
 
 	a = testApp(t)
-	a.own(a.local(), a.st.Sessions[0])
 	a.local().conn, a.local().loaded = connReady, true
 	a.set.QuitEndsSessions, a.st.Sessions[0].Process = true, "claude"
 	if a.quitRequested() {

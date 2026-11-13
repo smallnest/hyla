@@ -321,9 +321,6 @@ func eventsCmd(c *client.Client, st proto.State, args []string) error {
 	})
 	if err := c.Call("watch", nil, nil); err != nil {
 		if strings.Contains(err.Error(), "unknown method") {
-			if onHost != "" {
-				return fmt.Errorf("hylad on %s is too old for hyla events: update it (hyla -H %s daemon update)", onHost, onHost)
-			}
 			return fmt.Errorf("the running hylad is too old for hyla events: run `hyla daemon restart` (it restarts sessions)")
 		}
 		return err

@@ -6,6 +6,15 @@ number; the notes of the upstream releases it includes follow its own.
 
 ## Unreleased
 
+- Hyla no longer adds another machine as a host of its own. Its sessions and
+  panes are this machine's alone: the sidebar lists them, the window shows
+  them, and an SSH host is a terminal of the SSH project, where `ssh` runs
+  as anywhere else. `hyla hosts`, `hyla clients` and `hyla -H` are gone with
+  the machines they named, and so are the settings that reached them:
+  Settings › Hyla Hosts keeps the Tailcat group, which turns this machine
+  into a host for HylaPocket on a phone, and nothing else. `hyla hosts
+  tailcat` and `hyla hosts pocket` are `hyla tailcat` and `hyla pocket`; the
+  pair code, the QR code and the listener are as they were.
 - Tailscale is no longer a way to reach or serve a machine. Hyla reaches a
   host over SSH, WSL or a Tailcat pair code alone: a host's `http(s)://`
   address, the `tailnet://` and `tailnet-serve://` listeners that answered

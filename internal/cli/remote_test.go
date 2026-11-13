@@ -3,58 +3,11 @@ package cli
 import (
 	"os"
 	"path/filepath"
-	"slices"
 	"testing"
 
 	"hyla/internal/remote"
 	"hyla/internal/settings"
 )
-
-func TestSplitHost(t *testing.T) {
-	// A test run inside a pane has the pane's HYLA_PANE, which hides
-	// $HYLA_HOST.
-	t.Setenv("HYLA_PANE", "")
-	t.Setenv("HYLA_HOST", "")
-	for _, c := range []struct {
-		args []string
-		host string
-		rest []string
-	}{
-		{[]string{"ls"}, "", []string{"ls"}},
-		{[]string{"-H", "build", "ls", "-j"}, "build", []string{"ls", "-j"}},
-		{[]string{"--host", "me@devbox", "new"}, "me@devbox", []string{"new"}},
-		{[]string{"--host=wsl://Ubuntu", "ls"}, "wsl://Ubuntu", []string{"ls"}},
-		{[]string{"-Hbuild", "ls"}, "build", []string{"ls"}},
-		{[]string{"-H", "local", "ls"}, "", []string{"ls"}},
-		// A -H after the command is the command's.
-		{[]string{"send", "x", "-H"}, "", []string{"send", "x", "-H"}},
-	} {
-		host, _, rest, err := splitHost(c.args)
-		if err != nil || host != c.host || !slices.Equal(rest, c.rest) {
-			t.Errorf("%q: %q %q %v", c.args, host, rest, err)
-		}
-	}
-	t.Setenv("HYLA_HOST", "build")
-	if host, env, _, _ := splitHost([]string{"ls"}); host != "build" || !env {
-		t.Errorf("$HYLA_HOST: %q", host)
-	}
-	if host, env, _, _ := splitHost([]string{"-H", "other", "ls"}); host != "other" || env {
-		t.Errorf("-H over $HYLA_HOST: %q", host)
-	}
-	for _, bad := range [][]string{{"-H"}, {"-H", "build"}} {
-		if _, _, _, err := splitHost(bad); err == nil {
-			t.Errorf("%q: no error", bad)
-		}
-	}
-}
-
-func TestIsCommand(t *testing.T) {
-	for arg, want := range map[string]bool{"ls": true, "-H": true, "--host=x": true, "-Hbuild": true, "hosts": true, "__bridge": true, "-psn_0_1": false, "": false} {
-		if IsCommand(arg) != want {
-			t.Errorf("IsCommand(%q) = %v", arg, !want)
-		}
-	}
-}
 
 func TestRemoteRepoPath(t *testing.T) {
 	for in, want := range map[string]string{
@@ -74,30 +27,7 @@ func TestRemoteRepoPath(t *testing.T) {
 	}
 }
 
-// Inside a pane, $HYLA_HOST, which a profile may set, gives way to the
-// pane's machine; a command of this machine alone ignores it.
-func TestHylaHostScope(t *testing.T) {
-	t.Setenv("HYLA_HOST", "build")
-	t.Setenv("HYLA_PANE", "p1")
-	if host, _, _, _ := splitHost([]string{"ls"}); host != "" {
-		t.Errorf("inside a pane: %q", host)
-	}
-	if host, _, _, _ := splitHost([]string{"-H", "build", "ls"}); host != "build" {
-		t.Errorf("-H inside a pane: %q", host)
-	}
-	t.Setenv("HYLA_PANE", "")
-	if !localOnly["hook"] || !localOnly["config"] || localOnly["ls"] {
-		t.Error("localOnly")
-	}
-	onHost = "build"
-	defer func() { onHost = "" }()
-	t.Setenv("HYLA_PANE", "p1")
-	if current() != "" {
-		t.Error("a pane of this machine named on another")
-	}
-}
-
-// `hyla hosts tailcat` turns this machine's tailcat listener on and off,
+// `hyla tailcat` turns this machine's tailcat listener on and off,
 // and rotates its pair code, in the settings file it reads.
 func TestHostsTailcat(t *testing.T) {
 	home := t.TempDir()

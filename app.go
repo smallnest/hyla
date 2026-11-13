@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"maps"
-	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -224,9 +223,6 @@ type App struct {
 	// switchFrom posed, on its way in: the one after, posing its place.
 	switchIn   bool
 	switchFrom ui.Motion
-	// uploading are the panes that files are dropping on now, and their
-	// directories (drop_upload.go).
-	uploading []paneUpload
 	// switchAt is when a switch came in, which lands switchLand after.
 	switchAt time.Time
 	// from is the host whose program asked for the action being run (hyla
@@ -391,11 +387,6 @@ func (a *App) event(h *host, cl *client.Client, m proto.Message) {
 		if title == "" {
 			title = s.DisplayName(a.set.SessionName)
 		}
-		// A program on another machine says what it likes: the host's
-		// name says where it is.
-		if h.remote() {
-			title = h.name + ": " + title
-		}
 		a.showNotification(n.Session, title, n.Body)
 	}
 }
@@ -477,11 +468,6 @@ func (a *App) notify(first bool) {
 	waiting := 0
 	for i := range a.st.Sessions {
 		s := &a.st.Sessions[i]
-		// A host the app lost shows its sessions as they were: what they
-		// say is old news, which tells nothing.
-		if h := a.hostOf(s.ID); h.remote() && h.conn != connReady {
-			continue
-		}
 		prev, seen := a.statuses[s.ID]
 		a.statuses[s.ID] = s.Status
 		if s.Status == proto.Waiting {
@@ -516,7 +502,7 @@ func (a *App) notify(first bool) {
 		a.showNotification(s.ID, title, body)
 	}
 	for id := range a.statuses {
-		if h := a.hostOf(id); a.session(id) == nil || h.remote() && h.conn != connReady {
+		if a.session(id) == nil {
 			delete(a.statuses, id)
 		}
 	}
@@ -568,18 +554,11 @@ type group struct {
 	first bool
 }
 
-// key is what the group's collapse is remembered by: its project's id,
-// and for a remote host's sessions of no project, its host's.
-func (g group) key() string {
-	if g.project.ID == "" && g.host.remote() {
-		return "other:" + g.host.name
-	}
-	return g.project.ID
-}
+// key is what the group's collapse is remembered by: its project's id.
+func (g group) key() string { return g.project.ID }
 
-// dragKey is what a session drag stays within: the group's key, which a
-// local host's sessions of no project have none of, so it takes its
-// host's name as a remote host's does.
+// dragKey is what a session drag stays within: the group's key, which the
+// sessions of no project have none of, so it takes their host's name.
 func (g group) dragKey() string {
 	if g.project.ID == "" {
 		return "other:" + g.host.name
@@ -1280,11 +1259,6 @@ func (a *App) termOptions(id string, conn *gated) terminal.Options {
 	if a.set.CopyOnSelect {
 		o.CopyOnSelect = terminal.CopyOnSelectClipboard
 	}
-	// Files and images pasted into a pane of another machine go there; a
-	// local pane's image alone pastes as the path of a file with it.
-	if a.hostOf(id).remote() {
-		o.OnPaste = func(d transfer.Data) bool { return a.remotePaste(id, d) }
-	}
 	return o
 }
 
@@ -1482,11 +1456,6 @@ func (a *App) apply(s settings.Settings, save bool) {
 	if (old.BlockAds != s.BlockAds || !slices.Equal(old.AdLists, s.AdLists)) && (a.ads.started || len(a.webs) > 0) {
 		a.applyAdBlock()
 	}
-	// syncHosts lets go of removed hosts' connections, with no window to
-	// wait for: without one the dead host stays in the sidebar.
-	if !slices.Equal(old.Hosts, s.Hosts) || !slices.Equal(old.TailcatHosts, s.TailcatHosts) || old.Tailcat != s.Tailcat {
-		a.syncHosts()
-	}
 	// The bot's commands run in this window's environment, which a token
 	// or a variable read at each login changes: the bot connects again
 	// as the window reads settings again.
@@ -1611,25 +1580,6 @@ var lineSuffix = regexp.MustCompile(`(:\d+){1,2}$`)
 // file paths printed in the session, relative to its directory, in the
 // app that opens them.
 func (a *App) openLink(id, link string) bool {
-	if h := a.hostOf(id); h.remote() {
-		// A link another machine's program printed opens here only as a
-		// web page; a file:// one, and any path, are the host's; any other,
-		// as of an app of this machine, does not open.
-		if u, err := url.Parse(link); err == nil && strings.Contains(link, "://") {
-			switch strings.ToLower(u.Scheme) {
-			case "http", "https":
-				return false
-			case "file":
-				a.openRemotePath(h, id, u.Path)
-			default:
-				a.toast(locales.HostLinkRefused(h.name, u.Scheme))
-			}
-			return true
-		}
-		// A path of another machine is never a file of this one.
-		a.openRemotePath(h, id, link)
-		return true
-	}
 	if strings.Contains(link, "://") {
 		return false
 	}
@@ -1769,9 +1719,6 @@ func (a *App) newSessionOn(h *host, projectID string) {
 		p.Cols, p.Rows = cur.Cols, cur.Rows
 	}
 	home := proto.Home()
-	if h.remote() {
-		home = "~" // the host's, as hylad there takes it
-	}
 	if a.set.NewSessionDir == "home" {
 		p.Dir = home
 	}
@@ -1812,7 +1759,6 @@ func (a *App) addPending(h *host, s proto.Session) {
 	if a.session(s.ID) != nil {
 		return
 	}
-	a.own(h, s)
 	a.st.Sessions = append(a.st.Sessions, s)
 	if a.project(s.Project) == nil {
 		a.st.Projects = append(a.st.Projects, proto.Project{ID: s.Project, Name: proto.DirName(s.Dir), Dir: s.Dir})
@@ -1823,12 +1769,6 @@ func (a *App) addPending(h *host, s proto.Session) {
 // project: of this machine, with the system's dialog, else, with hosts,
 // of any machine, with the app's picker, from the shown session's.
 func (a *App) openProject() {
-	// With hosts, the app's picker, which goes to any machine, this one
-	// too, as the sidebar has no host of its own to start on.
-	if h := a.selectedHost(); h.remote() || len(a.hosts) > 1 {
-		a.openProjectOn(h)
-		return
-	}
 	h := a.local()
 	if h.cl == nil {
 		return
@@ -1848,7 +1788,7 @@ func (a *App) openProject() {
 
 // openProjectAt starts a session in a folder of a host, in its project.
 func (a *App) openProjectAt(h *host, dir string) {
-	cl, local := h.cl, !h.remote()
+	cl, local := h.cl, true
 	if cl == nil {
 		return
 	}

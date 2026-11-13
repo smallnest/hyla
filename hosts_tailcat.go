@@ -14,13 +14,10 @@ import (
 	"hyla/locales"
 )
 
-// Tailcat is how Hyla reaches a host anywhere, beside SSH: a relay with a
-// pair code (internal/remote/tailcat.go). The tailcat switch in
-// Settings › Hosts turns it on and off: off, the app lists no host of it,
-// and hylad starts no listener of it.
-//
-// The settings are one group, after the switch: the hosts it adds, which
-// this machine reaches, and this machine as a host, which others reach.
+// Tailcat is this machine as a host for HylaPocket: a relay with a pair
+// code (internal/remote/tailcat.go). The tailcat switch in Settings ›
+// Hosts turns it on and off: off, hylad starts no listener of it, and the
+// phone reaches nothing.
 
 // tailcatField is a field of the Tailcat group that failed: which, as its
 // key, and why.
@@ -28,20 +25,18 @@ type tailcatField struct {
 	key, err string
 }
 
-// tailcatDraft is the Tailcat group's form, which adds a host, and the
-// fields it edits: the port of the hosts' listeners, the relay, and the
-// port of this machine's listener.
+// tailcatDraft is the Tailcat group's form, and the fields it edits: the
+// relay, and the port of this machine's listener.
 type tailcatDraft struct {
-	name, addr  string
-	listenPort  string // this machine's listener's, while a host
-	port, relay string
-	err         tailcatField
-	code        string       // this machine's pair code, as hylad's key makes it
-	codeErr     string       // why there is none, as a failure
-	qr          *qrcode.Code // code as a QR code, for a phone to scan
-	at          time.Time    // when the key was last read, or rotated
-	copied      time.Time
-	looking     bool
+	listenPort string // this machine's listener's, while a host
+	relay      string
+	err        tailcatField
+	code       string       // this machine's pair code, as hylad's key makes it
+	codeErr    string       // why there is none, as a failure
+	qr         *qrcode.Code // code as a QR code, for a phone to scan
+	at         time.Time    // when the key was last read, or rotated
+	copied     time.Time
+	looking    bool
 }
 
 // tailcatGroup is Settings › Hosts › Tailcat: the switch, and with it on,
@@ -57,13 +52,9 @@ func (a *App) tailcatGroup(c *ui.Context, pal *palette) {
 			return
 		}
 		d := &a.ss.tailcat
-		if d.port == "" {
+		if d.listenPort == "" {
 			a.resetTailcat()
 		}
-		if groupRows++; groupRows > 1 {
-			ui.Box(c).Height(1).Shrink(0).Background(pal.text.Alpha(0.07))
-		}
-		a.tailcatHosts(c, pal, d)
 		if groupRows++; groupRows > 1 {
 			ui.Box(c).Height(1).Shrink(0).Background(pal.text.Alpha(0.07))
 		}
@@ -94,12 +85,8 @@ func (a *App) resetTailcat() {
 	s := a.set
 	d := &a.ss.tailcat
 	*d = tailcatDraft{
-		port:       s.TailcatPort,
 		relay:      s.TailcatRelay,
 		listenPort: settings.TailcatListenPortDefault(),
-	}
-	if d.port == "" {
-		d.port = settings.TailcatPortDefault()
 	}
 	if _, port, ok := s.TailcatListen(); ok {
 		d.listenPort = port
@@ -107,43 +94,6 @@ func (a *App) resetTailcat() {
 	if s.Tailcat {
 		a.tailcatCode()
 	}
-}
-
-// tailcatHosts is the hosts Hyla adds over Tailcat, and how it reaches
-// them: the head of the Tailcat group.
-func (a *App) tailcatHosts(c *ui.Context, pal *palette, d *tailcatDraft) {
-	ui.Column(c).Padding(11, 0).Gap(10).Children(func() {
-		ui.Column(c).Gap(2).Children(func() {
-			ui.Text(c, locales.SetTailcatAdd()).FontSize(13.5).TextColor(pal.text)
-			ui.Text(c, locales.SetTailcatAddDetail()).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
-		})
-		add := func() { a.addTailcatHost() }
-		ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-			ui.Box(c).Grow(1).MinWidth(0).Children(func() {
-				textField(c, "tailcat-addr", &d.addr, locales.SetTailcatPlaceholder(), 0, pal).Font("monospace").OnSubmit(add)
-			})
-			ui.Box(c).Width(130).Shrink(0).Children(func() {
-				textField(c, "tailcat-name", &d.name, defaultTailcatName(d.addr), 0, pal).OnSubmit(add)
-			})
-			if fieldButton(c, "tailcat-add", locales.CommonAdd(), true, pal) {
-				add()
-			}
-		})
-		tailcatFieldErr(c, pal, d, "tailcat-addr")
-		tailcatSettingRow(c, pal, locales.SetTailcatPort(), locales.SetTailcatPortDetail(), func() {
-			textField(c, "tailcat-port", &d.port, settings.TailcatPortDefault(), 70, pal).OnSubmit(func() { d.save(a, "tailcat-port") })
-		})
-		tailcatFieldErr(c, pal, d, "tailcat-port")
-		// A relay's URL is long: a field of its own, under the label.
-		ui.Column(c).Gap(6).Children(func() {
-			ui.Column(c).Gap(3).Children(func() {
-				ui.Text(c, locales.SetTailcatRelay()).FontSize(13.5).TextColor(pal.text)
-				ui.Text(c, locales.SetTailcatRelayDetail()).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
-			})
-			textField(c, "tailcat-relay", &d.relay, remote.DefaultDERPMapURL, 0, pal).Font("monospace").OnSubmit(func() { d.save(a, "tailcat-relay") })
-		})
-		tailcatFieldErr(c, pal, d, "tailcat-relay")
-	})
 }
 
 // tailcatSettingRow is settingRow, which is no row of its group's, here.
@@ -173,7 +123,7 @@ func (a *App) tailcatListen(c *ui.Context, pal *palette, d *tailcatDraft) {
 					s := a.set.Clone()
 					if on {
 						port := strings.TrimSpace(d.listenPort)
-						if !settings.ValidTailcatPort(port) {
+						if !settings.ValidListenPort(port) {
 							port = settings.TailcatListenPortDefault()
 						}
 						s.SetTailcatListen(port)
@@ -252,91 +202,6 @@ func tailcatFieldErr(c *ui.Context, pal *palette, d *tailcatDraft, key string) {
 	}
 }
 
-// save checks and keeps the group's field keyed key, which is one of its
-// fields set.
-func (d *tailcatDraft) save(a *App, key string) {
-	var v string
-	switch key {
-	case "tailcat-port":
-		if v = strings.TrimSpace(d.port); !settings.ValidTailcatPort(v) {
-			d.err = tailcatField{key, v + ": a port is 1 to 65535"}
-			return
-		}
-	case "tailcat-relay":
-		v = strings.TrimSpace(d.relay)
-		if v != "" && !settings.ValidDERPMapURL(v) {
-			d.err = tailcatField{key, v + ": a relay is the https URL of a DERP map"}
-			return
-		}
-	case "tailcat-listen-port":
-		if v = strings.TrimSpace(d.listenPort); !settings.ValidTailcatPort(v) {
-			d.err = tailcatField{key, v + ": a port is 1 to 65535"}
-			return
-		}
-		s := a.set.Clone()
-		s.SetTailcatListen(v)
-		a.set, d.err = s, tailcatField{}
-		return
-	}
-	s := a.set.Clone()
-	switch key {
-	case "tailcat-port":
-		s.TailcatPort = v
-	case "tailcat-relay":
-		s.TailcatRelay = v
-	}
-	a.set, d.err = s, tailcatField{}
-}
-
-// defaultTailcatName is the name a tailcat host takes when the user
-// gives none: a pair code names no name of a machine.
-func defaultTailcatName(addr string) string {
-	if _, err := remote.ParseAddr(strings.TrimSpace(addr)); err == nil {
-		return "tailcat"
-	}
-	return locales.SetTailcatNamePlaceholder()
-}
-
-// addTailcatHost adds the host of the Tailcat group's form: its pair
-// code, as the address, is a secret of the host's.
-func (a *App) addTailcatHost() {
-	d := &a.ss.tailcat
-	addr := strings.TrimSpace(d.addr)
-	if addr != "" && !strings.HasPrefix(addr, "tailcat://") {
-		addr = "tailcat://" + addr
-	}
-	name := strings.TrimSpace(d.name)
-	if name == "" {
-		name = defaultTailcatName(addr)
-	}
-	if err := addTailcatHost(&a.set, name, addr); err != nil {
-		d.err = tailcatField{"tailcat-addr", err.Error()}
-		return
-	}
-	*d = tailcatDraft{port: d.port, relay: d.relay, listenPort: d.listenPort, code: d.code, codeErr: d.codeErr, qr: d.qr}
-}
-
-// addTailcatHost adds a tailcat host to s, if its code and name are new.
-func addTailcatHost(s *settings.Settings, name, addr string) error {
-	a, err := remote.ParseAddr(addr)
-	if err != nil {
-		return err
-	}
-	if a.Scheme != "tailcat" {
-		return errNotTailcat
-	}
-	if s.TailcatNameTaken(name, -1) {
-		return errTailcatNameTaken(name)
-	}
-	next := s.Clone()
-	next.Tailcat = true
-	next.TailcatHosts = append(next.TailcatHosts, settings.TailcatHost{Name: name, Addr: a.String(), Added: true})
-	*s = next
-	return nil
-}
-
-// tailcatCode asks hylad's key for this machine's pair code, in the
-// background: its key makes the code, whether hylad runs or not.
 func (a *App) tailcatCode() {
 	d := &a.ss.tailcat
 	if d.looking || !d.at.IsZero() {
@@ -367,7 +232,7 @@ func (a *App) rotateTailcatCode() {
 		return
 	}
 	d := &a.ss.tailcat
-	*d = tailcatDraft{port: d.port, relay: d.relay, listenPort: d.listenPort}
+	*d = tailcatDraft{relay: d.relay, listenPort: d.listenPort}
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		k, err := remote.TailcatKeyAt(ctx, remote.TailcatKeyPath())
@@ -390,17 +255,6 @@ func (a *App) rotateTailcatCode() {
 	a.set = s
 }
 
-var (
-	errNotTailcat        = errString("the address is no tailcat pair code")
-	errTailcatNotRunning = errString("hylad is not running here")
-)
-
-type errString string
-
-func (e errString) Error() string { return string(e) }
-
-func errTailcatNameTaken(name string) error { return errString(locales.SetHostNameTaken(name)) }
-
 // hasTailcatListener reports whether s makes this machine a tailcat host.
 func hasTailcatListener(s *settings.Settings) bool {
 	_, _, ok := s.TailcatListen()
@@ -412,4 +266,32 @@ func errorText(err error) string {
 		return ""
 	}
 	return err.Error()
+}
+
+// save checks and keeps the group's field keyed key, which is one of its
+// fields set.
+func (d *tailcatDraft) save(a *App, key string) {
+	var v string
+	switch key {
+	case "tailcat-relay":
+		v = strings.TrimSpace(d.relay)
+		if v != "" && !settings.ValidDERPMapURL(v) {
+			d.err = tailcatField{key, v + ": a relay is the https URL of a DERP map"}
+			return
+		}
+	case "tailcat-listen-port":
+		if v = strings.TrimSpace(d.listenPort); !settings.ValidListenPort(v) {
+			d.err = tailcatField{key, v + ": a port is 1 to 65535"}
+			return
+		}
+		s := a.set.Clone()
+		s.SetTailcatListen(v)
+		a.set, d.err = s, tailcatField{}
+		return
+	}
+	s := a.set.Clone()
+	if key == "tailcat-relay" {
+		s.TailcatRelay = v
+	}
+	a.set, d.err = s, tailcatField{}
 }

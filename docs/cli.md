@@ -227,7 +227,6 @@ A Feishu chat drives the coding agent in the session it's bound to: `/new` start
 
 ## Other machines
 
-`-H <host>` before the command, or `$HYLA_HOST`, points a command that acts on sessions at hylad on another machine: a host you added, or an address such as `me@devbox` or `wsl://Ubuntu`. See [Remote Hosts](./remote.md).
 
 ```sh
 hyla hosts                       # the hosts you added

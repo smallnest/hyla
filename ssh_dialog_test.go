@@ -97,9 +97,6 @@ func TestAddSSHHostFromSidebar(t *testing.T) {
 		t.Errorf("the machine is %+v", h)
 	}
 	// An SSH terminal is no Hyla host: nothing is added to Settings.
-	if len(a.set.Hosts) != 0 {
-		t.Errorf("the dialog added a Hyla host: %+v", a.set.Hosts)
-	}
 	tt.Frame()
 	if !tt.HasText("example.com") || !tt.HasText("root@example.com:2222") || !tt.HasText(locales.SshHostsProject()) {
 		t.Errorf("the sidebar shows no SSH project row; texts %q", tt.Texts())

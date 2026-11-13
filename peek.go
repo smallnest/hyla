@@ -3,15 +3,12 @@ package main
 import (
 	"math"
 	"os"
-	pathpkg "path"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
-
-	"hyla/internal/proto"
 )
 
 // peek is the image a path printed in a pane shows while Command hovers
@@ -49,15 +46,12 @@ const (
 // imagePeek shows the image a path names, which Command hovers in a pane's
 // terminal at at, in the terminal's coordinates, in a flyout below the
 // path, or above it where the screen has no room below. term is the
-// terminal's box in the window. A remote pane's image is its host's,
-// which hylad there reads.
+// terminal's box in the window.
 func (a *App) imagePeek(paneID, link string, at, term ui.Rect) {
 	if !peekable[strings.ToLower(filepath.Ext(lineSuffix.ReplaceAllString(link, "")))] {
 		return
 	}
-	if h := a.hostOf(paneID); h.remote() {
-		a.remotePeek(h, paneID, link)
-	} else if !a.localPeek(paneID, link) {
+	if !a.localPeek(paneID, link) {
 		return
 	}
 	a.peek.shown = true
@@ -104,41 +98,6 @@ func (a *App) localPeek(paneID, link string) bool {
 		}()
 	}
 	return true
-}
-
-// remotePeek decodes the image of a path of a host, which its hylad
-// finds (fs.stat) and reads (fs.read), once as long as it is hovered.
-func (a *App) remotePeek(h *host, paneID, link string) {
-	path, base := lineSuffix.ReplaceAllString(link, ""), a.workDir(paneID)
-	key := h.name + "\x00" + base + "\x00" + path
-	if a.peek.path == key {
-		return
-	}
-	a.closePeek()
-	a.peek = peek{path: key, name: pathpkg.Base(path)}
-	cl := h.cl
-	if cl == nil {
-		return
-	}
-	go func() {
-		var st proto.FSStat
-		if err := cl.Call("fs.stat", proto.FSStatParams{Path: path, Base: base}, &st); err != nil || !st.Exists || st.Dir || st.Size > maxPeekBytes {
-			return
-		}
-		var r proto.FSRead
-		if err := cl.Call("fs.read", proto.FSReadParams{Path: st.Path, Max: maxPeekBytes}, &r); err != nil {
-			return
-		}
-		bm, err := ui.DecodeBitmap(r.Data)
-		if err != nil {
-			return
-		}
-		a.update(func() {
-			if a.peek.path == key {
-				a.peek.bm = bm
-			}
-		})
-	}()
 }
 
 // peekSize is the size the picture shows at: its own, up to peekW by

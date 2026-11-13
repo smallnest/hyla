@@ -54,6 +54,17 @@ func testApp(t *testing.T) *App {
 	return a
 }
 
+// countText is how many of texts show s.
+func countText(texts []string, s string) int {
+	n := 0
+	for _, t := range texts {
+		if t == s {
+			n++
+		}
+	}
+	return n
+}
+
 // shot writes the tester's frame to $HYLA_SHOTS, to look at.
 func shot(t *testing.T, tt *ui.Tester, name string) {
 	dir := os.Getenv("HYLA_SHOTS")
