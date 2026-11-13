@@ -65,8 +65,7 @@ func (a *App) syncRemoteHosts() {
 	keep := []*host{a.local()}
 	for _, r := range a.prefs.RemoteHosts {
 		addr := strings.TrimSpace(r.Addr)
-		// Tailcat off reaches none of its machines: the app lists none.
-		if addr == "" || r.Name == "" || r.tailcat() && !a.set.Tailcat {
+		if addr == "" || r.Name == "" {
 			continue
 		}
 		tc := r.tailcat()

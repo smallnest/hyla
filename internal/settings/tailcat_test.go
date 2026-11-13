@@ -22,13 +22,13 @@ func TestTailcatConfig(t *testing.T) {
 			t.Errorf("formatted without %q:\n%s", line, out)
 		}
 	}
-	// Off, a tailcat listener is a problem, and is not kept.
-	if _, probs := parse("listen = tailcat://:7473\n"); len(probs) == 0 {
-		t.Error("a tailcat listener read with Tailcat off")
+	// Tailcat is on unless a file turns it off: a tailcat listener needs
+	// nothing else of the file.
+	if got, probs := parse("listen = tailcat://:7473\n"); len(probs) > 0 || len(got.Listen) != 1 {
+		t.Errorf("a tailcat listener: listeners %q, problems %q", got.Listen, probs)
 	}
-	// Also when listen comes before tailcat: the listener is then kept.
-	if s, probs := parse("listen = tailcat://:7473\ntailcat = true\n"); len(probs) > 0 || len(s.Listen) != 1 {
-		t.Errorf("listen before tailcat: listeners %q, problems %q", s.Listen, probs)
+	if got, probs := parse("tailcat = false\nlisten = tailcat://:7473\n"); len(probs) > 0 || got.Tailcat {
+		t.Errorf("a file that turns Tailcat off: Tailcat %v, problems %q", got.Tailcat, probs)
 	}
 	// A tcp listener is the network's, and takes the password it names.
 	if s, probs := parse("tailcat = true\nlisten = tcp://:7297\nlisten-token = s3cret-pass\n"); len(probs) > 0 || len(s.Listen) != 1 || s.ListenToken != "s3cret-pass" {

@@ -220,6 +220,7 @@ func Default() Settings {
 		RestoreSessions:     true,
 		ResumeAgents:        true,
 		QuitConfirm:         true,
+		Tailcat:             true,
 		AppIcon:             "dock-and-menubar",
 		Appearance:          "system",
 		Language:            "system",

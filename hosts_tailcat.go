@@ -47,18 +47,23 @@ type tailcatDraft struct {
 // tailcatGroup is Settings › Hosts › Tailcat: the switch, and with it on,
 // the hosts Hyla adds and this machine as a host.
 func (a *App) tailcatGroup(c *ui.Context, pal *palette) {
-	on := a.set.Tailcat
 	settingsGroup(c, pal, locales.SetTailcatTitle(), "", func() {
-		settingRow(c, pal, locales.SetTailcat(), locales.SetTailcatDetail(), func() {
-			toggle(c.Key("tailcat"), &on, pal).OnClick(func() { a.setTailcat(on) })
-		})
-		if !on {
-			return
-		}
 		d := &a.ss.tailcat
 		if d.listenPort == "" {
 			a.resetTailcat()
 		}
+		if groupRows++; groupRows > 1 {
+			ui.Box(c).Height(1).Shrink(0).Background(pal.text.Alpha(0.07))
+		}
+		// The relay both ways: the machines added are found through it, and
+		// so is this machine's listener.
+		ui.Column(c).Gap(6).Children(func() {
+			ui.Text(c, locales.SetTailcatRelay()).FontSize(13.5).TextColor(pal.text)
+			if in := textField(c, "tailcat-relay", &d.relay, remote.DefaultDERPMapURL, 0, pal); in.Submitted() {
+				d.save(a, "tailcat-relay")
+			}
+		})
+		tailcatFieldErr(c, pal, d, "tailcat-relay")
 		if groupRows++; groupRows > 1 {
 			ui.Box(c).Height(1).Shrink(0).Background(pal.text.Alpha(0.07))
 		}
@@ -68,26 +73,6 @@ func (a *App) tailcatGroup(c *ui.Context, pal *palette) {
 		}
 		a.tailcatListen(c, pal, d)
 	})
-	if !on && locales.SetTailcatOffNote() != "" {
-		settingsGroup(c, pal, "", locales.SetTailcatOffNote(), nil)
-	}
-}
-
-// setTailcat turns Tailcat on or off, as the switch of Settings › Hosts
-// does: off, this machine listens through no relay either, since the
-// daemon follows the listener and not the switch, and the line left
-// behind would be a configuration problem.
-func (a *App) setTailcat(on bool) {
-	s := a.set.Clone()
-	s.Tailcat = on
-	if !on {
-		s.SetTailcatListen("")
-	}
-	a.set = s
-	a.resetTailcat()
-	// Off, the machines reached by a pair code are let go of, and on, they
-	// connect again.
-	a.syncRemoteHosts()
 }
 
 // resetTailcat reads the Tailcat group's fields again from the settings,
@@ -165,13 +150,6 @@ func (a *App) tailcatListen(c *ui.Context, pal *palette, d *tailcatDraft) {
 			}
 		})
 		tailcatFieldErr(c, pal, d, "tailcat-listen-port")
-		ui.Column(c).Gap(6).Children(func() {
-			ui.Text(c, locales.SetTailcatRelay()).FontSize(13.5).TextColor(pal.text)
-			if in := textField(c, "tailcat-relay", &d.relay, remote.DefaultDERPMapURL, 0, pal); in.Submitted() {
-				d.save(a, "tailcat-relay")
-			}
-		})
-		tailcatFieldErr(c, pal, d, "tailcat-relay")
 		ui.Column(c).Gap(3).Children(func() {
 			ui.Text(c, locales.SetTailcatCode()).FontSize(13.5).TextColor(pal.text)
 			if d := locales.SetTailcatCodeDetail(); d != "" {

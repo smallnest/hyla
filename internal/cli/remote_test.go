@@ -33,10 +33,15 @@ func TestHostsTailcat(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HYLA_HOME", home)
 	t.Setenv("HYLA_CONFIG", filepath.Join(home, "config"))
+	// A file that turns Tailcat off keeps its listener off, and says so.
+	set := settings.Load()
+	set.Tailcat = false
+	if err := settings.Save(set); err != nil {
+		t.Fatal(err)
+	}
 	if err := tailcatCmd([]string{"enable"}); err == nil {
 		t.Error("a listener with Tailcat off")
 	}
-	set := settings.Load()
 	set.Tailcat = true
 	if err := settings.Save(set); err != nil {
 		t.Fatal(err)
