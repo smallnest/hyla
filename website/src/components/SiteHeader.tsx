@@ -30,16 +30,11 @@ export default function SiteHeader(props: { path: string; locale: Locale }) {
     });
   });
 
+  // Two ways out of any page: the docs, and the download.
   const links = () => (
     <>
-      <Link href={to('/docs')} classList={{ 'is-active': inDocs() && page() !== '/docs/cli' && page() !== '/docs/agents' }}>
+      <Link href={to('/docs')} classList={{ 'is-active': inDocs() }}>
         {s().docs}
-      </Link>
-      <Link href={to('/docs/cli')} classList={{ 'is-active': page() === '/docs/cli' }}>
-        {s().cli}
-      </Link>
-      <Link href={to('/docs/agents')} classList={{ 'is-active': page() === '/docs/agents' }}>
-        {s().agents}
       </Link>
       <Link href={to('/download')} classList={{ 'is-active': page() === '/download' }}>
         {s().download}
