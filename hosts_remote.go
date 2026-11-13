@@ -152,11 +152,7 @@ func (e errString) Error() string { return string(e) }
 // which a client of them reaches.
 func (a *App) p2pGroup(c *ui.Context, pal *palette) {
 	d := &a.ss.tailcat
-	settingsGroup(c, pal, "", "", func() {
-		groupTitle(c, pal, locales.SetTCPTitle())
-		if d := locales.SetTCPDetail(); d != "" {
-			ui.Text(c, d).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35).Padding(0, 2, 0, 6)
-		}
+	settingsGroup(c, pal, locales.SetTCPTitle(), "", func() {
 		a.remoteHosts(c, pal)
 		if groupRows++; groupRows > 1 {
 			ui.Box(c).Height(1).Shrink(0).Background(pal.text.Alpha(0.07))

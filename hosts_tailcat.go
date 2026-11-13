@@ -48,8 +48,7 @@ type tailcatDraft struct {
 // the hosts Hyla adds and this machine as a host.
 func (a *App) tailcatGroup(c *ui.Context, pal *palette) {
 	on := a.set.Tailcat
-	settingsGroup(c, pal, "", "", func() {
-		groupTitle(c, pal, locales.SetTailcatTitle())
+	settingsGroup(c, pal, locales.SetTailcatTitle(), "", func() {
 		settingRow(c, pal, locales.SetTailcat(), locales.SetTailcatDetail(), func() {
 			toggle(c.Key("tailcat"), &on, pal).OnClick(func() { a.setTailcat(on) })
 		})
