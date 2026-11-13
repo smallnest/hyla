@@ -2,6 +2,7 @@ package main
 
 import (
 	"net"
+	"net/url"
 	"slices"
 	"strings"
 	"time"
@@ -97,6 +98,14 @@ func (a *App) addRemoteHost(name, addr, token string) error {
 	name = strings.TrimSpace(name)
 	addr = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(addr), "tcp://"))
 	token = strings.TrimSpace(token)
+	// A code a phone scans, pasted here: tcp://host:port?token=…, whose
+	// token is the password.
+	if i := strings.Index(addr, "?"); i >= 0 {
+		if q, err := url.ParseQuery(addr[i+1:]); err == nil && token == "" {
+			token = strings.TrimSpace(q.Get("token"))
+		}
+		addr = addr[:i]
+	}
 	host, _, err := net.SplitHostPort(addr)
 	if err != nil {
 		return errNoHostAddress

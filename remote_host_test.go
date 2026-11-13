@@ -193,6 +193,13 @@ func TestAddRemoteHost(t *testing.T) {
 	if h := a.hostNamed("192.168.1.5"); h == nil {
 		t.Fatalf("hosts %+v", a.prefs.RemoteHosts)
 	}
+	// A whole code pasted in the address field takes its password.
+	if err := a.addRemoteHost("code", "tcp://192.168.1.7:7297?token=s3cret-pass", ""); err != nil {
+		t.Fatal(err)
+	}
+	if h := a.hostNamed("code"); h == nil || h.addr != "192.168.1.7:7297" || h.token != "s3cret-pass" {
+		t.Errorf("the code is %+v", h)
+	}
 	for _, c := range []struct{ name, addr, token string }{
 		{"studio", "192.168.1.5", "s3cret-pass"},
 		{"studio", "192.168.1.5:7297", ""},

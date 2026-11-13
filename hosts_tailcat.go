@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net"
+	"net/url"
 	"slices"
 	"strings"
 	"time"
@@ -382,13 +383,17 @@ func (a *App) tcpListen(c *ui.Context, pal *palette, d *tailcatDraft) {
 		ui.Column(c).Gap(3).Children(func() {
 			ui.Text(c, locales.SetTCPQR()).FontSize(13.5).TextColor(pal.text)
 		})
+		// The code carries the address and the password together, as a
+		// client of the listener takes them: tcp://host:port?token=….
+		code := tcpCode(addrs[0], a.set.ListenToken)
 		ui.Row(c).Gap(16).AlignItems(ui.Center).Children(func() {
-			if q, err := qrcode.Encode(addrs[0], qrcode.L); err == nil {
+			if q, err := qrcode.Encode(code, qrcode.L); err == nil {
 				qrcode.View(c, q).Size(140, 140).Shrink(0)
 			}
-			ui.Column(c).Gap(4).Children(func() {
+			ui.Column(c).Gap(4).Grow(1).MinWidth(0).Children(func() {
+				ui.Text(c, code).Font("monospace").FontSize(12.5).TextColor(pal.text).Selectable().SingleLine().Ellipsis("…")
 				for _, addr := range addrs {
-					ui.Text(c, addr).Font("monospace").FontSize(12.5).TextColor(pal.text).Selectable().SingleLine().Ellipsis("…")
+					ui.Text(c, addr).Font("monospace").FontSize(12).TextColor(pal.textFaint).Selectable().SingleLine().Ellipsis("…")
 				}
 			})
 		})
@@ -414,6 +419,15 @@ func tcpListenAddr(s *settings.Settings) string {
 		}
 	}
 	return ""
+}
+
+// tcpCode is what the code a phone scans carries: the listener's address
+// and, with it, the password that admits it, as a client takes them.
+func tcpCode(addr, token string) string {
+	if token == "" {
+		return "tcp://" + addr
+	}
+	return "tcp://" + addr + "?token=" + url.QueryEscape(token)
 }
 
 // tcpAddrs are the addresses a client of another machine reaches the
