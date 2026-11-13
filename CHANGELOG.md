@@ -24,6 +24,11 @@ number; the notes of the upstream releases it includes follow its own.
   SSH project's machines and the K8s project's pods drag the same way, their
   terminals with them. A project's name now lands on the side of the row
   the pointer is on, where before it went below it wherever it was let go.
+- A Feishu card of a turn in progress says what the agent's newest tool
+  call is about, under the tool and its count: the command a shell runs,
+  the file a read or an edit takes, the pattern a search looks for, and
+  the address a fetch opens, as one line of the call's arguments. A call
+  whose arguments say nothing of the kind keeps the line it had.
 
 ## 3.6.5
 

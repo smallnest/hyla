@@ -148,11 +148,16 @@ func randomHex(n int) (string, error) {
 }
 
 // turnProgress is a turn's progress as its server reports it: the tool
-// the agent runs, how many it ran, and the words it writes.
+// the agent runs, what its newest call is about, how many it ran, and the
+// words it writes.
 type turnProgress struct {
 	mu    sync.Mutex
 	name  string
 	tools int
+	// input is the newest call's arguments, as its events stream them:
+	// JSON text, which its ended event completes.
+	input strings.Builder
+	arg   string
 	text  strings.Builder
 	stopC context.CancelFunc
 }
@@ -191,12 +196,12 @@ func (p *turnProgress) stop() {
 	}
 }
 
-// snapshot is the progress as it is now: the tool, how many ran, and the
-// words so far.
-func (p *turnProgress) snapshot() (string, int, string) {
+// snapshot is the progress as it is now: the tool, what its newest call
+// is about, how many ran, and the words so far.
+func (p *turnProgress) snapshot() (string, int, string, string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	return p.name, p.tools, p.text.String()
+	return p.name, p.tools, p.arg, p.text.String()
 }
 
 // read takes the events of a server's stream, which are Server-Sent
@@ -224,10 +229,11 @@ func (p *turnProgress) event(raw, sid string) {
 	var e struct {
 		Type string `json:"type"`
 		Data struct {
-			SessionID string `json:"sessionID"`
-			Delta     string `json:"delta"`
-			Text      string `json:"text"`
-			Name      string `json:"name"`
+			SessionID string          `json:"sessionID"`
+			Delta     string          `json:"delta"`
+			Text      string          `json:"text"`
+			Name      string          `json:"name"`
+			Input     json.RawMessage `json:"input"`
 		} `json:"data"`
 	}
 	if json.Unmarshal([]byte(raw), &e) != nil || e.Data.SessionID != sid {
@@ -247,9 +253,30 @@ func (p *turnProgress) event(raw, sid string) {
 			p.text.WriteString(e.Data.Text)
 		}
 	case "session.tool.input.started":
+		// A call of its own: what the last one took is no part of it.
+		p.input.Reset()
+		p.arg = ""
 		if e.Data.Name != "" {
 			p.name = e.Data.Name
 			p.tools++
+		}
+	case "session.tool.input.delta":
+		p.input.WriteString(e.Data.Delta)
+	case "session.tool.input.ended":
+		// The call's arguments whole, which the card shows a line of.
+		in := e.Data.Text
+		if in == "" {
+			in = p.input.String()
+		}
+		p.arg = toolArg(in)
+	case "session.tool.called":
+		// The call as the server made it, its arguments parsed: the last
+		// word on what it is about, where it carries them.
+		if e.Data.Name != "" {
+			p.name = e.Data.Name
+		}
+		if arg := toolArg(string(e.Data.Input)); arg != "" {
+			p.arg = arg
 		}
 	}
 }

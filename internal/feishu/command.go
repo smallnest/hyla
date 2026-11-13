@@ -152,8 +152,8 @@ func (b *Bot) background(key, chatID, response, text string, t turnInfo) {
 		if card != nil && time.Since(shown) >= every {
 			tail := ""
 			if prog != nil {
-				if name, n, words := prog.snapshot(); n > 0 || words != "" {
-					tail = progressBody(name, n, words, langOf(text))
+				if name, n, arg, words := prog.snapshot(); n > 0 || words != "" {
+					tail = progressBody(name, n, arg, words, langOf(text))
 				}
 			}
 			if tail == "" {
@@ -538,14 +538,17 @@ func streamed(raw string) bool {
 }
 
 // toolLine is a background turn's tools as a working card shows them: the
-// last one the agent ran, and how many it ran, as "⏳ shell · 5 tools".
+// last one the agent ran, what it was about, and how many it ran, as
+// "⏳ shell · 5 tools".
 func toolLine(agent, raw, lang string) string {
-	name, n := lastTool(agent, raw)
-	return toolSummary(name, n, lang)
+	name, n, arg := lastTool(agent, raw)
+	return toolSummary(name, n, arg, lang)
 }
 
-// toolSummary is a turn's tools as a working card shows them.
-func toolSummary(name string, n int, lang string) string {
+// toolSummary is a turn's tools as a working card shows them: the tool it
+// ran and how many calls it made, and under them what the last call was
+// about, as its command or its file.
+func toolSummary(name string, n int, arg, lang string) string {
 	if n == 0 {
 		return ""
 	}
@@ -556,14 +559,19 @@ func toolSummary(name string, n int, lang string) string {
 	if n == 1 {
 		key = "tool"
 	}
-	return "⏳ **" + escapeMarkdown(name) + "** · " + fmt.Sprintf(word(lang, key), n)
+	line := "⏳ **" + escapeMarkdown(name) + "** · " + fmt.Sprintf(word(lang, key), n)
+	if arg != "" {
+		line += "\n" + codeSpan(arg)
+	}
+	return line
 }
 
 // progressBody is a turn's progress as a working card shows it: the tool
-// it runs, how many it ran, and the last rows of the words it wrote.
-func progressBody(name string, n int, words, lang string) string {
+// it runs, what its last call is about, how many it ran, and the last rows
+// of the words it wrote.
+func progressBody(name string, n int, arg, words, lang string) string {
 	parts := make([]string, 0, 2)
-	if line := toolSummary(name, n, lang); line != "" {
+	if line := toolSummary(name, n, arg, lang); line != "" {
 		parts = append(parts, line)
 	}
 	if said := clean(since(words, 0, toolTail)); said != "" {
@@ -572,30 +580,85 @@ func progressBody(name string, n int, words, lang string) string {
 	return strings.Join(parts, "\n\n")
 }
 
-// lastTool is the last tool a background turn ran, and how many it ran:
-// the tool_use of an OpenCode turn, the tool_use of a Claude Code one,
-// and the items a Codex turn completes.
-func lastTool(agent, raw string) (string, int) {
-	name, n := "", 0
+// toolArgKeys are the fields of a call's arguments that say what it is
+// about, in the order a card tries them: the command it runs, the file it
+// reads or writes, the pattern it looks for, the address it fetches.
+var toolArgKeys = []string{"command", "file_path", "filePath", "file", "pattern", "url", "query", "description", "question", "prompt", "path"}
+
+// argWidth is how much of a call's arguments a card shows: one line of a
+// phone's.
+const argWidth = 120
+
+// toolArg is a call's arguments as a working card shows them: one line of
+// what it is about, as its command, its file or its question, and none
+// where they say nothing of the kind.
+func toolArg(input string) string {
+	if strings.TrimSpace(input) == "" {
+		return ""
+	}
+	var m map[string]any
+	if json.Unmarshal([]byte(input), &m) != nil {
+		// Arguments that are a string of their own, or a list of them, as
+		// a command's are for some agents.
+		return textArg(json.RawMessage(input))
+	}
+	for _, key := range toolArgKeys {
+		if s, ok := m[key].(string); ok && strings.TrimSpace(s) != "" {
+			return short(s, argWidth)
+		}
+	}
+	return ""
+}
+
+// textArg is arguments that are no object: a string, or a list of them,
+// as a card's one line.
+func textArg(raw json.RawMessage) string {
+	var s string
+	if json.Unmarshal(raw, &s) == nil && strings.TrimSpace(s) != "" {
+		return short(s, argWidth)
+	}
+	var list []string
+	if json.Unmarshal(raw, &list) == nil && len(list) > 0 {
+		return short(strings.Join(list, " "), argWidth)
+	}
+	return ""
+}
+
+// lastTool is the last tool a background turn ran, what its call was
+// about, and how many it ran: the tool_use of an OpenCode turn, the
+// tool_use of a Claude Code one, and the items a Codex turn completes.
+func lastTool(agent, raw string) (name string, n int, arg string) {
 	for _, line := range strings.Split(raw, "\n") {
 		switch agent {
 		case "opencode":
 			var e struct {
 				Type string `json:"type"`
 				Part *struct {
-					Tool string `json:"tool"`
+					Tool  string          `json:"tool"`
+					Input json.RawMessage `json:"input"`
+					State *struct {
+						Input json.RawMessage `json:"input"`
+					} `json:"state"`
 				} `json:"part"`
 			}
 			if json.Unmarshal([]byte(line), &e) == nil && e.Type == "tool_use" && e.Part != nil && e.Part.Tool != "" {
 				name, n = e.Part.Tool, n+1
+				arg = ""
+				if e.Part.State != nil {
+					arg = toolArg(string(e.Part.State.Input))
+				}
+				if arg == "" {
+					arg = toolArg(string(e.Part.Input))
+				}
 			}
 		case "claude":
 			var m struct {
 				Type    string `json:"type"`
 				Message *struct {
 					Content []struct {
-						Type string `json:"type"`
-						Name string `json:"name"`
+						Type  string          `json:"type"`
+						Name  string          `json:"name"`
+						Input json.RawMessage `json:"input"`
 					} `json:"content"`
 				} `json:"message"`
 			}
@@ -605,14 +668,17 @@ func lastTool(agent, raw string) (string, int) {
 			for _, c := range m.Message.Content {
 				if c.Type == "tool_use" && c.Name != "" {
 					name, n = c.Name, n+1
+					arg = toolArg(string(c.Input))
 				}
 			}
 		case "codex":
 			var e struct {
 				Type string `json:"type"`
 				Item *struct {
-					Type     string `json:"type"`
-					ItemType string `json:"item_type"`
+					Type      string          `json:"type"`
+					ItemType  string          `json:"item_type"`
+					Command   json.RawMessage `json:"command"`
+					Arguments json.RawMessage `json:"arguments"`
 				} `json:"item"`
 			}
 			if json.Unmarshal([]byte(line), &e) != nil || e.Type != "item.completed" || e.Item == nil {
@@ -620,10 +686,11 @@ func lastTool(agent, raw string) (string, int) {
 			}
 			if t := firstNotEmpty(e.Item.Type, e.Item.ItemType); t != "" && t != "agent_message" && t != "reasoning" {
 				name, n = t, n+1
+				arg = firstNotEmpty(textArg(e.Item.Command), textArg(e.Item.Arguments))
 			}
 		}
 	}
-	return name, n
+	return name, n, arg
 }
 
 // backgroundReply is the answer a background turn gives: its text, or

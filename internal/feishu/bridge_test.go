@@ -1476,6 +1476,21 @@ func TestBackgroundTail(t *testing.T) {
 	if got := backgroundTail("opencode", step+"\n"+said, "en"); strings.Contains(got, "⏳") || !strings.Contains(got, "Looking at the docs.") {
 		t.Errorf("the words read %q", got)
 	}
+	// The call's arguments run under the tool, as the line the card shows.
+	tooled := `{"type":"tool_use","part":{"type":"tool","tool":"shell","state":{"status":"completed","input":{"command":"go build ./..."}}}}`
+	if got := backgroundTail("opencode", step+"\n"+tooled, "en"); got != "⏳ **shell** · 1 tool\n`go build ./...`" {
+		t.Errorf("the call's arguments read %q", got)
+	}
+	// The same for the other agents' streams: a Claude Code tool's input,
+	// and a Codex item's command.
+	claude := `{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"ls -la"}}]}}`
+	if got := backgroundTail("claude", claude, "en"); got != "⏳ **Bash** · 1 tool\n`ls -la`" {
+		t.Errorf("a Claude Code call reads %q", got)
+	}
+	codex := `{"type":"item.completed","item":{"type":"command_execution","command":"ls -la"}}`
+	if got := backgroundTail("codex", codex, "en"); got != "⏳ **command\\_execution** · 1 tool\n`ls -la`" {
+		t.Errorf("a Codex call reads %q", got)
+	}
 	// An output of no events is its own text, as a command's is.
 	if got := backgroundTail("dsh", "line one\nline two", "en"); got != "line one\nline two" {
 		t.Errorf("a plain output reads %q", got)
