@@ -35,8 +35,6 @@ const usage = `hyla — terminal sessions that keep running, for you and your ag
 Usage:
   hyla                          open the app
   hyla ls [--json]              list sessions and their panes
-      -a, --all                   on this machine and every host of hyla
-                                  hosts, each under the name -H takes
   hyla new [options] [-- cmd…]  start a session, printing its id
       -p, --project <name|id>     project to put it in (default: by directory)
       -n, --name <name>           name it
@@ -200,8 +198,31 @@ type exitStatus int
 func (e exitStatus) Error() string { return fmt.Sprintf("exit status %d", int(e)) }
 
 // Run runs a subcommand, returning the exit code.
+// Removed tells what a command of the hosts Hyla used to add became, and
+// whether arg is one: main sends those here rather than open the app.
+func Removed(arg string) (string, bool) {
+	what, ok := removed[arg]
+	return what, ok
+}
+
+// removed are the commands of the hosts Hyla used to add, and what took
+// their place: a name they had still says so, rather than open the app.
+var removed = map[string]string{
+	"hosts":    "hyla tailcat and hyla pocket: another machine is a session of the SSH project",
+	"clients":  "nothing lists clients now: the app has this machine's hylad alone",
+	"__bridge": "nothing bridges a remote host now: another machine is a session of the SSH project",
+	"-H":       "nothing acts on another machine now: run hyla there, over ssh",
+	"--host":   "nothing acts on another machine now: run hyla there, over ssh",
+}
+
 func Run(args []string) int {
 	SyncSkill()
+	if len(args) > 0 {
+		if what, ok := removed[args[0]]; ok {
+			fmt.Fprintf(os.Stderr, "hyla: %s is gone: %s\n", args[0], what)
+			return 2
+		}
+	}
 	err := run(args)
 	if err == nil {
 		return 0
@@ -329,7 +350,7 @@ func run(args []string) error {
 
 	switch cmd {
 	case "ls", "list":
-		f, err := parse(args, nil, map[string]string{"json": "json", "j": "json", "all": "all", "a": "all"})
+		f, err := parse(args, nil, map[string]string{"json": "json", "j": "json"})
 		if err != nil {
 			return err
 		}

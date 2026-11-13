@@ -43,6 +43,10 @@ func main() {
 		case cli.IsCommand(os.Args[1]):
 			os.Exit(cli.Run(os.Args[1:]))
 		}
+		if what, ok := cli.Removed(os.Args[1]); ok {
+			fmt.Fprintf(os.Stderr, "hyla: %s is gone: %s\n", os.Args[1], what)
+			os.Exit(2)
+		}
 	}
 	// `hyla` alone in a terminal, through the CLI's link to the app's
 	// executable: open the app as the Finder would.

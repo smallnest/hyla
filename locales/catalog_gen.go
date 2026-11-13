@@ -6128,11 +6128,11 @@ func (msgs Messages) ChangesExpandAll() string {
 	return Catalog.Format(msgs.locale, "changesExpandAll", nil)
 }
 
-// PageHosts says "Hyla Hosts"
+// PageHosts says "Tailcat"
 // in the language the app shows.
 func PageHosts() string { return In(i18n.Locale()).PageHosts() }
 
-// PageHosts says "Hyla Hosts"
+// PageHosts says "Tailcat"
 // in the language of msgs.
 func (msgs Messages) PageHosts() string {
 	return Catalog.Format(msgs.locale, "pageHosts", nil)
