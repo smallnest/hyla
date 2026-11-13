@@ -60,9 +60,33 @@ func (c *control) lastViewed() (string, bool) {
 	return c.lastSess, c.lastSess != ""
 }
 
+// keepAlive pings the client, and ends a connection whose client is gone: a phone that was killed
+// leaves its tailcat stream up until the relay times it out, and the panes it owned stay its own
+// until this connection drops.
+func (c *control) keepAlive() {
+	t := time.NewTicker(15 * time.Second)
+	defer t.Stop()
+	for {
+		select {
+		case <-c.stop:
+			return
+		case <-t.C:
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			err := c.c.Ping(ctx)
+			cancel()
+			if err != nil {
+				c.end()
+				c.c.CloseNow()
+				return
+			}
+		}
+	}
+}
+
 // run reads requests until the connection ends.
 func (c *control) run() {
 	go c.eventsLoop()
+	go c.keepAlive()
 	for {
 		c.c.SetReadLimit(maxMessage)
 		typ, data, err := c.c.Read(context.Background())

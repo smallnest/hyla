@@ -146,10 +146,12 @@ type Settings struct {
 	// Keyboard: accelerators by action, over the defaults; "" unbinds.
 	Shortcuts map[string]string `json:"shortcuts,omitempty"`
 
-	// Listen are hylad's listeners, for clients on other machines
-	// (tailcat://:7473), admitted by the pair code of the key that makes
-	// one.
-	Listen []string `json:"listen,omitempty"`
+	// Listen are hylad's listeners, for clients on other machines: a
+	// tailcat:// relay, admitted by the pair code of the key that makes
+	// one, and a tcp:// address on this machine's network, admitted by
+	// ListenToken, the password its clients carry.
+	Listen      []string `json:"listen,omitempty"`
+	ListenToken string   `json:"listenToken,omitempty"`
 	// Tailcat is hylad's tailcat listener, which serves HylaPocket: off,
 	// it starts none, and the app shows no pair code. TailcatRelay is the
 	// DERP map where tailcat finds relays: "" for

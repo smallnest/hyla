@@ -317,7 +317,7 @@ var keys = append([]key{
 	boolKey("dock-bounce", "once, when a session comes to need you", func(s *Settings) *bool { return &s.BounceDock }),
 
 	boolKey("remote-control", "hyla do, hyla focus and hyla browser drive the app", func(s *Settings) *bool { return &s.RemoteControl }),
-	{name: "listen", doc: "let Hyla on other machines reach this one's sessions: tailcat://:7473 through a relay with a pair code (tailcat = true), which also serves HylaPocket on a phone; repeat it", list: true,
+	{name: "listen", doc: "let Hyla and HylaPocket on other machines reach this one: tailcat://:7473 through a relay with a pair code (tailcat = true), or tcp://:7473 on this machine's network, with listen-token as the password; repeat it", list: true,
 		get: func(s *Settings) []string { return slices.Clone(s.Listen) },
 		set: func(s *Settings, v []string) error {
 			s.Listen = nil
@@ -337,8 +337,15 @@ var keys = append([]key{
 		check: func(s *Settings) error {
 			var bad []string
 			for _, l := range s.Listen {
-				if spec, err := remote.ParseListen(l); err == nil && spec.Kind == "tailcat" && !s.Tailcat {
+				spec, err := remote.ParseListen(l)
+				if err != nil {
+					continue
+				}
+				switch {
+				case spec.Kind == "tailcat" && !s.Tailcat:
 					bad = append(bad, fmt.Sprintf("%s: Tailcat is off: turn it on with tailcat = true", l))
+				case spec.Kind == "tcp" && s.ListenToken == "":
+					bad = append(bad, fmt.Sprintf("%s: a tcp listener takes a password: set listen-token", l))
 				}
 			}
 			if bad != nil {
@@ -347,6 +354,16 @@ var keys = append([]key{
 			return nil
 		}},
 	boolKey("tailcat", "give Hyla other ways to reach its hosts: a relay with a pair code. Off, Hyla lists none of those hosts and connects to none, and hylad starts no tailcat listener", func(s *Settings) *bool { return &s.Tailcat }),
+	{name: "listen-token", doc: "the password of a tcp:// listener: its clients carry it, and hylad refuses every request without it (hyla pocket token prints it)",
+		get: func(s *Settings) []string { return []string{s.ListenToken} },
+		set: func(s *Settings, v []string) error {
+			t := strings.TrimSpace(v[len(v)-1])
+			if t != "" && len(t) < 8 {
+				return fmt.Errorf("%q: a password is 8 characters at least", t)
+			}
+			s.ListenToken = t
+			return nil
+		}},
 	{name: "tailcat-relay", doc: "where tailcat finds its relays, a DERP map as https://tailcat.dev/derpmap.json: Tailscale's public, rate-limited relays unless you run your own, as derper does; the host and the other machines set the same map",
 		get: func(s *Settings) []string { return []string{s.TailcatRelay} },
 		set: func(s *Settings, v []string) error {

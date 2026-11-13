@@ -6,6 +6,13 @@ number; the notes of the upstream releases it includes follow its own.
 
 ## Unreleased
 
+- Hyla and HylaPocket can reach this machine on its own network, without a
+  relay: `hyla pocket tcp enable` makes `listen = tcp://:7297` and a
+  password (`listen-token`), and `hyla pocket addr` prints where it listens
+  and the password a client carries. A connection without the password is
+  refused; `hyla pocket token` prints it alone. The connection is plain
+  HTTP, so it belongs on a network you trust, or behind a TLS proxy.
+  Settings › Tailcat has the same switch, address and password.
 - Hyla no longer adds another machine as a host of its own. Its sessions and
   panes are this machine's alone: the sidebar lists them, the window shows
   them, and an SSH host is a terminal of the SSH project, where `ssh` runs

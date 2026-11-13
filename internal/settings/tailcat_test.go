@@ -30,6 +30,16 @@ func TestTailcatConfig(t *testing.T) {
 	if s, probs := parse("listen = tailcat://:7473\ntailcat = true\n"); len(probs) > 0 || len(s.Listen) != 1 {
 		t.Errorf("listen before tailcat: listeners %q, problems %q", s.Listen, probs)
 	}
+	// A tcp listener is the network's, and takes the password it names.
+	if s, probs := parse("tailcat = true\nlisten = tcp://:7297\nlisten-token = s3cret-pass\n"); len(probs) > 0 || len(s.Listen) != 1 || s.ListenToken != "s3cret-pass" {
+		t.Errorf("a tcp listener: listeners %q, token %q, problems %q", s.Listen, s.ListenToken, probs)
+	}
+	if _, probs := parse("listen = tcp://:7297\n"); len(probs) == 0 {
+		t.Error("a tcp listener without a password read")
+	}
+	if _, probs := parse("listen-token = short\n"); len(probs) == 0 {
+		t.Error("a password of four characters read")
+	}
 	// A bad relay keeps none of it, and a key of the hosts Hyla used to
 	// add is no setting at all.
 	for _, bad := range []string{"tailcat-relay = ftp://x\n", "tailcat-host = box=tailcat://x\n", "host = box=me@devbox\n"} {

@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"net"
+	"slices"
 	"strings"
 	"time"
 
@@ -30,6 +32,8 @@ type tailcatField struct {
 type tailcatDraft struct {
 	listenPort string // this machine's listener's, while a host
 	relay      string
+	tcpAddr    string // the network listener's address, "" for every
+	tcpToken   string // its password, as listen-token keeps it
 	err        tailcatField
 	code       string       // this machine's pair code, as hylad's key makes it
 	codeErr    string       // why there is none, as a failure
@@ -59,6 +63,10 @@ func (a *App) tailcatGroup(c *ui.Context, pal *palette) {
 			ui.Box(c).Height(1).Shrink(0).Background(pal.text.Alpha(0.07))
 		}
 		a.tailcatListen(c, pal, d)
+		if groupRows++; groupRows > 1 {
+			ui.Box(c).Height(1).Shrink(0).Background(pal.text.Alpha(0.07))
+		}
+		a.tcpListen(c, pal, d)
 	})
 	if !on {
 		settingsGroup(c, pal, "", locales.SetTailcatOffNote(), nil)
@@ -87,6 +95,8 @@ func (a *App) resetTailcat() {
 	*d = tailcatDraft{
 		relay:      s.TailcatRelay,
 		listenPort: settings.TailcatListenPortDefault(),
+		tcpAddr:    tcpListenAddr(&s),
+		tcpToken:   s.ListenToken,
 	}
 	if _, port, ok := s.TailcatListen(); ok {
 		d.listenPort = port
@@ -268,6 +278,133 @@ func errorText(err error) string {
 	return err.Error()
 }
 
+// tcpListen is this machine on its own network: a tcp:// listener, whose
+// address and password a client of Hyla, or of HylaPocket, takes.
+func (a *App) tcpListen(c *ui.Context, pal *palette, d *tailcatDraft) {
+	on := hasTCPListener(&a.set)
+	detail := locales.SetTCPDetail()
+	ui.Column(c).Padding(11, 0).Gap(8).Children(func() {
+		ui.Row(c).Gap(16).AlignItems(ui.Center).Children(func() {
+			ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
+				ui.Text(c, locales.SetTCP()).FontSize(13.5).TextColor(pal.text)
+				ui.Text(c, detail).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
+			})
+			ui.Row(c).Shrink(0).AlignItems(ui.Center).Children(func() {
+				toggle(c.Key("tcp-listen"), &on, pal).OnClick(func() {
+					s := a.set.Clone()
+					if on {
+						addr := strings.TrimSpace(d.tcpAddr)
+						if addr == "" {
+							addr = ":" + remote.PocketPort
+						}
+						if spec, err := remote.ParseListen("tcp://" + addr); err == nil {
+							s.Listen = slices.DeleteFunc(s.Listen, func(l string) bool {
+								o, err := remote.ParseListen(l)
+								return err == nil && o.Kind == "tcp"
+							})
+							s.Listen = append(s.Listen, spec.String())
+						}
+						if s.ListenToken == "" {
+							if token, err := remote.RandomToken(); err == nil {
+								s.ListenToken = token
+							}
+						}
+					} else {
+						s.Listen = slices.DeleteFunc(s.Listen, func(l string) bool {
+							o, err := remote.ParseListen(l)
+							return err == nil && o.Kind == "tcp"
+						})
+					}
+					a.set = s
+					a.resetTailcat()
+				})
+			})
+		})
+		if !on {
+			return
+		}
+		ui.Row(c).Gap(16).AlignItems(ui.Center).Children(func() {
+			ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
+				ui.Text(c, locales.SetTCPAddress()).FontSize(13.5).TextColor(pal.text)
+				ui.Text(c, locales.SetTCPAddressDetail()).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
+			})
+			if in := textField(c, "tcp-addr", &d.tcpAddr, ":"+remote.PocketPort, 140, pal).Font("monospace"); in.Submitted() {
+				d.save(a, "tcp-addr")
+			}
+		})
+		tailcatFieldErr(c, pal, d, "tcp-addr")
+		ui.Column(c).Gap(3).Children(func() {
+			ui.Text(c, locales.SetTCPPassword()).FontSize(13.5).TextColor(pal.text)
+			ui.Text(c, locales.SetTCPPasswordDetail()).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
+		})
+		ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
+			ui.Text(c, d.tcpToken).Font("monospace").FontSize(12.5).TextColor(pal.text).Selectable().MinWidth(0)
+			ui.Row(c).Grow(1)
+			icon, label := copyIcon, locales.HostCopyAddress()
+			if time.Since(d.copied) < 1500*time.Millisecond {
+				icon, label = checkIcon, locales.ToastCopied()
+			}
+			iconButton(c, "copy-token", icon, label, pal, func() {
+				c.WriteClipboard(d.tcpToken)
+				d.copied = time.Now()
+				go func() {
+					time.Sleep(1500 * time.Millisecond)
+					a.update(func() {})
+				}()
+			})
+			iconButton(c, "new-token", reloadIcon, locales.SetTCPNew(), pal, func() {
+				token, err := remote.RandomToken()
+				if err != nil {
+					a.toast(err.Error())
+					return
+				}
+				s := a.set.Clone()
+				s.ListenToken = token
+				a.set = s
+				a.resetTailcat()
+			})
+		})
+		// Where a client of another machine reaches this one: its own
+		// addresses, which the listener's port follows.
+		if port := tcpListenPort(&a.set); port != "" {
+			for _, addr := range remote.LocalAddrs() {
+				ui.Text(c, net.JoinHostPort(addr, port)).Font("monospace").FontSize(12).TextColor(pal.textFaint).Selectable()
+			}
+		}
+	})
+}
+
+// hasTCPListener reports whether s listens on this machine's network.
+func hasTCPListener(s *settings.Settings) bool {
+	for _, l := range s.Listen {
+		if spec, err := remote.ParseListen(l); err == nil && spec.Kind == "tcp" {
+			return true
+		}
+	}
+	return false
+}
+
+// tcpListenAddr is the address of the network listener, "" for every one
+// of this machine's.
+func tcpListenAddr(s *settings.Settings) string {
+	for _, l := range s.Listen {
+		if spec, err := remote.ParseListen(l); err == nil && spec.Kind == "tcp" {
+			return net.JoinHostPort(spec.Host, spec.Port)
+		}
+	}
+	return ""
+}
+
+// tcpListenPort is the port of the network listener, "" for none.
+func tcpListenPort(s *settings.Settings) string {
+	for _, l := range s.Listen {
+		if spec, err := remote.ParseListen(l); err == nil && spec.Kind == "tcp" {
+			return spec.Port
+		}
+	}
+	return ""
+}
+
 // save checks and keeps the group's field keyed key, which is one of its
 // fields set.
 func (d *tailcatDraft) save(a *App, key string) {
@@ -279,6 +416,24 @@ func (d *tailcatDraft) save(a *App, key string) {
 			d.err = tailcatField{key, v + ": a relay is the https URL of a DERP map"}
 			return
 		}
+	case "tcp-addr":
+		addr := strings.TrimSpace(d.tcpAddr)
+		if addr == "" {
+			addr = ":" + remote.PocketPort
+		}
+		spec, err := remote.ParseListen("tcp://" + addr)
+		if err != nil {
+			d.err = tailcatField{key, err.Error()}
+			return
+		}
+		s := a.set.Clone()
+		s.Listen = slices.DeleteFunc(s.Listen, func(l string) bool {
+			o, err := remote.ParseListen(l)
+			return err == nil && o.Kind == "tcp"
+		})
+		s.Listen = append(s.Listen, spec.String())
+		a.set, d.err = s, tailcatField{}
+		return
 	case "tailcat-listen-port":
 		if v = strings.TrimSpace(d.listenPort); !settings.ValidListenPort(v) {
 			d.err = tailcatField{key, v + ": a port is 1 to 65535"}

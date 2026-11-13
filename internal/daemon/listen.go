@@ -1,7 +1,11 @@
 package daemon
 
 import (
+	"bufio"
 	"context"
+	"crypto/subtle"
+	"io"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -41,6 +45,7 @@ type listener struct {
 	servers []*http.Server // listeners.mu's
 	socket  string
 	tailcat *remote.TailcatRelay // tailcat's
+	tcp     net.Listener         // a tcp::// listener's
 }
 
 // listen starts the network listeners.
@@ -120,6 +125,10 @@ func (l *listeners) set(specs []string) {
 		ln := &listener{spec: spec}
 		ln.ctx, ln.cancel = context.WithCancel(context.Background())
 		l.on[name] = ln
+		if spec.Kind == "tcp" {
+			go l.tcpListener(ln)
+			continue
+		}
 		go l.tailcatListener(ln)
 	}
 }
@@ -171,6 +180,9 @@ func (ln *listener) stop() {
 	}
 	if ln.socket != "" {
 		os.Remove(ln.socket)
+	}
+	if ln.tcp != nil {
+		ln.tcp.Close()
 	}
 }
 
@@ -226,3 +238,139 @@ func (l *listeners) joinTailcat(lis *listener) error {
 	l.d.log.Printf("listening on %s (tailcat)", r.PairCode)
 	return nil
 }
+
+// tcpListener listens on this machine's network, at the address the
+// configuration names: the password of its listeners admits every
+// connection, which Hyla and HylaPocket ask for by the address alone.
+func (l *listeners) tcpListener(lis *listener) {
+	addr := net.JoinHostPort(lis.spec.Host, lis.spec.Port)
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		l.d.log.Printf("listen %s: %v", lis.spec, err)
+		return
+	}
+	l.mu.Lock()
+	if lis.ctx.Err() != nil {
+		l.mu.Unlock()
+		ln.Close()
+		return
+	}
+	lis.tcp = ln
+	l.mu.Unlock()
+	l.d.log.Printf("listening on %s (tcp)", addr)
+	for {
+		c, err := ln.Accept()
+		if err != nil {
+			return
+		}
+		go l.serveTCP(c)
+	}
+}
+
+// serveTCP takes a connection of a tcp:// listener: the password first,
+// then Hyla's own protocol, or, as a client of HylaPocket asks, HTTP.
+func (l *listeners) serveTCP(c net.Conn) {
+	r := bufio.NewReaderSize(c, 64<<10)
+	c.SetReadDeadline(time.Now().Add(15 * time.Second))
+	line, err := r.ReadString('\n')
+	if err != nil {
+		c.Close()
+		return
+	}
+	c.SetReadDeadline(time.Time{})
+	if looksHTTP(line) {
+		l.serveHTTP(c, r, line)
+		return
+	}
+	if !l.password(strings.TrimSpace(line)) {
+		l.d.log.Printf("refused %s: no password", c.RemoteAddr())
+		c.Close()
+		return
+	}
+	hello, err := proto.ReadLine(r, 64<<10)
+	if err != nil {
+		c.Close()
+		return
+	}
+	l.d.serveHello(c, r, hello, identity{peer: "the password", via: "tcp"})
+}
+
+// password reports whether s is the password of the configuration's
+// listeners, as listen-token sets it, in constant time.
+func (l *listeners) password(s string) bool {
+	want := settings.Load().ListenToken
+	if want == "" || s == "" {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(s), []byte(want)) == 1
+}
+
+// looksHTTP tells an HTTP request line, as HylaPocket's connections begin,
+// from the password of Hyla's own protocol.
+func looksHTTP(line string) bool {
+	for _, m := range []string{"GET ", "POST ", "PUT ", "HEAD ", "OPTIONS ", "DELETE ", "PATCH "} {
+		if strings.HasPrefix(line, m) {
+			return true
+		}
+	}
+	return false
+}
+
+// serveHTTP answers a connection of HylaPocket's, whose request line came
+// first, line, with the password it carries.
+func (l *listeners) serveHTTP(c net.Conn, r *bufio.Reader, line string) {
+	conn := &readConn{Conn: c, r: io.MultiReader(strings.NewReader(line), r)}
+	h := http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if !l.token(req) {
+			w.Header().Set("WWW-Authenticate", `Bearer realm="hyla"`)
+			http.Error(w, "this is Hyla's: the password admits you", http.StatusUnauthorized)
+			return
+		}
+		if l.pocket == nil || !strings.HasPrefix(req.URL.Path, l.pocket.PocketPath()) {
+			http.NotFound(w, req)
+			return
+		}
+		l.pocket.ServeHTTP(w, req)
+	})
+	one := &oneConn{conn: conn, addr: c.LocalAddr()}
+	srv := &http.Server{Handler: h, ReadHeaderTimeout: 15 * time.Second, ErrorLog: l.d.log}
+	srv.Serve(one)
+}
+
+// token reports whether a request carries the password, as HylaPocket
+// sends it: Authorization: Bearer.
+func (l *listeners) token(r *http.Request) bool {
+	const prefix = "Bearer "
+	h := r.Header.Get("Authorization")
+	if len(h) <= len(prefix) || !strings.EqualFold(h[:len(prefix)], prefix) {
+		return false
+	}
+	return l.password(strings.TrimSpace(h[len(prefix):]))
+}
+
+// readConn is a connection whose first bytes were read already.
+type readConn struct {
+	net.Conn
+	r io.Reader
+}
+
+func (c *readConn) Read(p []byte) (int, error) { return c.r.Read(p) }
+
+// oneConn is a listener of one connection, for the HTTP server of a
+// HylaPocket connection.
+type oneConn struct {
+	conn net.Conn
+	addr net.Addr
+}
+
+func (o *oneConn) Accept() (net.Conn, error) {
+	if o.conn == nil {
+		return nil, io.EOF
+	}
+	c := o.conn
+	o.conn = nil
+	return c, nil
+}
+
+func (o *oneConn) Close() error   { return nil }
+func (o *oneConn) Addr() net.Addr { return o.addr }

@@ -7800,6 +7800,86 @@ func (msgs Messages) SetTailcatTitle() string {
 	return Catalog.Format(msgs.locale, "setTailcatTitle", nil)
 }
 
+// SetTCPTitle says "Network"
+// in the language the app shows.
+func SetTCPTitle() string { return In(i18n.Locale()).SetTCPTitle() }
+
+// SetTCPTitle says "Network"
+// in the language of msgs.
+func (msgs Messages) SetTCPTitle() string {
+	return Catalog.Format(msgs.locale, "setTCPTitle", nil)
+}
+
+// SetTCP says "Let Hyla reach this machine by its address"
+// in the language the app shows.
+func SetTCP() string { return In(i18n.Locale()).SetTCP() }
+
+// SetTCP says "Let Hyla reach this machine by its address"
+// in the language of msgs.
+func (msgs Messages) SetTCP() string {
+	return Catalog.Format(msgs.locale, "setTCP", nil)
+}
+
+// SetTCPDetail says "hylad listens on this machine's network, and a client connects with the address and the password below: HylaPocket on…"
+// in the language the app shows.
+func SetTCPDetail() string { return In(i18n.Locale()).SetTCPDetail() }
+
+// SetTCPDetail says "hylad listens on this machine's network, and a client connects with the address and the password below: HylaPocket on…"
+// in the language of msgs.
+func (msgs Messages) SetTCPDetail() string {
+	return Catalog.Format(msgs.locale, "setTCPDetail", nil)
+}
+
+// SetTCPAddress says "Address"
+// in the language the app shows.
+func SetTCPAddress() string { return In(i18n.Locale()).SetTCPAddress() }
+
+// SetTCPAddress says "Address"
+// in the language of msgs.
+func (msgs Messages) SetTCPAddress() string {
+	return Catalog.Format(msgs.locale, "setTCPAddress", nil)
+}
+
+// SetTCPAddressDetail says "The address to listen on: empty for every address of this machine. The port is HylaPocket's, 7297."
+// in the language the app shows.
+func SetTCPAddressDetail() string { return In(i18n.Locale()).SetTCPAddressDetail() }
+
+// SetTCPAddressDetail says "The address to listen on: empty for every address of this machine. The port is HylaPocket's, 7297."
+// in the language of msgs.
+func (msgs Messages) SetTCPAddressDetail() string {
+	return Catalog.Format(msgs.locale, "setTCPAddressDetail", nil)
+}
+
+// SetTCPPassword says "Password"
+// in the language the app shows.
+func SetTCPPassword() string { return In(i18n.Locale()).SetTCPPassword() }
+
+// SetTCPPassword says "Password"
+// in the language of msgs.
+func (msgs Messages) SetTCPPassword() string {
+	return Catalog.Format(msgs.locale, "setTCPPassword", nil)
+}
+
+// SetTCPPasswordDetail says "What a client carries to be let in. Treat it as a password: anyone who has it reaches this machine's sessions."
+// in the language the app shows.
+func SetTCPPasswordDetail() string { return In(i18n.Locale()).SetTCPPasswordDetail() }
+
+// SetTCPPasswordDetail says "What a client carries to be let in. Treat it as a password: anyone who has it reaches this machine's sessions."
+// in the language of msgs.
+func (msgs Messages) SetTCPPasswordDetail() string {
+	return Catalog.Format(msgs.locale, "setTCPPasswordDetail", nil)
+}
+
+// SetTCPNew says "New password"
+// in the language the app shows.
+func SetTCPNew() string { return In(i18n.Locale()).SetTCPNew() }
+
+// SetTCPNew says "New password"
+// in the language of msgs.
+func (msgs Messages) SetTCPNew() string {
+	return Catalog.Format(msgs.locale, "setTCPNew", nil)
+}
+
 // SetTailcat says "Use Tailcat to Reach Other Hosts"
 // in the language the app shows.
 func SetTailcat() string { return In(i18n.Locale()).SetTailcat() }

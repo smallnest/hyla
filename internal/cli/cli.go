@@ -147,6 +147,11 @@ Usage:
                                 this machine as a host for HylaPocket on a
                                 phone: its QR code, which carries the
                                 pair code of its tailcat listener (secret)
+  hyla pocket tcp enable|disable [address:port]
+                                listen on this machine's network, with a
+                                password: Hyla or HylaPocket connects by
+                                the address (secret)
+  hyla pocket addr|token        where it listens, and the password
   hyla pets [ls]                the pets Hyla shows (hyla pets install --list)
   hyla pets install <pack>      install a Codex pet pack: a .codex-pet.zip,
                                 or a pet's directory, as ~/.codex/pets has

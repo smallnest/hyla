@@ -2,6 +2,7 @@ package remote
 
 import (
 	"fmt"
+	"net"
 	"net/url"
 	"strconv"
 	"strings"
@@ -16,8 +17,12 @@ import (
 //     anywhere, over the tailcat library (tailcat.go): WireGuard end to
 //     end, with a public DERP relay only to reach the peer. The pair code
 //     hylad shows is the secret to connect, and the address of the host.
+//   - tcp://:7473, or tcp://0.0.0.0:7473: plain TCP on this machine's
+//     network, which the password of the configuration admits (the
+//     listener's token). Hyla and HylaPocket reach it by its address.
 type Listen struct {
-	Kind string // "tailcat"
+	Kind string // "tailcat" or "tcp"
+	Host string // tcp's bind address, "" for every address
 	Port string
 	// Tailcat is the pair code of a tailcat listener, as hylad makes
 	// it: "" of a setting's, which hylad's key's is.
@@ -34,8 +39,21 @@ func ParseListen(s string) (Listen, error) {
 	if err != nil {
 		return Listen{}, fmt.Errorf("%q is not a listener: %v", s, err)
 	}
+	if u.Scheme == "tcp" {
+		if u.Path != "" && u.Path != "/" {
+			return Listen{}, fmt.Errorf("%q: a tcp listener takes an address and a port, no path", s)
+		}
+		l := Listen{Kind: "tcp", Host: u.Hostname(), Port: u.Port()}
+		if l.Port == "" {
+			l.Port = ListenPort()
+		}
+		if n, err := strconv.Atoi(l.Port); err != nil || n < 1 || n > 65535 {
+			return Listen{}, fmt.Errorf("%q: a port is 1 to 65535", s)
+		}
+		return l, nil
+	}
 	if u.Scheme != "tailcat" {
-		return Listen{}, fmt.Errorf("%q: hylad listens on tailcat://:port", s)
+		return Listen{}, fmt.Errorf("%q: hylad listens on tailcat://:port or tcp://:port", s)
 	}
 	if u.Hostname() != "" {
 		return Listen{}, fmt.Errorf("%q: a tailcat listener takes any port: write tailcat://:port", s)
@@ -71,5 +89,8 @@ func ListenPort() string {
 const PocketPort = "7297"
 
 func (l Listen) String() string {
+	if l.Kind == "tcp" {
+		return "tcp://" + net.JoinHostPort(l.Host, l.Port)
+	}
 	return l.Kind + "://:" + l.Port
 }

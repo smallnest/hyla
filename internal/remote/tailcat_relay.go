@@ -57,7 +57,10 @@ func servePocket(conn net.Conn) {
 		ReadHeaderTimeout: 10 * time.Second,
 		ErrorLog:          log.New(io.Discard, "", 0),
 		ConnState: func(_ net.Conn, st http.ConnState) {
-			if st == http.StateHijacked || st == http.StateClosed {
+			// A hijacked connection belongs to its handler now - HylaPocket's WebSocket, which
+			// closes the stream itself when it ends; closing it here ended every WebSocket right
+			// after its 101.
+			if st == http.StateClosed {
 				conn.Close()
 			}
 		},
@@ -87,7 +90,7 @@ func (l *oneConnListener) Addr() net.Addr { return l.conn.LocalAddr() }
 // path (TailcatKeyAt), whose pair code it makes, and answers the
 // connections it takes with srv, within ctx. Hylad is "hyla", for
 // whomever lists the clients.
-func ListenTailcat(ctx context.Context, path, port string, srv *Server) (*TailcatRelay, error) {
+func ListenTailcat(ctx context.Context, path, port string) (*TailcatRelay, error) {
 	k, err := TailcatKeyAt(ctx, path)
 	if err != nil {
 		return nil, err
@@ -144,34 +147,11 @@ func ListenTailcat(ctx context.Context, path, port string, srv *Server) (*Tailca
 		s.Close()
 		return nil, err
 	}
-	// Hylad says who connects: the pair code tells a client's key.
-	srv.Peer = func(c net.Conn, hello []byte) string { return peerName(hello) }
-	r := &TailcatRelay{TailcatServer: &TailcatServer{Server: s, PairCode: "tailcat://" + code}, ln: ln}
-	go r.serve(srv)
-	return r, nil
-}
-
-func (r *TailcatRelay) serve(srv *Server) {
-	for {
-		c, err := r.ln.Accept()
-		if err != nil {
-			return
-		}
-		go srv.Serve(c)
-	}
+	return &TailcatRelay{TailcatServer: &TailcatServer{Server: s, PairCode: "tailcat://" + code}, ln: ln}, nil
 }
 
 // Close stops the listener, and the server with it.
 func (r *TailcatRelay) Close() {
 	r.ln.Close()
 	r.Server.Close()
-}
-
-// peerName names a client, from its Hello, hello: "tailcat [vzc7…]",
-// once it has said its key.
-func peerName(hello []byte) string {
-	if name, ok := peerOf(hello); ok {
-		return name
-	}
-	return "tailcat"
 }
