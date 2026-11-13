@@ -24,7 +24,7 @@ Quitting Hyla (<kbd>⌘</kbd> <kbd>Q</kbd>) leaves your sessions running. To end
 
 ## Upgrading from Kero
 
-Hyla was called **Kero** up to 2.1.37. An app of those releases does not update to Hyla on its own: install Hyla once. The first start moves your settings and sessions to `~/.config/hyla` (`~/Library/Application Support/hyla` on macOS), and `KERO_*` environment variables keep working as `HYLA_*`.
+Hyla was called **Kero** up to 2.1.37. An app of those releases does not update to Hyla on its own: install Hyla once. Hyla keeps its own directory (`~/.config/hyla`, `~/Library/Application Support/hyla` on macOS) and configuration, and leaves a Kero's where they are, so the two can live side by side.
 
 ## Next steps
 

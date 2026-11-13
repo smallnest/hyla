@@ -24,7 +24,7 @@ Hyla を終了（<kbd>⌘</kbd> <kbd>Q</kbd>）しても、セッションは動
 
 ## Kero からのアップグレード
 
-Hyla は 2.1.37 まで **Kero** と呼ばれていました。その頃のアプリは Hyla に自動更新されないため、一度だけ Hyla をインストールしてください。初回起動時に設定とセッションが `~/.config/hyla`（macOS では `~/Library/Application Support/hyla`）へ移され、`KERO_*` 環境変数は `HYLA_*` として引き続き使えます。
+Hyla は 2.1.37 まで **Kero** と呼ばれていました。その頃のアプリは Hyla に自動更新されないため、一度だけ Hyla をインストールしてください。Hyla は独自のディレクトリ（`~/.config/hyla`、macOS では `~/Library/Application Support/hyla`）と設定を使い、Kero のものはそのままにします。両者は並んで使えます。
 
 ## 次のステップ
 

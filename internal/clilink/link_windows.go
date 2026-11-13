@@ -37,7 +37,6 @@ func link(exe, bin string) error {
 	if strings.EqualFold(filepath.Dir(exe), filepath.Clean(bin)) {
 		return nil // the command itself, which started hylad
 	}
-	dropLegacy(bin)
 	want, err := stamp(exe)
 	if err != nil {
 		return err
@@ -78,18 +77,6 @@ func link(exe, bin string) error {
 		return err
 	}
 	return os.WriteFile(filepath.Join(bin, "hyla.target"), []byte(want), 0o644)
-}
-
-// dropLegacy removes the kero command older Hylas left in bin: a copy
-// of an executable that is no longer made.
-func dropLegacy(bin string) {
-	os.Remove(filepath.Join(bin, "kero.target"))
-	os.Remove(filepath.Join(bin, "kero.exe"))
-	if olds, err := filepath.Glob(filepath.Join(bin, "kero.exe.old*")); err == nil {
-		for _, o := range olds {
-			os.Remove(o)
-		}
-	}
 }
 
 // consoleExecutable turns a GUI executable into a console one: its

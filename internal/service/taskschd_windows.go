@@ -111,13 +111,6 @@ func schtasks(args ...string) error {
 // Install registers the task for exe and starts it. A hylad already
 // running, which the app or a bridge started, is stopped first (stop):
 // the task's starts its sessions again.
-// removeLegacy takes away the task 2.x installed, when Hyla was Kero: it
-// runs no more, its executable gone.
-func removeLegacy() {
-	schtasks("/Delete", "/TN", `\Kero\kerod`, "/F")
-	os.Remove(filepath.Join(proto.Dir(), "kerod.task.xml"))
-}
-
 func Install(exe string, stop func() error) error {
 	u, err := user.Current()
 	if err != nil {
@@ -126,7 +119,6 @@ func Install(exe string, stop func() error) error {
 	if err := os.MkdirAll(filepath.Dir(file()), 0o700); err != nil {
 		return err
 	}
-	removeLegacy()
 	if err := os.WriteFile(file(), utf16File(definition(exe, u.Username)), 0o600); err != nil {
 		return err
 	}

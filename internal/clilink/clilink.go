@@ -8,7 +8,3 @@ func Target(bin string) string { return target(bin) }
 
 // Link makes bin's hyla run exe, unless it does already.
 func Link(exe, bin string) error { return link(exe, bin) }
-
-// DropLegacy removes the kero command older Hylas left in bin, which ran
-// an executable they no longer make.
-func DropLegacy(bin string) { dropLegacy(bin) }

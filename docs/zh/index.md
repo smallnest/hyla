@@ -24,7 +24,7 @@ Hyla 是一款面向编程智能体的终端，支持 macOS、Windows 和 Linux�
 
 ## 从 Kero 升级
 
-Hyla 在 2.1.37 之前叫做 **Kero**。那些版本的应用不会自动升级到 Hyla，请手动安装一次。首次启动会把你的设置和会话迁移到 `~/.config/hyla`（macOS 上为 `~/Library/Application Support/hyla`），`KERO_*` 环境变量仍然作为 `HYLA_*` 生效。
+Hyla 在 2.1.37 之前叫做 **Kero**。那些版本的应用不会自动升级到 Hyla，请手动安装一次。Hyla 使用自己的目录（`~/.config/hyla`，macOS 上为 `~/Library/Application Support/hyla`）和配置，不改动 Kero 的，两者可以并存。
 
 ## 下一步
 

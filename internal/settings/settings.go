@@ -619,14 +619,4 @@ func (s *Settings) normalize() {
 	if s.DarkTheme == "" {
 		s.DarkTheme = d.DarkTheme
 	}
-	// 2.x, which called Hyla Kero, named its pet and its theme kero.
-	if s.PetSet == "kero" {
-		s.PetSet = PetSetHyla
-	}
-	if s.LightTheme == "kero" {
-		s.LightTheme = d.LightTheme
-	}
-	if s.DarkTheme == "kero" {
-		s.DarkTheme = d.DarkTheme
-	}
 }

@@ -191,18 +191,13 @@ func (b *Bot) read(id string) string {
 // toolTail is the rows of the pane's text a working card shows.
 const toolTail = 16
 
-// cardValue is a button's value in a card: Hyla's, or Kero's, which a
-// card the bot sent before the rename carries.
+// cardValue is a button's value in a card.
 func cardValue(v map[string]any, key string) (string, bool) {
-	if x, ok := v[key]; ok {
-		return fmt.Sprint(x), true
+	x, ok := v[key]
+	if !ok {
+		return "", false
 	}
-	if key == "hyla" {
-		if x, ok := v["kero"]; ok {
-			return fmt.Sprint(x), true
-		}
-	}
-	return "", false
+	return fmt.Sprint(x), true
 }
 
 // onCardAction answers the click of one of the bot's cards: the button

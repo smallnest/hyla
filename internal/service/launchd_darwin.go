@@ -70,7 +70,6 @@ func Install(exe string, stop func() error) error {
 	if err := os.MkdirAll(filepath.Dir(file()), 0o755); err != nil {
 		return err
 	}
-	removeLegacy()
 	launchctl("bootout", domain()+"/"+label())
 	if err := os.WriteFile(file(), []byte(plist(exe)), 0o644); err != nil {
 		return err
@@ -79,17 +78,6 @@ func Install(exe string, stop func() error) error {
 		stop()
 	}
 	return launchctl("bootstrap", domain(), file())
-}
-
-// removeLegacy takes away the agent 2.x installed, when Hyla was Kero:
-// its hylad would run beside this one, on a socket nothing reads.
-func removeLegacy() {
-	p := filepath.Join(filepath.Dir(file()), "sh.kero.kerod.plist")
-	if _, err := os.Stat(p); err != nil {
-		return
-	}
-	launchctl("bootout", domain()+"/sh.kero.kerod")
-	os.Remove(p)
 }
 
 // EnableLinger does nothing on macOS: an agent runs while its user is

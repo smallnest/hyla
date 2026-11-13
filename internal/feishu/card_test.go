@@ -10,8 +10,6 @@ func TestCardValueOfKeroCard(t *testing.T) {
 		ok    bool
 	}{
 		{map[string]any{"hyla": "open"}, "open", true},
-		{map[string]any{"kero": "open"}, "open", true},
-		{map[string]any{"kero": "perm"}, "perm", true},
 		{map[string]any{"other": "open"}, "", false},
 		{nil, "", false},
 	} {

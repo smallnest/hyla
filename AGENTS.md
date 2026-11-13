@@ -100,23 +100,14 @@ the README tells its user to install Hyla once.
 
 The app, the command, the daemon (`kerod`), the server build, the
 directory it keeps settings in and the `KERO_*` variables Hyla exports
-were Kero's. Each keeps a way back for an install of 2.x, which do not
-look like leftovers:
+were Kero's. Hyla reads none of it now: its directory, its configuration
+file and its variables are its own, and a Kero on the same machine keeps
+its own where they are. Do not add a migration back, and do not remove a
+Kero's files, links, services or hooks.
 
-| Code | Why it stays |
-|---|---|
-| `proto.Dir`'s `adoptDir`, `AdoptLegacyEnv` | moves the 2.x directory and reads `KERO_*` as `HYLA_*` |
-| `daemon.environment`'s `KERO_*` sets | a script written for 2.x still finds its session and pane |
-| `settings.ConfigPath`'s `kero` config | moves the 2.x configuration file, outside the directory on macOS |
-| `settings.normalize`'s `kero` aliases | the pet and theme a 2.x settings file names |
-| `agentHook.ours`, `cli.removeLegacy` | updates a 2.x hook, and removes its skill and plugins |
-| `clilink.dropLegacy`, `cli_install_*.go` | removes the `kero` command a 2.x left on the PATH |
-| `service.removeLegacy` | removes a 2.x service or task |
-| `install-server.sh` / `.ps1`'s `kero` block | replaces a 2.x server install |
-| `feishu.cardValue` | answers a card a 2.x sent |
-
-The website and the docs stay at `kero.sh`, because the domain is
-Hyla's for now: a doc link to `kero.sh` is not a leftover either.
+The one thing that stays is the website and the docs at `kero.sh`,
+because the domain is Hyla's for now: a doc link to `kero.sh` is not a
+leftover.
 
 ## Signing and the update key
 

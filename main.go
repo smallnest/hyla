@@ -31,7 +31,6 @@ import (
 )
 
 func main() {
-	proto.AdoptLegacyEnv()
 	if len(os.Args) > 1 {
 		switch {
 		case os.Args[1] == "__hylad":

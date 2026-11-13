@@ -150,21 +150,6 @@ main() {
 		return
 	fi
 
-	# The install of 2.x, when Hyla was Kero: its service and its files
-	# go, so that one hylad serves this machine. Its settings and sessions
-	# stay: Hyla moves them to ~/.config/hyla as it starts.
-	oldlib="$HOME/.local/lib/kero"
-	if [ -x "$oldlib/kero" ]; then
-		"$oldlib/kero" daemon uninstall-service >/dev/null 2>&1 || true
-		"$oldlib/kero" daemon stop >/dev/null 2>&1 || true
-		rm -rf "$oldlib"
-	fi
-	for old in "$bin/kero" "$HOME/.config/hyla/bin/kero"; do
-		if [ -L "$old" ] && [ "$(readlink "$old")" = "$oldlib/kero" ]; then
-			rm -f "$old"
-		fi
-	done
-
 	upgrade=0
 	if [ -x "$lib/hyla" ]; then
 		upgrade=1

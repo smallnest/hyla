@@ -1,7 +1,6 @@
 package proto
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 )
@@ -54,51 +53,5 @@ func TestDirName(t *testing.T) {
 	p := Pane{Dir: `C:\Users\egoist\dev\mygo`}
 	if got := p.PaneName(); got != "mygo" {
 		t.Errorf("pane named %q", got)
-	}
-}
-
-// Kero's variables are Hyla's, unless Hyla's are set.
-func TestAdoptLegacyEnv(t *testing.T) {
-	t.Setenv("HYLA_PANE", "")
-	t.Setenv("HYLA_SESSION", "new")
-	t.Setenv("KERO_PANE", "old-pane")
-	t.Setenv("KERO_SESSION", "old-session")
-	AdoptLegacyEnv()
-	if got := os.Getenv("HYLA_PANE"); got != "old-pane" {
-		t.Errorf("HYLA_PANE = %q, want old-pane", got)
-	}
-	if got := os.Getenv("HYLA_SESSION"); got != "new" {
-		t.Errorf("HYLA_SESSION = %q, want new", got)
-	}
-}
-
-// The directory a 2.x install left as Kero's is the one this Hyla uses.
-func TestAdoptDir(t *testing.T) {
-	base := t.TempDir()
-	old, dir := filepath.Join(base, "kero"), filepath.Join(base, "hyla")
-	if got := adoptDir(dir, old); got != dir {
-		t.Errorf("no directory at all: got %q, want %q", got, dir)
-	}
-	if err := os.MkdirAll(old, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(old, "settings.json"), []byte("{}"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if got := adoptDir(dir, old); got != dir {
-		t.Errorf("2.x's directory: got %q, want %q", got, dir)
-	}
-	if b, err := os.ReadFile(filepath.Join(dir, "settings.json")); err != nil || string(b) != "{}" {
-		t.Errorf("the settings of 2.x did not come along: %v", err)
-	}
-	// A directory of this Hyla's stays as it is, and the old one stays where it is.
-	if err := os.WriteFile(filepath.Join(dir, "settings.json"), []byte(`{"new":1}`), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if got := adoptDir(dir, old); got != dir {
-		t.Errorf("both directories: got %q, want %q", got, dir)
-	}
-	if b, _ := os.ReadFile(filepath.Join(dir, "settings.json")); string(b) != `{"new":1}` {
-		t.Errorf("this Hyla's settings were replaced: %s", b)
 	}
 }

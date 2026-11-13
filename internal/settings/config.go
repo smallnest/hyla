@@ -22,10 +22,8 @@ import (
 
 // ConfigPath returns the configuration file: $HYLA_CONFIG, else
 // $XDG_CONFIG_HOME/hyla/config, else ~/.config/hyla/config; hyla-dev in
-// place of hyla for a development build (proto.Name).
-//
-// The file of 2.x, which called Hyla Kero, is this one: the first to ask
-// for it moves it here, as proto.Dir moves the directory.
+// place of hyla for a development build (proto.Name). It is Hyla's own,
+// and a file of another program's is left where it is.
 func ConfigPath() string {
 	if p := os.Getenv("HYLA_CONFIG"); p != "" {
 		return p
@@ -35,18 +33,7 @@ func ConfigPath() string {
 		home, _ := os.UserHomeDir()
 		base = filepath.Join(home, ".config")
 	}
-	name := proto.Name()
-	p := filepath.Join(base, name, "config")
-	old := filepath.Join(base, strings.Replace(name, "hyla", "kero", 1), "config")
-	if _, err := os.Stat(p); err != nil {
-		if _, err := os.Stat(old); err == nil {
-			if os.MkdirAll(filepath.Dir(p), 0o755) == nil && os.Rename(old, p) == nil {
-				return p
-			}
-			return old
-		}
-	}
-	return p
+	return filepath.Join(base, proto.Name(), "config")
 }
 
 // key is a key of the configuration: how it reads and writes a setting.

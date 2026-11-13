@@ -252,10 +252,9 @@ func (h agentHook) each(settings object, event string, fn func(command string)) 
 }
 
 // ours tells hyla's hook commands, of this hyla or another's: its hook at
-// start, or its answer at a turn's end. A command of a 2.x, which called
-// Hyla Kero, is Hyla's too: install replaces it.
+// start, or its answer at a turn's end.
 func (h agentHook) ours(command string) bool {
-	return (strings.Contains(command, "hyla") || strings.Contains(command, "kero")) &&
+	return strings.Contains(command, "hyla") &&
 		(strings.HasSuffix(command, " hook "+h.agent) || strings.HasSuffix(command, " answer "+h.agent))
 }
 

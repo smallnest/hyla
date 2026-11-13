@@ -4,6 +4,15 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## Unreleased
+
+- Hyla keeps its own directory, configuration file and variables alone: it
+  no longer moves a Kero's directory or configuration into place, reads
+  `KERO_*` as `HYLA_*`, answers `kero` names in its settings, removes a
+  Kero's command, skills, hooks or service, or exports `KERO_SESSION` and
+  its like to panes. A Kero on the same machine is left as it is, and one
+  installed beside Hyla keeps working.
+
 ## 3.8.0
 
 - Settings › Remote Connection › Tailcat takes machines reached by a pair

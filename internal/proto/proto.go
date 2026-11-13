@@ -799,68 +799,16 @@ func Name() string {
 // Dir returns hyla's directory: $HYLA_HOME, else
 // ~/Library/Application Support/hyla (~/.config/hyla on Linux,
 // %AppData%\hyla on Windows), of Name. The app, the daemon and the CLI of
-// a build share it.
-//
-// The directory of 2.x, which called Hyla Kero, is this one: the first
-// to ask for it moves it here, so that an install keeps its settings,
-// sessions and hosts.
+// a build share it, and nothing else of a machine it runs on.
 func Dir() string {
 	if d := os.Getenv("HYLA_HOME"); d != "" {
-		return d
-	}
-	if d := os.Getenv("KERO_HOME"); d != "" {
 		return d
 	}
 	base, err := os.UserConfigDir()
 	if err != nil {
 		base = filepath.Join(Home(), ".config")
 	}
-	name := Name()
-	return adoptDir(filepath.Join(base, name), filepath.Join(base, legacyName(name)))
-}
-
-// legacyName is what Name was when Hyla was called Kero.
-func legacyName(name string) string {
-	if strings.HasSuffix(name, "-dev") {
-		return "kero-dev"
-	}
-	return "kero"
-}
-
-// adoptDir moves the directory a 2.x install left at old to dir, once,
-// and returns the one to use: dir, unless old can neither be moved nor
-// was moved by another process meanwhile.
-func adoptDir(dir, old string) string {
-	if _, err := os.Stat(dir); err == nil {
-		return dir
-	}
-	if _, err := os.Stat(old); err != nil {
-		return dir
-	}
-	if os.Rename(old, dir) == nil {
-		return dir
-	}
-	// Another process may have moved it while this one looked.
-	if _, err := os.Stat(dir); err == nil {
-		return dir
-	}
-	return old
-}
-
-// AdoptLegacyEnv renames KERO_* to HYLA_*, for the shells, hooks and
-// scripts written when Hyla was called Kero. A HYLA_* already set is
-// Hyla's: the legacy one leaves it as it is. Call it before reading any.
-func AdoptLegacyEnv() {
-	const old, new = "KERO_", "HYLA_"
-	for _, kv := range os.Environ() {
-		k, v, ok := strings.Cut(kv, "=")
-		if !ok || !strings.HasPrefix(k, old) {
-			continue
-		}
-		if nk := new + k[len(old):]; os.Getenv(nk) == "" {
-			os.Setenv(nk, v)
-		}
-	}
+	return filepath.Join(base, Name())
 }
 
 // SocketPath returns the daemon's socket: $HYLA_SOCKET, else hylad.sock in

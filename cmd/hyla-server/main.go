@@ -19,14 +19,12 @@ import (
 	"hyla/internal/cli"
 	"hyla/internal/daemon"
 	_ "hyla/internal/pocket"
-	"hyla/internal/proto"
 )
 
 // version is the version of Hyla this build is of, set with -ldflags.
 var version = "dev"
 
 func main() {
-	proto.AdoptLegacyEnv()
 	build.Server = true
 	mygo.App.SetVersion(version)
 	if len(os.Args) > 1 && os.Args[1] == "__hylad" {

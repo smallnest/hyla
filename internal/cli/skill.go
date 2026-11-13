@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -263,7 +262,6 @@ func writeSkill(dir string) error {
 // skill, go to the installed Hyla, which makes them links. It installs
 // nothing that isn't.
 func SyncSkill() {
-	removeLegacy()
 	for _, dir := range skillDirs("") {
 		p := filepath.Join(dir, "SKILL.md")
 		if t, err := os.Readlink(p); err == nil {
@@ -283,52 +281,11 @@ func SyncSkill() {
 				it.install()
 			}
 		case agentHook:
-			// A 2.x's hook, which runs the kero command: Hyla's now.
 			if adoptCopies() && it.state() == "outdated" {
 				it.install()
 			}
 		}
 	}
-}
-
-// removeLegacy takes away what 2.x, which called Hyla Kero, installed
-// and left behind: its copies of the skill, the plugins written to run
-// its kero command, and its own command and copy. Only the installed
-// Hyla does, as adoptCopies tells; the files go only if they are Kero's.
-func removeLegacy() {
-	if !adoptCopies() {
-		return
-	}
-	home := proto.Home()
-	claude := os.Getenv("CLAUDE_CONFIG_DIR")
-	if claude == "" {
-		claude = filepath.Join(home, ".claude")
-	}
-	for _, dir := range []string{
-		filepath.Join(claude, "skills", "kero"),
-		filepath.Join(home, ".agents", "skills", "kero"),
-	} {
-		if b, err := os.ReadFile(filepath.Join(dir, "SKILL.md")); err == nil && bytes.Contains(b, []byte("name: kero")) {
-			os.RemoveAll(dir)
-		}
-	}
-	pi := os.Getenv("PI_CODING_AGENT_DIR")
-	if pi == "" {
-		pi = filepath.Join(home, ".pi", "agent")
-	}
-	if b, err := os.ReadFile(filepath.Join(pi, "extensions", "kero.ts")); err == nil && bytes.Contains(b, []byte("kero")) {
-		os.Remove(filepath.Join(pi, "extensions", "kero.ts"))
-	}
-	opencode := os.Getenv("XDG_CONFIG_HOME")
-	if opencode == "" {
-		opencode = filepath.Join(home, ".config")
-	}
-	plugin := filepath.Join(opencode, "opencode", "plugins", "kero")
-	if b, err := os.ReadFile(filepath.Join(plugin, "index.js")); err == nil && bytes.Contains(b, []byte("kero")) {
-		os.RemoveAll(plugin)
-	}
-	os.Remove(filepath.Join(proto.Dir(), "bin", "kero"))
-	os.RemoveAll(filepath.Join(proto.Dir(), "skills", "kero"))
 }
 
 // adoptCopies tells the installed Hyla, which takes the skill's copies,

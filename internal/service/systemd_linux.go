@@ -52,17 +52,6 @@ func systemdQuote(s string) string {
 	return `"` + r.Replace(s) + `"`
 }
 
-// removeLegacy takes away the unit 2.x installed, when Hyla was Kero.
-func removeLegacy() {
-	p := filepath.Join(filepath.Dir(file()), "kerod.service")
-	if _, err := os.Stat(p); err != nil {
-		return
-	}
-	systemctl("disable", "kerod.service")
-	systemctl("stop", "kerod.service")
-	os.Remove(p)
-}
-
 func systemctl(args ...string) (string, error) {
 	out, err := exec.Command("systemctl", append([]string{"--user"}, args...)...).CombinedOutput()
 	s := strings.TrimSpace(string(out))
@@ -85,7 +74,6 @@ func Install(exe string, stop func() error) error {
 	if err := os.MkdirAll(filepath.Dir(file()), 0o755); err != nil {
 		return err
 	}
-	removeLegacy()
 	if err := os.WriteFile(file(), []byte(unit(exe)), 0o644); err != nil {
 		return err
 	}

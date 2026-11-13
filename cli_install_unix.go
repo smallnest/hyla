@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"hyla/internal/clilink"
 	"hyla/internal/proto"
 
 	"hyla/locales"
@@ -37,16 +36,12 @@ func (a *App) installCLI() {
 		}
 		os.Remove(link)
 		err := os.Symlink(exe, link)
-		if err == nil {
-			// The kero command of 2.x, whose executable is gone.
-			clilink.DropLegacy(filepath.Dir(link))
-		}
 		if err != nil && runtime.GOOS == "darwin" {
 			// The paths go in as arguments, quoted by AppleScript itself,
 			// so no app location can break the script.
 			err = exec.Command("/usr/bin/osascript",
 				"-e", "on run argv",
-				"-e", `do shell script "mkdir -p /usr/local/bin && ln -sf " & quoted form of item 1 of argv & " " & quoted form of item 2 of argv & " && rm -f /usr/local/bin/kero" with administrator privileges`,
+				"-e", `do shell script "mkdir -p /usr/local/bin && ln -sf " & quoted form of item 1 of argv & " " & quoted form of item 2 of argv & " with administrator privileges`,
 				"-e", "end run",
 				exe, link).Run()
 		}

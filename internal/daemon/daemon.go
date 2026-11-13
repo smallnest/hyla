@@ -573,7 +573,6 @@ func (d *Daemon) environment(sid, pid, shell string, extra []string) []string {
 		case k == "CLAUDECODE", k == "TERM_PROGRAM", k == "TERM_PROGRAM_VERSION", k == "TERM_SESSION_ID",
 			k == "ITERM_SESSION_ID", k == "WINDOWID", k == "KITTY_WINDOW_ID", k == "LC_TERMINAL", k == "LC_TERMINAL_VERSION",
 			k == "HYLA_SESSION", k == "HYLA_PANE", k == "HYLA_HOST", k == "HYLA_ZDOTDIR", k == takeoverEnv, k == "HYLA_SERVICE", k == "INVOCATION_ID", k == "MYGO_GHOSTTY_VT", k == "TMUX", k == "TMUX_PANE",
-			k == "KERO_SESSION", k == "KERO_PANE", k == "KERO_SOCKET",
 			strings.HasPrefix(k, "CLAUDE_CODE_"), strings.HasPrefix(k, "GHOSTTY_"),
 			strings.HasPrefix(k, "VSCODE_"), strings.HasPrefix(k, "__CF"), k == "XPC_SERVICE_NAME":
 			continue
@@ -608,11 +607,6 @@ func (d *Daemon) environment(sid, pid, shell string, extra []string) []string {
 	set("HYLA_SESSION=" + sid)
 	set("HYLA_PANE=" + pid)
 	set("HYLA_SOCKET=" + proto.SocketPath())
-	// The names of 2.x, which called Hyla Kero, for the scripts and
-	// agents written for it. They go in a release or two.
-	set("KERO_SESSION=" + sid)
-	set("KERO_PANE=" + pid)
-	set("KERO_SOCKET=" + proto.SocketPath())
 	if os.Getenv("LANG") == "" && os.Getenv("LC_ALL") == "" && os.Getenv("LC_CTYPE") == "" {
 		set("LANG=en_US.UTF-8")
 	}

@@ -69,7 +69,7 @@ Download Hyla from the [releases page](https://github.com/smallnest/hyla/release
 >
 > Apps installed from the earlier `egoist/kero` releases do not update to these releases on their own: install one of these once.
 
-Hyla was called **Kero** up to 2.1.37. Apps of those releases (`smallnest/kero`) do not update to Hyla on their own either: install Hyla once. The first start moves your settings and sessions to `~/.config/hyla` (`~/Library/Application Support/hyla` on macOS), and `KERO_*` environment variables keep working as `HYLA_*`.
+Hyla was called **Kero** up to 2.1.37. Apps of those releases (`smallnest/kero`) do not update to Hyla on their own either: install Hyla once. Hyla keeps its own directory (`~/.config/hyla`, `~/Library/Application Support/hyla` on macOS) and configuration, and leaves a Kero's where they are, so the two can live side by side.
 
 ```sh
 hyla new -n fix-login -- claude
