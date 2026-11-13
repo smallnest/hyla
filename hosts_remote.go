@@ -145,7 +145,9 @@ func (a *App) p2pGroup(c *ui.Context, pal *palette) {
 	d := &a.ss.tailcat
 	settingsGroup(c, pal, "", "", func() {
 		groupTitle(c, pal, locales.SetTCPTitle())
-		ui.Text(c, locales.SetTCPDetail()).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35).Padding(0, 2, 0, 6)
+		if d := locales.SetTCPDetail(); d != "" {
+			ui.Text(c, d).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35).Padding(0, 2, 0, 6)
+		}
 		a.remoteHosts(c, pal)
 		if groupRows++; groupRows > 1 {
 			ui.Box(c).Height(1).Shrink(0).Background(pal.text.Alpha(0.07))
@@ -167,7 +169,9 @@ func (a *App) remoteHosts(c *ui.Context, pal *palette) {
 	ui.Column(c).Padding(11, 0).Gap(8).Children(func() {
 		ui.Column(c).Gap(2).Children(func() {
 			ui.Text(c, locales.SetRemoteHostsTitle()).FontSize(13.5).TextColor(pal.text)
-			ui.Text(c, locales.SetRemoteHostsDetail()).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
+			if d := locales.SetRemoteHostsDetail(); d != "" {
+				ui.Text(c, d).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
+			}
 		})
 		if len(a.prefs.RemoteHosts) == 0 {
 			ui.Text(c, locales.SetRemoteHostsNone()).FontSize(12.5).TextColor(pal.textFaint).Padding(2, 4)

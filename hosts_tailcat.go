@@ -64,7 +64,7 @@ func (a *App) tailcatGroup(c *ui.Context, pal *palette) {
 		}
 		a.tailcatListen(c, pal, d)
 	})
-	if !on {
+	if !on && locales.SetTailcatOffNote() != "" {
 		settingsGroup(c, pal, "", locales.SetTailcatOffNote(), nil)
 	}
 }
@@ -122,7 +122,9 @@ func (a *App) tailcatListen(c *ui.Context, pal *palette, d *tailcatDraft) {
 		ui.Row(c).Gap(16).AlignItems(ui.Center).Children(func() {
 			ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
 				ui.Text(c, locales.SetTailcatListen()).FontSize(13.5).TextColor(pal.text)
-				ui.Text(c, detail).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
+				if detail != "" {
+					ui.Text(c, detail).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
+				}
 			})
 			ui.Row(c).Shrink(0).AlignItems(ui.Center).Children(func() {
 				toggle(c.Key("tailcat-listen"), &on, pal).OnClick(func() {
@@ -147,7 +149,9 @@ func (a *App) tailcatListen(c *ui.Context, pal *palette, d *tailcatDraft) {
 		ui.Row(c).Gap(16).AlignItems(ui.Center).Children(func() {
 			ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
 				ui.Text(c, locales.SetTailcatListenPort()).FontSize(13.5).TextColor(pal.text)
-				ui.Text(c, locales.SetTailcatListenPortDetail()).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
+				if d := locales.SetTailcatListenPortDetail(); d != "" {
+					ui.Text(c, d).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
+				}
 			})
 			if in := textField(c, "tailcat-listen-port", &d.listenPort, settings.TailcatListenPortDefault(), 70, pal); in.Submitted() {
 				d.save(a, "tailcat-listen-port")
@@ -156,7 +160,9 @@ func (a *App) tailcatListen(c *ui.Context, pal *palette, d *tailcatDraft) {
 		tailcatFieldErr(c, pal, d, "tailcat-listen-port")
 		ui.Column(c).Gap(3).Children(func() {
 			ui.Text(c, locales.SetTailcatCode()).FontSize(13.5).TextColor(pal.text)
-			ui.Text(c, locales.SetTailcatCodeDetail()).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
+			if d := locales.SetTailcatCodeDetail(); d != "" {
+				ui.Text(c, d).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
+			}
 		})
 		// What other machines add with the code, as a phone scans it:
 		// nothing where there is none.
@@ -283,7 +289,9 @@ func (a *App) tcpListen(c *ui.Context, pal *palette, d *tailcatDraft) {
 		ui.Row(c).Gap(16).AlignItems(ui.Center).Children(func() {
 			ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
 				ui.Text(c, locales.SetTCP()).FontSize(13.5).TextColor(pal.text)
-				ui.Text(c, detail).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
+				if detail != "" {
+					ui.Text(c, detail).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
+				}
 			})
 			ui.Row(c).Shrink(0).AlignItems(ui.Center).Children(func() {
 				toggle(c.Key("tcp-listen"), &on, pal).OnClick(func() {
@@ -322,7 +330,9 @@ func (a *App) tcpListen(c *ui.Context, pal *palette, d *tailcatDraft) {
 		ui.Row(c).Gap(16).AlignItems(ui.Center).Children(func() {
 			ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
 				ui.Text(c, locales.SetTCPAddress()).FontSize(13.5).TextColor(pal.text)
-				ui.Text(c, locales.SetTCPAddressDetail()).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
+				if d := locales.SetTCPAddressDetail(); d != "" {
+					ui.Text(c, d).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
+				}
 			})
 			if in := textField(c, "tcp-addr", &d.tcpAddr, ":"+remote.PocketPort, 140, pal).Font("monospace"); in.Submitted() {
 				d.save(a, "tcp-addr")
@@ -331,7 +341,9 @@ func (a *App) tcpListen(c *ui.Context, pal *palette, d *tailcatDraft) {
 		tailcatFieldErr(c, pal, d, "tcp-addr")
 		ui.Column(c).Gap(3).Children(func() {
 			ui.Text(c, locales.SetTCPPassword()).FontSize(13.5).TextColor(pal.text)
-			ui.Text(c, locales.SetTCPPasswordDetail()).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
+			if d := locales.SetTCPPasswordDetail(); d != "" {
+				ui.Text(c, d).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
+			}
 		})
 		ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, d.tcpToken).Font("monospace").FontSize(12.5).TextColor(pal.text).Selectable().MinWidth(0)

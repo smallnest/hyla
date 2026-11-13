@@ -4304,11 +4304,11 @@ func (msgs Messages) SetRemoteHostsTitle() string {
 	return Catalog.Format(msgs.locale, "setRemoteHostsTitle", nil)
 }
 
-// SetRemoteHostsDetail says "Another machine's sessions, reached by the address and password of its tcp listener (hyla pocket addr on that machine)."
+// SetRemoteHostsDetail says ""
 // in the language the app shows.
 func SetRemoteHostsDetail() string { return In(i18n.Locale()).SetRemoteHostsDetail() }
 
-// SetRemoteHostsDetail says "Another machine's sessions, reached by the address and password of its tcp listener (hyla pocket addr on that machine)."
+// SetRemoteHostsDetail says ""
 // in the language of msgs.
 func (msgs Messages) SetRemoteHostsDetail() string {
 	return Catalog.Format(msgs.locale, "setRemoteHostsDetail", nil)
@@ -7890,21 +7890,21 @@ func (msgs Messages) SetTCP() string {
 	return Catalog.Format(msgs.locale, "setTCP", nil)
 }
 
-// SetTCPDetail says "The sessions of other machines running Hyla, and this machine as one for the phone: a client connects with the addres…"
+// SetTCPDetail says ""
 // in the language the app shows.
 func SetTCPDetail() string { return In(i18n.Locale()).SetTCPDetail() }
 
-// SetTCPDetail says "The sessions of other machines running Hyla, and this machine as one for the phone: a client connects with the addres…"
+// SetTCPDetail says ""
 // in the language of msgs.
 func (msgs Messages) SetTCPDetail() string {
 	return Catalog.Format(msgs.locale, "setTCPDetail", nil)
 }
 
-// SetTCPListenDetail says "hylad listens on this machine's network, and a client connects with the address below and the password: the phone, or…"
+// SetTCPListenDetail says ""
 // in the language the app shows.
 func SetTCPListenDetail() string { return In(i18n.Locale()).SetTCPListenDetail() }
 
-// SetTCPListenDetail says "hylad listens on this machine's network, and a client connects with the address below and the password: the phone, or…"
+// SetTCPListenDetail says ""
 // in the language of msgs.
 func (msgs Messages) SetTCPListenDetail() string {
 	return Catalog.Format(msgs.locale, "setTCPListenDetail", nil)
@@ -7920,11 +7920,11 @@ func (msgs Messages) SetTCPAddress() string {
 	return Catalog.Format(msgs.locale, "setTCPAddress", nil)
 }
 
-// SetTCPAddressDetail says "The address to listen on: empty for every address of this machine. The port is 7297, the phone app's."
+// SetTCPAddressDetail says "Empty for every address."
 // in the language the app shows.
 func SetTCPAddressDetail() string { return In(i18n.Locale()).SetTCPAddressDetail() }
 
-// SetTCPAddressDetail says "The address to listen on: empty for every address of this machine. The port is 7297, the phone app's."
+// SetTCPAddressDetail says "Empty for every address."
 // in the language of msgs.
 func (msgs Messages) SetTCPAddressDetail() string {
 	return Catalog.Format(msgs.locale, "setTCPAddressDetail", nil)
@@ -7950,11 +7950,11 @@ func (msgs Messages) SetTCPPassword() string {
 	return Catalog.Format(msgs.locale, "setTCPPassword", nil)
 }
 
-// SetTCPPasswordDetail says "What a client carries to be let in. Treat it as a password: anyone who has it reaches this machine's sessions."
+// SetTCPPasswordDetail says ""
 // in the language the app shows.
 func SetTCPPasswordDetail() string { return In(i18n.Locale()).SetTCPPasswordDetail() }
 
-// SetTCPPasswordDetail says "What a client carries to be let in. Treat it as a password: anyone who has it reaches this machine's sessions."
+// SetTCPPasswordDetail says ""
 // in the language of msgs.
 func (msgs Messages) SetTCPPasswordDetail() string {
 	return Catalog.Format(msgs.locale, "setTCPPasswordDetail", nil)
@@ -7980,11 +7980,11 @@ func (msgs Messages) SetTailcat() string {
 	return Catalog.Format(msgs.locale, "setTailcat", nil)
 }
 
-// SetTailcatDetail says "Reach hosts with a pair code through a relay. Off, Hyla lists none of these hosts and connects to none of them, and h…"
+// SetTailcatDetail says ""
 // in the language the app shows.
 func SetTailcatDetail() string { return In(i18n.Locale()).SetTailcatDetail() }
 
-// SetTailcatDetail says "Reach hosts with a pair code through a relay. Off, Hyla lists none of these hosts and connects to none of them, and h…"
+// SetTailcatDetail says ""
 // in the language of msgs.
 func (msgs Messages) SetTailcatDetail() string {
 	return Catalog.Format(msgs.locale, "setTailcatDetail", nil)
@@ -8070,11 +8070,11 @@ func (msgs Messages) SetTailcatRelayDetail() string {
 	return Catalog.Format(msgs.locale, "setTailcatRelayDetail", nil)
 }
 
-// SetTailcatOn says "Hyla on your other machines adds this computer as a host with this pair code. Anyone who has it can connect."
+// SetTailcatOn says ""
 // in the language the app shows.
 func SetTailcatOn() string { return In(i18n.Locale()).SetTailcatOn() }
 
-// SetTailcatOn says "Hyla on your other machines adds this computer as a host with this pair code. Anyone who has it can connect."
+// SetTailcatOn says ""
 // in the language of msgs.
 func (msgs Messages) SetTailcatOn() string {
 	return Catalog.Format(msgs.locale, "setTailcatOn", nil)
@@ -8100,11 +8100,11 @@ func (msgs Messages) SetTailcatOff() string {
 	return Catalog.Format(msgs.locale, "setTailcatOff", nil)
 }
 
-// SetTailcatOffNote says "Skip Tailcat if you don't trust a relay: it stays off, and Hyla starts nothing for it."
+// SetTailcatOffNote says ""
 // in the language the app shows.
 func SetTailcatOffNote() string { return In(i18n.Locale()).SetTailcatOffNote() }
 
-// SetTailcatOffNote says "Skip Tailcat if you don't trust a relay: it stays off, and Hyla starts nothing for it."
+// SetTailcatOffNote says ""
 // in the language of msgs.
 func (msgs Messages) SetTailcatOffNote() string {
 	return Catalog.Format(msgs.locale, "setTailcatOffNote", nil)
@@ -8120,11 +8120,11 @@ func (msgs Messages) SetTailcatListen() string {
 	return Catalog.Format(msgs.locale, "setTailcatListen", nil)
 }
 
-// SetTailcatListenDetail says "hylad listens through a tailcat relay, so your other machines add this one as a host with its pair code, and it opens…"
+// SetTailcatListenDetail says ""
 // in the language the app shows.
 func SetTailcatListenDetail() string { return In(i18n.Locale()).SetTailcatListenDetail() }
 
-// SetTailcatListenDetail says "hylad listens through a tailcat relay, so your other machines add this one as a host with its pair code, and it opens…"
+// SetTailcatListenDetail says ""
 // in the language of msgs.
 func (msgs Messages) SetTailcatListenDetail() string {
 	return Catalog.Format(msgs.locale, "setTailcatListenDetail", nil)
@@ -8140,11 +8140,11 @@ func (msgs Messages) SetTailcatListenPort() string {
 	return Catalog.Format(msgs.locale, "setTailcatListenPort", nil)
 }
 
-// SetTailcatListenPortDetail says "The port hylad's tailcat listener takes here. The other machines' Remote Tailcat Port connects to it."
+// SetTailcatListenPortDetail says ""
 // in the language the app shows.
 func SetTailcatListenPortDetail() string { return In(i18n.Locale()).SetTailcatListenPortDetail() }
 
-// SetTailcatListenPortDetail says "The port hylad's tailcat listener takes here. The other machines' Remote Tailcat Port connects to it."
+// SetTailcatListenPortDetail says ""
 // in the language of msgs.
 func (msgs Messages) SetTailcatListenPortDetail() string {
 	return Catalog.Format(msgs.locale, "setTailcatListenPortDetail", nil)
@@ -8160,11 +8160,11 @@ func (msgs Messages) SetTailcatCode() string {
 	return Catalog.Format(msgs.locale, "setTailcatCode", nil)
 }
 
-// SetTailcatCodeDetail says "The pair code of this computer: copy it to your other machines, which add this one as a host with it."
+// SetTailcatCodeDetail says ""
 // in the language the app shows.
 func SetTailcatCodeDetail() string { return In(i18n.Locale()).SetTailcatCodeDetail() }
 
-// SetTailcatCodeDetail says "The pair code of this computer: copy it to your other machines, which add this one as a host with it."
+// SetTailcatCodeDetail says ""
 // in the language of msgs.
 func (msgs Messages) SetTailcatCodeDetail() string {
 	return Catalog.Format(msgs.locale, "setTailcatCodeDetail", nil)
