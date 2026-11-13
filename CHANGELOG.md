@@ -4,62 +4,47 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
-## Unreleased
+## 3.7.0
 
-- Another machine that runs Hyla shows its sessions in this window, reached
-  by the address and password of its tcp:// listener: Settings › Tailcat ›
-  Other machines takes them (`hyla pocket addr` on that machine prints
-  them), and its sessions appear in the sidebar under its name, each in its
-  own terminal. Settings › **Remote Connection** holds both: Tailcat, and
-  P2P with the machines, this machine's address, its password and the code a
-  phone scans, `tcp://host:port?token=…`, which carries both. A machine added so is one to reconnect to and to remove, not
-  to restart or update; it is kept in the app's preferences.
-- Hyla and HylaPocket can reach this machine on its own network, without a
-  relay: `hyla pocket tcp enable` makes `listen = tcp://:7297` and a
-  password (`listen-token`), and `hyla pocket addr` prints where it listens
-  and the password a client carries. A connection without the password is
-  refused; `hyla pocket token` prints it alone. The connection is plain
-  HTTP, so it belongs on a network you trust, or behind a TLS proxy.
-  Settings › Tailcat has the same switch, address and password.
-- Hyla no longer adds another machine as a host of its own. Its sessions and
-  panes are this machine's alone: the sidebar lists them, the window shows
-  them, and an SSH host is a terminal of the SSH project, where `ssh` runs
-  as anywhere else. `hyla hosts`, `hyla clients` and `hyla -H` are gone with
-  the machines they named, and so are the settings that reached them:
-  Settings › Hyla Hosts keeps the Tailcat group, which turns this machine
-  into a host for HylaPocket on a phone, and nothing else. `hyla hosts
-  tailcat` and `hyla hosts pocket` are `hyla tailcat` and `hyla pocket`; the
-  pair code, the QR code and the listener are as they were.
-- Tailscale is no longer a way to reach or serve a machine. Hyla reaches a
-  host over SSH, WSL or a Tailcat pair code alone: a host's `http(s)://`
-  address, the `tailnet://` and `tailnet-serve://` listeners that answered
-  it, and `listen-allow` are gone, so hylad listens through a tailcat relay
-  only. Settings › Hyla Hosts keeps its Tailcat group and drops the
-  Tailscale one. A configuration that still names a tailnet listener is
-  reported by `hyla config check`, and hylad passes over the line.
-- HylaPocket, an Android client made from rexpocket, reads this machine's
-  sessions on a phone: hylad answers it on its Tailcat listener, and the
-  pair code that opens the connection is the only secret a phone needs.
-  `hyla hosts pocket qr` draws the code to scan; `hyla hosts pocket code`
-  prints it to paste in. A tcp listener serves it too, behind the
-  `listen-token` of the configuration.
-- Settings › Hyla Hosts › Tailcat shows this computer's pair code as a QR
-  code, above the code: a phone scans it to carry the code to another
-  machine, without copying it. The app makes the QR code with
-  [xingkaixin/mygo-native-ui](https://github.com/xingkaixin/mygo-native-ui)'s
-  `ui/qrcode`.
+- Settings has a page for reaching machines: **Remote Connection**. It holds
+  **Tailcat**, which keeps its relay and pair code, and **P2P**, which is
+  new: this machine as a host on its own network, with a password instead of
+  a relay. `hyla pocket tcp enable` starts the listener (`listen =
+  tcp://:7297`, its password `listen-token`), `hyla pocket addr` prints the
+  address, `hyla pocket token` the password, and Settings › Remote
+  Connection › P2P draws a code carrying `tcp://host:port?token=…`, which
+  the app's address field takes whole. The connection is plain HTTP, so use
+  it on a network you trust, or behind a TLS proxy.
+- Another machine that runs Hyla shows its sessions in the window: add it in
+  Settings › Remote Connection › P2P machines by its address and password,
+  with the code above pasted in whole if you like, and its projects,
+  sessions and terminals appear in the sidebar under its name, its Files
+  panel with them. It is a machine to reconnect to and to remove, not one to
+  restart or update.
+- **HylaPocket**, an Android client made from rexpocket, reads this machine's
+  sessions on a phone: by a Tailcat pair code, or, on a network you trust, by
+  the address and password of a tcp listener, whose code carries both.
+- Hyla no longer makes a machine a host of its own over Tailscale: the
+  `tailnet://` and `tailnet-serve://` listeners and `listen-allow` are gone,
+  and a host is reached over SSH, WSL or a Tailcat pair code. `hyla hosts`,
+  `hyla clients` and `hyla -H` are gone with them: `hyla hosts tailcat` and
+  `hyla hosts pocket` are `hyla tailcat` and `hyla pocket`, and SSH is the
+  SSH project's terminal, where `ssh` runs as anywhere else. A configuration
+  that still names those listeners or hosts is reported by `hyla config
+  check`.
 - A project's sessions keep the order the user drags them into: a session's
   row dragged onto another row of its project goes above or below it, a line
   saying where it lands, and the sidebar remembers the order across runs.
   The sessions the user has not moved follow in **Order By**'s order. The
   SSH project's machines and the K8s project's pods drag the same way, their
-  terminals with them. A project's name now lands on the side of the row
-  the pointer is on, where before it went below it wherever it was let go.
-- A Feishu card of a turn in progress says what the agent's newest tool
-  call is about, under the tool and its count: the command a shell runs,
-  the file a read or an edit takes, the pattern a search looks for, and
-  the address a fetch opens, as one line of the call's arguments. A call
-  whose arguments say nothing of the kind keeps the line it had.
+  terminals with them. A project's name now lands on the side of the row the
+  pointer is on, where before it went below it wherever it was let go.
+- A Feishu card of a turn in progress says what the agent's newest tool call
+  is about, under the tool and its count: the command a shell runs, the file
+  a read or an edit takes, the pattern a search looks for, and the address a
+  fetch opens, as one line of the call's arguments. A call whose arguments
+  say nothing of the kind keeps the line it had.
+- A host that runs hylad gets these with its next update.
 
 ## 3.6.5
 
