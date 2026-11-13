@@ -23,7 +23,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
+    "build": "vite build && node scripts/copy-images.mjs",
     "preview": "vite preview",
     "deploy": "vite build && wrangler deploy",
     "typecheck": "tsc"

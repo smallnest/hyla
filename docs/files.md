@@ -7,9 +7,17 @@ description: Browse a session's folder in the side panel, read a file without le
 
 The side panel has a **Files** view of the folder a session works in, so you can look at a file without leaving the window.
 
+[![Hyla's window with the Files panel open on the session's folder](/img/docs/window-en.jpg)](/img/docs/window-en.jpg)
+
+*The Files view in the side panel, on the folder of the selected session.*
+
 ## Open it
 
 Choose **View › Toggle Files** (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>F</kbd>), or press the Files button in the side panel. The tree follows the selected session: a project's folder, the home folder for a session that started there, or a folder on [another machine](./remote.md).
+
+<a href="/img/docs/panel-en.jpg"><img src="/img/docs/panel-en.jpg" width="360" alt="The Files tree: folders unfold in place, and a file carries an icon by its type"></a>
+
+*Folders unfold where they are; a file shows its type before you open it.*
 
 ## Read a file
 
