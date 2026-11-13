@@ -4,6 +4,14 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## Unreleased
+
+- Settings › Remote Connection › Tailcat takes machines reached by a pair
+  code again: a name, the code (`hyla pocket code` on that machine prints
+  it, or its QR code as a phone reads it) and its listener's port, 7473
+  unless it names another. Their sessions show in the sidebar as an
+  address's do, and the switch there turns them all on and off.
+
 ## 3.7.0
 
 - Settings has a page for reaching machines: **Remote Connection**. It holds

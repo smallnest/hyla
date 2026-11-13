@@ -7870,6 +7870,56 @@ func (msgs Messages) SetTailcatTitle() string {
 	return Catalog.Format(msgs.locale, "setTailcatTitle", nil)
 }
 
+// SetHostNeedsCode says "A tailcat machine takes its pair code."
+// in the language the app shows.
+func SetHostNeedsCode() string { return In(i18n.Locale()).SetHostNeedsCode() }
+
+// SetHostNeedsCode says "A tailcat machine takes its pair code."
+// in the language of msgs.
+func (msgs Messages) SetHostNeedsCode() string {
+	return Catalog.Format(msgs.locale, "setHostNeedsCode", nil)
+}
+
+// SetTailcatHostsTitle says "Tailcat machines"
+// in the language the app shows.
+func SetTailcatHostsTitle() string { return In(i18n.Locale()).SetTailcatHostsTitle() }
+
+// SetTailcatHostsTitle says "Tailcat machines"
+// in the language of msgs.
+func (msgs Messages) SetTailcatHostsTitle() string {
+	return Catalog.Format(msgs.locale, "setTailcatHostsTitle", nil)
+}
+
+// SetTailcatHostCode says "tc… or hyla://pair?code=…"
+// in the language the app shows.
+func SetTailcatHostCode() string { return In(i18n.Locale()).SetTailcatHostCode() }
+
+// SetTailcatHostCode says "tc… or hyla://pair?code=…"
+// in the language of msgs.
+func (msgs Messages) SetTailcatHostCode() string {
+	return Catalog.Format(msgs.locale, "setTailcatHostCode", nil)
+}
+
+// SetTailcatHostName says "name"
+// in the language the app shows.
+func SetTailcatHostName() string { return In(i18n.Locale()).SetTailcatHostName() }
+
+// SetTailcatHostName says "name"
+// in the language of msgs.
+func (msgs Messages) SetTailcatHostName() string {
+	return Catalog.Format(msgs.locale, "setTailcatHostName", nil)
+}
+
+// SetTailcatHostPort says "port"
+// in the language the app shows.
+func SetTailcatHostPort() string { return In(i18n.Locale()).SetTailcatHostPort() }
+
+// SetTailcatHostPort says "port"
+// in the language of msgs.
+func (msgs Messages) SetTailcatHostPort() string {
+	return Catalog.Format(msgs.locale, "setTailcatHostPort", nil)
+}
+
 // SetTCPTitle says "P2P"
 // in the language the app shows.
 func SetTCPTitle() string { return In(i18n.Locale()).SetTCPTitle() }

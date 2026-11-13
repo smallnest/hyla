@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -315,6 +316,45 @@ func LooksLikePairCode(s string) bool {
 func ValidPairCode(s string) bool {
 	_, err := tailcat.ParseAddr(tailcat.Addr(s))
 	return err == nil
+}
+
+// OpenTailcat connects to a port of the machine whose pair code is code,
+// through its relay: the code is the address and the secret both, and the
+// stream carries what the port's protocol does, which for hylad is its
+// own.
+func OpenTailcat(ctx context.Context, code, port string) (net.Conn, error) {
+	addr, err := tailcat.Addr(code).Resolve(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("tailcat: finding the relay: %w", err)
+	}
+	n, err := strconv.ParseUint(port, 10, 16)
+	if err != nil || n == 0 {
+		return nil, fmt.Errorf("tailcat: %q is no port", port)
+	}
+	c := tailcat.NewClient(addr)
+	conn, err := c.DialTCPPort(ctx, uint16(n))
+	if err != nil {
+		c.Close()
+		if errors.Is(err, context.DeadlineExceeded) {
+			// A machine that does not answer through the relay is one that
+			// is not on it, or whose pair code this is no longer.
+			return nil, fmt.Errorf("tailcat: no answer on port %s: it may not listen over tailcat, or its pair code may have changed", port)
+		}
+		return nil, fmt.Errorf("tailcat: %w", err)
+	}
+	return &tailcatConn{Conn: conn, client: c}, nil
+}
+
+// tailcatConn is a stream of a tailcat client, which ends with it.
+type tailcatConn struct {
+	net.Conn
+	client *tailcat.Client
+}
+
+func (t *tailcatConn) Close() error {
+	err := t.Conn.Close()
+	t.client.Close()
+	return err
 }
 
 // TailcatCode is a pair code as the settings hold it: "tailcat://" and

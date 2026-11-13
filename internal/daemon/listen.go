@@ -236,7 +236,22 @@ func (l *listeners) joinTailcat(lis *listener) error {
 	lis.spec.Tailcat = strings.TrimPrefix(r.PairCode, "tailcat://")
 	l.mu.Unlock()
 	l.d.log.Printf("listening on %s (tailcat)", r.PairCode)
+	// Hyla reaches this machine on the listener's own port, which the pair
+	// code admitted: the connections carry its protocol, as the socket's.
+	go l.serveTailcat(r)
 	return nil
+}
+
+// serveTailcat serves Hyla's own connections to a tailcat listener, whose
+// port is the listener's: the pair code is all that admits them.
+func (l *listeners) serveTailcat(r *remote.TailcatRelay) {
+	for {
+		c, err := r.Accept()
+		if err != nil {
+			return
+		}
+		go l.d.serve(c, identity{peer: "the pair code", via: "tailcat"})
+	}
 }
 
 // tcpListener listens on this machine's network, at the address the

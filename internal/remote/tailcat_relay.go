@@ -150,6 +150,10 @@ func ListenTailcat(ctx context.Context, path, port string) (*TailcatRelay, error
 	return &TailcatRelay{TailcatServer: &TailcatServer{Server: s, PairCode: "tailcat://" + code}, ln: ln}, nil
 }
 
+// Accept takes a connection to the listener's port, which carries what
+// hylad's own connections do: the pair code admitted it.
+func (r *TailcatRelay) Accept() (net.Conn, error) { return r.ln.Accept() }
+
 // Close stops the listener, and the server with it.
 func (r *TailcatRelay) Close() {
 	r.ln.Close()

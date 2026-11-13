@@ -62,6 +62,10 @@ func (a *App) tailcatGroup(c *ui.Context, pal *palette) {
 		if groupRows++; groupRows > 1 {
 			ui.Box(c).Height(1).Shrink(0).Background(pal.text.Alpha(0.07))
 		}
+		a.tailcatHosts(c, pal)
+		if groupRows++; groupRows > 1 {
+			ui.Box(c).Height(1).Shrink(0).Background(pal.text.Alpha(0.07))
+		}
 		a.tailcatListen(c, pal, d)
 	})
 	if !on && locales.SetTailcatOffNote() != "" {
@@ -81,6 +85,9 @@ func (a *App) setTailcat(on bool) {
 	}
 	a.set = s
 	a.resetTailcat()
+	// Off, the machines reached by a pair code are let go of, and on, they
+	// connect again.
+	a.syncRemoteHosts()
 }
 
 // resetTailcat reads the Tailcat group's fields again from the settings,

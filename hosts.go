@@ -28,6 +28,11 @@ import (
 type host struct {
 	name        string // "" for this machine
 	addr, token string // a remote machine's tcp:// address and password
+	// tc is a machine reached by a tailcat pair code instead: code is the
+	// code, and port the listener's.
+	tc   bool
+	code string
+	port string
 
 	cl        *client.Client
 	conn      connState
@@ -132,10 +137,13 @@ func editorCommand(h *host, file string) []string {
 // dialer opens connections to hylad: this machine's socket, or another
 // machine's tcp:// listener, with its password.
 func (h *host) dialer() client.Dialer {
-	if h.remote() {
-		return tcpDialer{addr: h.addr, token: h.token}
+	switch {
+	case !h.remote():
+		return client.Local{NoStart: true}
+	case h.tc:
+		return tailcatDialer{code: h.code, port: h.port}
 	}
-	return client.Local{NoStart: true}
+	return tcpDialer{addr: h.addr, token: h.token}
 }
 
 // selectedHost is the host of the session shown: this machine.

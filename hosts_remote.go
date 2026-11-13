@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"net"
 	"net/url"
 	"slices"
@@ -10,23 +11,40 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/proto"
+	"hyla/internal/remote"
+	"hyla/internal/settings"
 
 	"hyla/locales"
 )
 
-// remoteHost is another machine Hyla reaches over its tcp:// listener, by
-// the address and the password of that listener: the sidebar shows its
+// remoteHost is another machine Hyla reaches: over its tcp:// listener, by
+// the address and the password of that listener, or by a tailcat pair
+// code, which is the address and the secret both. The sidebar shows its
 // sessions beside this machine's.
 type remoteHost struct {
 	Name  string `json:"name"`
-	Addr  string `json:"addr"`
-	Token string `json:"token"`
+	Addr  string `json:"addr"`            // host:port, or tailcat://tc…
+	Token string `json:"token,omitempty"` // a tcp listener's password
+	Port  string `json:"port,omitempty"`  // a tailcat listener's
 }
+
+// tailcat reports whether the machine is reached by a pair code.
+func (r remoteHost) tailcat() bool { return strings.HasPrefix(r.Addr, "tailcat://") }
 
 // tcpDialer opens connections to a machine's tcp:// listener: the
 // password first, which the listener admits, then Hyla's own protocol.
 type tcpDialer struct {
 	addr, token string
+}
+
+// tailcatDialer reaches a machine by its pair code, through the relay the
+// code names: the port is its listener's, which carries Hyla's protocol.
+type tailcatDialer struct{ code, port string }
+
+func (d tailcatDialer) Dial() (net.Conn, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	return remote.OpenTailcat(ctx, d.code, d.port)
 }
 
 func (d tcpDialer) Dial() (net.Conn, error) {
@@ -47,16 +65,23 @@ func (a *App) syncRemoteHosts() {
 	keep := []*host{a.local()}
 	for _, r := range a.prefs.RemoteHosts {
 		addr := strings.TrimSpace(r.Addr)
-		if addr == "" || r.Name == "" {
+		// Tailcat off reaches none of its machines: the app lists none.
+		if addr == "" || r.Name == "" || r.tailcat() && !a.set.Tailcat {
 			continue
 		}
+		tc := r.tailcat()
+		port := r.Port
+		if tc && port == "" {
+			port = remote.DefaultPort
+		}
+		code := remote.TailcatCode(addr)
 		h := a.hostNamed(r.Name)
-		if h != nil && (h.addr != addr || h.token != r.Token) {
+		if h != nil && (h.addr != addr || h.token != r.Token || h.tc != tc || h.port != port) {
 			a.closeHost(h)
 			h = nil
 		}
 		if h == nil {
-			h = &host{name: r.Name, addr: addr, token: r.Token, conn: connConnecting}
+			h = &host{name: r.Name, addr: addr, token: r.Token, tc: tc, code: code, port: port, conn: connConnecting}
 		}
 		keep = append(keep, h)
 	}
@@ -93,38 +118,84 @@ func (a *App) closeHost(h *host) {
 	h.loaded = false
 }
 
-// addRemoteHost saves a machine and connects to it.
-func (a *App) addRemoteHost(name, addr, token string) error {
+// addRemoteHost saves a machine and connects to it: by the address and
+// password of its tcp listener, or by a tailcat pair code, whose port is
+// the listener's.
+func (a *App) addRemoteHost(name, addr, token, port string) error {
 	name = strings.TrimSpace(name)
-	addr = strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(addr), "tcp://"))
+	addr = strings.TrimSpace(addr)
 	token = strings.TrimSpace(token)
-	// A code a phone scans, pasted here: tcp://host:port?token=…, whose
-	// token is the password.
-	if i := strings.Index(addr, "?"); i >= 0 {
-		if q, err := url.ParseQuery(addr[i+1:]); err == nil && token == "" {
-			token = strings.TrimSpace(q.Get("token"))
+	port = strings.TrimSpace(port)
+	tc := false
+	// A code a phone scans, pasted here: hyla://pair?code=tc…&name=…
+	if code, label, ok := pairOf(addr); ok {
+		if name == "" {
+			name = label
 		}
-		addr = addr[:i]
+		addr = code
+		tc = true
+	} else if strings.HasPrefix(addr, "tailcat://") || remote.ValidPairCode(addr) {
+		addr = remote.TailcatCode(addr)
+		tc = true
 	}
-	host, _, err := net.SplitHostPort(addr)
-	if err != nil {
-		return errNoHostAddress
-	}
-	if name == "" {
-		name = host
+	if tc {
+		if !remote.ValidPairCode(addr) {
+			return errNoHostCode
+		}
+		if port == "" {
+			port = remote.DefaultPort
+		}
+		if !settings.ValidListenPort(port) {
+			return errNoHostAddress
+		}
+		addr = "tailcat://" + addr
+	} else {
+		addr = strings.TrimPrefix(addr, "tcp://")
+		// A code a phone scans, pasted here: tcp://host:port?token=…, whose
+		// token is the password.
+		if i := strings.Index(addr, "?"); i >= 0 {
+			if q, err := url.ParseQuery(addr[i+1:]); err == nil && token == "" {
+				token = strings.TrimSpace(q.Get("token"))
+			}
+			addr = addr[:i]
+		}
+		host, _, err := net.SplitHostPort(addr)
+		if err != nil {
+			return errNoHostAddress
+		}
+		if name == "" {
+			name = host
+		}
+		if token == "" {
+			return errNoHostToken
+		}
 	}
 	for _, r := range a.prefs.RemoteHosts {
 		if strings.EqualFold(r.Name, name) {
 			return errHostNamed(name)
 		}
 	}
-	if token == "" {
-		return errNoHostToken
-	}
-	a.prefs.RemoteHosts = append(a.prefs.RemoteHosts, remoteHost{Name: name, Addr: addr, Token: token})
+	a.prefs.RemoteHosts = append(a.prefs.RemoteHosts, remoteHost{Name: name, Addr: addr, Token: token, Port: port})
 	a.savePrefs()
 	a.syncRemoteHosts()
 	return nil
+}
+
+// pairOf reads a code a phone scans, hyla://pair?code=tc…&name=…, as its
+// pair code and name.
+func pairOf(s string) (code, name string, ok bool) {
+	if !strings.HasPrefix(s, "hyla://pair?") {
+		return "", "", false
+	}
+	q, err := url.ParseQuery(strings.TrimPrefix(s, "hyla://pair?"))
+	if err != nil {
+		return "", "", false
+	}
+	code = q.Get("code")
+	if !remote.ValidPairCode(code) {
+		return "", "", false
+	}
+	return code, strings.TrimSpace(q.Get("name")), true
 }
 
 // removeRemoteHost forgets a machine, and its sessions.
@@ -141,6 +212,7 @@ var (
 	errNoHostToken   = errString(locales.SetHostNeedsToken())
 	errNoHostAddress = errString(locales.SetHostBadAddress())
 	errHostNamed     = func(name string) error { return errString(locales.SetHostNameTaken(name)) }
+	errNoHostCode    = errString(locales.SetHostNeedsCode())
 )
 
 type errString string
@@ -159,6 +231,77 @@ func (a *App) p2pGroup(c *ui.Context, pal *palette) {
 		}
 		a.tcpListen(c, pal, d)
 	})
+}
+
+// tcHostDraft is the form that adds a machine by its tailcat pair code.
+type tcHostDraft struct {
+	name, code, port string
+	err              string
+}
+
+// tailcatHosts are the machines reached by a pair code: the head of the
+// Tailcat group.
+func (a *App) tailcatHosts(c *ui.Context, pal *palette) {
+	d := &a.ss.tcHost
+	ui.Column(c).Padding(11, 0).Gap(8).Children(func() {
+		ui.Text(c, locales.SetTailcatHostsTitle()).FontSize(13.5).TextColor(pal.text)
+		n := 0
+		for _, r := range a.prefs.RemoteHosts {
+			if !r.tailcat() {
+				continue
+			}
+			n++
+			r := r
+			ui.Row(c).Padding(2, 0).Gap(10).AlignItems(ui.Center).Children(func() {
+				ui.Icon(c, hostIcon).Size(14, 14).TextColor(pal.textMuted).Shrink(0)
+				ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
+					ui.Text(c, r.Name).FontSize(13).TextColor(pal.text).SingleLine().Ellipsis("…")
+					ui.Text(c, strings.TrimPrefix(r.Addr, "tailcat://")[:min(12, len(strings.TrimPrefix(r.Addr, "tailcat://")))]+"… "+r.Port).
+						Font("monospace").FontSize(12).TextColor(pal.textFaint).SingleLine().Ellipsis("…")
+				})
+				iconButton(c, "rm-tc-"+r.Name, closeIcon, locales.HostRemove(), pal, func() {
+					a.removeRemoteHost(r.Name)
+				})
+			})
+		}
+		add := func() {
+			port := d.port
+			if strings.TrimSpace(port) == "" {
+				port = remote.DefaultPort
+			}
+			if err := a.addRemoteHost(d.name, d.code, "", port); err != nil {
+				d.err = err.Error()
+				return
+			}
+			*d = tcHostDraft{}
+		}
+		ui.Row(c).Padding(2, 0, 10, 0).Gap(8).AlignItems(ui.Center).Children(func() {
+			if in := textField(c, "tc-code", &d.code, locales.SetTailcatHostCode(), 190, pal).Font("monospace"); in.Submitted() {
+				add()
+			}
+			if in := textField(c, "tc-name", &d.name, locales.SetTailcatHostName(), 100, pal); in.Submitted() {
+				add()
+			}
+			if in := textField(c, "tc-port", &d.port, remote.DefaultPort, 70, pal); in.Submitted() {
+				add()
+			}
+			if fieldButton(c, "tc-add", locales.CommonAdd(), true, pal) {
+				add()
+			}
+		})
+		if d.err != "" {
+			ui.Text(c, d.err).FontSize(12).TextColor(pal.danger)
+		}
+	})
+}
+
+// shortPairCode is a pair code as a list shows it: its first characters.
+func shortPairCode(addr string) string {
+	code := strings.TrimPrefix(addr, "tailcat://")
+	if len(code) > 12 {
+		return code[:12] + "…"
+	}
+	return code
 }
 
 // hostDraft is the form that adds another machine: its name, its
@@ -182,6 +325,9 @@ func (a *App) remoteHosts(c *ui.Context, pal *palette) {
 			ui.Text(c, locales.SetRemoteHostsNone()).FontSize(12.5).TextColor(pal.textFaint).Padding(2, 4)
 		}
 		for _, r := range a.prefs.RemoteHosts {
+			if r.tailcat() {
+				continue
+			}
 			r := r
 			ui.Row(c).Padding(2, 0).Gap(10).AlignItems(ui.Center).Children(func() {
 				ui.Icon(c, hostIcon).Size(14, 14).TextColor(pal.textMuted).Shrink(0)
@@ -196,7 +342,7 @@ func (a *App) remoteHosts(c *ui.Context, pal *palette) {
 		}
 		d := &a.ss.remote
 		add := func() {
-			if err := a.addRemoteHost(d.name, d.addr, d.token); err != nil {
+			if err := a.addRemoteHost(d.name, d.addr, d.token, ""); err != nil {
 				d.err = err.Error()
 				return
 			}

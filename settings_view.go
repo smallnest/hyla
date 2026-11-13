@@ -81,6 +81,7 @@ type settingsState struct {
 	scrolls         map[string]*ui.ScrollState // each page's, for its scroll edge
 	tailcat         tailcatDraft               // the Tailcat group's
 	remote          hostDraft                  // the other machines' form
+	tcHost          tcHostDraft                // the Tailcat machines' form
 	feishu          feishuDraft                // the Feishu page's form
 	confirm         *confirmation              // a question, asked in this window
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"io"
 	"net"
@@ -13,6 +14,7 @@ import (
 
 	"hyla/internal/client"
 	"hyla/internal/proto"
+	"hyla/internal/remote"
 )
 
 // aRemoteHylad answers as another machine's hylad at a tcp:// listener:
@@ -94,7 +96,7 @@ func remoteState() proto.State {
 func TestRemoteHost(t *testing.T) {
 	a := testApp(t)
 	addr := aRemoteHylad(t, "s3cret-pass", remoteState())
-	if err := a.addRemoteHost("studio", "tcp://"+addr, "s3cret-pass"); err != nil {
+	if err := a.addRemoteHost("studio", "tcp://"+addr, "s3cret-pass", ""); err != nil {
 		t.Fatal(err)
 	}
 	h := a.hostNamed("studio")
@@ -156,7 +158,7 @@ func TestRemoteHost(t *testing.T) {
 func TestRemoteHostWrongPassword(t *testing.T) {
 	a := testApp(t)
 	addr := aRemoteHylad(t, "s3cret-pass", remoteState())
-	if err := a.addRemoteHost("studio", addr, "wrong"); err != nil {
+	if err := a.addRemoteHost("studio", addr, "wrong", ""); err != nil {
 		t.Fatal(err)
 	}
 	h := a.hostNamed("studio")
@@ -187,14 +189,40 @@ func TestRemoteHostsSettings(t *testing.T) {
 // address when the user does not.
 func TestAddRemoteHost(t *testing.T) {
 	a := testApp(t)
-	if err := a.addRemoteHost("", "192.168.1.5:7297", "s3cret-pass"); err != nil {
+	if err := a.addRemoteHost("", "192.168.1.5:7297", "s3cret-pass", ""); err != nil {
 		t.Fatal(err)
 	}
 	if h := a.hostNamed("192.168.1.5"); h == nil {
 		t.Fatalf("hosts %+v", a.prefs.RemoteHosts)
 	}
+	// A Tailcat machine comes as its pair code, or as the code a phone
+	// scans, and its port is the listener's; Tailcat off reaches none.
+	a.set.Tailcat = true
+	k, err := remote.NewTailcatKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	k.Region = "1" // a region of its own: this test needs no relay
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	code, err := remote.TailcatAddress(ctx, k)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := a.addRemoteHost("relay", code, "", ""); err != nil {
+		t.Fatal(err)
+	}
+	if h := a.hostNamed("relay"); h == nil || !h.tc || h.code != code || h.port == "" || h.addr != "tailcat://"+code {
+		t.Errorf("the pair code is %+v", h)
+	}
+	if err := a.addRemoteHost("", "hyla://pair?code="+code+"&name=scanned", "", "7400"); err != nil {
+		t.Fatal(err)
+	}
+	if h := a.hostNamed("scanned"); h == nil || h.code != code || h.port != "7400" {
+		t.Errorf("the scanned code is %+v", h)
+	}
 	// A whole code pasted in the address field takes its password.
-	if err := a.addRemoteHost("code", "tcp://192.168.1.7:7297?token=s3cret-pass", ""); err != nil {
+	if err := a.addRemoteHost("code", "tcp://192.168.1.7:7297?token=s3cret-pass", "", ""); err != nil {
 		t.Fatal(err)
 	}
 	if h := a.hostNamed("code"); h == nil || h.addr != "192.168.1.7:7297" || h.token != "s3cret-pass" {
@@ -205,7 +233,7 @@ func TestAddRemoteHost(t *testing.T) {
 		{"studio", "192.168.1.5:7297", ""},
 		{"192.168.1.5", "192.168.1.6:7297", "s3cret-pass"},
 	} {
-		if err := a.addRemoteHost(c.name, c.addr, c.token); err == nil {
+		if err := a.addRemoteHost(c.name, c.addr, c.token, ""); err == nil {
 			t.Errorf("%+v was taken", c)
 		}
 	}
