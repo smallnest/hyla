@@ -6,6 +6,12 @@ number; the notes of the upstream releases it includes follow its own.
 
 ## Unreleased
 
+- Another machine that runs Hyla shows its sessions in this window, reached
+  by the address and password of its tcp:// listener: Settings › Tailcat ›
+  Other machines takes them (`hyla pocket addr` on that machine prints
+  them), and its sessions appear in the sidebar under its name, each in its
+  own terminal. A machine added so is one to reconnect to and to remove, not
+  to restart or update; it is kept in the app's preferences.
 - Hyla and HylaPocket can reach this machine on its own network, without a
   relay: `hyla pocket tcp enable` makes `listen = tcp://:7297` and a
   password (`listen-token`), and `hyla pocket addr` prints where it listens

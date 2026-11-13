@@ -4294,6 +4294,56 @@ func (msgs Messages) SetRemoteControl() string {
 	return Catalog.Format(msgs.locale, "setRemoteControl", nil)
 }
 
+// SetRemoteHostsTitle says "Other machines"
+// in the language the app shows.
+func SetRemoteHostsTitle() string { return In(i18n.Locale()).SetRemoteHostsTitle() }
+
+// SetRemoteHostsTitle says "Other machines"
+// in the language of msgs.
+func (msgs Messages) SetRemoteHostsTitle() string {
+	return Catalog.Format(msgs.locale, "setRemoteHostsTitle", nil)
+}
+
+// SetRemoteHostsDetail says "The sessions of another machine running Hyla, reached by the address of its tcp listener and its password (hyla pocke…"
+// in the language the app shows.
+func SetRemoteHostsDetail() string { return In(i18n.Locale()).SetRemoteHostsDetail() }
+
+// SetRemoteHostsDetail says "The sessions of another machine running Hyla, reached by the address of its tcp listener and its password (hyla pocke…"
+// in the language of msgs.
+func (msgs Messages) SetRemoteHostsDetail() string {
+	return Catalog.Format(msgs.locale, "setRemoteHostsDetail", nil)
+}
+
+// SetRemoteHostsNone says "No other machine yet."
+// in the language the app shows.
+func SetRemoteHostsNone() string { return In(i18n.Locale()).SetRemoteHostsNone() }
+
+// SetRemoteHostsNone says "No other machine yet."
+// in the language of msgs.
+func (msgs Messages) SetRemoteHostsNone() string {
+	return Catalog.Format(msgs.locale, "setRemoteHostsNone", nil)
+}
+
+// SetRemoteHostAddress says "192.168.1.5:7297"
+// in the language the app shows.
+func SetRemoteHostAddress() string { return In(i18n.Locale()).SetRemoteHostAddress() }
+
+// SetRemoteHostAddress says "192.168.1.5:7297"
+// in the language of msgs.
+func (msgs Messages) SetRemoteHostAddress() string {
+	return Catalog.Format(msgs.locale, "setRemoteHostAddress", nil)
+}
+
+// SetRemoteHostPassword says "password"
+// in the language the app shows.
+func SetRemoteHostPassword() string { return In(i18n.Locale()).SetRemoteHostPassword() }
+
+// SetRemoteHostPassword says "password"
+// in the language of msgs.
+func (msgs Messages) SetRemoteHostPassword() string {
+	return Catalog.Format(msgs.locale, "setRemoteHostPassword", nil)
+}
+
 // SetRemoteControlRow says "Let commands drive this window"
 // in the language the app shows.
 func SetRemoteControlRow() string { return In(i18n.Locale()).SetRemoteControlRow() }
@@ -6950,6 +7000,26 @@ func SetHostNameTaken(name string) string { return In(i18n.Locale()).SetHostName
 // in the language of msgs.
 func (msgs Messages) SetHostNameTaken(name string) string {
 	return Catalog.Format(msgs.locale, "setHostNameTaken", map[string]any{"name": name})
+}
+
+// SetHostNeedsToken says "A host takes the password of its tcp listener."
+// in the language the app shows.
+func SetHostNeedsToken() string { return In(i18n.Locale()).SetHostNeedsToken() }
+
+// SetHostNeedsToken says "A host takes the password of its tcp listener."
+// in the language of msgs.
+func (msgs Messages) SetHostNeedsToken() string {
+	return Catalog.Format(msgs.locale, "setHostNeedsToken", nil)
+}
+
+// SetHostBadAddress says "This is no address: write host:port, as 192.168.1.5:7297."
+// in the language the app shows.
+func SetHostBadAddress() string { return In(i18n.Locale()).SetHostBadAddress() }
+
+// SetHostBadAddress says "This is no address: write host:port, as 192.168.1.5:7297."
+// in the language of msgs.
+func (msgs Messages) SetHostBadAddress() string {
+	return Catalog.Format(msgs.locale, "setHostBadAddress", nil)
 }
 
 // SetHostNeedsAddress says "Type the host's address"

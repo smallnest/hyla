@@ -579,6 +579,11 @@
   "setTestNotificationBody": "Notifications work.",
   "setNotifyError": "Couldn’t notify: {error}",
   "setRemoteControl": "Remote Control",
+  "setRemoteHostsTitle": "Other machines",
+  "setRemoteHostsDetail": "The sessions of another machine running Hyla, reached by the address of its tcp listener and its password (hyla pocket addr on that machine).",
+  "setRemoteHostsNone": "No other machine yet.",
+  "setRemoteHostAddress": "192.168.1.5:7297",
+  "setRemoteHostPassword": "password",
   "setRemoteControlRow": "Let commands drive this window",
   "setRemoteControlDetail": "hyla do and hyla focus run the app’s actions, as its menus do: splitting, switching sessions, opening the palette. hyla browser clicks, types and reads in browser panes.",
   "setCli": "Command line tool",
@@ -1216,6 +1221,8 @@
     }
   },
   "setHostNameTaken": "There's a host named {name} already",
+  "setHostNeedsToken": "A host takes the password of its tcp listener.",
+  "setHostBadAddress": "This is no address: write host:port, as 192.168.1.5:7297.",
   "@setHostNameTaken": {
     "placeholders": {
       "name": {

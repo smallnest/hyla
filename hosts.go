@@ -22,10 +22,12 @@ import (
 	"hyla/locales"
 )
 
-// host is this machine's hylad, as the app has it: its connection, and
-// what it holds.
+// host is hylad, as the app has it: its connection, and what it holds.
+// This machine's is first; the others are reached by an address and a
+// password, over a tcp:// listener.
 type host struct {
-	name string // "" for this machine
+	name        string // "" for this machine
+	addr, token string // a remote machine's tcp:// address and password
 
 	cl        *client.Client
 	conn      connState
@@ -70,9 +72,27 @@ func released(v string) bool { return v != "" && !strings.Contains(v, "dev") && 
 
 func (a *App) local() *host { return a.hosts[0] }
 
+// remote reports whether h is another machine's.
+func (h *host) remote() bool { return h.name != "" }
+
 // hostOf returns the host of a session, a pane or a project, by id: this
-// machine, which is the only one the app has.
-func (a *App) hostOf(id string) *host { return a.local() }
+// machine when none has it.
+func (a *App) hostOf(id string) *host {
+	if h := a.owner[id]; h != nil {
+		return h
+	}
+	return a.local()
+}
+
+// hostNamed returns a remote host, by name, else nil.
+func (a *App) hostNamed(name string) *host {
+	for _, h := range a.hosts[1:] {
+		if strings.EqualFold(h.name, name) {
+			return h
+		}
+	}
+	return nil
+}
 
 // label names the host in words: this machine, which has no name of its
 // own.
@@ -84,8 +104,13 @@ func (h *host) label() string {
 }
 
 // shortDir is a directory as the sidebar and the tooltips show it, from
-// this machine's home.
-func (h *host) shortDir(dir string) string { return proto.ShortDir(dir) }
+// this machine's home; another machine's as it is there.
+func (h *host) shortDir(dir string) string {
+	if h.remote() {
+		return dir
+	}
+	return proto.ShortDir(dir)
+}
 
 // joinPath makes a path of this machine, whose separator is its own.
 func (h *host) joinPath(parts ...string) string { return filepath.Join(parts...) }
@@ -104,8 +129,14 @@ func editorCommand(h *host, file string) []string {
 		`$e = if ($env:VISUAL) { $env:VISUAL } elseif ($env:EDITOR) { $env:EDITOR } else { 'edit' }; Invoke-Expression ($e + ' ' + ` + shell.PSQuote(shell.PSQuote(file)) + `)`}
 }
 
-// dialer opens connections to this machine's hylad.
-func (h *host) dialer() client.Dialer { return client.Local{NoStart: true} }
+// dialer opens connections to hylad: this machine's socket, or another
+// machine's tcp:// listener, with its password.
+func (h *host) dialer() client.Dialer {
+	if h.remote() {
+		return tcpDialer{addr: h.addr, token: h.token}
+	}
+	return client.Local{NoStart: true}
+}
 
 // selectedHost is the host of the session shown: this machine.
 func (a *App) selectedHost() *host { return a.local() }
@@ -113,7 +144,8 @@ func (a *App) selectedHost() *host { return a.local() }
 // connect connects to this machine's hylad, starting it.
 func (a *App) connect() { a.connectHost(a.local()) }
 
-// connectHost connects to this machine's hylad.
+// connectHost connects to hylad: this machine's, or another machine's,
+// over its tcp:// listener.
 func (a *App) connectHost(h *host) {
 	h.gen++
 	gen := h.gen
@@ -122,7 +154,13 @@ func (a *App) connectHost(h *host) {
 	}
 	h.dialing = true
 	go func() {
-		cl, err := connectLocal()
+		var cl *client.Client
+		var err error
+		if h.remote() {
+			cl, err = client.ConnectVia(h.dialer())
+		} else {
+			cl, err = connectLocal()
+		}
 		a.update(func() { a.connected(h, gen, cl, err) })
 	}()
 }
@@ -173,7 +211,9 @@ func (a *App) connected(h *host, gen int, cl *client.Client, err error) {
 	h.cl, h.conn, h.err, h.retries = cl, connReady, "", 0
 	h.hylad = hyladID(h, cl)
 	h.daemonApp, h.daemonFP = cl.Welcome.App, cl.Welcome.Build
-	relaunchForHylad(h.daemonApp)
+	if !h.remote() {
+		relaunchForHylad(h.daemonApp)
+	}
 	cl.OnEvent(func(m proto.Message) { a.update(func() { a.event(h, cl, m) }) })
 	cl.Go("subscribe", nil, nil)
 	h.viewSent = nil
@@ -224,27 +264,85 @@ func (a *App) reconnect(h *host) {
 	}
 }
 
-// dropTerms lets go of the terminals, which attach again as they show.
+// dropTerms lets go of a host's terminals, which attach again as they
+// show.
 func (a *App) dropTerms(h *host) {
 	for id := range a.terms {
-		a.dropTerm(id)
+		if a.hostOf(id) == h {
+			a.dropTerm(id)
+		}
 	}
 }
 
-// sessionsOf returns the sessions, in the state the app shows.
-func (a *App) sessionsOf(h *host) []proto.Session { return a.st.Sessions }
+// sessionsOf returns a host's sessions, in the state the app shows.
+func (a *App) sessionsOf(h *host) []proto.Session {
+	var out []proto.Session
+	for _, s := range a.st.Sessions {
+		if a.hostOf(s.ID) == h {
+			out = append(out, s)
+		}
+	}
+	return out
+}
 
-func (a *App) projectsOf(h *host) []proto.Project { return a.st.Projects }
+func (a *App) projectsOf(h *host) []proto.Project {
+	var out []proto.Project
+	for _, p := range a.st.Projects {
+		if a.hostOf(p.ID) == h {
+			out = append(out, p)
+		}
+	}
+	return out
+}
 
-// mergeState makes st the state the app shows.
+// mergeState makes st a host's part of the state the app shows, the
+// hosts' parts in their order: what the app changed in the others before
+// their hylads' states come stays.
 func (a *App) mergeState(h *host, st proto.State) {
-	a.st.Projects, a.st.Sessions = st.Projects, st.Sessions
+	var projects []proto.Project
+	var sessions []proto.Session
+	owner := map[string]*host{}
+	for _, o := range a.hosts {
+		ps, ss := st.Projects, st.Sessions
+		if o != h {
+			ps, ss = a.projectsOf(o), a.sessionsOf(o)
+		}
+		for _, p := range ps {
+			owner[p.ID] = o
+		}
+		for _, s := range ss {
+			owner[s.ID] = o
+			for _, p := range s.Panes {
+				owner[p.ID] = o
+			}
+		}
+		projects = append(projects, ps...)
+		sessions = append(sessions, ss...)
+	}
+	a.st.Projects, a.st.Sessions, a.owner = projects, sessions, owner
+}
+
+// own records a session the app just made as a host's, before its
+// hylad's state, which has it, comes.
+func (a *App) own(h *host, s proto.Session) {
+	if a.owner == nil {
+		a.owner = map[string]*host{}
+	}
+	a.owner[s.ID] = h
+	a.owner[s.Project] = h
+	for _, p := range s.Panes {
+		a.owner[p.ID] = h
+	}
 }
 
 // remoteControl reports whether programs may drive the app (hyla focus,
 // hyla do), as Settings › Agents says, or a Feishu bot, which takes
 // prompts as the agent runs them.
 func (a *App) remoteControl(h *host) bool {
+	if h.remote() {
+		// A machine's programs drive the app of the machine they run on.
+		return false
+	}
 	if settings.Load().Feishu != nil && settings.Load().Feishu.App != "" {
 		return true
 	}
@@ -254,13 +352,22 @@ func (a *App) remoteControl(h *host) bool {
 // hostedName is a session's name, as a notification and the window's
 // title say it.
 func (a *App) hostedName(s *proto.Session) string {
-	return s.DisplayName(a.set.SessionName)
+	name := s.DisplayName(a.set.SessionName)
+	if h := a.hostOf(s.ID); h.remote() {
+		return name + " · " + h.name
+	}
+	return name
 }
 
 // allLoaded reports whether the state came, or failed to: the session the
 // app showed last may be of a hylad still connecting.
 func (a *App) allLoaded() bool {
-	return a.local().loaded || a.local().conn != connConnecting
+	for _, h := range a.hosts {
+		if !h.loaded && h.conn == connConnecting {
+			return false
+		}
+	}
+	return true
 }
 
 // actionHost is the host an action runs for: this machine.
@@ -297,6 +404,17 @@ func (a *App) hostDot(c *ui.Context, pal *palette, col ui.Color, label string) {
 // hostState says how the app stands with this machine's hylad: a dot
 // while it connects or failed to, a chip when it wants restarting.
 func (a *App) hostState(c *ui.Context, pal *palette, h *host) {
+	if h.remote() {
+		// Another machine's hylad is not this app's to restart: it says
+		// where it stands, and the user reconnects to it.
+		switch {
+		case h.conn == connConnecting:
+			a.hostDot(c, pal, pal.textFaint, locales.StatusConnecting())
+		case h.conn == connFailed:
+			a.hostDot(c, pal, pal.danger, h.err)
+		}
+		return
+	}
 	switch {
 	case h.conn == connConnecting && h.loaded:
 		a.hostDot(c, pal, pal.attention, locales.HostReconnecting())
@@ -339,7 +457,7 @@ func (a *App) offerHostRestart(h *host) {
 // stale reports whether hylad runs an older Hyla than the app: what this
 // machine's hylad is, before it is restarted into the app's.
 func (h *host) stale() bool {
-	if h.conn != connReady || h.daemonApp == "" {
+	if h.remote() || h.conn != connReady || h.daemonApp == "" {
 		return false
 	}
 	return hyladStale(h.daemonApp, h.daemonFP)

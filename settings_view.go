@@ -80,6 +80,7 @@ type settingsState struct {
 	problems        []string                   // what the configuration file got wrong
 	scrolls         map[string]*ui.ScrollState // each page's, for its scroll edge
 	tailcat         tailcatDraft               // the Tailcat group's
+	remote          hostDraft                  // the other machines' form
 	feishu          feishuDraft                // the Feishu page's form
 	confirm         *confirmation              // a question, asked in this window
 }
@@ -283,6 +284,7 @@ func (a *App) settingsView(c *ui.Context) {
 								a.agentsPage(c, pal)
 							case "hosts":
 								a.tailcatGroup(c, pal)
+								a.remoteHostsGroup(c, pal)
 							case "advanced":
 								a.advancedPage(c, pal)
 							}

@@ -79,6 +79,9 @@ type prefs struct {
 	ArchivedOpen bool `json:"archivedOpen,omitempty"`
 	// QuickSession is the session the quick terminal shows (quick.go).
 	QuickSession string `json:"quickSession,omitempty"`
+	// RemoteHosts are the other machines Hyla shows the sessions of, each
+	// by the address and the password of its tcp:// listener.
+	RemoteHosts []remoteHost `json:"remoteHosts,omitempty"`
 	// SSHProject is the software project the sidebar's SSH terminals open
 	// in, "" until one is made; SSHHosts are the machines it lists.
 	SSHProject string    `json:"sshProject,omitempty"`

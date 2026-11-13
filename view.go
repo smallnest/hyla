@@ -307,6 +307,23 @@ func (a *App) sidebar(c *ui.Context, pal *palette, bar ui.TitleBar) {
 				ui.Text(c, locales.SidebarNoSessions()).FontSize(12.5).TextColor(pal.textFaint).Padding(8, 10)
 			}
 		}
+		// Then each other machine's, under its name.
+		for _, h := range a.hosts[1:] {
+			top := float32(18)
+			if gi == 0 {
+				top = 2
+			}
+			a.remoteHostHeader(c, pal, h, top)
+			gi++
+			if h.conn != connReady {
+				continue
+			}
+			for _, g := range a.hostGroups(h) {
+				g.first = false
+				a.groupView(c, pal, g, gi, &n)
+				gi++
+			}
+		}
 	})
 	a.sidebarFooter(c, pal)
 	c.After(20 * time.Second) // times ago move on
