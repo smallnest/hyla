@@ -146,13 +146,14 @@ Usage:
   hyla hosts [ls]               the other machines Hyla reaches
   hyla hosts add <name> <address> [--remote-control]
                                 save one: [user@]host or ssh://… over SSH,
-                                wsl://distro, http(s)://… for a listener
+                                wsl://distro, or tailcat://… with the pair
+                                code of its listener
   hyla hosts remove|check <name>
   hyla hosts install <name|address> [--version v]
                                 install Hyla there, over SSH
   hyla hosts tailcat enable|disable|port|rotate|code
                                 this machine as a host over Tailcat, with
-                                a pair code instead of Tailscale (secret)
+                                a pair code (secret)
   hyla hosts pocket enable|disable|qr
                                 this machine as a host for HylaPocket on a
                                 phone: its QR code, which carries the
@@ -167,7 +168,7 @@ Usage:
   hyla pets rm <name>           remove an installed pet
   hyla daemon status|stop|restart|update [version]
   hyla daemon stop --force         kill a hylad that does not stop
-  hyla daemon serve [--listen tailnet://:7473]…
+  hyla daemon serve [--listen tailcat://:7473]…
                                 run hylad in the foreground, never idle,
                                 as a service does
   hyla daemon install-service|uninstall-service

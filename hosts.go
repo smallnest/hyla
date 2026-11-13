@@ -436,7 +436,7 @@ func (a *App) connected(h *host, gen int, rc remoteLink, cl *client.Client, err 
 	h.dialing = false
 	if err == nil && h.remote() {
 		if other := a.sameHylad(h, rc, cl); other != nil {
-			// One hylad, reached twice, as over SSH and the tailnet: its
+			// One hylad, reached twice, as over SSH and tailcat: its
 			// sessions would show twice, and pass for one another.
 			go cl.Close()
 			if rc != h.rc {

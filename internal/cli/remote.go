@@ -625,14 +625,14 @@ func serveCmd(args []string) error {
 		switch {
 		case a == "--listen" || a == "-l":
 			if i+1 >= len(args) {
-				return usageErr("%s needs a listener: tailnet://:7473 or tailnet-serve://", a)
+				return usageErr("%s needs a listener: tailcat://:7473", a)
 			}
 			i++
 			listen = append(listen, args[i])
 		case strings.HasPrefix(a, "--listen="):
 			listen = append(listen, strings.TrimPrefix(a, "--listen="))
 		default:
-			return usageErr("hyla daemon serve [--listen tailnet://:7473]…")
+			return usageErr("hyla daemon serve [--listen tailcat://:7473]…")
 		}
 	}
 	for _, l := range listen {

@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"net/netip"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -33,8 +32,7 @@ func TestParseAddr(t *testing.T) {
 		{"ssh://[::1]:22", "[::1]:22", "ssh", "", "::1", "22"},
 		{"wsl://", "wsl://", "wsl", "", "", ""},
 		{"wsl://Ubuntu-24.04", "wsl://Ubuntu-24.04", "wsl", "", "Ubuntu-24.04", ""},
-		{"http://build:7473", "http://build:7473", "http", "", "build", "7473"},
-		{"https://build.tail1234.ts.net", "https://build.tail1234.ts.net", "https", "", "build.tail1234.ts.net", ""},
+
 		{"devbox?hyla=/opt/hyla/hyla", "devbox?hyla=%2Fopt%2Fhyla%2Fhyla", "ssh", "", "devbox", ""},
 		{"devbox?hyla=C:/hyla/hyla.exe", "devbox?hyla=C%3A%2Fhyla%2Fhyla.exe", "ssh", "", "devbox", ""},
 	} {
@@ -53,7 +51,7 @@ func TestParseAddr(t *testing.T) {
 			t.Errorf("%q: read back %+v, %v", c.in, b, err)
 		}
 	}
-	for _, bad := range []string{"", "ftp://x", "-oProxyCommand=evil", "ssh://-x", "me:secret@host", "http://", "a b", "devbox/path", "http://x?hyla=y", "host:port",
+	for _, bad := range []string{"", "ftp://x", "-oProxyCommand=evil", "ssh://-x", "me:secret@host", "http://", "https://build.tail1234.ts.net:7473", "tailnet://:7473", "a b", "devbox/path", "http://x?hyla=y", "host:port",
 		"dev$(id)box", "ssh://a;b@host", "x@host's", "host?hyla=relative/hyla", "host?hyla=/opt/it's/hyla", "wsl://Ubuntu;rm", "host?hyla=C:", "host?hyla=C:hyla.exe", "host?hyla=C:/a b/hyla.exe", "host?hyla=1:/hyla"} {
 		if a, err := ParseAddr(bad); err == nil {
 			t.Errorf("%q read as %+v", bad, a)
@@ -226,12 +224,8 @@ func TestValidName(t *testing.T) {
 
 func TestParseListen(t *testing.T) {
 	for in, want := range map[string]Listen{
-		"tailnet://":                     {Kind: "tailnet", Port: ListenPort()},
-		"tailnet://:7400":                {Kind: "tailnet", Port: "7400"},
-		"tailnet-serve://":               {Kind: "tailnet-serve"},
-		"tailnet-serve:///run/hyla.sock": {Kind: "tailnet-serve", Path: "/run/hyla.sock"},
-		"tailcat://":                     {Kind: "tailcat", Port: ListenPort(), PocketPort: PocketPort},
-		"tailcat://:7400":                {Kind: "tailcat", Port: "7400", PocketPort: PocketPort},
+		"tailcat://":      {Kind: "tailcat", Port: ListenPort(), PocketPort: PocketPort},
+		"tailcat://:7400": {Kind: "tailcat", Port: "7400", PocketPort: PocketPort},
 	} {
 		got, err := ParseListen(in)
 		if err != nil || got != want {
@@ -243,7 +237,7 @@ func TestParseListen(t *testing.T) {
 	if ListenPort() == DefaultPort {
 		t.Errorf("a development build listens on %s, as the installed Hyla", DefaultPort)
 	}
-	for _, bad := range []string{"tcp://", "tcp://:0", "tcp://:99999", "tcp://:7297", "tcp://0.0.0.0:7297", "tailnet://0.0.0.0:7473", "tailnet-serve://host/x", ":7473", "tailnet://:0", "tailnet://:99999", "tailcat://host:7473", "tailcat://:0"} {
+	for _, bad := range []string{"tcp://", "tcp://:0", "tcp://:99999", "tcp://:7297", "tcp://0.0.0.0:7297", "tailnet://:7473", "tailnet://0.0.0.0:7473", "tailnet-serve://host/x", ":7473", "tailcat://host:7473", "tailcat://:0"} {
 		if l, err := ParseListen(bad); err == nil {
 			t.Errorf("%q read as %+v", bad, l)
 		}
@@ -445,17 +439,6 @@ func TestFlateConn(t *testing.T) {
 		got := make([]byte, len(m))
 		if _, err := io.ReadFull(fb, got); err != nil || string(got) != m {
 			t.Fatalf("read %d bytes of %d: %v", len(got), len(m), err)
-		}
-	}
-}
-
-// Plain http:// carries Hyla only to a tailnet peer, or through a tunnel
-// of this machine's.
-func TestTailnetAddr(t *testing.T) {
-	for ip, ok := range map[string]bool{"100.64.0.1": true, "100.127.255.254": true, "fd7a:115c:a1e0::1": true, "127.0.0.1": true, "::1": true,
-		"192.168.1.10": false, "10.0.0.1": false, "100.128.0.1": false, "8.8.8.8": false, "fe80::1": false} {
-		if got := tailnetAddr(netip.MustParseAddr(ip)); got != ok {
-			t.Errorf("tailnetAddr(%s) = %v", ip, got)
 		}
 	}
 }

@@ -15,8 +15,8 @@ A host is any machine with Hyla on it. It can be another computer where you alre
 
 The app needs nothing installed beside it: its own hylad serves as the host. Pick how your other machines reach it:
 
-- **Over Tailscale.** In the app on the host, turn on **Settings › Hyla Hosts › Let other machines connect**. It shows the address to add elsewhere, such as `http://studio.tail1234.ts.net:7473`. See [Tailscale](#tailscale).
 - **Over SSH.** If the computer takes SSH logins (on a Mac, **System Settings › General › Sharing › Remote Login**), add it by the address you'd give `ssh`. Hyla finds the app there on its own.
+- **Over a relay.** Turn on **Settings › Hyla Hosts › Tailcat** and add the machine by its pair code, which needs no SSH and no open port on its network. See [Tailcat](#tailcat).
 
 Sessions on the host keep running while its app is closed, as they do on your own computer.
 
@@ -57,9 +57,7 @@ An address says how to reach a host. Hyla takes the same address in Settings, in
 | --- | --- |
 | `devbox`, `me@devbox`, `me@devbox:2222`, `ssh://me@devbox` | SSH, with your `~/.ssh/config`, keys and agent |
 | `wsl://Ubuntu`, `wsl://` | A WSL distribution of this Windows PC, through `wsl.exe` |
-| `http://devbox:7473` | hylad's listener on a tailnet address (see [Tailscale](#tailscale)) |
-| `https://devbox.tail1234.ts.net` | hylad behind Tailscale Serve |
-| `tailcat://tc…` | A pair code, through a relay: no Tailscale needed (see [Tailcat](#tailcat)) |
+| `tailcat://tc…` | A pair code, through a relay (see [Tailcat](#tailcat)) |
 
 Hyla opens one connection per host and carries everything over it: the sidebar's state, every pane you look at, and the CLI's commands. The connection is compressed, and a heartbeat notices a dead link within seconds. When a link drops, as when a laptop sleeps, the host's sessions stay in the sidebar, faded, and Hyla reconnects on its own, waiting longer between tries up to a minute.
 
@@ -87,41 +85,9 @@ On Windows, `wsl://Ubuntu` reaches the Hyla installed in that WSL distribution, 
 
 WSL may stop a distribution a while after its last program started from Windows ends, and hylad with it. Keep agents running by keeping the distribution up, for example with [systemd enabled](https://learn.microsoft.com/windows/wsl/systemd) and `hyla daemon install-service` inside it.
 
-### Tailscale
-
-hylad can also listen on your tailnet, so that it needs no SSH at all. Tailscale tells hylad who connects, and by default only the Tailscale user who owns the machine gets in. On a host with the app, turn on **Settings › Hyla Hosts › Let other machines connect**, which shows the address to add elsewhere. On a server, or to set it by hand, add this to the configuration on the host:
-
-```ini
-# ~/.config/hyla/config on the host
-listen = tailnet://:7473
-```
-
-Then add the host as `http://devbox:7473`. The connection is plain HTTP, which WireGuard encrypts between tailnet devices.
-
-To serve it over HTTPS with Tailscale's certificate instead, let hylad listen on a socket and point Tailscale Serve at it:
-
-```ini
-listen = tailnet-serve://
-```
-
-```sh
-tailscale serve --bg --https=443 unix:$HOME/.config/hyla/serve.sock
-```
-
-Then add the host as `https://devbox.tail1234.ts.net`. The socket is `serve.sock` in Hyla's data folder: `~/.config/hyla` on Linux, `~/Library/Application Support/hyla` on macOS.
-
-To let others in besides the owner, list them with `listen-allow`: a tailnet login, `tag:ci` for tagged devices, or `*` for anyone on the tailnet. A tagged machine has no owner, so only `listen-allow` lets anyone in to it. Tailscale Serve doesn't tell hylad who tagged devices are: they connect to a `tailnet://` listener.
-
-```ini
-listen-allow = alice@example.com
-listen-allow = tag:ci
-```
-
-hylad follows `listen` and `listen-allow` as they change, and a listener turned off drops the connections it took. A `tailnet-serve://` listener added while hylad runs waits for `hyla daemon restart`. hylad listens only when the configuration asks, and only on Tailscale or through a Tailcat relay. It refuses requests from web browsers, so a web page you visit can't reach it. Funnel's requests from the internet never get in. To keep it listening with the machine, run it as a service (below).
-
 ### Tailcat
 
-Tailcat reaches a host with a pair code instead of Tailscale. It needs no Tailscale account, and no Tailscale installation on either machine. It uses [Tailcat](https://github.com/tailscale/tailcat), a library made from Tailscale's parts: it makes a WireGuard tunnel between the two machines, through a public DERP relay that lets them find each other, and directly once they do.
+Tailcat reaches a host with a pair code, over a relay. It needs no account on either machine, and no port open on the host's network. It uses [Tailcat](https://github.com/tailscale/tailcat), a library made from Tailscale's parts: it makes a WireGuard tunnel between the two machines, through a public DERP relay that lets them find each other, and directly once they do.
 
 The pair code is the host's address. It contains the host's key, a secret pre-shared key and the relay's region, as a long `tc…` string. **Treat it as a password: anyone who has it can connect to the host.**
 
@@ -255,10 +221,10 @@ host = ubuntu=wsl://Ubuntu
 
 ## Security
 
-- **A connection can do anything its account can,** including starting programs, as a local one can. Over SSH it's your own account, as SSH logs you in. Over Tailscale, only who the machine's owner lets in.
+- **A connection can do anything its account can,** including starting programs, as a local one can. Over SSH it's your own account, as SSH logs you in. Over Tailcat, only who holds the host's pair code gets in.
 - **The socket is yours alone.** hylad's socket is created readable by its user only, and hylad refuses connections from other users' processes.
 - **Updates are signed.** The server build updates itself only from archives signed with the key of Hyla's releases.
-- `hyla clients` lists who is connected to a hylad, with how they came: `uid 501 over unix`, `me from 10.0.0.5 over ssh`, `alice@example.com over tailnet`.
+- `hyla clients` lists who is connected to a hylad, with how they came: `uid 501 over unix`, `me from 10.0.0.5 over ssh`, `tc… over tailcat`.
 
 ## Limits
 

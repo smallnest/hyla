@@ -10,8 +10,9 @@
 //     and nothing to set up there but Hyla itself.
 //   - wsl://[distro]: Hyla in a WSL distribution of this Windows machine,
 //     through wsl.exe, as SSH would.
-//   - http://host:port and https://host[:port]: one of hylad's network
-//     listeners, which Tailscale tells the caller of (see package daemon).
+//
+// Tailcat addresses reach a machine anywhere, over a relay, by its pair
+// code: see tailcat.go.
 package remote
 
 import (
@@ -22,9 +23,8 @@ import (
 	"strings"
 )
 
-// DefaultPort is the port hylad's tailnet listener takes when it names
-// none, as a development build's does not (ListenPort), and an http://
-// address without one.
+// DefaultPort is the port hylad's tailcat listener takes when it names
+// none, as a development build's does not (ListenPort).
 const DefaultPort = "7473"
 
 // Addr is how to reach a host.
@@ -78,15 +78,8 @@ func ParseAddr(s string) (Addr, error) {
 		}
 	case "wsl":
 		a.Port, a.User = "", ""
-	case "http", "https":
-		if a.Host == "" {
-			return Addr{}, fmt.Errorf("%q names no host", raw)
-		}
-		if a.Hyla != "" {
-			return Addr{}, fmt.Errorf("%q: hyla= is for ssh:// and wsl:// addresses", raw)
-		}
 	default:
-		return Addr{}, fmt.Errorf("%q: Hyla reaches hosts over ssh://, wsl://, http:// or https://", raw)
+		return Addr{}, fmt.Errorf("%q: Hyla reaches hosts over ssh://, wsl:// or tailcat://", raw)
 	}
 	if u.Path != "" && u.Path != "/" {
 		return Addr{}, fmt.Errorf("%q: an address has no path", raw)
@@ -143,18 +136,6 @@ func (a Addr) String() string {
 // Bridged tells an address whose host runs `hyla __bridge` for the
 // client: ssh and wsl.
 func (a Addr) Bridged() bool { return a.Scheme == "ssh" || a.Scheme == "wsl" }
-
-// hostPort is where an http(s) address connects.
-func (a Addr) hostPort() string {
-	port := a.Port
-	if port == "" {
-		port = DefaultPort
-		if a.Scheme == "https" {
-			port = "443"
-		}
-	}
-	return net.JoinHostPort(a.Host, port)
-}
 
 // Label is a short name for the host, as a new host takes by default: the
 // host's first label, the distribution for WSL.

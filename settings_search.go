@@ -102,14 +102,13 @@ func settingsIndex() []searchEntry {
 		{"agents", "Codex, OpenCode, Pi", "skill agents install"},
 		{"agents", locales.SetProgramStatus(), "osc 7501 report progress"},
 
-		{"hosts", locales.SetHosts(), "host hosts remote server ssh tailscale tailnet wsl machine linux devbox -H hyla hosts"},
-		{"hosts", locales.SetHostAdd(), "add host address ssh wsl https"},
+		{"hosts", locales.SetHosts(), "host hosts remote server ssh tailcat wsl machine linux devbox -H hyla hosts"},
+		{"hosts", locales.SetHostAdd(), "add host address ssh wsl tailcat"},
 		{"hosts", locales.SetHostRemoteControl(), "remote-control host hyla do focus"},
 		// The group's title, above its switch.
-		{"hosts", locales.SetTailcatTitle(), "tailcat pair code relay derp paircode no-tailscale tailcat-relay tailcat-port"},
-		{"hosts", locales.SetTailcatListen(), "tailcat listener provide service host relay tailnet port tailcat:// hyla hosts tailcat enable"},
+		{"hosts", locales.SetTailcatTitle(), "tailcat pair code relay derp paircode tailcat-relay tailcat-port"},
+		{"hosts", locales.SetTailcatListen(), "tailcat listener provide service host relay port tailcat:// hyla hosts tailcat enable"},
 		{"hosts", locales.SetTailcatCode(), "tailcat pair code paircode copy secret share other machines"},
-		{"hosts", locales.SetListen(), "listen tailnet tailscale share this computer host port 7473 listen-allow"},
 
 		{"advanced", locales.SetConfigFile(), "configuration ghostty edit file dotfiles"},
 		{"advanced", "hylad", "daemon background service restart sessions"},
@@ -190,7 +189,7 @@ var pageWords = map[string]string{
 	"keyboard":      "shortcuts keybindings keys hotkeys",
 	"feishu":        "lark bot chat message im app secret",
 	"agents":        "claude codex ai skill cli remote control",
-	"hosts":         "remote ssh server machine tailscale wsl",
+	"hosts":         "remote ssh tailcat server machine wsl",
 	"advanced":      "config file daemon hylad log reset",
 }
 

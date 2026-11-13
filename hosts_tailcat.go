@@ -14,11 +14,10 @@ import (
 	"hyla/locales"
 )
 
-// Tailcat is the third way Hyla reaches a host, beside the listener on a
-// tailnet and SSH: a relay with a pair code, which needs no Tailscale
-// (internal/remote/tailcat.go). The tailcat switch in Settings › Hosts
-// turns it on and off: off, the app lists no host of it, and hylad
-// starts no listener of it.
+// Tailcat is how Hyla reaches a host anywhere, beside SSH: a relay with a
+// pair code (internal/remote/tailcat.go). The tailcat switch in
+// Settings › Hosts turns it on and off: off, the app lists no host of it,
+// and hylad starts no listener of it.
 //
 // The settings are one group, after the switch: the hosts it adds, which
 // this machine reaches, and this machine as a host, which others reach.

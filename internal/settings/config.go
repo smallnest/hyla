@@ -317,7 +317,7 @@ var keys = append([]key{
 	boolKey("dock-bounce", "once, when a session comes to need you", func(s *Settings) *bool { return &s.BounceDock }),
 
 	boolKey("remote-control", "hyla do, hyla focus and hyla browser drive the app", func(s *Settings) *bool { return &s.RemoteControl }),
-	{name: "host", doc: "another machine whose sessions the app shows, as name=address: [user@]host or ssh://… over SSH, wsl://distro, http(s)://… for hylad's tailnet listener; add remote-control after it to let its programs drive the app, and color=red, orange, amber, green, teal, blue, purple or pink to mark its sessions; repeat it", list: true,
+	{name: "host", doc: "another machine whose sessions the app shows, as name=address: [user@]host or ssh://… over SSH, wsl://distro, or tailcat://… with the pair code of its listener; add remote-control after it to let its programs drive the app, and color=red, orange, amber, green, teal, blue, purple or pink to mark its sessions; repeat it", list: true,
 		get: func(s *Settings) []string {
 			var out []string
 			for _, h := range s.Hosts {
@@ -351,7 +351,7 @@ var keys = append([]key{
 			}
 			return nil
 		}},
-	{name: "listen", doc: "let Hyla on other machines reach this one's sessions: tailnet://:7473 on its Tailscale addresses, tailnet-serve:// for Tailscale Serve, tailcat://:7473 through a relay with a pair code instead of Tailscale (tailcat = true), or for HylaPocket on a phone, which reaches HylaPocket over the same listener; repeat it", list: true,
+	{name: "listen", doc: "let Hyla on other machines reach this one's sessions: tailcat://:7473 through a relay with a pair code (tailcat = true), which also serves HylaPocket on a phone; repeat it", list: true,
 		get: func(s *Settings) []string { return slices.Clone(s.Listen) },
 		set: func(s *Settings, v []string) error {
 			s.Listen = nil
@@ -380,18 +380,7 @@ var keys = append([]key{
 			}
 			return nil
 		}},
-	{name: "listen-allow", doc: "who besides this machine's owner may connect to a listener: a tailnet login, tag:name, or * for anyone on the tailnet; repeat it", list: true,
-		get: func(s *Settings) []string { return slices.Clone(s.ListenAllow) },
-		set: func(s *Settings, v []string) error {
-			s.ListenAllow = nil
-			for _, a := range v {
-				if a = strings.TrimSpace(a); a != "" {
-					s.ListenAllow = append(s.ListenAllow, a)
-				}
-			}
-			return nil
-		}},
-	boolKey("tailcat", "give Hyla other ways to reach its hosts: a relay with a pair code, which needs no Tailscale. Off, Hyla lists none of those hosts and connects to none, and hylad starts no tailcat listener", func(s *Settings) *bool { return &s.Tailcat }),
+	boolKey("tailcat", "give Hyla other ways to reach its hosts: a relay with a pair code. Off, Hyla lists none of those hosts and connects to none, and hylad starts no tailcat listener", func(s *Settings) *bool { return &s.Tailcat }),
 	{name: "tailcat-host", doc: "a host Hyla reaches over tailcat, as name=tailcat:// plus the pair code of its tailcat listener (tailcat = true); repeat it", list: true,
 		get: func(s *Settings) []string {
 			out := make([]string, len(s.TailcatHosts))

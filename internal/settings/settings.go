@@ -150,11 +150,10 @@ type Settings struct {
 	// Hosts are other machines' hylads, which the app shows beside this
 	// one's and the CLI reaches with -H.
 	Hosts []Host `json:"hosts,omitempty"`
-	// Listen are hylad's network listeners, for clients on other machines
-	// (tailnet://:7473, tailnet-serve://), and ListenAllow who may connect
-	// besides the machine's owner: tailnet logins, tag:name, or *.
-	Listen      []string `json:"listen,omitempty"`
-	ListenAllow []string `json:"listenAllow,omitempty"`
+	// Listen are hylad's listeners, for clients on other machines
+	// (tailcat://:7473), admitted by the pair code of the key that makes
+	// one.
+	Listen []string `json:"listen,omitempty"`
 	// TailcatHosts are hosts Hyla reaches over tailcat, and TailcatPort
 	// the port of their listeners. Tailcat, false, stops the app from
 	// connecting to them, and from listing them, for whom its relay is
@@ -502,7 +501,6 @@ func clone(s Settings) Settings {
 		}
 		s.Feishu = &f
 	}
-	s.ListenAllow = slices.Clone(s.ListenAllow)
 	s.TailcatHosts = slices.Clone(s.TailcatHosts)
 	if s.Shortcuts != nil {
 		m := make(map[string]string, len(s.Shortcuts))

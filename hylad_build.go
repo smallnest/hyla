@@ -21,7 +21,7 @@ import (
 // hyladSource is the code of Hyla's packages that hylad runs (go list
 // -deps ./internal/daemon), which TestHyladSource keeps whole.
 //
-//go:embed internal/actions internal/adblock internal/build internal/clilink internal/daemon internal/detach internal/detect internal/feishu internal/git internal/proto internal/remote internal/settings internal/shell internal/tailscale internal/update
+//go:embed internal/actions internal/adblock internal/build internal/clilink internal/daemon internal/detach internal/detect internal/feishu internal/git internal/proto internal/remote internal/settings internal/shell internal/update
 var hyladSource embed.FS
 
 // hyladModules are the other modules whose code hylad runs, which

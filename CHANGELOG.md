@@ -6,6 +6,13 @@ number; the notes of the upstream releases it includes follow its own.
 
 ## Unreleased
 
+- Tailscale is no longer a way to reach or serve a machine. Hyla reaches a
+  host over SSH, WSL or a Tailcat pair code alone: a host's `http(s)://`
+  address, the `tailnet://` and `tailnet-serve://` listeners that answered
+  it, and `listen-allow` are gone, so hylad listens through a tailcat relay
+  only. Settings › Hyla Hosts keeps its Tailcat group and drops the
+  Tailscale one. A configuration that still names a tailnet listener is
+  reported by `hyla config check`, and hylad passes over the line.
 - HylaPocket, an Android client made from rexpocket, reads this machine's
   sessions on a phone: hylad answers it on its Tailcat listener, and the
   pair code that opens the connection is the only secret a phone needs.

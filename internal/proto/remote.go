@@ -34,8 +34,8 @@ const (
 	// HostReply answers it; a restart then runs the new version.
 	KindUpdate = "host.update"
 	// KindPairCode asks hylad for the pair code of its tailcat listener,
-	// which is how Hyla elsewhere reaches it without Tailscale: its
-	// address there. A HostReply's PairCode answers it.
+	// which is how Hyla elsewhere reaches it. A HostReply's PairCode
+	// answers it.
 	KindPairCode = "host.tailcat"
 )
 
@@ -108,7 +108,7 @@ type HostReply struct {
 type ClientInfo struct {
 	Kind  string `json:"kind"` // control, attach
 	Peer  string `json:"peer"` // who: "uid 501", "alice@example.com"
-	Via   string `json:"via"`  // unix, ssh, wsl, tailnet, tailscale-serve
+	Via   string `json:"via"`  // unix, ssh, wsl, tailcat
 	Since int64  `json:"since"`
 	// Client names the app or CLI, when it said.
 	Client string `json:"client,omitempty"`

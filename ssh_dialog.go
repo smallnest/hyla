@@ -123,13 +123,18 @@ func (a *App) addSSHHost() {
 		d.err = locales.SetHostNeedsAddress()
 		return
 	}
+	// The dialog is for SSH terminals: the other ways of reaching a
+	// machine, Hyla hosts among them, are Settings › Hyla Hosts, and say
+	// so for an address of another scheme before it is read.
+	if i := strings.Index(text, "://"); i > 0 && !strings.EqualFold(text[:i], "ssh") {
+		d.err = locales.SshHostOnly()
+		return
+	}
 	addr, err := remote.ParseAddr(text)
 	if err != nil {
 		d.err = err.Error()
 		return
 	}
-	// The dialog is for SSH terminals: the other ways of reaching a
-	// machine, Hyla hosts among them, are Settings › Hyla Hosts.
 	if addr.Scheme != "ssh" {
 		d.err = locales.SshHostOnly()
 		return

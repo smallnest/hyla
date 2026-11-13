@@ -6,20 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net"
-	"net/http"
-	"net/netip"
 	"os"
 	"os/exec"
 	"regexp"
 	"runtime"
-	"slices"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/coder/websocket"
 
 	"hyla/internal/shell"
 )
@@ -38,7 +32,7 @@ const MuxPath = "/hyla/mux"
 
 // ClientHeader is the header a client sends with its WebSocket handshake:
 // browsers cannot send one, so that no web page reaches hylad through a
-// browser on the tailnet.
+// browser.
 const ClientHeader = "Hyla-Client"
 
 // BridgeLocations are where the bridge command looks for hyla on a host,
@@ -247,50 +241,8 @@ func transport(ctx context.Context, a Addr, client string) (io.ReadWriteCloser, 
 			port = ListenPort()
 		}
 		return openTailcat(ctx, a.Code, port)
-	case "http", "https":
-		return dialHTTP(ctx, a, a.hostPort(), client)
 	}
 	return nil, fmt.Errorf("no way to reach %s", a)
-}
-
-// dialHTTP opens a connection to a host's network listener as a
-// WebSocket, at addr ("host:port").
-func dialHTTP(ctx context.Context, a Addr, addr, client string) (io.ReadWriteCloser, error) {
-	scheme := "ws"
-	if a.Scheme == "https" {
-		scheme = "wss"
-	}
-	if client == "" {
-		client = "Hyla"
-	}
-	h := http.Header{}
-	h.Set(ClientHeader, client)
-	opts := &websocket.DialOptions{
-		HTTPHeader:      h,
-		CompressionMode: websocket.CompressionDisabled, // ours is across the mux
-	}
-	if a.Scheme == "http" {
-		opts.HTTPClient = &http.Client{Transport: &http.Transport{DialContext: dialTailnet}}
-	}
-	ws, resp, err := websocket.Dial(ctx, scheme+"://"+addr+MuxPath, opts)
-	if err != nil {
-		if resp != nil && (resp.StatusCode == http.StatusForbidden || resp.StatusCode == http.StatusUnauthorized) {
-			return nil, fmt.Errorf("%w: %s", ErrAuth, httpError(resp, err))
-		}
-		return nil, err
-	}
-	ws.SetReadLimit(64 << 20)
-	return websocket.NetConn(context.Background(), ws, websocket.MessageBinary), nil
-}
-
-func httpError(resp *http.Response, err error) string {
-	if resp.Body != nil {
-		b, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
-		if t := strings.TrimSpace(string(b)); t != "" {
-			return t
-		}
-	}
-	return err.Error()
 }
 
 // cmdConn is a program's standard input and output: ssh's or wsl.exe's,
@@ -453,52 +405,4 @@ func (t *tail) last() string {
 		}
 	}
 	return ""
-}
-
-// Tailscale's addresses: what WireGuard encrypts, and Tailscale tells the
-// peer of.
-var tailnets = []netip.Prefix{netip.MustParsePrefix("100.64.0.0/10"), netip.MustParsePrefix("fd7a:115c:a1e0::/48")}
-
-// tailnetAddr reports whether an address is one plain HTTP may carry
-// Hyla over: a tailnet peer's, or this machine's, as through a tunnel of
-// ssh -L.
-func tailnetAddr(ip netip.Addr) bool {
-	ip = ip.Unmap()
-	if ip.IsLoopback() {
-		return true
-	}
-	for _, p := range tailnets {
-		if p.Contains(ip) {
-			return true
-		}
-	}
-	return false
-}
-
-// dialTailnet connects for an http:// address, only to a tailnet peer:
-// plain HTTP anywhere else, as to a name a LAN's DNS answers, would carry
-// what is typed in the clear to whoever answers.
-func dialTailnet(ctx context.Context, network, addr string) (net.Conn, error) {
-	host, port, err := net.SplitHostPort(addr)
-	if err != nil {
-		return nil, err
-	}
-	ips, err := net.DefaultResolver.LookupNetIP(ctx, "ip", host)
-	if err != nil {
-		return nil, err
-	}
-	ips = slices.DeleteFunc(ips, func(ip netip.Addr) bool { return !tailnetAddr(ip) })
-	if len(ips) == 0 {
-		return nil, fmt.Errorf("%s is not on your tailnet: Hyla connects with plain http:// only to Tailscale addresses; use https:// or ssh", host)
-	}
-	var d net.Dialer
-	c, err := d.DialContext(ctx, network, net.JoinHostPort(ips[0].String(), port))
-	if err != nil {
-		return nil, err
-	}
-	if ap, err := netip.ParseAddrPort(c.RemoteAddr().String()); err != nil || !tailnetAddr(ap.Addr()) {
-		c.Close()
-		return nil, fmt.Errorf("%s is not on your tailnet: Hyla connects with plain http:// only to Tailscale addresses; use https:// or ssh", addr)
-	}
-	return c, nil
 }

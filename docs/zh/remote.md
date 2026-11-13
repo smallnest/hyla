@@ -15,8 +15,8 @@ Hyla 可以在同一个窗口中显示运行在其他机器上的会话，比如
 
 应用本身无需额外安装任何东西：它自带的 hylad 就能充当主机。选择其他机器连接它的方式：
 
-- **通过 Tailscale。** 在主机上的应用中，打开 **设置 › Hyla主机 › 允许其他机器连接**。界面会显示可在其他机器上添加的地址，例如 `http://studio.tail1234.ts.net:7473`。详见 [Tailscale](#tailscale)。
 - **通过 SSH。** 如果这台电脑接受 SSH 登录（在 Mac 上为 **系统设置 › 通用 › 共享 › 远程登录**），就用你传给 `ssh` 的地址添加它。Hyla 会自动找到那台电脑上的应用。
+- **通过中继。** 打开 **设置 › Hyla主机 › Tailcat**，用配对码添加那台机器：不需要 SSH，也不用在它的网络上开放端口。详见 [Tailcat](#tailcat)。
 
 即使主机上的应用已关闭，其中的会话仍会继续运行，和在你自己电脑上一样。
 
@@ -57,9 +57,7 @@ hyla -H devbox new -n review -- claude
 | --- | --- |
 | `devbox`、`me@devbox`、`me@devbox:2222`、`ssh://me@devbox` | SSH，使用你的 `~/.ssh/config`、密钥和 agent |
 | `wsl://Ubuntu`、`wsl://` | 本台 Windows 电脑上的 WSL 发行版，通过 `wsl.exe` 连接 |
-| `http://devbox:7473` | hylad 在 tailnet 地址上的监听（见 [Tailscale](#tailscale)） |
-| `https://devbox.tail1234.ts.net` | 位于 Tailscale Serve 之后的 hylad |
-| `tailcat://tc…` | 配对码，经中继连接：不需要 Tailscale（见 [Tailcat](#tailcat)） |
+| `tailcat://tc…` | 配对码，经中继连接（见 [Tailcat](#tailcat)） |
 
 Hyla 为每台主机只建立一条连接，所有内容都经由它传输：边栏状态、你查看的每个窗格，以及命令行发出的命令。连接经过压缩，并通过心跳在几秒内发现断线。连接中断时（例如笔记本休眠），该主机的会话会以淡化样式留在边栏中，Hyla 会自动重连，重试间隔逐渐拉长，最长一分钟。
 
@@ -87,43 +85,9 @@ Hyla 通过 SSH 连接 Windows 机器，因此需要先以管理员身份开启�
 
 在最后一个从 Windows 启动的程序结束一段时间后，WSL 可能会停止该发行版，hylad 也随之停止。要让智能体持续运行，就得让发行版保持运行，例如[启用 systemd](https://learn.microsoft.com/windows/wsl/systemd)，并在其中运行 `hyla daemon install-service`。
 
-<a id="tailscale"></a>
-
-### Tailscale
-
-hylad 也可以在你的 tailnet 上监听，这样就完全不需要 SSH。Tailscale 会告诉 hylad 连接者是谁，默认只有拥有这台机器的 Tailscale 用户才能连入。在装有应用的主机上，打开 **设置 › Hyla主机 › 允许其他机器连接**，界面会显示可在其他机器上添加的地址。在服务器上，或者想手动设置时，在主机的配置中加入：
-
-```ini
-# 主机上的 ~/.config/hyla/config
-listen = tailnet://:7473
-```
-
-然后以 `http://devbox:7473` 添加该主机。连接本身是明文 HTTP，由 WireGuard 在 tailnet 设备之间加密。
-
-如果想改用 Tailscale 的证书通过 HTTPS 提供服务，可以让 hylad 监听一个套接字，再将 Tailscale Serve 指向它：
-
-```ini
-listen = tailnet-serve://
-```
-
-```sh
-tailscale serve --bg --https=443 unix:$HOME/.config/hyla/serve.sock
-```
-
-然后以 `https://devbox.tail1234.ts.net` 添加该主机。套接字是 Hyla 数据文件夹中的 `serve.sock`：Linux 上为 `~/.config/hyla`，macOS 上为 `~/Library/Application Support/hyla`。
-
-要允许所有者以外的人连入，用 `listen-allow` 列出他们：可以是 tailnet 登录名、表示带标签设备的 `tag:ci`，或表示 tailnet 上任何人的 `*`。带标签的机器没有所有者，因此只有 `listen-allow` 能让人连入。Tailscale Serve 不会告诉 hylad 带标签设备的身份：它们需要连接 `tailnet://` 监听。
-
-```ini
-listen-allow = alice@example.com
-listen-allow = tag:ci
-```
-
-`listen` 和 `listen-allow` 变化时，hylad 会随之调整；关闭某个监听时，经由它建立的连接也会断开。hylad 运行期间新增的 `tailnet-serve://` 监听要等到 `hyla daemon restart` 后才生效。只有配置要求时 hylad 才会监听，而且只在 Tailscale 上监听。它会拒绝来自网页浏览器的请求，因此你访问的网页无法连到它。来自互联网的 Funnel 请求也永远无法进入。要让它随机器一起持续监听，请将其作为服务运行（见下文）。
-
 ### Tailcat
 
-Tailcat 用配对码代替 Tailscale 连接主机，两边都不需要 Tailscale 账号，也不需要安装 Tailscale。它使用 [Tailcat](https://github.com/tailscale/tailcat)，一个由 Tailscale 的组件构成的库：它在两台机器之间建立 WireGuard 隧道，先通过公共 DERP 中继让双方互相找到，找到后如果网络允许就直接连接。
+Tailcat 凭配对码经中继连接主机：两台机器都不需要账号，主机也不必在网络上开放任何端口。它使用 [Tailcat](https://github.com/tailscale/tailcat)，一个由 Tailscale 的组件构成的库：它在两台机器之间建立 WireGuard 隧道，先通过公共 DERP 中继让双方互相找到，找到后如果网络允许就直接连接。
 
 配对码就是主机的地址。它包含主机的公钥、一个预共享密钥和中继所在区域，是一长串 `tc…`。**把它当作密码：谁有它，谁就能连接到主机。**
 
@@ -258,10 +222,10 @@ host = ubuntu=wsl://Ubuntu
 
 ## 安全
 
-- **一条连接能做其账户能做的任何事，** 包括启动程序，与本地连接一样。通过 SSH 时，它就是你自己的账户，因为 SSH 以你的身份登录。通过 Tailscale 时，只有机器所有者允许的人才能连入。
+- **一条连接能做其账户能做的任何事，** 包括启动程序，与本地连接一样。通过 SSH 时，它就是你自己的账户，因为 SSH 以你的身份登录。经 Tailcat 时，只有持有主机配对码的人才能连入。
 - **套接字只属于你。** hylad 的套接字创建时仅其所属用户可读，hylad 也会拒绝来自其他用户进程的连接。
 - **更新经过签名。** 服务器版本只会用 Hyla 发布密钥签名的归档包更新自身。
-- `hyla clients` 会列出连接到某个 hylad 的客户端及其连接方式：`uid 501 over unix`、`me from 10.0.0.5 over ssh`、`alice@example.com over tailnet`。
+- `hyla clients` 会列出连接到某个 hylad 的客户端及其连接方式：`uid 501 over unix`、`me from 10.0.0.5 over ssh`、`tc… over tailcat`。
 
 ## 限制
 

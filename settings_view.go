@@ -82,7 +82,6 @@ type settingsState struct {
 	host            hostDraft                  // the Hosts page's form
 	tailcat         tailcatDraft               // and the Tailcat group's
 	hostEdit        hostDraft                  // a host's, as the user edits it
-	tailnet         tailnetLook                // this machine on the tailnet, for the Hosts page
 	feishu          feishuDraft                // the Feishu page's form
 	confirm         *confirmation              // a question, asked in this window
 }

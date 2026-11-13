@@ -15,8 +15,8 @@ Hyla は、Linux の開発マシン、クラウドの VM、机の下の Mac mini
 
 アプリのほかに何もインストールする必要はありません: アプリ自身の hylad がホストとして働きます。ほかのマシンからの接続方法を選びます:
 
-- **Tailscale 経由。** ホスト側のアプリで **設定 › Hyla ホスト › ほかのマシンからの接続を許可** をオンにします。ほかのマシンで追加するアドレス（`http://studio.tail1234.ts.net:7473` など）が表示されます。[Tailscale](#tailscale) を参照してください。
 - **SSH 経由。** そのコンピュータが SSH ログインを受け付けるなら（Mac では **システム設定 › 一般 › 共有 › リモートログイン**）、`ssh` に渡すのと同じアドレスで追加します。Hyla はそこにあるアプリを自分で見つけます。
+- **リレー経由。** **設定 › Hyla ホスト › Tailcat** をオンにし、ペアコードでそのマシンを追加します。SSH も、そのネットワークでのポート開放も要りません。[Tailcat](#tailcat) を参照してください。
 
 自分のコンピュータと同じように、ホストのセッションはアプリを閉じている間も動き続けます。
 
@@ -57,9 +57,7 @@ hyla -H devbox new -n review -- claude
 | --- | --- |
 | `devbox`、`me@devbox`、`me@devbox:2222`、`ssh://me@devbox` | `~/.ssh/config`、キー、エージェントを使った SSH |
 | `wsl://Ubuntu`、`wsl://` | この Windows PC の WSL ディストリビューション（`wsl.exe` 経由） |
-| `http://devbox:7473` | tailnet アドレス上の hylad のリスナー（[Tailscale](#tailscale) を参照） |
-| `https://devbox.tail1234.ts.net` | Tailscale Serve の背後にある hylad |
-| `tailcat://tc…` | ペアコード。リレー経由で接続し、Tailscale は不要です（[Tailcat](#tailcat) を参照） |
+| `tailcat://tc…` | ペアコード。リレー経由で接続します（[Tailcat](#tailcat) を参照） |
 
 Hyla はホストごとに 1 本の接続を開き、すべてをそこに載せます: サイドバーの状態、表示しているすべてのペイン、CLI のコマンド。接続は圧縮され、ハートビートが切れた接続を数秒で検知します。ノートパソコンのスリープなどで接続が切れると、ホストのセッションは薄く表示されたままサイドバーに残り、Hyla は自動で再接続します。再試行の間隔は最大 1 分まで延びていきます。
 
@@ -87,41 +85,9 @@ Windows では、`wsl://Ubuntu` で、SSH と同じようにその WSL ディス
 
 WSL は、Windows から起動した最後のプログラムが終わってしばらくすると、ディストリビューションを停止することがあり、hylad も一緒に止まります。エージェントを動かし続けるには、たとえば [systemd を有効にして](https://learn.microsoft.com/windows/wsl/systemd)その中で `hyla daemon install-service` を実行し、ディストリビューションを起動したままにしてください。
 
-### Tailscale
-
-hylad は tailnet で待ち受けることもでき、その場合 SSH はまったく不要です。誰が接続しているかは Tailscale が hylad に伝え、デフォルトではマシンを所有する Tailscale ユーザーだけが入れます。アプリのあるホストでは、**設定 › Hyla ホスト › ほかのマシンからの接続を許可** をオンにすると、ほかのマシンで追加するアドレスが表示されます。サーバーの場合や手で設定する場合は、ホストの設定に次を追加します:
-
-```ini
-# ホスト上の ~/.config/hyla/config
-listen = tailnet://:7473
-```
-
-その後、ホストを `http://devbox:7473` として追加します。接続はプレーンな HTTP ですが、tailnet のデバイス間では WireGuard が暗号化します。
-
-代わりに Tailscale の証明書を使って HTTPS で提供するには、hylad にソケットで待ち受けさせ、Tailscale Serve をそこに向けます:
-
-```ini
-listen = tailnet-serve://
-```
-
-```sh
-tailscale serve --bg --https=443 unix:$HOME/.config/hyla/serve.sock
-```
-
-その後、ホストを `https://devbox.tail1234.ts.net` として追加します。ソケットは Hyla のデータフォルダにある `serve.sock` です: Linux では `~/.config/hyla`、macOS では `~/Library/Application Support/hyla`。
-
-所有者以外の接続を許可するには、`listen-allow` に列挙します: tailnet のログイン、タグ付きデバイスなら `tag:ci`、tailnet 上の誰でもなら `*`。タグ付きのマシンには所有者がいないので、`listen-allow` だけが接続を許可します。Tailscale Serve はタグ付きデバイスが誰なのかを hylad に伝えないので、それらは `tailnet://` リスナーに接続します。
-
-```ini
-listen-allow = alice@example.com
-listen-allow = tag:ci
-```
-
-hylad は `listen` と `listen-allow` の変更に追従し、オフにしたリスナーはそれが受け付けた接続を切ります。hylad の動作中に追加した `tailnet-serve://` リスナーは、`hyla daemon restart` まで待機します。hylad が待ち受けるのは設定で求められたときだけで、Tailscale 上だけです。Web ブラウザからのリクエストは拒否するので、訪れた Web ページから接続されることはありません。インターネットからの Funnel のリクエストは決して入れません。マシンの起動とともに待ち受け続けるには、サービスとして実行してください（下記）。
-
 ### Tailcat
 
-Tailcat は Tailscale の代わりに、ペアコードでホストに接続します。どちらのマシンにも Tailscale のアカウントも Tailscale 本体も要りません。[Tailcat](https://github.com/tailscale/tailcat) を使います。これは Tailscale の部品から作られたライブラリで、2 台のマシンの間に WireGuard のトンネルを作ります。まず公開 DERP リレーを通して互いを見つけ、見つかった後は、ネットワークが許せば直接接続します。
+Tailcat は、ペアコードでリレー経由でホストに接続します。どちらのマシンにもアカウントは要らず、ホストのネットワークでポートを開ける必要もありません。[Tailcat](https://github.com/tailscale/tailcat) を使います。これは Tailscale の部品から作られたライブラリで、2 台のマシンの間に WireGuard のトンネルを作ります。まず公開 DERP リレーを通して互いを見つけ、見つかった後は、ネットワークが許せば直接接続します。
 
 ペアコードがホストのアドレスです。ホストの公開鍵、事前共有鍵、リレーのリージョンを含む長い `tc…` の文字列です。**パスワードとして扱ってください: 持っている人は誰でもホストに接続できます。**
 
@@ -256,10 +222,10 @@ host = ubuntu=wsl://Ubuntu
 
 ## セキュリティ
 
-- **接続は、そのアカウントにできることは何でもできます。** ローカルの接続と同じく、プログラムの起動も含みます。SSH では、SSH がログインさせるあなた自身のアカウントです。Tailscale では、マシンの所有者が許可した人だけです。
+- **接続は、そのアカウントにできることは何でもできます。** ローカルの接続と同じく、プログラムの起動も含みます。SSH では、SSH がログインさせるあなた自身のアカウントです。Tailcat では、ホストのペアコードを持つ人だけです。
 - **ソケットはあなた専用です。** hylad のソケットはそのユーザーだけが読める状態で作られ、hylad はほかのユーザーのプロセスからの接続を拒否します。
 - **アップデートは署名されています。** サーバー版は、Hyla のリリースのキーで署名されたアーカイブからのみ自分をアップデートします。
-- `hyla clients` は、hylad に接続しているものを、その接続方法とともに一覧します: `uid 501 over unix`、`me from 10.0.0.5 over ssh`、`alice@example.com over tailnet`。
+- `hyla clients` は、hylad に接続しているものを、その接続方法とともに一覧します: `uid 501 over unix`、`me from 10.0.0.5 over ssh`、`tc… over tailcat`。
 
 ## 制限
 

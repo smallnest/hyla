@@ -10,10 +10,8 @@ func TestHostKeys(t *testing.T) {
 	file := `host = devbox=me@devbox
 host = build=ssh://ci@build.lab:2222 remote-control
 host = wsl=wsl://Ubuntu color=teal
-listen = tailnet://:7400
-listen = tailnet-serve://
-listen-allow = alice@example.com
-listen-allow = tag:ci
+listen = tailcat://:7400
+tailcat = true
 `
 	s, probs := parse(file)
 	if len(probs) > 0 {
@@ -27,15 +25,15 @@ listen-allow = tag:ci
 	if !reflect.DeepEqual(s.Hosts, want) {
 		t.Errorf("hosts %+v", s.Hosts)
 	}
-	if !reflect.DeepEqual(s.Listen, []string{"tailnet://:7400", "tailnet-serve://"}) || len(s.ListenAllow) != 2 {
-		t.Errorf("listen %q, allow %q", s.Listen, s.ListenAllow)
+	if !reflect.DeepEqual(s.Listen, []string{"tailcat://:7400"}) {
+		t.Errorf("listen %q", s.Listen)
 	}
 	if h := s.Host("BUILD"); h == nil || h.Name != "build" {
 		t.Errorf("Host(BUILD) = %+v", h)
 	}
 	// Written back as read, an address as ParseAddr writes it.
 	out := format(s, "")
-	for _, line := range []string{"host = build=ci@build.lab:2222 remote-control", "host = wsl=wsl://Ubuntu color=teal", "listen-allow = tag:ci"} {
+	for _, line := range []string{"host = build=ci@build.lab:2222 remote-control", "host = wsl=wsl://Ubuntu color=teal", "listen = tailcat://:7400"} {
 		if !strings.Contains(out, line+"\n") {
 			t.Errorf("formatted without %q:\n%s", line, out)
 		}

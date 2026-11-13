@@ -1,20 +1,12 @@
 package main
 
 import (
-	"context"
 	"errors"
-	"net"
-	"slices"
-	"strings"
-	"time"
-
-	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
+	"strings"
 
 	"hyla/internal/remote"
 	"hyla/internal/settings"
-	"hyla/internal/tailscale"
-
 	"hyla/locales"
 )
 
@@ -61,99 +53,7 @@ func (a *App) hostsPage(c *ui.Context, pal *palette) {
 			})
 		})
 	})
-	a.listenGroup(c, pal)
 	settingsGroup(c, pal, locales.SetHostSettingsSplit(), locales.SetHostSettingsSplitDetail(), nil)
-}
-
-// tailnetLook is this machine on the tailnet, as tailscaled last told
-// the Hosts page, and when.
-type tailnetLook struct {
-	self    tailscale.Self
-	err     error
-	at      time.Time
-	looking bool
-	copied  time.Time // when the address was copied, for a check mark
-}
-
-// listenGroup turns this machine into a host for Hyla elsewhere: hylad's
-// listener on the tailnet, the configuration's tailnet:// listen, which
-// hylad follows as it changes.
-func (a *App) listenGroup(c *ui.Context, pal *palette) {
-	i := slices.IndexFunc(a.set.Listen, func(l string) bool {
-		spec, err := remote.ParseListen(l)
-		return err == nil && spec.Kind == "tailnet"
-	})
-	on := i >= 0
-	detail, addr := locales.SetListenDetail(), ""
-	if on {
-		spec, _ := remote.ParseListen(a.set.Listen[i])
-		detail, addr = a.listenAddress(spec.Port)
-	}
-	settingsGroup(c, pal, locales.SetListenTitle(), "", func() {
-		settingRow(c, pal, locales.SetListen(), detail, func() {
-			toggle(c.Key("listen"), &on, pal).OnClick(func() {
-				s := a.set.Clone()
-				s.Listen = slices.DeleteFunc(s.Listen, func(l string) bool {
-					spec, err := remote.ParseListen(l)
-					return err == nil && spec.Kind == "tailnet"
-				})
-				if on {
-					s.Listen = append(s.Listen, "tailnet://:"+remote.ListenPort())
-				}
-				a.set = s
-			})
-		})
-		// Only the desktop app updates itself so: a development build, or
-		// a package manager's install, can't.
-		if mygo.Updater.Enabled() {
-			settingRow(c, pal, locales.SetRemoteUpdates(), locales.SetRemoteUpdatesDetail(), func() {
-				toggle(c.Key("remote-updates"), &a.set.RemoteUpdates, pal)
-			})
-		}
-		if addr == "" {
-			return
-		}
-		// The address to add elsewhere, in a field of its own to copy.
-		copied := time.Since(a.ss.tailnet.copied) < 1500*time.Millisecond
-		ui.Row(c).Margin(0, 0, 12, 0).Height(controlH+6).Padding(0, 3, 0, 10).Gap(8).AlignItems(ui.Center).Radius(7).Background(pal.control).Children(func() {
-			ui.Text(c, addr).Font("monospace").FontSize(12.5).TextColor(pal.text).SingleLine().Ellipsis("…").MinWidth(0).Grow(1).Selectable()
-			icon, label := copyIcon, locales.HostCopyAddress()
-			if copied {
-				icon, label = checkIcon, locales.ToastCopied()
-			}
-			iconButton(c, "copy-listen", icon, label, pal, func() {
-				c.WriteClipboard(addr)
-				a.ss.tailnet.copied = time.Now()
-				go func() {
-					time.Sleep(1500 * time.Millisecond)
-					a.update(func() {}) // the check mark goes
-				}()
-			})
-		})
-	})
-}
-
-// listenAddress says where Hyla elsewhere finds this machine's listener,
-// asking tailscaled for its name now and then, and the address, once it
-// is known.
-func (a *App) listenAddress(port string) (detail, addr string) {
-	t := &a.ss.tailnet
-	if !t.looking && time.Since(t.at) > 30*time.Second {
-		t.looking = true
-		go func() {
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			self, err := tailscale.Status(ctx)
-			cancel()
-			a.update(func() { t.self, t.err, t.at, t.looking = self, err, time.Now(), false })
-		}()
-	}
-	switch name := strings.TrimSuffix(t.self.DNSName, "."); {
-	case name != "":
-		return locales.SetListenOn(), "http://" + net.JoinHostPort(name, port)
-	case t.err != nil:
-		return locales.SetListenNoTailscale(), ""
-	}
-	return locales.SetListenDetail(), ""
 }
 
 // hostRow is a host in Settings › Hosts: how the app stands with it, and

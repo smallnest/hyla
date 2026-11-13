@@ -120,9 +120,8 @@ hyla config check             # 不明なキーと不正な値を報告
 
 | キー           | デフォルト | 説明 |
 | -------------- | ---------- | ---- |
-| `host`         |            | `name=address` 形式のホスト: SSH なら `me@devbox` や `ssh://…`、WSL なら `wsl://distro`、hylad の tailnet リスナーなら `http(s)://…`。後ろに ` remote-control` を付けるとそのプログラムにアプリの操作を許可し、` color=teal`（red、orange、amber、green、teal、blue、purple、pink）を付けるとそのセッションに色を付けられる。ホストごとに繰り返して指定する |
-| `listen`       |            | ほかのマシンの Hyla からこのマシンへの接続を許可する: Tailscale アドレスで待ち受けるなら `tailnet://:7473`、Tailscale Serve なら `tailnet-serve://`。それぞれ繰り返して指定する |
-| `listen-allow` |            | マシンの所有者以外に接続を許可する相手: tailnet のログイン、`tag:name`、または tailnet 上の誰でもなら `*`。それぞれ繰り返して指定する |
+| `host`         |            | `name=address` 形式のホスト: SSH なら `me@devbox` や `ssh://…`、WSL なら `wsl://distro`、または `tailcat://…` とそのペアコード。後ろに ` remote-control` を付けるとそのプログラムにアプリの操作を許可し、` color=teal`（red、orange、amber、green、teal、blue、purple、pink）を付けるとそのセッションに色を付けられる。ホストごとに繰り返して指定する |
+| `listen`       |            | ほかのマシンの Hyla からこのマシンへの接続を許可する: `tailcat://:7473`、ペアコードを使ったリレー経由。それぞれ繰り返して指定する |
 | `remote-updates` | `false`  | ほかのマシンの Hyla が、ここの Hyla アプリをそのバージョンにアップデートすることを許可する（アプリは再起動する） |
 
 ## Git

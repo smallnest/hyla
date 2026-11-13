@@ -7144,56 +7144,6 @@ func (msgs Messages) SetHostRemoteControlDetail(host string) string {
 	return Catalog.Format(msgs.locale, "setHostRemoteControlDetail", map[string]any{"host": host})
 }
 
-// SetListenTitle says "Tailscale"
-// in the language the app shows.
-func SetListenTitle() string { return In(i18n.Locale()).SetListenTitle() }
-
-// SetListenTitle says "Tailscale"
-// in the language of msgs.
-func (msgs Messages) SetListenTitle() string {
-	return Catalog.Format(msgs.locale, "setListenTitle", nil)
-}
-
-// SetListen says "Let other machines connect"
-// in the language the app shows.
-func SetListen() string { return In(i18n.Locale()).SetListen() }
-
-// SetListen says "Let other machines connect"
-// in the language of msgs.
-func (msgs Messages) SetListen() string {
-	return Catalog.Format(msgs.locale, "setListen", nil)
-}
-
-// SetListenDetail says "hylad listens at this computer's Tailscale addresses, for Hyla on your other machines. Only your Tailscale account ma…"
-// in the language the app shows.
-func SetListenDetail() string { return In(i18n.Locale()).SetListenDetail() }
-
-// SetListenDetail says "hylad listens at this computer's Tailscale addresses, for Hyla on your other machines. Only your Tailscale account ma…"
-// in the language of msgs.
-func (msgs Messages) SetListenDetail() string {
-	return Catalog.Format(msgs.locale, "setListenDetail", nil)
-}
-
-// SetListenOn says "Add this computer as a host on your other machines at this address. Only your Tailscale account may connect."
-// in the language the app shows.
-func SetListenOn() string { return In(i18n.Locale()).SetListenOn() }
-
-// SetListenOn says "Add this computer as a host on your other machines at this address. Only your Tailscale account may connect."
-// in the language of msgs.
-func (msgs Messages) SetListenOn() string {
-	return Catalog.Format(msgs.locale, "setListenOn", nil)
-}
-
-// SetListenNoTailscale says "Tailscale isn't running here: hylad listens once it is."
-// in the language the app shows.
-func SetListenNoTailscale() string { return In(i18n.Locale()).SetListenNoTailscale() }
-
-// SetListenNoTailscale says "Tailscale isn't running here: hylad listens once it is."
-// in the language of msgs.
-func (msgs Messages) SetListenNoTailscale() string {
-	return Catalog.Format(msgs.locale, "setListenNoTailscale", nil)
-}
-
 // SetRemoteUpdates says "Let them update Hyla here"
 // in the language the app shows.
 func SetRemoteUpdates() string { return In(i18n.Locale()).SetRemoteUpdates() }
@@ -7860,11 +7810,11 @@ func (msgs Messages) SetTailcat() string {
 	return Catalog.Format(msgs.locale, "setTailcat", nil)
 }
 
-// SetTailcatDetail says "Reach hosts with a pair code through a relay, instead of Tailscale. Off, Hyla lists none of these hosts and connects …"
+// SetTailcatDetail says "Reach hosts with a pair code through a relay. Off, Hyla lists none of these hosts and connects to none of them, and h…"
 // in the language the app shows.
 func SetTailcatDetail() string { return In(i18n.Locale()).SetTailcatDetail() }
 
-// SetTailcatDetail says "Reach hosts with a pair code through a relay, instead of Tailscale. Off, Hyla lists none of these hosts and connects …"
+// SetTailcatDetail says "Reach hosts with a pair code through a relay. Off, Hyla lists none of these hosts and connects to none of them, and h…"
 // in the language of msgs.
 func (msgs Messages) SetTailcatDetail() string {
 	return Catalog.Format(msgs.locale, "setTailcatDetail", nil)
@@ -8000,11 +7950,11 @@ func (msgs Messages) SetTailcatListen() string {
 	return Catalog.Format(msgs.locale, "setTailcatListen", nil)
 }
 
-// SetTailcatListenDetail says "hylad listens through a tailcat relay, so your other machines add this one as a host with its pair code. It needs no …"
+// SetTailcatListenDetail says "hylad listens through a tailcat relay, so your other machines add this one as a host with its pair code, and it opens…"
 // in the language the app shows.
 func SetTailcatListenDetail() string { return In(i18n.Locale()).SetTailcatListenDetail() }
 
-// SetTailcatListenDetail says "hylad listens through a tailcat relay, so your other machines add this one as a host with its pair code. It needs no …"
+// SetTailcatListenDetail says "hylad listens through a tailcat relay, so your other machines add this one as a host with its pair code, and it opens…"
 // in the language of msgs.
 func (msgs Messages) SetTailcatListenDetail() string {
 	return Catalog.Format(msgs.locale, "setTailcatListenDetail", nil)

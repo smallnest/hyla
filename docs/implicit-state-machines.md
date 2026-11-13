@@ -339,26 +339,12 @@ the typo now works.
 - `shells` (`transport.go:74`) holds a shell per address, never expires,
   and is not keyed by host identity.
 
-## 23. Tailscale access (medium)
+## 23. Tailscale access (removed)
 
-**State:** `tailscale.Self{IPs, Owner, Tags}` from `Status`
-(`internal/tailscale/tailscale.go:194-215`), the listener's tailnet
-sockets (`internal/daemon/listen.go:229-259`), `l.allow`, `selfStatus`,
-and `whoCache`.
-
-- NeedsLogin, Stopped and Expired all become one `ErrNotRunning`
-  (`tailscale.go:197-199`), so nothing tells the user which one it is.
-- `tailnet()` returns after the first successful listen. It never sees
-  Tailscale stop or the tailnet address change.
-- A tagged machine has `Owner == ""` (`tailscale.go:203-205`). Then only
-  `allow` admits anyone, and nothing reports that as a state.
-- `whoCache` keeps a login for 30 s (`listen.go:349-362`). `l.set`
-  replaces `l.allow` (`listen.go:137`) but does not clear the cache, so a
-  revoked user keeps access for up to 30 s.
-- `TailcatRotate` is a bool used as an event (`internal/cli/remote.go:442`,
-  seen at `daemon/listen.go:95`). It is lost if rotated while hylad is
-  down, and rotating twice returns to the old value, so no rotation
-  follows.
+Tailscale is no longer a way into hylad: the listeners are tailcat's alone
+(`internal/daemon/listen.go`), admitted by the pair code of the listener's
+key, and a host is reached over SSH, WSL or tailcat. The state its local
+API reported, and the identity it told of each connection, went with it.
 
 ## 24. Update install (medium)
 

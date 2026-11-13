@@ -199,8 +199,7 @@ func Run(opts Options) error {
 	d.viewed.Store(&empty)
 	lg.Printf("hylad %d started (Hyla %s, pid %d, %s)", proto.Version, build.Version(), os.Getpid(), exe)
 	d.linkCLI()
-	// The listeners first: Tailscale Serve's socket takes a umask of its
-	// own, which no program hylad starts may get.
+	// The listeners first, before any program of hylad's runs.
 	d.net = d.listen()
 	// A program hylad runs by name, as a chat's background command, is
 	// found by the PATH this one runs with, which launchd's has none of
@@ -750,7 +749,7 @@ func (c *controlConn) watchEvent(m proto.Message) {
 // identity is who a connection comes from, as hyla clients shows it.
 type identity struct {
 	peer string // "uid 501", "alice@example.com"
-	via  string // "unix", "tailnet", "tailnet-serve"
+	via  string // "unix", "tailcat"
 	// client is what the client said it is, for a remote connection.
 	client string
 }

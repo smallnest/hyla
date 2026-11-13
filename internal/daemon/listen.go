@@ -5,9 +5,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/egoist/mygo"
 	"net"
 	"net/http"
-	"net/netip"
 	"os"
 	"path/filepath"
 	"slices"
@@ -15,41 +15,28 @@ import (
 	"sync"
 	"time"
 
-	"github.com/coder/websocket"
-	"github.com/egoist/mygo"
-
 	"hyla/internal/build"
 	"hyla/internal/proto"
 	"hyla/internal/remote"
 	"hyla/internal/settings"
-	"hyla/internal/tailscale"
 	"hyla/internal/update"
 )
 
 // listeners are hylad's network listeners (Options.Listen, else the
 // configuration's listen key, which they follow as it changes), which
-// take remote connections as WebSockets (remote.MuxPath), each from a
-// caller Tailscale tells, and only from those the machine's owner allows:
-// the owner, and listen-allow. They are off unless asked for.
+// take remote connections over tailcat, admitted by a pair code. They are
+// off unless asked for.
 type listeners struct {
 	d *Daemon
 
-	mu    sync.Mutex
-	allow []string
+	mu sync.Mutex
 	// on are the listeners asked for, by what the configuration calls
 	// them.
 	on     map[string]*listener
 	closed bool
-	// pocket is HylaPocket's server, which the Tailscale Serve socket
-	// answers beside hylad's, under HylaPocket's own paths.
+	// pocket is HylaPocket's server, which a tailcat listener answers
+	// beside hylad's, under HylaPocket's own paths.
 	pocket PocketServer
-	// self is this machine on the tailnet, as tailscaled last said, and
-	// when; whoCache who connected from where.
-	self     tailscale.Self
-	selfAt   time.Time
-	whoCache map[string]cachedWho
-	// isLocal, for tests, tells the addresses of this machine.
-	isLocal func(netip.Addr) bool
 }
 
 // listener is one of the listeners, which stops, and drops the
@@ -70,21 +57,21 @@ func (d *Daemon) listen() *listeners {
 	remote.SetRelay(set.TailcatRelay)
 	specs := d.opts.Listen
 	if specs != nil {
-		l.set(specs, set.ListenAllow, true)
+		l.set(specs)
 		return l
 	}
-	// The others, after hylad answers: one takes a while, Tailscale
-	// Serve's, and the socket a client waits on answers at once.
-	l.set(nil, set.ListenAllow, false)
+	// The others, after hylad answers: a relay takes a while to join, and
+	// the socket a client waits on answers at once.
+	l.set(nil)
 	go func() {
-		l.set(set.Listen, set.ListenAllow, true)
+		l.set(set.Listen)
 		l.follow(set)
 	}()
 	return l
 }
 
-// follow applies the configuration's listen and listen-allow as they
-// change, as Settings › Hosts turns this machine's listener on and off.
+// follow applies the configuration's listen as it changes, as Settings ›
+// Hosts turns this machine's listener on and off.
 func (l *listeners) follow(last settings.Settings) {
 	t := time.NewTicker(2 * time.Second)
 	defer t.Stop()
@@ -95,7 +82,7 @@ func (l *listeners) follow(last settings.Settings) {
 		case <-t.C:
 		}
 		set := settings.Load()
-		if slices.Equal(set.Listen, last.Listen) && slices.Equal(set.ListenAllow, last.ListenAllow) && set.TailcatRelay == last.TailcatRelay && set.TailcatRotate == last.TailcatRotate {
+		if slices.Equal(set.Listen, last.Listen) && set.TailcatRelay == last.TailcatRelay && set.TailcatRotate == last.TailcatRotate {
 			continue
 		}
 		remote.SetRelay(set.TailcatRelay)
@@ -106,16 +93,12 @@ func (l *listeners) follow(last settings.Settings) {
 				l.drop(spec.String())
 			}
 		}
-		l.set(set.Listen, set.ListenAllow, false)
+		l.set(set.Listen)
 	}
 }
 
-// set makes the listeners those of specs, stopping the others, and lets
-// in whom allow says. Boot ones, at hylad's start, rather than ones a
-// change of the configuration adds, as Run has started hylad's programs:
-// a Tailscale Serve socket waits for the next hylad, as the umask it
-// takes would be any program's hylad started meanwhile.
-func (l *listeners) set(specs, allow []string, boot bool) {
+// set makes the listeners those of specs, stopping the others.
+func (l *listeners) set(specs []string) {
 	want := map[string]remote.Listen{}
 	for _, s := range specs {
 		spec, err := remote.ParseListen(s)
@@ -125,19 +108,11 @@ func (l *listeners) set(specs, allow []string, boot bool) {
 		}
 		want[spec.String()] = spec
 	}
-	var serve []*listener
-	defer func() {
-		// At once, before hylad starts any program.
-		for _, ln := range serve {
-			l.serve(ln)
-		}
-	}()
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	if l.closed {
 		return
 	}
-	l.allow = slices.Clone(allow)
 	for name, ln := range l.on {
 		if _, ok := want[name]; !ok {
 			l.d.log.Printf("no longer listening on %s", name)
@@ -152,16 +127,7 @@ func (l *listeners) set(specs, allow []string, boot bool) {
 		ln := &listener{spec: spec}
 		ln.ctx, ln.cancel = context.WithCancel(context.Background())
 		l.on[name] = ln
-		switch {
-		case spec.Kind == "tailnet":
-			go l.tailnet(ln)
-		case spec.Kind == "tailcat":
-			go l.tailcatListener(ln)
-		case boot:
-			serve = append(serve, ln)
-		default:
-			l.d.log.Printf("listen %s: restart hylad to listen there (hyla daemon restart)", name)
-		}
+		go l.tailcatListener(ln)
 	}
 }
 
@@ -215,96 +181,6 @@ func (ln *listener) stop() {
 	}
 }
 
-// start serves a listener, unless it stopped.
-func (l *listeners) start(lis *listener, ln net.Listener, via string) bool {
-	srv := &http.Server{Handler: l.handler(lis.ctx, via), ReadHeaderTimeout: 10 * time.Second, ErrorLog: l.d.log}
-	l.mu.Lock()
-	if lis.ctx.Err() != nil {
-		l.mu.Unlock()
-		ln.Close()
-		return false
-	}
-	lis.servers = append(lis.servers, srv)
-	l.mu.Unlock()
-	l.d.log.Printf("listening on %s (%s)", ln.Addr(), via)
-	go srv.Serve(ln)
-	return true
-}
-
-// tailnet listens on the machine's Tailscale addresses, once Tailscale is
-// up: hylad may start before it, as at boot.
-func (l *listeners) tailnet(lis *listener) {
-	logged := false
-	for {
-		self, err := tailscale.Status(lis.ctx)
-		if err == nil && len(self.IPs) > 0 {
-			ok := 0
-			for _, ip := range self.IPs {
-				ln, err := net.Listen("tcp", net.JoinHostPort(ip.String(), lis.spec.Port))
-				if err != nil {
-					l.d.log.Printf("listen: %v", err)
-					continue
-				}
-				if !l.start(lis, ln, "tailnet") {
-					return
-				}
-				ok++
-			}
-			if ok > 0 {
-				return
-			}
-		} else if !logged && lis.ctx.Err() == nil {
-			l.d.log.Printf("listen %s: %v; trying again as Tailscale comes up", lis.spec, err)
-			logged = true
-		}
-		select {
-		case <-lis.ctx.Done():
-			return
-		case <-time.After(10 * time.Second):
-		}
-	}
-}
-
-// serve listens on a socket for Tailscale Serve, which only its user, and
-// tailscaled, as root, can connect to: the headers Serve adds, which tell
-// who connects, are then Serve's.
-func (l *listeners) serve(lis *listener) {
-	path := lis.spec.Path
-	if path == "" {
-		path = filepath.Join(proto.Dir(), "serve.sock")
-	}
-	os.Remove(path)
-	ln, err := listenSocket(path)
-	if err != nil {
-		l.d.log.Printf("listen %s: %v", lis.spec, err)
-		return
-	}
-	l.mu.Lock()
-	lis.socket = path
-	l.mu.Unlock()
-	// HylaPocket is served beside Hyla on this socket too, as hylad's own
-	// Hyla reaches it: a phone has no socket, and comes over tailcat.
-	h := l.handler(lis.ctx, "tailnet-serve")
-	if p := l.pocket; p != nil {
-		mux := http.NewServeMux()
-		mux.Handle(p.PocketPath(), p)
-		mux.Handle("/", h)
-		h = mux
-	}
-	srv := &http.Server{Handler: h, ReadHeaderTimeout: 10 * time.Second, ErrorLog: l.d.log}
-	l.mu.Lock()
-	if lis.ctx.Err() != nil {
-		l.mu.Unlock()
-		ln.Close()
-		os.Remove(path)
-		return
-	}
-	lis.servers = append(lis.servers, srv)
-	l.mu.Unlock()
-	l.d.log.Printf("listening on %s (tailnet-serve)", path)
-	go srv.Serve(ln)
-}
-
 // tailcatListener listens through a tailcat relay, whose pair code is the
 // listener's address: the key that makes it stays in hyla's directory, as
 // the code is. A relay that cannot be joined, as one the network had not
@@ -356,142 +232,6 @@ func (l *listeners) joinTailcat(lis *listener) error {
 	l.mu.Unlock()
 	l.d.log.Printf("listening on %s (tailcat)", r.PairCode)
 	return nil
-}
-
-// selfStatus is this machine on the tailnet, as tailscaled last said, at
-// most a minute ago: its owner's login, "" for a tagged machine, which
-// only listen-allow lets anyone in to, and its addresses.
-func (l *listeners) selfStatus(ctx context.Context) tailscale.Self {
-	l.mu.Lock()
-	self, at := l.self, l.selfAt
-	l.mu.Unlock()
-	if !at.IsZero() && time.Since(at) < time.Minute {
-		return self
-	}
-	if s, err := tailscale.Status(ctx); err == nil {
-		self = s
-		l.mu.Lock()
-		l.self, l.selfAt = s, time.Now()
-		l.mu.Unlock()
-	}
-	return self
-}
-
-// local reports whether a connection comes from this machine: from a
-// loopback address, or from one of its own Tailscale addresses, as any
-// process of any user here can connect from, which tailscaled would take
-// for the machine's owner. Such connections go through hylad's socket,
-// which tells its users apart.
-func (l *listeners) local(ctx context.Context, ip netip.Addr) bool {
-	if l.isLocal != nil {
-		return l.isLocal(ip)
-	}
-	ip = ip.Unmap()
-	return ip.IsLoopback() || ip.IsUnspecified() || slices.Contains(l.selfStatus(ctx).IPs, ip)
-}
-
-// whois tells who connects from an address, asking tailscaled once a
-// while for each address, so that a flood of requests spawns nothing.
-func (l *listeners) whois(ctx context.Context, addr string) (tailscale.Who, error) {
-	host, _, _ := net.SplitHostPort(addr)
-	l.mu.Lock()
-	c, ok := l.whoCache[host]
-	l.mu.Unlock()
-	if ok && time.Since(c.at) < 30*time.Second {
-		return c.who, nil
-	}
-	who, err := tailscale.WhoIs(ctx, addr)
-	if err != nil {
-		return who, err
-	}
-	l.mu.Lock()
-	if l.whoCache == nil || len(l.whoCache) > 1024 {
-		l.whoCache = map[string]cachedWho{}
-	}
-	l.whoCache[host] = cachedWho{who, time.Now()}
-	l.mu.Unlock()
-	return who, nil
-}
-
-type cachedWho struct {
-	who tailscale.Who
-	at  time.Time
-}
-
-// identify tells who a request comes from, and whether they may connect.
-func (l *listeners) identify(r *http.Request, via string) (tailscale.Who, error) {
-	ctx := r.Context()
-	var who tailscale.Who
-	switch via {
-	case "tailnet":
-		ap, err := netip.ParseAddrPort(r.RemoteAddr)
-		if err != nil {
-			return who, err
-		}
-		if l.local(ctx, ap.Addr()) {
-			return who, errors.New("a connection from this machine itself goes through hylad's socket, not the tailnet")
-		}
-		w, err := l.whois(ctx, r.RemoteAddr)
-		if err != nil {
-			return who, err
-		}
-		who = w
-	case "tailnet-serve":
-		// Funnel's are the internet's, whom Tailscale tells nothing of.
-		if r.Header.Get("Tailscale-Funnel-Request") != "" {
-			return who, errors.New("Hyla takes no connections through Funnel")
-		}
-		who = tailscale.Who{Login: r.Header.Get("Tailscale-User-Login"), Name: r.Header.Get("Tailscale-User-Name")}
-		if who.Login == "" {
-			return who, errors.New("Tailscale Serve did not say who connects: tagged devices connect to a tailnet:// listener")
-		}
-	}
-	l.mu.Lock()
-	allow := l.allow
-	l.mu.Unlock()
-	if !tailscale.Allowed(who, l.selfStatus(ctx).Owner, allow) {
-		return who, errors.New(who.String() + " may not connect: the machine's owner lets them in with listen-allow")
-	}
-	return who, nil
-}
-
-// handler answers a listener's requests, whose connections end as ctx
-// does.
-func (l *listeners) handler(ctx context.Context, via string) http.Handler {
-	mux := http.NewServeMux()
-	mux.HandleFunc(remote.MuxPath, func(w http.ResponseWriter, r *http.Request) {
-		// Only Hyla: a browser sends an Origin with every WebSocket, and
-		// cannot send Hyla's header, so that no web page on the tailnet
-		// reaches hylad through the browser of someone it lets in.
-		if r.Header.Get("Origin") != "" || r.Header.Get(remote.ClientHeader) == "" {
-			http.Error(w, "this is Hyla's: connect with Hyla", http.StatusForbidden)
-			return
-		}
-		who, err := l.identify(r, via)
-		if err != nil {
-			l.d.log.Printf("refused %s (%s): %v", r.RemoteAddr, via, err)
-			http.Error(w, err.Error(), http.StatusForbidden)
-			return
-		}
-		ws, err := websocket.Accept(w, r, &websocket.AcceptOptions{
-			CompressionMode: websocket.CompressionDisabled,
-			// Origin is checked above: there is none.
-			InsecureSkipVerify: true,
-		})
-		if err != nil {
-			return
-		}
-		ws.SetReadLimit(64 << 20)
-		conn := websocket.NetConn(ctx, ws, websocket.MessageBinary)
-		client := r.Header.Get(remote.ClientHeader)
-		l.d.log.Printf("%s connected over %s: %s", who, via, client)
-		err = l.remote(identity{peer: who.String(), via: via, client: client}).Serve(conn)
-		l.d.log.Printf("%s disconnected (%s): %v", who, via, err)
-	})
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "Hyla's daemon: connect with Hyla (Settings › Hosts)", http.StatusNotFound)
-	})
-	return mux
 }
 
 // streamOf answers the streams a remote connection asks hylad for.

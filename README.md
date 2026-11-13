@@ -33,8 +33,8 @@ its own, and the features below that Kero never had.
 - **A CLI agents can drive.** `hyla` starts sessions, splits panes, types into
   them, waits on them and reads their screens.
 - **Remote hosts.** Run agents on a Linux box, a cloud VM, a Mac, a Windows PC
-  or WSL and see them in the same sidebar, over SSH, Tailscale or a Tailcat
-  pair code. They keep running when your laptop sleeps. See
+  or WSL and see them in the same sidebar, over SSH or a Tailcat pair
+  code. They keep running when your laptop sleeps. See
   [Remote Hosts](docs/remote.md).
 - **Agents in a Feishu chat.** Send the bot a message and the turn runs in a
   Hyla session; the answer comes back as a card, permission requests and
@@ -52,7 +52,7 @@ way:
 | Feature | What it does |
 |---|---|
 | **Feishu and Lark** | One Feishu app, one machine's `hylad`: a chat runs an agent's turns in Hyla's own sessions, with cards, permission buttons, choices and transcripts, and a footer of what each turn used. |
-| **Tailcat** | Reach a host with a pair code through a relay, with no Tailscale account on either side. Off until you turn it on. |
+| **Tailcat** | Reach a host with a pair code through a relay, with no account on either machine and no port open on its network. Off until you turn it on. |
 | **Files view** | A Files tab in the side panel shows the session's folder as a tree, and shows the file you pick, without leaving the window. |
 | **Sidebar order** | Group the sidebar by project or by date, or list it flat; order it by creation or last use; give each project a colored badge; and fold its sessions. |
 | **Background opacity and blur** | The window's background goes from opaque to translucent to blurred, apart from the panes' own opacity. |

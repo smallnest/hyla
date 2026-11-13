@@ -130,9 +130,8 @@ hyla config check             # 报告未知的配置项和无效的值
 
 | 配置项         | 默认值  | 说明 |
 | -------------- | ------- | ---- |
-| `host`         |         | 一台主机，写作 `name=address`：通过 SSH 连接时用 `me@devbox` 或 `ssh://…`，WSL 用 `wsl://distro`，hylad 的 tailnet 监听地址用 `http(s)://…`。在后面加上 ` remote-control` 可允许它的程序操控应用，加上 ` color=teal`（red、orange、amber、green、teal、blue、purple 或 pink）可为它的会话标色。每台主机写一行 |
-| `listen`       |         | 允许其他机器上的 Hyla 连接本机：`tailnet://:7473` 监听本机的 Tailscale 地址，`tailnet-serve://` 使用 Tailscale Serve。每个地址写一行 |
-| `listen-allow` |         | 除本机所有者外还允许谁连接：某个 tailnet 登录账号、`tag:name`，或用 `*` 允许 tailnet 上的所有人。每项写一行 |
+| `host`         |         | 一台主机，写作 `name=address`：通过 SSH 连接时用 `me@devbox` 或 `ssh://…`，WSL 用 `wsl://distro`，或用 `tailcat://…` 加上它的配对码。在后面加上 ` remote-control` 可允许它的程序操控应用，加上 ` color=teal`（red、orange、amber、green、teal、blue、purple 或 pink）可为它的会话标色。每台主机写一行 |
+| `listen`       |         | 允许其他机器上的 Hyla 连接本机：`tailcat://:7473`，凭配对码经中继连接。每个地址写一行 |
 | `remote-updates` | `false` | 允许你其他机器上的 Hyla 把这里的 Hyla 应用更新到它的版本，应用会随之重新启动 |
 
 ## Git
