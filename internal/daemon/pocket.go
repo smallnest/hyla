@@ -71,11 +71,12 @@ func PocketForTest(logger *log.Logger) *Daemon {
 
 // PocketSession is a row of HylaPocket's list.
 type PocketSession struct {
-	ID     string `json:"session_id"`
-	Label  string `json:"label"`
-	Panes  int    `json:"panes"`
-	Dir    string `json:"dir,omitempty"`
-	Status string `json:"status"`
+	ID      string `json:"session_id"`
+	Label   string `json:"label"`
+	Project string `json:"project,omitempty"`
+	Panes   int    `json:"panes"`
+	Dir     string `json:"dir,omitempty"`
+	Status  string `json:"status"`
 }
 
 // PocketView is a session as HylaPocket shows it.
@@ -278,7 +279,7 @@ func (d *Daemon) PocketViewed() string {
 
 func (d *Daemon) pocketSessionLocked(s *session) PocketSession {
 	info := d.sessionInfo(s)
-	ps := PocketSession{ID: s.id, Label: info.Name, Panes: len(s.panes), Status: string(info.Status)}
+	ps := PocketSession{ID: s.id, Label: info.Name, Project: d.projectNameLocked(s.project), Panes: len(s.panes), Status: string(info.Status)}
 	if ps.Label == "" && len(s.panes) > 0 {
 		ps.Label = s.panes[0].info.PaneName()
 	}
@@ -292,6 +293,22 @@ func (d *Daemon) pocketSessionLocked(s *session) PocketSession {
 		}
 	}
 	return ps
+}
+
+// projectNameLocked is the name of project id, or "" for a session of none. d.mu is held.
+func (d *Daemon) projectNameLocked(id string) string {
+	if id == "" {
+		return ""
+	}
+	for _, p := range d.projects {
+		if p.ID == id {
+			if p.Name != "" {
+				return p.Name
+			}
+			return p.Dir
+		}
+	}
+	return id
 }
 
 // pocketViewLocked builds a view: a row of the layout is a window, and a
@@ -426,9 +443,10 @@ func alignedRows(l *proto.Layout, carried string) (rows [][]string, taken bool) 
 	return append(out, b[1:]...), taken
 }
 
-// PocketCreate makes a session with a shell, as a new session does.
-func (d *Daemon) PocketCreate(name string) (string, error) {
-	s, err := d.create(proto.CreateParams{Name: strings.TrimSpace(name)})
+// PocketCreate makes a session with a shell, as a new session does, in project: a project id or
+// name, or "" for the machine's own.
+func (d *Daemon) PocketCreate(name, project string) (string, error) {
+	s, err := d.create(proto.CreateParams{Name: strings.TrimSpace(name), Project: strings.TrimSpace(project)})
 	if err != nil {
 		return "", err
 	}

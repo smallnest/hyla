@@ -242,12 +242,13 @@ func (c *control) call(method string, payload json.RawMessage) (any, string, err
 
 	case "session.create":
 		var p struct {
-			Label string `json:"label"`
+			Label   string `json:"label"`
+			Project string `json:"project"`
 		}
 		if err := params(payload, &p); err != nil {
 			return nil, "invalid_request", err
 		}
-		sid, err := d.PocketCreate(p.Label)
+		sid, err := d.PocketCreate(p.Label, p.Project)
 		if err != nil {
 			return nil, "internal", err
 		}
@@ -306,12 +307,14 @@ func (c *control) call(method string, payload json.RawMessage) (any, string, err
 		}
 		_ = params(payload, &p)
 		label := ""
+		project := ""
 		if p.SessionID != "" {
 			if ps, ok := d.PocketSessionOf(p.SessionID); ok {
 				label = ps.Label
+				project = ps.Project
 			}
 		}
-		sid, err := d.PocketCreate(label)
+		sid, err := d.PocketCreate(label, project)
 		if err != nil {
 			return nil, "internal", err
 		}
