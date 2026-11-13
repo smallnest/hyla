@@ -63,10 +63,6 @@ func (a *App) tailcatGroup(c *ui.Context, pal *palette) {
 			ui.Box(c).Height(1).Shrink(0).Background(pal.text.Alpha(0.07))
 		}
 		a.tailcatListen(c, pal, d)
-		if groupRows++; groupRows > 1 {
-			ui.Box(c).Height(1).Shrink(0).Background(pal.text.Alpha(0.07))
-		}
-		a.tcpListen(c, pal, d)
 	})
 	if !on {
 		settingsGroup(c, pal, "", locales.SetTailcatOffNote(), nil)
@@ -282,7 +278,7 @@ func errorText(err error) string {
 // address and password a client of Hyla, or of HylaPocket, takes.
 func (a *App) tcpListen(c *ui.Context, pal *palette, d *tailcatDraft) {
 	on := hasTCPListener(&a.set)
-	detail := locales.SetTCPDetail()
+	detail := locales.SetTCPListenDetail()
 	ui.Column(c).Padding(11, 0).Gap(8).Children(func() {
 		ui.Row(c).Gap(16).AlignItems(ui.Center).Children(func() {
 			ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
@@ -365,12 +361,25 @@ func (a *App) tcpListen(c *ui.Context, pal *palette, d *tailcatDraft) {
 			})
 		})
 		// Where a client of another machine reaches this one: its own
-		// addresses, which the listener's port follows.
-		if port := tcpListenPort(&a.set); port != "" {
-			for _, addr := range remote.LocalAddrs() {
-				ui.Text(c, net.JoinHostPort(addr, port)).Font("monospace").FontSize(12).TextColor(pal.textFaint).Selectable()
-			}
+		// addresses, which the listener's port follows, and the code a
+		// phone scans to take the first of them.
+		addrs := tcpAddrs(&a.set)
+		if len(addrs) == 0 {
+			return
 		}
+		ui.Column(c).Gap(3).Children(func() {
+			ui.Text(c, locales.SetTCPQR()).FontSize(13.5).TextColor(pal.text)
+		})
+		ui.Row(c).Gap(16).AlignItems(ui.Center).Children(func() {
+			if q, err := qrcode.Encode(addrs[0], qrcode.L); err == nil {
+				qrcode.View(c, q).Size(140, 140).Shrink(0)
+			}
+			ui.Column(c).Gap(4).Children(func() {
+				for _, addr := range addrs {
+					ui.Text(c, addr).Font("monospace").FontSize(12.5).TextColor(pal.text).Selectable().SingleLine().Ellipsis("…")
+				}
+			})
+		})
 	})
 }
 
@@ -393,6 +402,28 @@ func tcpListenAddr(s *settings.Settings) string {
 		}
 	}
 	return ""
+}
+
+// tcpAddrs are the addresses a client of another machine reaches the
+// network listener at: the one it names, or this machine's own, with the
+// listener's port.
+func tcpAddrs(s *settings.Settings) []string {
+	port := tcpListenPort(s)
+	if port == "" {
+		return nil
+	}
+	for _, l := range s.Listen {
+		if spec, err := remote.ParseListen(l); err == nil && spec.Kind == "tcp" && spec.Host != "" {
+			if ip := net.ParseIP(spec.Host); ip == nil || !ip.IsUnspecified() {
+				return []string{net.JoinHostPort(spec.Host, port)}
+			}
+		}
+	}
+	var out []string
+	for _, addr := range remote.LocalAddrs() {
+		out = append(out, net.JoinHostPort(addr, port))
+	}
+	return out
 }
 
 // tcpListenPort is the port of the network listener, "" for none.

@@ -138,6 +138,22 @@ type errString string
 
 func (e errString) Error() string { return string(e) }
 
+// p2pGroup is Settings › Remote Connection › P2P: the machines this app
+// reaches by an address and a password, and this machine's own listener,
+// which a client of them reaches.
+func (a *App) p2pGroup(c *ui.Context, pal *palette) {
+	d := &a.ss.tailcat
+	settingsGroup(c, pal, "", "", func() {
+		groupTitle(c, pal, locales.SetTCPTitle())
+		ui.Text(c, locales.SetTCPDetail()).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35).Padding(0, 2, 0, 6)
+		a.remoteHosts(c, pal)
+		if groupRows++; groupRows > 1 {
+			ui.Box(c).Height(1).Shrink(0).Background(pal.text.Alpha(0.07))
+		}
+		a.tcpListen(c, pal, d)
+	})
+}
+
 // hostDraft is the form that adds another machine: its name, its
 // listener's address and its password, and what went wrong.
 type hostDraft struct {
@@ -145,10 +161,14 @@ type hostDraft struct {
 	err               string
 }
 
-// remoteHostsGroup is Settings › Tailcat's machines: those the sidebar
-// lists beside this one's.
-func (a *App) remoteHostsGroup(c *ui.Context, pal *palette) {
-	settingsGroup(c, pal, locales.SetRemoteHostsTitle(), locales.SetRemoteHostsDetail(), func() {
+// remoteHosts is the machines the sidebar lists beside this one's: the
+// head of the P2P group.
+func (a *App) remoteHosts(c *ui.Context, pal *palette) {
+	ui.Column(c).Padding(11, 0).Gap(8).Children(func() {
+		ui.Column(c).Gap(2).Children(func() {
+			ui.Text(c, locales.SetRemoteHostsTitle()).FontSize(13.5).TextColor(pal.text)
+			ui.Text(c, locales.SetRemoteHostsDetail()).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
+		})
 		if len(a.prefs.RemoteHosts) == 0 {
 			ui.Text(c, locales.SetRemoteHostsNone()).FontSize(12.5).TextColor(pal.textFaint).Padding(2, 4)
 		}

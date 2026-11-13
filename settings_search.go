@@ -102,7 +102,7 @@ func settingsIndex() []searchEntry {
 		{"agents", "Codex, OpenCode, Pi", "skill agents install"},
 		{"agents", locales.SetProgramStatus(), "osc 7501 report progress"},
 
-		{"hosts", locales.SetHosts(), "host hosts remote server ssh tailcat wsl machine linux devbox -H hyla hosts"},
+		{"hosts", locales.SetHosts(), "host hosts remote connection p2p server ssh tailcat wsl machine linux devbox phone qr password token"},
 		{"hosts", locales.SetHostAdd(), "add host address ssh wsl tailcat"},
 		{"hosts", locales.SetHostRemoteControl(), "remote-control host hyla do focus"},
 		// The group's title, above its switch.

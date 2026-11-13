@@ -4294,21 +4294,21 @@ func (msgs Messages) SetRemoteControl() string {
 	return Catalog.Format(msgs.locale, "setRemoteControl", nil)
 }
 
-// SetRemoteHostsTitle says "Other machines"
+// SetRemoteHostsTitle says "P2P machines"
 // in the language the app shows.
 func SetRemoteHostsTitle() string { return In(i18n.Locale()).SetRemoteHostsTitle() }
 
-// SetRemoteHostsTitle says "Other machines"
+// SetRemoteHostsTitle says "P2P machines"
 // in the language of msgs.
 func (msgs Messages) SetRemoteHostsTitle() string {
 	return Catalog.Format(msgs.locale, "setRemoteHostsTitle", nil)
 }
 
-// SetRemoteHostsDetail says "The sessions of another machine running Hyla, reached by the address of its tcp listener and its password (hyla pocke…"
+// SetRemoteHostsDetail says "Another machine's sessions, reached by the address and password of its tcp listener (hyla pocket addr on that machine)."
 // in the language the app shows.
 func SetRemoteHostsDetail() string { return In(i18n.Locale()).SetRemoteHostsDetail() }
 
-// SetRemoteHostsDetail says "The sessions of another machine running Hyla, reached by the address of its tcp listener and its password (hyla pocke…"
+// SetRemoteHostsDetail says "Another machine's sessions, reached by the address and password of its tcp listener (hyla pocket addr on that machine)."
 // in the language of msgs.
 func (msgs Messages) SetRemoteHostsDetail() string {
 	return Catalog.Format(msgs.locale, "setRemoteHostsDetail", nil)
@@ -6178,11 +6178,11 @@ func (msgs Messages) ChangesExpandAll() string {
 	return Catalog.Format(msgs.locale, "changesExpandAll", nil)
 }
 
-// PageHosts says "Tailcat"
+// PageHosts says "Remote Connection"
 // in the language the app shows.
 func PageHosts() string { return In(i18n.Locale()).PageHosts() }
 
-// PageHosts says "Tailcat"
+// PageHosts says "Remote Connection"
 // in the language of msgs.
 func (msgs Messages) PageHosts() string {
 	return Catalog.Format(msgs.locale, "pageHosts", nil)
@@ -7870,11 +7870,11 @@ func (msgs Messages) SetTailcatTitle() string {
 	return Catalog.Format(msgs.locale, "setTailcatTitle", nil)
 }
 
-// SetTCPTitle says "Network"
+// SetTCPTitle says "P2P"
 // in the language the app shows.
 func SetTCPTitle() string { return In(i18n.Locale()).SetTCPTitle() }
 
-// SetTCPTitle says "Network"
+// SetTCPTitle says "P2P"
 // in the language of msgs.
 func (msgs Messages) SetTCPTitle() string {
 	return Catalog.Format(msgs.locale, "setTCPTitle", nil)
@@ -7890,14 +7890,24 @@ func (msgs Messages) SetTCP() string {
 	return Catalog.Format(msgs.locale, "setTCP", nil)
 }
 
-// SetTCPDetail says "hylad listens on this machine's network, and a client connects with the address and the password below: HylaPocket on…"
+// SetTCPDetail says "The sessions of other machines running Hyla, and this machine as one for the phone: a client connects with the addres…"
 // in the language the app shows.
 func SetTCPDetail() string { return In(i18n.Locale()).SetTCPDetail() }
 
-// SetTCPDetail says "hylad listens on this machine's network, and a client connects with the address and the password below: HylaPocket on…"
+// SetTCPDetail says "The sessions of other machines running Hyla, and this machine as one for the phone: a client connects with the addres…"
 // in the language of msgs.
 func (msgs Messages) SetTCPDetail() string {
 	return Catalog.Format(msgs.locale, "setTCPDetail", nil)
+}
+
+// SetTCPListenDetail says "hylad listens on this machine's network, and a client connects with the address below and the password: the phone, or…"
+// in the language the app shows.
+func SetTCPListenDetail() string { return In(i18n.Locale()).SetTCPListenDetail() }
+
+// SetTCPListenDetail says "hylad listens on this machine's network, and a client connects with the address below and the password: the phone, or…"
+// in the language of msgs.
+func (msgs Messages) SetTCPListenDetail() string {
+	return Catalog.Format(msgs.locale, "setTCPListenDetail", nil)
 }
 
 // SetTCPAddress says "Address"
@@ -7910,14 +7920,24 @@ func (msgs Messages) SetTCPAddress() string {
 	return Catalog.Format(msgs.locale, "setTCPAddress", nil)
 }
 
-// SetTCPAddressDetail says "The address to listen on: empty for every address of this machine. The port is HylaPocket's, 7297."
+// SetTCPAddressDetail says "The address to listen on: empty for every address of this machine. The port is 7297, the phone app's."
 // in the language the app shows.
 func SetTCPAddressDetail() string { return In(i18n.Locale()).SetTCPAddressDetail() }
 
-// SetTCPAddressDetail says "The address to listen on: empty for every address of this machine. The port is HylaPocket's, 7297."
+// SetTCPAddressDetail says "The address to listen on: empty for every address of this machine. The port is 7297, the phone app's."
 // in the language of msgs.
 func (msgs Messages) SetTCPAddressDetail() string {
 	return Catalog.Format(msgs.locale, "setTCPAddressDetail", nil)
+}
+
+// SetTCPQR says "Scan to add this machine"
+// in the language the app shows.
+func SetTCPQR() string { return In(i18n.Locale()).SetTCPQR() }
+
+// SetTCPQR says "Scan to add this machine"
+// in the language of msgs.
+func (msgs Messages) SetTCPQR() string {
+	return Catalog.Format(msgs.locale, "setTCPQR", nil)
 }
 
 // SetTCPPassword says "Password"

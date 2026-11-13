@@ -10,7 +10,9 @@ number; the notes of the upstream releases it includes follow its own.
   by the address and password of its tcp:// listener: Settings › Tailcat ›
   Other machines takes them (`hyla pocket addr` on that machine prints
   them), and its sessions appear in the sidebar under its name, each in its
-  own terminal. A machine added so is one to reconnect to and to remove, not
+  own terminal. Settings › **Remote Connection** holds both: Tailcat, and
+  P2P with the machines, this machine's address, its password and the code a
+  phone scans to take that address. A machine added so is one to reconnect to and to remove, not
   to restart or update; it is kept in the app's preferences.
 - Hyla and HylaPocket can reach this machine on its own network, without a
   relay: `hyla pocket tcp enable` makes `listen = tcp://:7297` and a

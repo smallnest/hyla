@@ -284,7 +284,7 @@ func (a *App) settingsView(c *ui.Context) {
 								a.agentsPage(c, pal)
 							case "hosts":
 								a.tailcatGroup(c, pal)
-								a.remoteHostsGroup(c, pal)
+								a.p2pGroup(c, pal)
 							case "advanced":
 								a.advancedPage(c, pal)
 							}
