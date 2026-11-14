@@ -13,9 +13,22 @@ repo="smallnest/hyla"
 tap="smallnest/homebrew-hyla"
 
 version="${1:-$(gh api "repos/$repo/releases/latest" --jq '.tag_name' | sed 's/^v//')}"
+# GitHub keeps each asset's sha256 as its digest; an older gh may not show
+# it, so fall back to downloading the image and hashing it.
 digest() {
-  gh api "repos/$repo/releases/tags/v$version" \
-    --jq ".assets[] | select(.name | endswith(\"-$1.dmg\")) | .digest" | sed 's/^sha256://'
+  d=$(gh api "repos/$repo/releases/tags/v$version" \
+    --jq ".assets[] | select(.name | endswith(\"-$1.dmg\")) | .digest // empty" | sed 's/^sha256://')
+  case "$d" in
+    "" | null)
+      url=$(gh api "repos/$repo/releases/tags/v$version" \
+        --jq ".assets[] | select(.name | endswith(\"-$1.dmg\")) | .browser_download_url")
+      tmp=$(mktemp -d)
+      curl -fsSL "$url" -o "$tmp/image.dmg"
+      shasum -a 256 "$tmp/image.dmg" | cut -d" " -f1
+      rm -rf "$tmp"
+      ;;
+    *) printf '%s\n' "$d" ;;
+  esac
 }
 
 arm=$(digest arm64)
