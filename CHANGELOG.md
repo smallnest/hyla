@@ -4,6 +4,13 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.9.3
+
+- A session row says which agent it runs by the agent's own logo, before its
+  name: Claude Code's, Codex's, OpenCode's, DeepSeek Harness's and the rest,
+  in each brand's colour, dark enough to read on either window. A session with
+  no agent shows no mark.
+
 ## 3.9.2
 
 - Sessions made in the default project start in `~`, whatever directory the
