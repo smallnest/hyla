@@ -61,6 +61,16 @@ way:
 
 Download Hyla from the [releases page](https://github.com/smallnest/hyla/releases), then choose **Hyla › Install Command Line Tool…** to put `hyla` on your `PATH`.
 
+On macOS, Homebrew can do it, picking the Apple Silicon or Intel disk image:
+
+```sh
+brew tap smallnest/hyla
+brew trust smallnest/hyla
+brew install --cask hyla
+```
+
+The cask is in a tap of its own; Homebrew asks you to trust a tap outside `homebrew-cask` once, which is what `brew trust` answers.
+
 > **On macOS, the app is not signed with an Apple Developer ID.** The first time you open it, Control-click (or right-click) **Hyla.app** and choose **Open**, then confirm. If macOS still refuses, run:
 >
 > ```sh
