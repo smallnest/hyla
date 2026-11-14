@@ -7,6 +7,10 @@ description: Hyla's configuration file, its keys and their defaults.
 
 Hyla keeps its settings in one plain-text file. The Settings window (<kbd>⌘</kbd> <kbd>,</kbd>) edits it for you, keeping your comments and order, and Hyla reloads it when you edit it by hand.
 
+![Hyla's Settings window, on the General pane: where new sessions start, how they are named, and whether they come back](./images/settings-general-en.jpg)
+
+*Settings edits the file for you; General holds where sessions start and whether they come back.*
+
 ## The file
 
 Hyla reads, in order of preference:

@@ -7,6 +7,10 @@ description: How Hyla tracks what each pane is doing, and how programs report th
 
 Hyla tracks what every pane is doing, so you can leave agents to work and come back when one needs you.
 
+![The sidebar's marks: a working session spins, a finished one shows a check, and one that needs you says so](./images/sessions-sidebar-en.jpg)
+
+*Status lives in the sidebar: working, waiting, done.*
+
 ## Pane status
 
 Every pane has a status, shown in the sidebar:

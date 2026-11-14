@@ -7,6 +7,10 @@ description: How Hyla groups terminal sessions by project and keeps them running
 
 Hyla organizes your work in two levels: projects (folders) hold sessions (tasks), and every session keeps running in hylad until you close it.
 
+![Hyla's window: projects and their sessions in the sidebar, and the selected session's terminal on the right](./images/sessions-window-en.jpg)
+
+*Projects hold the day's sessions, and the sidebar says what each one is doing.*
+
 ## Sessions
 
 A **session** is a unit of work: one task, one agent, one long-running process. It holds one or more [panes](./panes.md), each running a shell or a program.
@@ -39,6 +43,10 @@ Until you or an agent name a session, the `session-name` setting (**Name session
 - `focused` (default): the title of the program in the pane you're in. A pane running only its shell defers to the pane that needs you most.
 - `lead`: the title of the program in the pane that needs you most, such as an agent that's working or waiting on you
 - `folder`: the first pane's folder, whatever runs in it
+
+![The sidebar, up close: a project, its sessions, their branches and statuses.](./images/sessions-sidebar-en.jpg)
+
+*The sidebar, up close: a project, its sessions, their branches and statuses.*
 
 ## Projects
 
