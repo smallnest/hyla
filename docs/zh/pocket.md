@@ -7,6 +7,10 @@ description: 用 Android 手机读取并操作这台机器的会话：通过 Tai
 
 **HylaPocket** 是 Hyla 的 Android 客户端。它把跑在这台机器上的会话放进手机屏幕：同样的会话、同样的窗格、同样的程序。
 
+![Android 手机上的 HylaPocket：打开着的会话](./images/pocket-session.jpg)
+
+*同一批会话，在手机上：HylaPocket 读的是这台机器 hylad 上的内容。*
+
 ## 连接
 
 手机用两种方式之一连上这台机器的 `hylad`：

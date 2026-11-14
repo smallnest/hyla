@@ -7,6 +7,10 @@ description: 在 SSH 主机、WSL 发行版、Kubernetes Pod 或另一台 Hyla �
 
 会话可以跑在另一台机器上，同时留在这个窗口的边栏里，和本机的会话并排。每台机器跑自己的 **hylad**，合上笔记本也不影响它的工作。
 
+![边栏里的 SSH 主机：上面是本机会话，下面是各台机器上的会话](./images/remote-hosts-zh.jpg)
+
+*每台机器在边栏里有自己的一组，下面是跑在它上面的会话。*
+
 ## 添加一台机器
 
 在边栏的 **+** 菜单里选择 **Add SSH Host…**（添加 SSH 主机）：可以填 SSH 主机、WSL 发行版或另一台 Hyla；宿主机是 Pod 时选 **Add K8s Pod…**。

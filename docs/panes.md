@@ -21,6 +21,10 @@ Split a session to run things side by side: an agent on the left, its dev server
 
 When a pane's program exits, the pane stays so you can read its output. **Restart Pane** starts its shell again in the same directory.
 
+![One session, two panes: the repository's status on the left, its recent commits on the right](./images/panes-split-en.jpg)
+
+*Two panes of one session, each with its own shell, working in the same folder.*
+
 ## From the command line
 
 `hyla split` starts a pane beside another and prints its id:

@@ -7,6 +7,10 @@ description: Android のスマートフォンからこのマシンのセッシ�
 
 **HylaPocket** は Hyla の Android クライアントです。このマシンで動いているセッションを、スマートフォンの画面に並べます: 同じセッション、同じペイン、同じプログラムです。
 
+![Android のスマートフォンで開いた HylaPocket のセッション](./images/pocket-session.jpg)
+
+*同じセッションをスマートフォンで。HylaPocket はこのマシンの hylad が持つ内容を読みます。*
+
 ## 接続する
 
 スマートフォンは二つの方法のどちらかで、このマシンの `hylad` に届きます。

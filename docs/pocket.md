@@ -7,6 +7,10 @@ description: Read and drive this machine's sessions from an Android phone, over 
 
 **HylaPocket** is Hyla's Android client. It shows the sessions running on this machine, in a phone-sized window: the same sessions, the same panes, the same programs.
 
+![HylaPocket on an Android phone: a session open, with its transcript](./images/pocket-session.jpg)
+
+*The same session, on the phone: HylaPocket reads what the machine's hylad shows.*
+
 ## Connect
 
 The phone reaches this machine's `hylad` in one of two ways:

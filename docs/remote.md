@@ -7,6 +7,10 @@ description: Run sessions on an SSH host, a WSL distro, a Kubernetes pod or anot
 
 A session can run on another machine and still sit in this window's sidebar, beside the ones on this computer. Each machine runs its own **hylad**, so closing your laptop does not stop its work.
 
+![The sidebar's SSH hosts: this machine's sessions above, the machines' sessions below](./images/remote-hosts-en.jpg)
+
+*Each machine has its own group in the sidebar, with the sessions that run on it.*
+
 ## Add a machine
 
 In the sidebar's **+** menu choose **Add SSH Host…** for an SSH host, a WSL distro or another Hyla, or **Add K8s Pod…** for a pod:
