@@ -169,7 +169,13 @@
   "statusDone": "已完成",
   "updateRestartTip": "Hyla 已更新：重启后台服务以运行新版本",
   "hostRestartFailed": "Hyla 的后台服务未能停止：{error}",
-  "@hostRestartFailed": {"placeholders": {"error": {"type": "String"}}},
+  "@hostRestartFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "updatedTitle": "Hyla 已更新",
   "updatedDetail": "运行会话的后台服务来自另一个版本。重启它：会话会在原处重新开始，并保留历史记录。",
   "connCantReach": "无法连接 hylad",
@@ -861,5 +867,40 @@
   "switchPush": "推移",
   "switchCover": "覆盖",
   "switchZoom": "缩放",
-  "dropDirUnknown": "窗格的目录未知"
+  "dropDirUnknown": "窗格的目录未知",
+  "pageSync": "同步",
+  "setSyncServer": "同步到",
+  "setSyncServerDetail": "把这台电脑的配置——主题、字体、按键、智能体——和其它电脑保持一致。快照在本机加密，服务器只能看到加密后的内容。",
+  "setSyncWhere": "服务器",
+  "setSyncWhereDetail": "WebDAV 文件夹、S3 兼容的存储桶，或一个 GitHub 仓库（建议私有）。",
+  "setSyncOff": "关闭",
+  "setSyncAddress": "地址",
+  "setSyncUser": "用户",
+  "setSyncPassword": "密码",
+  "setSyncEndpoint": "服务地址",
+  "setSyncBucket": "存储桶",
+  "setSyncPrefix": "前缀",
+  "setSyncRegion": "区域",
+  "setSyncAccessKey": "Access Key",
+  "setSyncSecretKey": "Secret Key",
+  "setSyncRepo": "仓库",
+  "setSyncPath": "路径",
+  "setSyncBranch": "分支",
+  "setSyncToken": "Token",
+  "setSyncPassphrase": "口令",
+  "setSyncPassphraseDetail": "每台电脑上都一样。没有口令无法打开文件，服务器也读不到里面的内容。",
+  "setSyncPassphraseLabel": "口令",
+  "setSyncPassphrasePlaceholder": "每台电脑上都一样",
+  "setSyncNowGroup": "同步",
+  "setSyncAuto": "自动同步",
+  "setSyncAutoDetail": "打开 Hyla 时拉取一次，改完设置半分钟后推送。",
+  "setSyncNow": "立即同步",
+  "setSyncRunning": "正在同步…",
+  "setSyncNever": "还没同步过",
+  "setSyncPulled": "已拉取 {host} 的配置（{when}）",
+  "setSyncPushed": "已推送本机配置（{when}）",
+  "setSyncSame": "两端一致（{when}）",
+  "setSyncAnother": "另一台电脑",
+  "toastSyncKept": "服务器上的配置已另存到 {file}",
+  "setSyncLast": "上次同步（{when}），来自 {host}"
 }

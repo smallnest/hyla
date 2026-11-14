@@ -300,3 +300,7 @@ func markTint(brand ui.Color, dark bool, text ui.Color) ui.Color {
 	}
 	return brand
 }
+
+// syncIcon is the two arrows of a sync: the configuration going up, and the
+// others' coming down.
+var syncIcon = icon(`<path d="M2.5 8a5.5 5.5 0 0 1 9.4-3.9"/><path d="M13.5 8a5.5 5.5 0 0 1-9.4 3.9"/><path d="M12.5 1.3v3.2H9.3M3.5 14.7v-3.2h3.2"/>`)

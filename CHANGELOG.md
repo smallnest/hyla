@@ -4,6 +4,18 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.10.0
+
+- **Sync**: the configuration — theme, fonts, keys, agents — kept the same on
+  every machine, through a WebDAV folder, an S3-compatible bucket or a GitHub
+  repository. The snapshot is sealed with a passphrase where it is written, so
+  the server holds ciphertext alone; Hyla pulls at launch, and pushes a change
+  half a minute after it is made.
+- The sidebar puts each agent's own mark before its session's name, in the
+  agent's colour, and the SSH and K8s projects wear theirs instead of a badge.
+- `hyla sync` does the same from a terminal: `status`, `push`, `pull`, and
+  `set` for the server and the passphrase.
+
 ## 3.9.3
 
 - A session row says which agent it runs by the agent's own logo, before its

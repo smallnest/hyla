@@ -281,6 +281,24 @@ var commands = []command{
 	},
 
 	{
+		name: "sync", group: "app",
+		summary: "keep this machine's configuration the same as the others'",
+		usage: `hyla sync [now|status|push|pull|set <key> <value>|off]
+    now                         sync now, as the app does at launch
+    status                      where it syncs, and how far it got
+    push | pull                 one way, whatever the two sides did
+    set <key> <value>           a setting, by its dotted name:
+                                backend (webdav|s3|github), passphrase, auto,
+                                webdav.url|user|password,
+                                s3.endpoint|bucket|prefix|region|accessKey|secretKey,
+                                github.repo|path|branch|token
+    off                         stop syncing (the server keeps what it has)
+
+The snapshot on the server is sealed with the passphrase: the server holds
+ciphertext alone, and no passphrase opens it.`,
+	},
+
+	{
 		name: "daemon", group: "service",
 		summary: "the daemon that keeps the sessions",
 		usage: `hyla daemon status|stop|restart|update [version]

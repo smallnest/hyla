@@ -165,6 +165,7 @@ type App struct {
 	renaming        string
 	renamingProject string
 	renameBuf       string
+	sync            syncState // this machine's configuration, kept with the others' 
 
 	renameFrames int
 	chrome       chrome // where the sidebar's animation puts things
@@ -1375,6 +1376,7 @@ func (a *App) applySettings(s settings.Settings) {
 	remote.SetRelay(s.TailcatRelay)
 	a.apply(s, true)
 	a.rememberEnv()
+	a.syncSoon()
 }
 
 // rememberEnv keeps this window's environment, which hylad runs the

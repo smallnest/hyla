@@ -48,6 +48,7 @@ var settingsPages = []settingsPage{
 	{"keyboard", locales.PageKeyboard, glyph("f7-keyboard"), false},
 	{"feishu", locales.PageFeishu, glyph("f7-chat-bubble-2"), false},
 	{"agents", locales.PageAgents, glyph("f7-sparkles"), false},
+	{"sync", locales.PageSync, syncIcon, false},
 	{"hosts", locales.PageHosts, hostIcon, true},
 	{"advanced", locales.PageAdvanced, glyph("f7-slider-horizontal-3"), false},
 }
@@ -283,6 +284,8 @@ func (a *App) settingsView(c *ui.Context) {
 								a.feishuPage(c, pal)
 							case "agents":
 								a.agentsPage(c, pal)
+							case "sync":
+								a.syncPage(c, pal)
 							case "hosts":
 								a.tailcatGroup(c, pal)
 								a.p2pGroup(c, pal)

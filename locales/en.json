@@ -245,7 +245,13 @@
   "statusDone": "Done",
   "updateRestartTip": "Hyla was updated: restart the background service to run the new version",
   "hostRestartFailed": "Hyla's background service did not stop: {error}",
-  "@hostRestartFailed": {"placeholders": {"error": {"type": "String"}}},
+  "@hostRestartFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "updatedTitle": "Hyla was updated",
   "updatedDetail": "The background service that runs your sessions is from another version. Restart it: your sessions start again where they were, with their history.",
   "connCantReach": "Can’t reach hylad",
@@ -1469,5 +1475,40 @@
   "switchZoom": "Zoom",
   "dropDirUnknown": "The pane's directory is unknown",
   "infoCollapse": "Collapse {title}",
-  "infoExpand": "Expand {title}"
+  "infoExpand": "Expand {title}",
+  "pageSync": "Sync",
+  "setSyncServer": "Where it syncs to",
+  "setSyncServerDetail": "This machine's configuration — theme, fonts, keys, agents — kept the same as your other machines'. The snapshot is sealed here: the server holds ciphertext alone.",
+  "setSyncWhere": "Server",
+  "setSyncWhereDetail": "A WebDAV folder, an S3-compatible bucket, or a GitHub repository — a private one.",
+  "setSyncOff": "Off",
+  "setSyncAddress": "Address",
+  "setSyncUser": "User",
+  "setSyncPassword": "Password",
+  "setSyncEndpoint": "Endpoint",
+  "setSyncBucket": "Bucket",
+  "setSyncPrefix": "Prefix",
+  "setSyncRegion": "Region",
+  "setSyncAccessKey": "Access key",
+  "setSyncSecretKey": "Secret key",
+  "setSyncRepo": "Repository",
+  "setSyncPath": "Path",
+  "setSyncBranch": "Branch",
+  "setSyncToken": "Token",
+  "setSyncPassphrase": "Passphrase",
+  "setSyncPassphraseDetail": "The same on every machine. Without it no machine can open the file, and the server cannot read it either.",
+  "setSyncPassphraseLabel": "Passphrase",
+  "setSyncPassphrasePlaceholder": "the same on every machine",
+  "setSyncNowGroup": "Syncing",
+  "setSyncAuto": "Sync automatically",
+  "setSyncAutoDetail": "Pull at launch, and push a change half a minute after you make it.",
+  "setSyncNow": "Sync now",
+  "setSyncRunning": "Syncing…",
+  "setSyncNever": "Not synced yet",
+  "setSyncPulled": "Pulled {host}'s configuration ({when})",
+  "setSyncPushed": "Pushed this machine's configuration ({when})",
+  "setSyncSame": "Both sides agree ({when})",
+  "setSyncAnother": "another machine",
+  "toastSyncKept": "Kept the server's configuration in {file}",
+  "setSyncLast": "Last synced ({when}), from {host}"
 }

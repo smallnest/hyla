@@ -8519,3 +8519,355 @@ func InfoExpand(title string) string { return In(i18n.Locale()).InfoExpand(title
 func (msgs Messages) InfoExpand(title string) string {
 	return Catalog.Format(msgs.locale, "infoExpand", map[string]any{"title": title})
 }
+
+// PageSync says "Sync"
+// in the language the app shows.
+func PageSync() string { return In(i18n.Locale()).PageSync() }
+
+// PageSync says "Sync"
+// in the language of msgs.
+func (msgs Messages) PageSync() string {
+	return Catalog.Format(msgs.locale, "pageSync", nil)
+}
+
+// SetSyncServer says "Where it syncs to"
+// in the language the app shows.
+func SetSyncServer() string { return In(i18n.Locale()).SetSyncServer() }
+
+// SetSyncServer says "Where it syncs to"
+// in the language of msgs.
+func (msgs Messages) SetSyncServer() string {
+	return Catalog.Format(msgs.locale, "setSyncServer", nil)
+}
+
+// SetSyncServerDetail says "This machine's configuration — theme, fonts, keys, agents — kept the same as your other machines'. The snapshot i…"
+// in the language the app shows.
+func SetSyncServerDetail() string { return In(i18n.Locale()).SetSyncServerDetail() }
+
+// SetSyncServerDetail says "This machine's configuration — theme, fonts, keys, agents — kept the same as your other machines'. The snapshot i…"
+// in the language of msgs.
+func (msgs Messages) SetSyncServerDetail() string {
+	return Catalog.Format(msgs.locale, "setSyncServerDetail", nil)
+}
+
+// SetSyncWhere says "Server"
+// in the language the app shows.
+func SetSyncWhere() string { return In(i18n.Locale()).SetSyncWhere() }
+
+// SetSyncWhere says "Server"
+// in the language of msgs.
+func (msgs Messages) SetSyncWhere() string {
+	return Catalog.Format(msgs.locale, "setSyncWhere", nil)
+}
+
+// SetSyncWhereDetail says "A WebDAV folder, an S3-compatible bucket, or a GitHub repository — a private one."
+// in the language the app shows.
+func SetSyncWhereDetail() string { return In(i18n.Locale()).SetSyncWhereDetail() }
+
+// SetSyncWhereDetail says "A WebDAV folder, an S3-compatible bucket, or a GitHub repository — a private one."
+// in the language of msgs.
+func (msgs Messages) SetSyncWhereDetail() string {
+	return Catalog.Format(msgs.locale, "setSyncWhereDetail", nil)
+}
+
+// SetSyncOff says "Off"
+// in the language the app shows.
+func SetSyncOff() string { return In(i18n.Locale()).SetSyncOff() }
+
+// SetSyncOff says "Off"
+// in the language of msgs.
+func (msgs Messages) SetSyncOff() string {
+	return Catalog.Format(msgs.locale, "setSyncOff", nil)
+}
+
+// SetSyncAddress says "Address"
+// in the language the app shows.
+func SetSyncAddress() string { return In(i18n.Locale()).SetSyncAddress() }
+
+// SetSyncAddress says "Address"
+// in the language of msgs.
+func (msgs Messages) SetSyncAddress() string {
+	return Catalog.Format(msgs.locale, "setSyncAddress", nil)
+}
+
+// SetSyncUser says "User"
+// in the language the app shows.
+func SetSyncUser() string { return In(i18n.Locale()).SetSyncUser() }
+
+// SetSyncUser says "User"
+// in the language of msgs.
+func (msgs Messages) SetSyncUser() string {
+	return Catalog.Format(msgs.locale, "setSyncUser", nil)
+}
+
+// SetSyncPassword says "Password"
+// in the language the app shows.
+func SetSyncPassword() string { return In(i18n.Locale()).SetSyncPassword() }
+
+// SetSyncPassword says "Password"
+// in the language of msgs.
+func (msgs Messages) SetSyncPassword() string {
+	return Catalog.Format(msgs.locale, "setSyncPassword", nil)
+}
+
+// SetSyncEndpoint says "Endpoint"
+// in the language the app shows.
+func SetSyncEndpoint() string { return In(i18n.Locale()).SetSyncEndpoint() }
+
+// SetSyncEndpoint says "Endpoint"
+// in the language of msgs.
+func (msgs Messages) SetSyncEndpoint() string {
+	return Catalog.Format(msgs.locale, "setSyncEndpoint", nil)
+}
+
+// SetSyncBucket says "Bucket"
+// in the language the app shows.
+func SetSyncBucket() string { return In(i18n.Locale()).SetSyncBucket() }
+
+// SetSyncBucket says "Bucket"
+// in the language of msgs.
+func (msgs Messages) SetSyncBucket() string {
+	return Catalog.Format(msgs.locale, "setSyncBucket", nil)
+}
+
+// SetSyncPrefix says "Prefix"
+// in the language the app shows.
+func SetSyncPrefix() string { return In(i18n.Locale()).SetSyncPrefix() }
+
+// SetSyncPrefix says "Prefix"
+// in the language of msgs.
+func (msgs Messages) SetSyncPrefix() string {
+	return Catalog.Format(msgs.locale, "setSyncPrefix", nil)
+}
+
+// SetSyncRegion says "Region"
+// in the language the app shows.
+func SetSyncRegion() string { return In(i18n.Locale()).SetSyncRegion() }
+
+// SetSyncRegion says "Region"
+// in the language of msgs.
+func (msgs Messages) SetSyncRegion() string {
+	return Catalog.Format(msgs.locale, "setSyncRegion", nil)
+}
+
+// SetSyncAccessKey says "Access key"
+// in the language the app shows.
+func SetSyncAccessKey() string { return In(i18n.Locale()).SetSyncAccessKey() }
+
+// SetSyncAccessKey says "Access key"
+// in the language of msgs.
+func (msgs Messages) SetSyncAccessKey() string {
+	return Catalog.Format(msgs.locale, "setSyncAccessKey", nil)
+}
+
+// SetSyncSecretKey says "Secret key"
+// in the language the app shows.
+func SetSyncSecretKey() string { return In(i18n.Locale()).SetSyncSecretKey() }
+
+// SetSyncSecretKey says "Secret key"
+// in the language of msgs.
+func (msgs Messages) SetSyncSecretKey() string {
+	return Catalog.Format(msgs.locale, "setSyncSecretKey", nil)
+}
+
+// SetSyncRepo says "Repository"
+// in the language the app shows.
+func SetSyncRepo() string { return In(i18n.Locale()).SetSyncRepo() }
+
+// SetSyncRepo says "Repository"
+// in the language of msgs.
+func (msgs Messages) SetSyncRepo() string {
+	return Catalog.Format(msgs.locale, "setSyncRepo", nil)
+}
+
+// SetSyncPath says "Path"
+// in the language the app shows.
+func SetSyncPath() string { return In(i18n.Locale()).SetSyncPath() }
+
+// SetSyncPath says "Path"
+// in the language of msgs.
+func (msgs Messages) SetSyncPath() string {
+	return Catalog.Format(msgs.locale, "setSyncPath", nil)
+}
+
+// SetSyncBranch says "Branch"
+// in the language the app shows.
+func SetSyncBranch() string { return In(i18n.Locale()).SetSyncBranch() }
+
+// SetSyncBranch says "Branch"
+// in the language of msgs.
+func (msgs Messages) SetSyncBranch() string {
+	return Catalog.Format(msgs.locale, "setSyncBranch", nil)
+}
+
+// SetSyncToken says "Token"
+// in the language the app shows.
+func SetSyncToken() string { return In(i18n.Locale()).SetSyncToken() }
+
+// SetSyncToken says "Token"
+// in the language of msgs.
+func (msgs Messages) SetSyncToken() string {
+	return Catalog.Format(msgs.locale, "setSyncToken", nil)
+}
+
+// SetSyncPassphrase says "Passphrase"
+// in the language the app shows.
+func SetSyncPassphrase() string { return In(i18n.Locale()).SetSyncPassphrase() }
+
+// SetSyncPassphrase says "Passphrase"
+// in the language of msgs.
+func (msgs Messages) SetSyncPassphrase() string {
+	return Catalog.Format(msgs.locale, "setSyncPassphrase", nil)
+}
+
+// SetSyncPassphraseDetail says "The same on every machine. Without it no machine can open the file, and the server cannot read it either."
+// in the language the app shows.
+func SetSyncPassphraseDetail() string { return In(i18n.Locale()).SetSyncPassphraseDetail() }
+
+// SetSyncPassphraseDetail says "The same on every machine. Without it no machine can open the file, and the server cannot read it either."
+// in the language of msgs.
+func (msgs Messages) SetSyncPassphraseDetail() string {
+	return Catalog.Format(msgs.locale, "setSyncPassphraseDetail", nil)
+}
+
+// SetSyncPassphraseLabel says "Passphrase"
+// in the language the app shows.
+func SetSyncPassphraseLabel() string { return In(i18n.Locale()).SetSyncPassphraseLabel() }
+
+// SetSyncPassphraseLabel says "Passphrase"
+// in the language of msgs.
+func (msgs Messages) SetSyncPassphraseLabel() string {
+	return Catalog.Format(msgs.locale, "setSyncPassphraseLabel", nil)
+}
+
+// SetSyncPassphrasePlaceholder says "the same on every machine"
+// in the language the app shows.
+func SetSyncPassphrasePlaceholder() string { return In(i18n.Locale()).SetSyncPassphrasePlaceholder() }
+
+// SetSyncPassphrasePlaceholder says "the same on every machine"
+// in the language of msgs.
+func (msgs Messages) SetSyncPassphrasePlaceholder() string {
+	return Catalog.Format(msgs.locale, "setSyncPassphrasePlaceholder", nil)
+}
+
+// SetSyncNowGroup says "Syncing"
+// in the language the app shows.
+func SetSyncNowGroup() string { return In(i18n.Locale()).SetSyncNowGroup() }
+
+// SetSyncNowGroup says "Syncing"
+// in the language of msgs.
+func (msgs Messages) SetSyncNowGroup() string {
+	return Catalog.Format(msgs.locale, "setSyncNowGroup", nil)
+}
+
+// SetSyncAuto says "Sync automatically"
+// in the language the app shows.
+func SetSyncAuto() string { return In(i18n.Locale()).SetSyncAuto() }
+
+// SetSyncAuto says "Sync automatically"
+// in the language of msgs.
+func (msgs Messages) SetSyncAuto() string {
+	return Catalog.Format(msgs.locale, "setSyncAuto", nil)
+}
+
+// SetSyncAutoDetail says "Pull at launch, and push a change half a minute after you make it."
+// in the language the app shows.
+func SetSyncAutoDetail() string { return In(i18n.Locale()).SetSyncAutoDetail() }
+
+// SetSyncAutoDetail says "Pull at launch, and push a change half a minute after you make it."
+// in the language of msgs.
+func (msgs Messages) SetSyncAutoDetail() string {
+	return Catalog.Format(msgs.locale, "setSyncAutoDetail", nil)
+}
+
+// SetSyncNow says "Sync now"
+// in the language the app shows.
+func SetSyncNow() string { return In(i18n.Locale()).SetSyncNow() }
+
+// SetSyncNow says "Sync now"
+// in the language of msgs.
+func (msgs Messages) SetSyncNow() string {
+	return Catalog.Format(msgs.locale, "setSyncNow", nil)
+}
+
+// SetSyncRunning says "Syncing…"
+// in the language the app shows.
+func SetSyncRunning() string { return In(i18n.Locale()).SetSyncRunning() }
+
+// SetSyncRunning says "Syncing…"
+// in the language of msgs.
+func (msgs Messages) SetSyncRunning() string {
+	return Catalog.Format(msgs.locale, "setSyncRunning", nil)
+}
+
+// SetSyncNever says "Not synced yet"
+// in the language the app shows.
+func SetSyncNever() string { return In(i18n.Locale()).SetSyncNever() }
+
+// SetSyncNever says "Not synced yet"
+// in the language of msgs.
+func (msgs Messages) SetSyncNever() string {
+	return Catalog.Format(msgs.locale, "setSyncNever", nil)
+}
+
+// SetSyncPulled says "Pulled {host}'s configuration, {when}"
+// in the language the app shows.
+func SetSyncPulled(host string, when string) string {
+	return In(i18n.Locale()).SetSyncPulled(host, when)
+}
+
+// SetSyncPulled says "Pulled {host}'s configuration, {when}"
+// in the language of msgs.
+func (msgs Messages) SetSyncPulled(host string, when string) string {
+	return Catalog.Format(msgs.locale, "setSyncPulled", map[string]any{"host": host, "when": when})
+}
+
+// SetSyncPushed says "Pushed this machine's configuration, {when}"
+// in the language the app shows.
+func SetSyncPushed(when string) string { return In(i18n.Locale()).SetSyncPushed(when) }
+
+// SetSyncPushed says "Pushed this machine's configuration, {when}"
+// in the language of msgs.
+func (msgs Messages) SetSyncPushed(when string) string {
+	return Catalog.Format(msgs.locale, "setSyncPushed", map[string]any{"when": when})
+}
+
+// SetSyncSame says "Both sides agree, {when}"
+// in the language the app shows.
+func SetSyncSame(when string) string { return In(i18n.Locale()).SetSyncSame(when) }
+
+// SetSyncSame says "Both sides agree, {when}"
+// in the language of msgs.
+func (msgs Messages) SetSyncSame(when string) string {
+	return Catalog.Format(msgs.locale, "setSyncSame", map[string]any{"when": when})
+}
+
+// SetSyncAnother says "another machine"
+// in the language the app shows.
+func SetSyncAnother() string { return In(i18n.Locale()).SetSyncAnother() }
+
+// SetSyncAnother says "another machine"
+// in the language of msgs.
+func (msgs Messages) SetSyncAnother() string {
+	return Catalog.Format(msgs.locale, "setSyncAnother", nil)
+}
+
+// ToastSyncKept says "Kept the server's configuration in {file}"
+// in the language the app shows.
+func ToastSyncKept(file string) string { return In(i18n.Locale()).ToastSyncKept(file) }
+
+// ToastSyncKept says "Kept the server's configuration in {file}"
+// in the language of msgs.
+func (msgs Messages) ToastSyncKept(file string) string {
+	return Catalog.Format(msgs.locale, "toastSyncKept", map[string]any{"file": file})
+}
+
+// SetSyncLast says "Last synced {when}, from {host}"
+// in the language the app shows.
+func SetSyncLast(when string, host string) string { return In(i18n.Locale()).SetSyncLast(when, host) }
+
+// SetSyncLast says "Last synced {when}, from {host}"
+// in the language of msgs.
+func (msgs Messages) SetSyncLast(when string, host string) string {
+	return Catalog.Format(msgs.locale, "setSyncLast", map[string]any{"when": when, "host": host})
+}

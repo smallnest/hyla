@@ -100,6 +100,7 @@ func (a *App) view(c *ui.Context) {
 		a.pendingToast = ""
 	}
 	a.shortcuts(c)
+	a.syncTick()
 
 	bar := c.TitleBar()
 	row := ui.Row(c).Fill().AlignItems(ui.Stretch)
