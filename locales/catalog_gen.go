@@ -8810,33 +8810,33 @@ func (msgs Messages) SetSyncNever() string {
 	return Catalog.Format(msgs.locale, "setSyncNever", nil)
 }
 
-// SetSyncPulled says "Pulled {host}'s configuration, {when}"
+// SetSyncPulled says "Pulled {host}'s configuration ({when})"
 // in the language the app shows.
 func SetSyncPulled(host string, when string) string {
 	return In(i18n.Locale()).SetSyncPulled(host, when)
 }
 
-// SetSyncPulled says "Pulled {host}'s configuration, {when}"
+// SetSyncPulled says "Pulled {host}'s configuration ({when})"
 // in the language of msgs.
 func (msgs Messages) SetSyncPulled(host string, when string) string {
 	return Catalog.Format(msgs.locale, "setSyncPulled", map[string]any{"host": host, "when": when})
 }
 
-// SetSyncPushed says "Pushed this machine's configuration, {when}"
+// SetSyncPushed says "Pushed this machine's configuration ({when})"
 // in the language the app shows.
 func SetSyncPushed(when string) string { return In(i18n.Locale()).SetSyncPushed(when) }
 
-// SetSyncPushed says "Pushed this machine's configuration, {when}"
+// SetSyncPushed says "Pushed this machine's configuration ({when})"
 // in the language of msgs.
 func (msgs Messages) SetSyncPushed(when string) string {
 	return Catalog.Format(msgs.locale, "setSyncPushed", map[string]any{"when": when})
 }
 
-// SetSyncSame says "Both sides agree, {when}"
+// SetSyncSame says "Both sides agree ({when})"
 // in the language the app shows.
 func SetSyncSame(when string) string { return In(i18n.Locale()).SetSyncSame(when) }
 
-// SetSyncSame says "Both sides agree, {when}"
+// SetSyncSame says "Both sides agree ({when})"
 // in the language of msgs.
 func (msgs Messages) SetSyncSame(when string) string {
 	return Catalog.Format(msgs.locale, "setSyncSame", map[string]any{"when": when})
@@ -8862,11 +8862,11 @@ func (msgs Messages) ToastSyncKept(file string) string {
 	return Catalog.Format(msgs.locale, "toastSyncKept", map[string]any{"file": file})
 }
 
-// SetSyncLast says "Last synced {when}, from {host}"
+// SetSyncLast says "Last synced ({when}), from {host}"
 // in the language the app shows.
 func SetSyncLast(when string, host string) string { return In(i18n.Locale()).SetSyncLast(when, host) }
 
-// SetSyncLast says "Last synced {when}, from {host}"
+// SetSyncLast says "Last synced ({when}), from {host}"
 // in the language of msgs.
 func (msgs Messages) SetSyncLast(when string, host string) string {
 	return Catalog.Format(msgs.locale, "setSyncLast", map[string]any{"when": when, "host": host})
