@@ -4,25 +4,25 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
-## Unreleased
+## 3.9.0
 
-- `hyla p2p` is this machine as a host reachable by a pair code, and it shows
-  the settings it takes: `hyla p2p` alone prints whether it listens, on which
-  port and with which pair code, and `status|enable [port]|disable|port
-  <port>|rotate|code` set them. `hyla tailcat` stays as the same command,
-  after the library behind it; `hyla pocket` still prints the code for a
-  phone. The docs' "other machines" section described `hyla hosts`, `-H` and
-  `ls --all`, gone since hosts left, and a `host` key the file never had;
-  they now describe the SSH sessions the app adds and these commands.
+- `hyla p2p` is this machine as a host reached by a pair code, and it shows
+  the settings it takes: `hyla p2p` alone prints whether hylad listens, on
+  which port and with which pair code, and `status`, `enable [port]`,
+  `disable`, `port <port>`, `rotate` and `code` set them. `hyla tailcat` is
+  the same command, and `hyla pocket` still prints the code a phone scans.
 
-- The `hyla` command gained a table of its own commands: `hyla help` groups
-  them, `hyla help <command>` and `hyla <command> --help` print what one
-  takes, `hyla help all` prints every flag, and `hyla help --markdown` the
-  reference. `hyla completions zsh|bash|fish` completes them. A command it
-  does not know says so and exits 2 instead of opening the app; `hyla
-  status` prints a header (`--no-header` for none), `hyla config` asks for a
-  subcommand, and `hyla events --once` says why it ended. The docs no longer
-  list `remote-updates`, which no release has had since hosts left.
+- The `hyla` command says what it takes: `hyla help` groups the commands,
+  `hyla help <command>` and `hyla <command> --help` print one, `hyla help
+  all` every flag, `hyla help --markdown` the reference, and `hyla
+  completions zsh|bash|fish` completes them. A misspelt command says so and
+  exits 2 instead of opening the app; `hyla status` prints a header
+  (`--no-header` for a bare row), and `hyla events --once` says whether the
+  target closed or the timeout came.
+
+- The docs no longer list `remote-updates`, which no release has had since
+  hosts left, nor the `host` key the configuration file never had: another
+  machine is an SSH session the app adds.
 
 - The website has a new landing page: a dark, orange-lit hero whose art is a
   wall of live session panes drifting past an eye line that lights the one
