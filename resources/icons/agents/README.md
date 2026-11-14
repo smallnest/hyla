@@ -1,37 +1,51 @@
 # Agent marks
 
 The icon the sidebar puts before a session whose agent is this one: a 14×14
-mark in the agent's colour. The files are Simple Icons' SVGs (simpleicons.org,
-MIT), except `openai.svg`, the official OpenAI mark from Wikimedia Commons,
-which Codex wears.
+mark in the agent's colour. The files are [Simple Icons](https://simpleicons.org)'s
+SVGs (CC0, the brands their owners' trademarks), as
+[Iconify](https://iconify.design) serves them, and each file's own `fill` is
+its brand's colour, which `markTint` (icons.go) adjusts to the window: a
+near-black mark is drawn in the row's text colour, so that it reads on a
+dark window too, and the palest brands are darkened on a light one.
+
+The agent names are hylad's (`daemon.agents`), and `agentMarks` in
+`icons.go` is the list itself — this table is the same list, to read.
 
 | Agent | File | Colour |
 | --- | --- | --- |
 | `claude` | `claude.svg` | Claude's orange |
-| `codex` | `openai.svg` | near-black, white on a dark window |
-| `opencode` | `opencode.svg` | its own |
-| `pi` | `pi.svg` | its own |
-| `dsh` (DeepSeek Harness) | `deepseek.svg` | DeepSeek blue |
-| `gemini` | `google.svg` | Google's blue |
+| `codex` | `openai.svg` | near-black (the text's) |
+| `opencode` | `opencode.svg` | near-black (the text's) |
+| `pi` | `pi.svg` | near-black (the text's) |
+| `dsh` (DeepSeek Harness) | `deepseek.svg` | DeepSeek's blue |
+| `gemini` | `googlegemini.svg` | Google's purple |
+| `amp` | `amp.svg` | its own |
+| `cursor-agent` | `cursor.svg` | near-black |
 | `copilot` | `githubcopilot.svg` | near-black |
-| `cursor` | `cursor.svg` | near-black |
+| `cline` | `cline.svg` | near-black |
+| `qwen` | `qwen.svg` | its own |
+| `kimi` | `moonshotai.svg` | near-black |
 | `windsurf` | `windsurf.svg` | its own |
 | `zed` | `zedindustries.svg` | its own |
-| `jetbrains` | `jetbrains.svg` | its own |
-| `cline` | `cline.svg` | its own |
-| `qwen` | `qwen.svg` | its own |
+| `jetbrains` | `jetbrains.svg` | near-black |
+| `trae` | `trae.svg` | its own |
 | `mistral` | `mistralai.svg` | its own |
-| `ollama` | `ollama.svg` | near-black |
-| `llama` | `ollama.svg` (nearest) | near-black |
-| `huggingface` | `huggingface.svg` | yellow |
+| `ollama`, `llama` | `ollama.svg` | near-black |
+| `huggingface` | `huggingface.svg` | its yellow, darkened on white |
 | `minimax` | `minimax.svg` | its own |
-| `kimi` | `moonshotai.svg` | its own |
-| `glm` | `zhipu.svg` if present | its own |
 | `doubao` | `bytedance.svg` | its own |
-| `qwen-cloud` | `alibabacloud.svg` | its own |
-| `warp` | `warp.svg` | its own |
-| `replit` | `replit.svg` | its own |
-| `anything else` | none: the terminal's `>_` glyph | muted |
+| `alibabacloud` | `alibabacloud.svg` | its own |
+| `anthropic` | `anthropic.svg` | its own |
+| `vercel`, `warp`, `replit` | `vercel.svg`, `warp.svg`, `replit.svg` | their own |
+| `perplexity`, `nvidia`, `meta`, `ray` | their own files | their own |
+| `langchain`, `langgraph`, `crewai` | their own files | their own |
+| `n8n`, `dify`, `vllm`, `lmstudio`, `modal` | their own files | their own |
 
-A session with no agent shows no mark; a pane running an agent Hyla does not
-know shows none either, rather than a wrong one.
+A session with no agent shows no mark; an agent Hyla has no mark for shows
+none either, rather than a wrong one. `aider`, `goose`, `crush`, `kiro-cli`,
+`droid` and `auggie` are those: their makers drew no logo to use, and no
+other agent's stands in for it.
+
+`icons/README.md` covers the rest of Hyla's icons, including the pane
+header's marks of programs (`si-*.svg`), which are drawn in the muted text
+colour rather than the brand's.

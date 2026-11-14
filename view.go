@@ -827,6 +827,17 @@ func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int, 
 		tip += "\n" + gitSummary(g)
 	}
 	pointerTooltip(c, row, "tip-"+s.ID, tip)
+	// The mark of the agent the session runs, before its name, in the
+	// agent's own colour: the row says which agent it is at a glance. A
+	// session with no agent, or one whose agent Hyla has no mark for,
+	// shows none rather than another agent's.
+	agentLogo, agentBrand, agentKnown := agentMark(s.Agent)
+	mark := func() {
+		if !agentKnown {
+			return
+		}
+		ui.Icon(c, agentLogo).Size(14, 14).Shrink(0).TextColor(markTint(agentBrand, pal.dark, pal.text))
+	}
 	row.ContextMenu(func(m *ui.Menu) { a.sessionMenu(m, s) })
 	row.Children(func() {
 		if a.renaming == s.ID {
@@ -873,6 +884,7 @@ func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int, 
 			// branch reads as far as it can.
 			ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
 				ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+					mark()
 					name()
 					ui.Spacer(c)
 					when()
@@ -899,10 +911,16 @@ func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int, 
 				if msg {
 					fg = pal.textMuted
 				}
-				ui.Text(c, line).FontSize(12).TextColor(fg).SingleLine().Ellipsis("…").MinWidth(0)
+				detail := ui.Text(c, line).FontSize(12).TextColor(fg).SingleLine().Ellipsis("…").MinWidth(0)
+				if agentKnown {
+					// Under the name, past the mark: the second line
+					// stays its session's, not the agent's.
+					detail.Padding(0, 0, 0, 22)
+				}
 			})
 			return
 		}
+		mark()
 		name()
 		// An SSH or K8s terminal names what it reaches, by its name.
 		if detail := sshAddr; detail != "" {

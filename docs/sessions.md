@@ -15,7 +15,9 @@ Hyla organizes your work in two levels: projects (folders) hold sessions (tasks)
 
 ## Sessions
 
-A **session** is a unit of work: one task, one agent, one long-running process. It holds one or more [panes](./panes.md), each running a shell or a program.
+A **session** is a unit of work: one task, one agent, one long-running process.
+
+While an agent runs, its own mark sits before the session's name — Claude Code's, Codex's, OpenCode's, DeepSeek Harness's, and the rest — so a glance down the sidebar tells which agent is working where. A session running no agent shows none, and neither does an agent whose makers drew no mark. It holds one or more [panes](./panes.md), each running a shell or a program.
 
 | Action                     | Shortcut                                     |
 | -------------------------- | -------------------------------------------- |

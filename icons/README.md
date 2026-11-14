@@ -10,4 +10,6 @@
 
 All but `files/` as [Iconify](https://iconify.design) serves them: `https://api.iconify.design/f7/<name>.svg`.
 
+`resources/icons/agents/` holds the marks of the coding agents, which the sidebar puts before a session's name in the agent's own colour, the logo its makers drew: Simple Icons' SVGs too, but drawn as the brand draws them rather than in the text's colour. `resources/icons/agents/README.md` tells which one is whose.
+
 `tray-template.png` is the frog of the app's icon (`resources/icon.png`) as a silhouette of its green, without the dark outline, black on transparent for macOS to tint in the menu bar, with its eyes, mouth and paws cut out of it: 14 points tall, centered in 18×18 points, at 2×. `tray.png` is the app's icon at 64×64, for the notification area of Windows and Linux.
