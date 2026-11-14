@@ -333,8 +333,11 @@ func eventsCmd(c *client.Client, st proto.State, args []string) error {
 	}
 	// ended is how hyla events ends without a match: the target closed, or
 	// the timeout passed.
-	ended := func() error {
+	ended := func(reason string) error {
 		if fl.set["once"] {
+			// --once exits 1 when no event came: say why, rather than
+			// leaving an empty line and a code.
+			fmt.Fprintf(os.Stderr, "hyla events: %s\n", reason)
 			return exitStatus(1)
 		}
 		return nil
@@ -349,7 +352,7 @@ func eventsCmd(c *client.Client, st proto.State, args []string) error {
 			// What came before still counts.
 			closed = true
 		case <-expire:
-			return ended()
+			return ended(fmt.Sprintf("no matching event within %s", time.Duration(timeout)*time.Millisecond))
 		}
 		mu.Lock()
 		ms := queue
@@ -360,7 +363,7 @@ func eventsCmd(c *client.Client, st proto.State, args []string) error {
 			evs := w.take(m, time.Now())
 			if first && w.last != nil && !f.present(*w.last) {
 				// The target closed before watching started.
-				return ended()
+				return ended("the target closed")
 			}
 			for _, e := range evs {
 				if f.match(e) {
@@ -374,7 +377,7 @@ func eventsCmd(c *client.Client, st proto.State, args []string) error {
 					}
 				}
 				if f.gone(e) {
-					return ended()
+					return ended("the target closed")
 				}
 			}
 		}

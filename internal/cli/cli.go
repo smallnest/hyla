@@ -30,158 +30,8 @@ import (
 	"hyla/internal/update"
 )
 
-const usage = `hyla — terminal sessions that keep running, for you and your agents
-
-Usage:
-  hyla                          open the app
-  hyla ls [--json]              list sessions and their panes
-  hyla new [options] [-- cmd…]  start a session, printing its id
-      -p, --project <name|id>     project to put it in (default: by directory)
-      -n, --name <name>           name it
-      -d, --dir <dir>             start it there (default: here)
-      -f, --focus                 show it in the app
-      -w, --wait                  wait for cmd to end, exit with its status
-      -u, --url <url>             a browser showing url, not a shell
-      --worktree <branch>         in a git worktree of its own, on a new
-                                  branch from the default branch
-      --base <ref>                the branch to start it from instead
-  hyla split [target] [options] [-- cmd…]
-                                start a pane beside a pane, printing its id
-      --right (default), --down, --left, --up
-      -r, --ratio <0..1>          the new pane's share (default 0.5)
-      -d, --dir <dir>             start it there (default: the pane's)
-      -w, --wait                  wait for cmd to end, exit with its status
-      -u, --url <url>             a browser showing url, not a shell, as
-                                  a dev server's page: localhost:3000
-  hyla send <target> <text…>    type text into a pane
-      -e                          interpret \n \r \t \e \xHH escapes
-      --enter                     press Enter after it
-  hyla key <target> <key…>      press keys: enter, tab, escape, up, down,
-                                left, right, backspace, ctrl+c, ctrl+d, …
-  hyla prompt <target> <text…>  send text and Enter, wait until the pane
-                                stops working, then print its screen
-  hyla read [target] [-a] [-n lines]
-                                print the screen (-a with the scrollback)
-  hyla wait [target] [--for idle,waiting,error,exited] [--timeout 10m]
-                                wait until the pane stops working (or
-                                reaches one of the statuses), print it
-      -x, --exit                  instead wait for the command it started
-                                  with to end, exit with its status
-  hyla events [target] [-p project] [--for statuses] [--json]
-                                print what happens as it does, a line an
-                                event: panes changing status, sessions
-                                and panes starting and closing, renames,
-                                moves to another project, notifications;
-                                until the target closes
-      --for <statuses>            only panes going to these: idle,
-                                  working, waiting, error, exited
-      --once                      exit after the first event (1 if the
-                                  target closes or the timeout comes first)
-      -t, --timeout <dur>         stop watching after this long
-  hyla status [target] [--json]
-  hyla diff [target] [--turn | --branch] [path…]
-                                the changes in the pane's git worktree, as
-                                git diff prints them: since HEAD, untracked
-                                files too; --turn since its agent last
-                                started working; --branch since it left
-                                the default branch
-  hyla browser [target] <command> [args…]
-                                drive a browser pane's page (needs Remote
-                                Control, in Settings › Agents); the target
-                                is a browser pane, or a session, for its
-                                browser (default: this session's)
-      open <url>                  go to a page, and wait for it to load
-      back, forward, reload       and wait for the page to load
-      text [selector]             print the page's text, or an element's
-      html [selector]             print the page's HTML, or an element's
-      snapshot [selector]         print what the page shows: roles, names,
-                                  and a ref for each element
-      click <selector>            click an element
-      type <selector> <text…>     type text into a field, in place of what
-                                  it holds (--enter: press Enter after it)
-      wait [selector] [--text t]  wait for an element to show (or the text
-                                  to), or without either, the page to load
-      eval <js…>                  run JavaScript, print its value
-      screenshot [-o file.png]    save a picture of the page, print where
-      cookies save [file]         save the browser's cookies (Playwright's
-                                  JSON, or cookies.txt for a .txt file)
-      cookies load <file>         load cookies from either
-      --ref <ref>                 a snapshot's element, in place of a
-                                  selector
-      --domain <domain>           cookies of a site and its subdomains
-      -t, --timeout <dur>         how long to wait (default 10s)
-  hyla history [query] [-p project] [-n count] [--json]
-                                the agents' conversations panes ran, the
-                                last to run first, to resume
-  hyla resume <conversation> [-f]
-                                start a session resuming a conversation
-                                (its id, a prefix of it, or its name), or
-                                show the one running it, printing its id
-  hyla rename <session> <name>
-  hyla focus <target>           show a session (and pane) in the app
-  hyla close <target>           end a session (or, given a pane, the pane)
-      --remove-worktree           remove the session's own worktree too,
-                                  and its branch once merged
-      --force                     even if that loses changes or commits
-  hyla restart <target>         start an exited pane's shell again
-  hyla notify [target] <message>
-                                flag the pane as needing you
-  hyla report <state> [message] [--kind k] [--progress n] [--app a] [--id i]
-                                report this program's status (OSC 7501):
-                                idle, working, done, blocked, error, clear
-  hyla feishu setup|status     drive the sessions from Feishu (hyla feishu help)
-  hyla do <action> [key=value…]  run an action of the app, as its menus do
-                                (needs Remote Control, in Settings › Agents)
-  hyla actions                  list the actions hyla do runs
-  hyla config path|show|edit|check
-                                the configuration file: where it is, every
-                                key with its value (--defaults: as hyla
-                                comes), open it in $EDITOR, check it
-  hyla projects [--json]
-  hyla skill setup|status|show|remove
-                                teach coding agents to use hyla
-  hyla tailcat enable|disable|port|rotate|code
-                                this machine as a host, over a relay, with
-                                a pair code (secret)
-  hyla pocket enable|disable|code|qr
-                                this machine as a host for HylaPocket on a
-                                phone: its QR code, which carries the
-                                pair code of its tailcat listener (secret)
-  hyla pocket tcp enable|disable [address:port]
-                                listen on this machine's network, with a
-                                password: Hyla or HylaPocket connects by
-                                the address (secret)
-  hyla pocket addr|token        where it listens, and the password
-  hyla pets [ls]                the pets Hyla shows (hyla pets install --list)
-  hyla pets install <pack>      install a Codex pet pack: a .codex-pet.zip,
-                                or a pet's directory, as ~/.codex/pets has
-                                them; --builtin installs hyla's pets
-  hyla pets use <name|hyla|codex>
-                                show it on the window's edge; codex shows
-                                the pet the Codex app has active
-  hyla pets rm <name>           remove an installed pet
-  hyla daemon status|stop|restart|update [version]
-  hyla daemon stop --force         kill a hylad that does not stop
-  hyla daemon serve [--listen tailcat://:7473]…
-                                run hylad in the foreground, never idle,
-                                as a service does
-  hyla daemon install-service|uninstall-service
-                                run hylad with the machine (systemd, launchd)
-  hyla daemon update [version]  update the server build of Hyla
-
-A target is a session or a pane: an id, a prefix of it, or a session's
-name; a session stands for its focused pane. Inside hyla, $HYLA_PANE and
-$HYLA_SESSION name the pane and session a command runs in, the default
-target.
-
-Exit status: 0 ok, 1 failed, 2 bad usage, 3 no such target (or an
-ambiguous one), 4 hylad unreachable.
-`
-
 // Commands lists the subcommands, which main sends here.
-var Commands = []string{"ls", "list", "new", "split", "send", "key", "prompt", "read", "capture", "wait", "events", "status", "diff",
-	"history", "resume", "rename", "focus", "close", "kill", "restart", "notify", "report", "projects", "skill", "hook", "answer", "daemon", "do", "actions", "config",
-	"browser", "tailcat", "pocket", "pets", "feishu", "help", "--help", "-h", "version", "--version"}
+var Commands = commandNames()
 
 // IsCommand reports whether an argument starts a command of the CLI, as
 // main tells them from the app's.
@@ -296,15 +146,22 @@ func parse(args []string, valued, boolean map[string]string) (*flags, error) {
 
 func run(args []string) error {
 	cmd, args := args[0], args[1:]
-	switch cmd {
-	case "help", "--help", "-h":
-		u := usage
-		if build.Server {
-			// No app to open.
-			u = strings.Replace(u, "  hyla                          open the app\n", "", 1)
+	if cmd == "help" || cmd == "--help" || cmd == "-h" {
+		return printHelp(args)
+	}
+	if cmd == "completions" {
+		return completionsCmd(args)
+	}
+	// `hyla new --help` is `hyla help new`.
+	if wantsHelp(args) {
+		if c := lookupCommand(cmd); c != nil {
+			return printHelp([]string{cmd})
 		}
-		fmt.Print(u)
-		return nil
+	}
+	if lookupCommand(cmd) == nil {
+		return usageErr("no command %q: hyla help lists them", cmd)
+	}
+	switch cmd {
 	case "version", "--version":
 		return versionCmd()
 	case "daemon":
@@ -609,7 +466,7 @@ func run(args []string) error {
 		return eventsCmd(c, st, args)
 
 	case "status":
-		f, err := parse(args, nil, map[string]string{"json": "json"})
+		f, err := parse(args, nil, map[string]string{"json": "json", "no-header": "no-header"})
 		if err != nil {
 			return err
 		}
@@ -627,12 +484,12 @@ func run(args []string) error {
 		if t.pane != "" {
 			p = *t.s.PaneByID(t.pane)
 		}
-		line := fmt.Sprintf("%s\t%s\t%s", t.s.ID, p.Status, t.s.DisplayName(settings.Load().SessionName))
-		if p.Message != "" {
-			line += "\t" + p.Message
+		w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
+		if !f.set["no-header"] {
+			fmt.Fprintln(w, "ID\tSTATUS\tNAME\tMESSAGE")
 		}
-		fmt.Println(line)
-		return nil
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", t.s.ID, p.Status, t.s.DisplayName(settings.Load().SessionName), p.Message)
+		return w.Flush()
 
 	case "diff":
 		f, err := parse(args, nil, map[string]string{"turn": "turn", "branch": "branch", "base": "branch"})

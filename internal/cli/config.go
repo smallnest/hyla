@@ -17,10 +17,10 @@ func configCmd(args []string) error {
 	if err != nil {
 		return err
 	}
-	sub := "path"
-	if len(f.pos) > 0 {
-		sub = f.pos[0]
+	if len(f.pos) == 0 {
+		return usageErr("hyla config path|show|edit|check")
 	}
+	sub := f.pos[0]
 	switch sub {
 	case "path":
 		fmt.Println(settings.Path())

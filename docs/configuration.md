@@ -135,7 +135,6 @@ hyla config check             # report unknown keys and bad values
 | -------------- | ------- | ----------- |
 | `host`         |         | A host, as `name=address`: `me@devbox` or `ssh://…` over SSH, `wsl://distro`, or `tailcat://…` with the pair code of its listener. Add ` remote-control` after it to let its programs drive the app, and ` color=teal` (red, orange, amber, green, teal, blue, purple or pink) to mark its sessions. Repeat it for each host |
 | `listen`       |         | Let Hyla on other machines reach this one: `tailcat://:7473`, through a relay with a pair code. Repeat it for each |
-| `remote-updates` | `false` | Let Hyla on your other machines update the Hyla app here to its version, which relaunches it |
 
 ## Git
 

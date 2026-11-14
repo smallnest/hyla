@@ -249,6 +249,26 @@ hyla do pane.browser url=localhost:3000
 hyla do sidebar.toggle
 ```
 
+## ヘルプと補完
+
+```sh
+hyla help                        # コマンドをグループごとに
+hyla help new                    # 一つのコマンドの使い方
+hyla new --help                  # 同じ
+hyla help all                    # すべてのコマンドと引数
+hyla help --markdown             # Markdown のリファレンス
+```
+
+知らないコマンドはその旨を言って `2` で終わり、アプリを開きません。
+
+補完は同じコマンド表から作ります:
+
+```sh
+hyla completions zsh  > "${fpath[1]}/_hyla"
+hyla completions bash > /etc/bash_completion.d/hyla
+hyla completions fish > ~/.config/fish/completions/hyla.fish
+```
+
 ## 終了ステータス
 
 | コード | 意味                                 |
@@ -261,4 +281,4 @@ hyla do sidebar.toggle
 
 プログラムを待つコマンド（`hyla wait --exit` と `--wait`）は、代わりにそのプログラムの終了ステータスで終了します。ペインのシェルがエラーで終了したときの `hyla wait` も同じです。タイムアウトした待機は `1` で終了します。
 
-`ls`、`status`、`projects` に `--json` を付けると、機械で読める形式で出力します。
+`ls`、`status`、`projects` に `--json` を付けると、機械で読める形式で出力します。`status` に `--no-header` を付けると、列名のない一行だけになります。

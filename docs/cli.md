@@ -254,6 +254,26 @@ hyla do pane.browser url=localhost:3000
 hyla do sidebar.toggle
 ```
 
+## Help and completions
+
+```sh
+hyla help                        # the commands, by group
+hyla help new                    # what one command takes
+hyla new --help                  # the same
+hyla help all                    # every command with its flags
+hyla help --markdown             # the reference, as Markdown
+```
+
+A command it does not know says so and exits `2`, rather than opening the app.
+
+Completion comes from the same table of commands:
+
+```sh
+hyla completions zsh  > "${fpath[1]}/_hyla"            # zsh
+hyla completions bash > /etc/bash_completion.d/hyla    # bash
+hyla completions fish > ~/.config/fish/completions/hyla.fish
+```
+
 ## Exit status
 
 | Code | Meaning                              |
@@ -266,4 +286,4 @@ hyla do sidebar.toggle
 
 Commands that wait for a program, `hyla wait --exit` and `--wait`, exit with the program's status instead, as does `hyla wait` when the pane's shell exits with an error. A wait that times out exits with `1`.
 
-Add `--json` to `ls`, `status` and `projects` for machine-readable output.
+Add `--json` to `ls`, `status` and `projects` for machine-readable output, and `--no-header` to `status` for a row without the column names.

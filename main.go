@@ -32,18 +32,26 @@ import (
 
 func main() {
 	if len(os.Args) > 1 {
+		arg := os.Args[1]
 		switch {
-		case os.Args[1] == "__hylad":
+		case arg == "__hylad":
 			if err := daemon.Run(daemon.Options{}); err != nil {
 				fmt.Fprintln(os.Stderr, "hylad:", err)
 				os.Exit(1)
 			}
 			return
-		case cli.IsCommand(os.Args[1]):
+		case cli.IsCommand(arg):
 			os.Exit(cli.Run(os.Args[1:]))
 		}
-		if what, ok := cli.Removed(os.Args[1]); ok {
-			fmt.Fprintf(os.Stderr, "hyla: %s is gone: %s\n", os.Args[1], what)
+		if what, ok := cli.Removed(arg); ok {
+			fmt.Fprintf(os.Stderr, "hyla: %s is gone: %s\n", arg, what)
+			os.Exit(2)
+		}
+		// Not a command, and not the process serial number a launch from
+		// the Finder passes: say so, rather than open the app and ignore
+		// the word.
+		if !strings.HasPrefix(arg, "-psn") {
+			fmt.Fprintf(os.Stderr, "hyla: no command %q: hyla help lists them\n", arg)
 			os.Exit(2)
 		}
 	}

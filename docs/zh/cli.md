@@ -248,6 +248,26 @@ hyla do pane.browser url=localhost:3000
 hyla do sidebar.toggle
 ```
 
+## 帮助与补全
+
+```sh
+hyla help                        # 按组列出命令
+hyla help new                    # 一条命令接受什么
+hyla new --help                  # 同上
+hyla help all                    # 所有命令及其参数
+hyla help --markdown             # 以 Markdown 输出的参考
+```
+
+写错的命令会直接说明并以 `2` 退出，而不是去打开应用。
+
+补全脚本由同一张命令表生成：
+
+```sh
+hyla completions zsh  > "${fpath[1]}/_hyla"
+hyla completions bash > /etc/bash_completion.d/hyla
+hyla completions fish > ~/.config/fish/completions/hyla.fish
+```
+
 ## 退出码
 
 | 退出码 | 含义                           |
@@ -260,4 +280,4 @@ hyla do sidebar.toggle
 
 等待程序的命令，即 `hyla wait --exit` 和 `--wait`，改为以该程序的退出码退出；当窗格的 shell 以错误退出时，`hyla wait` 也是如此。等待超时则以 `1` 退出。
 
-给 `ls`、`status` 和 `projects` 加上 `--json`，可得到便于程序处理的输出。
+给 `ls`、`status` 和 `projects` 加上 `--json`，可得到便于程序处理的输出；`status` 再加 `--no-header`，则只输出一行、不带列名。

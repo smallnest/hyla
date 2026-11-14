@@ -6,6 +6,15 @@ number; the notes of the upstream releases it includes follow its own.
 
 ## Unreleased
 
+- The `hyla` command gained a table of its own commands: `hyla help` groups
+  them, `hyla help <command>` and `hyla <command> --help` print what one
+  takes, `hyla help all` prints every flag, and `hyla help --markdown` the
+  reference. `hyla completions zsh|bash|fish` completes them. A command it
+  does not know says so and exits 2 instead of opening the app; `hyla
+  status` prints a header (`--no-header` for none), `hyla config` asks for a
+  subcommand, and `hyla events --once` says why it ended. The docs no longer
+  list `remote-updates`, which no release has had since hosts left.
+
 - The website has a new landing page: a dark, orange-lit hero whose art is a
   wall of live session panes drifting past an eye line that lights the one
   needing you, with dust over it; the window tilting into place as it scrolls
