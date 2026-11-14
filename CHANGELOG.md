@@ -4,6 +4,12 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.10.2
+
+- Every session row keeps the mark's slot, with an agent in it or not, so that
+  a project's names line up across the rows that have one and the rows that
+  do not.
+
 ## 3.10.1
 
 - An SSH machine's or a K8s pod's mark sits on the row's first line, beside its

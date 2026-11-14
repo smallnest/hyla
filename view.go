@@ -838,11 +838,16 @@ func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int, 
 	// session with no agent, or one whose agent Hyla has no mark for,
 	// shows none rather than another agent's.
 	agentLogo, agentBrand, agentKnown := agentMark(s.Agent)
+	// The mark's slot is every row's, whether or not this session has an
+	// agent: a project's names line up with each other.
 	mark := func() {
+		slot := ui.Box(c).Size(agentMarkSize, agentMarkSize).Center().Shrink(0)
 		if !agentKnown {
 			return
 		}
-		ui.Icon(c, agentLogo).Size(14, 14).Shrink(0).TextColor(markTint(agentBrand, pal.dark, pal.text))
+		slot.Children(func() {
+			ui.Icon(c, agentLogo).Size(agentMarkSize, agentMarkSize).TextColor(markTint(agentBrand, pal.dark, pal.text))
+		})
 	}
 	row.ContextMenu(func(m *ui.Menu) { a.sessionMenu(m, s) })
 	row.Children(func() {
@@ -917,12 +922,10 @@ func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int, 
 				if msg {
 					fg = pal.textMuted
 				}
-				detail := ui.Text(c, line).FontSize(12).TextColor(fg).SingleLine().Ellipsis("…").MinWidth(0)
-				if agentKnown {
-					// Under the name, past the mark: the second line
-					// stays its session's, not the agent's.
-					detail.Padding(0, 0, 0, 22)
-				}
+				// Under the name, past the mark's slot: the second line
+				// stays its session's, not the mark's.
+				ui.Text(c, line).FontSize(12).TextColor(fg).SingleLine().Ellipsis("…").MinWidth(0).
+					Padding(0, 0, 0, agentMarkSize+8)
 			})
 			return
 		}

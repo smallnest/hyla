@@ -137,6 +137,10 @@ var (
 	collapseIcon = glyph("f7-rectangle-compress-vertical")
 )
 
+// agentMarkSize is how large a mark is, and the slot every session row keeps
+// for one: names line up even where a row has no agent.
+const agentMarkSize = 14
+
 // The agents' marks, which the sidebar puts before a session's name: the
 // logos their makers drew, as resources/icons/agents/README.md tells which
 // one is whose. They are Simple Icons' SVGs (CC0, the brands their owners'
