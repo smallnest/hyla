@@ -281,11 +281,14 @@ func (d *Daemon) create(p proto.CreateParams) (proto.Session, error) {
 	}
 	d.mu.Lock()
 	project := d.projectFor(p.Project, dir)
-	if dir == "" {
-		for _, pr := range d.projects {
-			if pr.ID == project {
-				dir = pr.Dir
-			}
+	for _, pr := range d.projects {
+		if pr.ID != project {
+			continue
+		}
+		// The default project is the home folder: its sessions start
+		// there, whatever directory the caller was in.
+		if dir == "" || pr.Default {
+			dir = pr.Dir
 		}
 	}
 	d.mu.Unlock()
