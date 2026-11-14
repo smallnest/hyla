@@ -49,6 +49,6 @@ if git -C "$tmp/tap" diff --quiet; then
   echo "cask already at $version"
   exit 0
 fi
-git -C "$tmp/tap" commit -qam "hyla $version"
+git -C "$tmp/tap" -c user.name="hyla release" -c user.email="hyla@users.noreply.github.com" commit -qam "hyla $version"
 git -C "$tmp/tap" push -q
 echo "cask: hyla $version"
