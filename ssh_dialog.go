@@ -467,7 +467,7 @@ func (a *App) sshHostRow(c *ui.Context, pal *palette, i int) {
 		a.connectSSH(i)
 	}
 	row.Children(func() {
-		ui.Icon(c, terminalIcon).Size(13, 13).TextColor(pal.textMuted).Shrink(0)
+		ui.Icon(c, terminalIcon).Size(14, 14).TextColor(pal.textMuted).Shrink(0)
 		top := func() {
 			ui.Text(c, h.Name).FontSize(13).TextColor(pal.text).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
 		}

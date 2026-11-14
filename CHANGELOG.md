@@ -10,6 +10,9 @@ number; the notes of the upstream releases it includes follow its own.
   name: Claude Code's, Codex's, OpenCode's, DeepSeek Harness's and the rest,
   in each brand's colour, dark enough to read on either window. A session with
   no agent shows no mark.
+- The SSH and K8s projects are machines, not folders, and now wear their mark
+  before their name as an agent does, in the project's colour, instead of a
+  filled badge with a letter.
 
 ## 3.9.2
 

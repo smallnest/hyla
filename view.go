@@ -597,18 +597,23 @@ func (a *App) groupView(c *ui.Context, pal *palette, g group, gi int, n *int) {
 		if urgent {
 			badgeColor = pal.attention
 		}
-		badge := ui.Box(c.Key("project-icon-"+key)).Size(projectBadge, projectBadge).Radius(5).Center().Shrink(0).
-			Background(badgeColor).Children(func() {
-			if ssh || k8s {
-				icon := hostIcon
-				if k8s {
-					icon = k8sIcon
-				}
-				ui.Icon(c, icon).Size(13, 13).TextColor(ui.Hex("#ffffff"))
-				return
+		badge := ui.Box(c.Key("project-icon-"+key)).Size(projectBadge, projectBadge).Shrink(0)
+		if ssh || k8s {
+			// The SSH and K8s projects are machines rather than folders:
+			// their mark stands before their name as an agent's stands
+			// before a session's, in the colour the project wears.
+			icon := hostIcon
+			if k8s {
+				icon = k8sIcon
 			}
-			ui.Text(c, projectInitial(g.project.Name)).FontSize(10.5).FontWeight(700).TextColor(ui.Hex("#ffffff"))
-		})
+			badge.Center().Children(func() {
+				ui.Icon(c, icon).Size(14, 14).TextColor(markTint(badgeColor, pal.dark, pal.text))
+			})
+		} else {
+			badge.Radius(5).Center().Background(badgeColor).Children(func() {
+				ui.Text(c, projectInitial(g.project.Name)).FontSize(10.5).FontWeight(700).TextColor(ui.Hex("#ffffff"))
+			})
+		}
 		if collapsed && current {
 			// The project's sessions are folded away, the one in the card
 			// too: a dot over the badge's corner says it is still this

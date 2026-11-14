@@ -453,7 +453,7 @@ func (a *App) k8sPodRow(c *ui.Context, pal *palette, i int) {
 		a.connectK8s(i)
 	}
 	row.Children(func() {
-		ui.Icon(c, terminalIcon).Size(13, 13).TextColor(pal.textMuted).Shrink(0)
+		ui.Icon(c, terminalIcon).Size(14, 14).TextColor(pal.textMuted).Shrink(0)
 		top := func() {
 			ui.Text(c, pod.Name).FontSize(13).TextColor(pal.text).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
 		}
