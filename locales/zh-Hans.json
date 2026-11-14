@@ -123,6 +123,7 @@
   "sidebarGroup": "会话分组方式",
   "sidebarSort": "排序与分组",
   "sidebarOtherProject": "其他",
+  "defaultProject": "默认",
   "sidebarHide": "隐藏边栏",
   "sidebarShow": "显示边栏",
   "sidebarNoSessions": "没有会话",

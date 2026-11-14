@@ -171,6 +171,7 @@
   "sidebarGroup": "Sessions Grouped By",
   "sidebarSort": "Sort and Group",
   "sidebarOtherProject": "Other",
+  "defaultProject": "Default",
   "sidebarHide": "Hide Sidebar",
   "sidebarShow": "Show Sidebar",
   "sidebarNoSessions": "No sessions",

@@ -208,6 +208,7 @@ func Run(opts Options) error {
 	d.startFeishu()
 	d.loadConversations()
 	d.restore()
+	d.ensureDefaultProject()
 
 	ignore := ignoreSignals()
 	for _, sig := range ignore {
@@ -464,6 +465,25 @@ func newID() string {
 	return string(b[:])
 }
 
+// ensureDefaultProject makes the project Hyla opens on: the home folder's,
+// marked as the default. A machine that already had a project for the home
+// folder keeps it, and it becomes the default.
+func (d *Daemon) ensureDefaultProject() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	home := proto.Home()
+	for i := range d.projects {
+		d.projects[i].Default = false
+	}
+	for i := range d.projects {
+		if d.projects[i].Dir == home {
+			d.projects[i].Default = true
+			return
+		}
+	}
+	d.projects = append(d.projects, proto.Project{ID: newID(), Name: "Home", Dir: home, Default: true})
+}
+
 // projectFor returns the project a new session goes in: the one named, or
 // the one whose directory holds dir, or a new one for dir's repository.
 // d.mu is held.
@@ -498,7 +518,7 @@ func (d *Daemon) projectFor(ref, dir string) string {
 	if root == proto.Home() {
 		name = "Home"
 	}
-	p := proto.Project{ID: newID(), Name: name, Dir: root}
+	p := proto.Project{ID: newID(), Name: name, Dir: root, Default: root == proto.Home()}
 	d.projects = append(d.projects, p)
 	return p.ID
 }

@@ -441,6 +441,11 @@ func (a *App) setState(h *host, st proto.State) {
 		}
 	}
 	a.quickChanged()
+	if first {
+		// Hyla opens on the default project: its latest session, or one
+		// started for it.
+		a.openDefaultProject()
+	}
 	if a.session(a.selected) == nil {
 		a.reselect()
 	} else if first || hostFirst && a.hostOf(a.selected) == h {
@@ -448,6 +453,32 @@ func (a *App) setState(h *host, st proto.State) {
 	}
 	a.notify(first)
 	a.updateTitle()
+}
+
+// openDefaultProject shows the default project's latest session, and starts
+// one in the home folder when it has none.
+func (a *App) openDefaultProject() {
+	for _, p := range a.st.Projects {
+		if !p.Default {
+			continue
+		}
+		var best *proto.Session
+		for i := range a.st.Sessions {
+			s := &a.st.Sessions[i]
+			if s.Project != p.ID {
+				continue
+			}
+			if best == nil || sessionUpdated(s) > sessionUpdated(best) {
+				best = s
+			}
+		}
+		if best != nil {
+			a.selectSession(best.ID)
+			return
+		}
+		a.newSession(proto.Home())
+		return
+	}
 }
 
 // showNotification shows a notification about a session, which a click
@@ -593,6 +624,9 @@ func (a *App) hostGroups(h *host) []group {
 	known := map[string]bool{}
 	for _, p := range projects {
 		known[p.ID] = true
+		if p.Default {
+			p.Name = locales.DefaultProject()
+		}
 		g := group{host: h, project: p}
 		for i := range a.st.Sessions {
 			if a.st.Sessions[i].Project == p.ID {
@@ -621,6 +655,8 @@ func (a *App) hostGroups(h *host) []group {
 // ProjectOrder; projects it does not name keep the daemon's order, after
 // them.
 func (a *App) orderProjects(ps []proto.Project) {
+	// The default project comes first, whatever the order says.
+	sort.SliceStable(ps, func(i, j int) bool { return ps[i].Default && !ps[j].Default })
 	if len(a.prefs.ProjectOrder) == 0 {
 		return
 	}
@@ -630,10 +666,13 @@ func (a *App) orderProjects(ps []proto.Project) {
 			at[id] = i
 		}
 	}
+	// Within what the drag order leaves, the default project stays first.
 	sort.SliceStable(ps, func(i, j int) bool {
 		ii, iok := at[ps[i].ID]
 		jj, jok := at[ps[j].ID]
 		switch {
+		case ps[i].Default != ps[j].Default:
+			return ps[i].Default
 		case iok && jok:
 			return ii < jj
 		case iok:

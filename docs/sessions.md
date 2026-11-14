@@ -7,6 +7,8 @@ description: How Hyla groups terminal sessions by project and keeps them running
 
 Hyla organizes your work in two levels: projects (folders) hold sessions (tasks), and every session keeps running in hylad until you close it.
 
+**Default** is the home folder's project. It comes first in the sidebar whatever order you drag projects into, its sessions start in `~`, and Hyla opens on its latest session, starting one when it has none.
+
 ![Hyla's window: projects and their sessions in the sidebar, and the selected session's terminal on the right](./images/sessions-window-en.jpg)
 
 *Projects hold the day's sessions, and the sidebar says what each one is doing.*

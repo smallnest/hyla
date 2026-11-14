@@ -1286,6 +1286,16 @@ func (msgs Messages) SidebarOtherProject() string {
 	return Catalog.Format(msgs.locale, "sidebarOtherProject", nil)
 }
 
+// DefaultProject says "Default"
+// in the language the app shows.
+func DefaultProject() string { return In(i18n.Locale()).DefaultProject() }
+
+// DefaultProject says "Default"
+// in the language of msgs.
+func (msgs Messages) DefaultProject() string {
+	return Catalog.Format(msgs.locale, "defaultProject", nil)
+}
+
 // SidebarHide says "Hide Sidebar"
 // in the language the app shows.
 func SidebarHide() string { return In(i18n.Locale()).SidebarHide() }

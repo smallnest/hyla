@@ -123,6 +123,7 @@
   "sidebarGroup": "セッションのグループ",
   "sidebarSort": "並べ替えとグループ化",
   "sidebarOtherProject": "その他",
+  "defaultProject": "既定",
   "sidebarHide": "サイドバーを隠す",
   "sidebarShow": "サイドバーを表示",
   "sidebarNoSessions": "セッションなし",

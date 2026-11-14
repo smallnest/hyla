@@ -285,3 +285,38 @@ func TestProjectCreatePersists(t *testing.T) {
 		t.Errorf("restored projects = %+v, want [%+v]", got, first)
 	}
 }
+
+// The project Hyla opens on: the home folder's, marked once, and made when
+// nothing holds the home folder.
+func TestDefaultProject(t *testing.T) {
+	d := projectDaemon(t)
+	d.projects = []proto.Project{{ID: "a", Name: "atlas", Dir: filepath.Join(proto.Home(), "code")}}
+	d.ensureDefaultProject()
+	var def *proto.Project
+	for i := range d.projects {
+		if d.projects[i].Default {
+			def = &d.projects[i]
+		}
+	}
+	if def == nil || def.Dir != proto.Home() {
+		t.Fatalf("default project = %+v, want the home folder's", d.projects)
+	}
+	d.ensureDefaultProject()
+	n := 0
+	for _, p := range d.projects {
+		if p.Default {
+			n++
+		}
+	}
+	if n != 1 || len(d.projects) != 2 {
+		t.Errorf("after a second pass: %d defaults, %d projects", n, len(d.projects))
+	}
+
+	// A machine that already had a project for the home folder keeps it.
+	d2 := projectDaemon(t)
+	d2.projects = []proto.Project{{ID: "h", Name: "Home", Dir: proto.Home()}}
+	d2.ensureDefaultProject()
+	if len(d2.projects) != 1 || !d2.projects[0].Default {
+		t.Errorf("projects = %+v, want the home one marked", d2.projects)
+	}
+}

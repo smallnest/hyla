@@ -160,6 +160,9 @@ type Project struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 	Dir  string `json:"dir,omitempty"`
+	// Default marks the project Hyla opens on: the home folder's, always
+	// first in the sidebar.
+	Default bool `json:"default,omitempty"`
 }
 
 // Pane is a terminal the daemon keeps running: a shell in a
