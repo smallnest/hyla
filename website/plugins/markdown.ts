@@ -41,15 +41,18 @@ export function markdown(): Plugin {
   };
 }
 
-// The docs link to each other as ./page.md, which reads well on GitHub.
-// Served at /docs/page, and /docs for index.md, such links would resolve
-// against the wrong directory on /docs, so make them absolute, under /ja and
-// /zh for the translations in docs/ja and docs/zh.
+// The docs link to each other as ./page.md, and show pictures as
+// ./images/name.jpg, which both read well on GitHub. Served at /docs/page,
+// and /docs for index.md, such links would resolve against the wrong
+// directory, so make them absolute, under /ja and /zh for the translations;
+// the build copies docs/images to /img/docs for the pictures.
 function docsLinks(source: string, prefix: string) {
-  return source.replace(/\]\(\.\/([\w/-]+)\.md(#[\w-]+)?\)/g, (_, page: string, hash = '') => {
-    const path = page === 'index' ? '/docs' : `/docs/${page.replace(/\/index$/, '')}`;
-    return `](${prefix}${path}${hash})`;
-  });
+  return source
+    .replace(/\]\(\.\/([\w/-]+)\.md(#[\w-]+)?\)/g, (_, page: string, hash = '') => {
+      const path = page === 'index' ? '/docs' : `/docs/${page.replace(/\/index$/, '')}`;
+      return `](${prefix}${path}${hash})`;
+    })
+    .replace(/\]\(\.\/images\/([\w.-]+)\)/g, (_, name: string) => `](/img/docs/${name})`);
 }
 
 async function createCompiler() {

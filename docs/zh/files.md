@@ -7,7 +7,7 @@ description: 在侧面板里浏览会话的目录，不离开 Hyla 就能读文�
 
 侧面板里有一个 **文件** 视图，显示会话所在目录。看一眼文件，不用离开窗口。
 
-[![Hyla 窗口，右侧是打开的文件面板，显示会话的目录](/img/docs/window-zh.jpg)](/img/docs/window-zh.jpg)
+![Hyla 窗口，右侧是打开的文件面板，显示会话的目录](./images/files-window-zh.jpg)
 
 *侧面板里的文件视图，跟随当前会话的目录。*
 
@@ -15,7 +15,7 @@ description: 在侧面板里浏览会话的目录，不离开 Hyla 就能读文�
 
 选择 **视图 › 切换文件**（<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>F</kbd>），或点侧面板上的文件按钮。目录树跟随当前会话：项目目录、从主目录开始的会话的主目录，或者[另一台机器](./remote.md)上的目录。
 
-<a href="/img/docs/panel-zh.jpg"><img src="/img/docs/panel-zh.jpg" width="360" alt="文件树：文件夹就地展开，文件按类型带图标"></a>
+![文件树：文件夹就地展开，文件按类型带图标](./images/files-panel-zh.jpg)
 
 *文件夹就地展开；文件在点开之前就能看出类型。*
 
