@@ -22,7 +22,7 @@ In the sidebar's **+** menu choose **Add SSH Host…** for an SSH host, a WSL di
 | Another Hyla | `tailcat://` and its [pair code](./remote.md#tailcat) |
 | K8s pod     | the pod's namespace and name                   |
 
-Hyla needs to be installed on the machine; if it is missing, or older than yours, the app offers to install or update it over the connection. The same hosts go in the [configuration file](./configuration.md#hosts) as `host = name=address`, with a `color=` and a ` remote-control` per host.
+Hyla needs to be installed on the machine; if it is missing, or older than yours, the app offers to install or update it over the connection. The app keeps the hosts itself: there is no `host` key in the [configuration file](./configuration.md#hosts), and `hyla p2p` and `hyla pocket` are about other machines reaching this one, not about reaching them.
 
 ## In the sidebar
 

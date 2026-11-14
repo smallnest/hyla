@@ -22,7 +22,7 @@ description: 在 SSH 主机、WSL 发行版、Kubernetes Pod 或另一台 Hyla �
 | 另一台 Hyla | `tailcat://` 加上它的[配对码](./remote.md#tailcat) |
 | K8s Pod     | Pod 的命名空间与名字                            |
 
-那台机器上需要装 Hyla；如果没装，或者版本比你的旧，应用会通过连接替你安装或更新。同样的主机也写在[配置文件](./configuration.md#hosts)里：`host = name=address`，每台可以带 `color=` 和 ` remote-control`。
+那台机器上需要装 Hyla；如果没装，或者版本比你的旧，应用会通过连接替你安装或更新。主机由应用自己保存，[配置文件](./configuration.md#hosts)里没有 `host` 这一项；`hyla p2p` 与 `hyla pocket` 讲的是别人连到这台机器，而不是连到别的机器。
 
 ## 边栏里
 

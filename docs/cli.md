@@ -227,21 +227,30 @@ A Feishu chat drives the coding agent in the session it's bound to: `/new` start
 
 ## Other machines
 
+Another machine is a session of the SSH project: the app adds it from the sidebar's **+** menu, `ssh` runs in the pane, and the CLI drives it like any other session (`hyla ls` lists it, `hyla send` types into it). Inside a pane, `hyla` talks to the hylad the pane runs against.
+
+This machine as a host, reachable peer to peer by a pair code:
 
 ```sh
-hyla hosts                       # the hosts you added
-hyla hosts add devbox me@devbox  # add one, which the app shows too
-hyla hosts check devbox          # connect, and say how it went
-hyla hosts install devbox        # install Hyla there, over SSH
-hyla ls --all                    # the sessions here and on every host
-hyla -H devbox ls
-hyla -H devbox new -n review -- claude
-hyla -H devbox daemon update     # update Hyla there to this one's version
+hyla p2p status                  # on or off, its port, its pair code
+hyla p2p enable 7400             # listen for peers, on port 7400
+hyla p2p port 7473               # move the listener
+hyla p2p rotate                  # a new key, and a new pair code
+hyla p2p code                    # just the pair code (secret)
+hyla p2p disable
 ```
 
-Inside a pane, `hyla` talks to the hylad of the machine the pane runs on, wherever the app is.
+`hyla tailcat` is the same command, after the library that carries it: WireGuard between the two machines, a relay only to find each other.
 
-`hyla ls --all` asks every host at once and lists each one's sessions under the name `-H` takes, `local` for this machine. A host out of reach says why in place of its sessions. With `--json`, it prints a list of `{host, addr, error, sessions}`.
+For a phone:
+
+```sh
+hyla pocket code                 # the pair code HylaPocket connects with
+hyla pocket qr                   # the same, as a QR code
+hyla pocket tcp enable           # a tcp:// listener on this network instead,
+hyla pocket addr                 #   with a password: its address
+hyla pocket token                #   and the password
+```
 
 ## Running app actions
 

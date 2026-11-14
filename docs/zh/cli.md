@@ -221,21 +221,30 @@ hyla feishu send <会话> <文字…>   # 按会话 ID 发送一条消息
 
 ## 其他机器
 
+另一台机器就是 SSH 项目里的一个会话：在边栏的 **+** 菜单里加进来，`ssh` 跑在窗格里，CLI 像对待其他会话一样驱动它（`hyla ls` 列出它，`hyla send` 往里面输入）。在窗格里，`hyla` 与窗格所连的 hylad 通信。
+
+这台机器作为主机，凭配对码被别人点对点连上：
 
 ```sh
-hyla hosts                       # 你添加过的主机
-hyla hosts add devbox me@devbox  # 添加一台，app 中也会显示
-hyla hosts check devbox          # 尝试连接，并报告结果
-hyla hosts install devbox        # 通过 SSH 在那里安装 Hyla
-hyla ls --all                    # 本机和每台主机上的会话
-hyla -H devbox ls
-hyla -H devbox new -n review -- claude
-hyla -H devbox daemon update     # 将那里的 Hyla 更新到本机的版本
+hyla p2p status                  # 开没开、端口、配对码
+hyla p2p enable 7400             # 在 7400 端口上监听
+hyla p2p port 7473               # 换端口
+hyla p2p rotate                  # 换一把密钥，换一个配对码
+hyla p2p code                    # 只打印配对码（机密）
+hyla p2p disable
 ```
 
-在窗格中，`hyla` 总是与窗格所在机器的 hylad 通信，无论 app 在哪里。
+`hyla tailcat` 是同一条命令，用的是承载它的库的名字：两台机器之间走 WireGuard，中继只负责找到彼此。
 
-`hyla ls --all` 同时询问每台主机，把各自的会话列在 `-H` 所用的名称下（本机为 `local`）。连不上的主机会在会话的位置说明原因。加上 `--json` 时，输出 `{host, addr, error, sessions}` 的列表。
+手机：
+
+```sh
+hyla pocket code                 # HylaPocket 连接用的配对码
+hyla pocket qr                   # 同一个码，二维码形式
+hyla pocket tcp enable           # 改用本网络的 tcp:// 监听，
+hyla pocket addr                 #   需要密码：地址
+hyla pocket token                #   和密码
+```
 
 ## 执行 app 操作
 

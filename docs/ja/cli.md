@@ -222,21 +222,30 @@ Feishu のチャットは、結び付いたセッションのコーディング�
 
 ## ほかのマシン
 
+別のマシンは SSH プロジェクトのセッションです。サイドバーの **+** メニューで追加し、ペインでは `ssh` が動き、CLI は他のセッションと同じに扱います（`hyla ls` に出て、`hyla send` で入力できます）。ペインの中の `hyla` は、そのペインが繋ぐ hylad と話します。
+
+このマシンをホストにし、ペアコードでピアツーピアに繋がせます:
 
 ```sh
-hyla hosts                       # 追加したホスト
-hyla hosts add devbox me@devbox  # 追加する（アプリにも表示される）
-hyla hosts check devbox          # 接続して、結果を表示
-hyla hosts install devbox        # SSH でそこに Hyla をインストール
-hyla ls --all                    # このマシンとすべてのホストのセッション
-hyla -H devbox ls
-hyla -H devbox new -n review -- claude
-hyla -H devbox daemon update     # そこの Hyla をこちらのバージョンにアップデート
+hyla p2p status                  # 有効か、ポート、ペアコード
+hyla p2p enable 7400             # 7400 番で待ち受ける
+hyla p2p port 7473               # ポートを変える
+hyla p2p rotate                  # 鍵とペアコードを作り直す
+hyla p2p code                    # ペアコードだけ（秘密）
+hyla p2p disable
 ```
 
-ペインの中では、`hyla` はアプリがどこにあっても、ペインが動いているマシンの hylad と通信します。
+`hyla tailcat` は同じコマンドです（運ぶライブラリの名前）: 二台の間は WireGuard、リレーは互いを見つけるためだけ。
 
-`hyla ls --all` はすべてのホストに同時に問い合わせ、それぞれのセッションを `-H` に渡す名前（このマシンは `local`）の下に一覧表示します。届かないホストは、セッションの代わりにその理由を表示します。`--json` を付けると `{host, addr, error, sessions}` のリストを出力します。
+スマートフォン:
+
+```sh
+hyla pocket code                 # HylaPocket が使うペアコード
+hyla pocket qr                   # 同じものを QR コードで
+hyla pocket tcp enable           # 代わりにこのネットワークで tcp:// を待ち受け、
+hyla pocket addr                 #   パスワード付き: アドレス
+hyla pocket token                #   とパスワード
+```
 
 ## アプリのアクションを実行する
 

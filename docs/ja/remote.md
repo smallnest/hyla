@@ -22,7 +22,7 @@ description: SSH ホスト、WSL ディストリビューション、Kubernetes 
 | もう一つの Hyla | `tailcat://` とその[ペアコード](./remote.md#tailcat) |
 | K8s Pod       | Pod の名前空間と名前                              |
 
-そのマシンに Hyla が必要です。入っていない、あるいは手元より古いときは、接続越しにインストールや更新を申し出ます。同じホストは[設定ファイル](./configuration.md#hosts)にも `host = name=address` として書け、ホストごとに `color=` と ` remote-control` を付けられます。
+そのマシンに Hyla が必要です。入っていない、あるいは手元より古いときは、接続越しにインストールや更新を申し出ます。ホストはアプリが自分で覚えます。[設定ファイル](./configuration.md#hosts)に `host` というキーはありません。`hyla p2p` と `hyla pocket` は、他のマシンからこのマシンへ繋ぐ話で、その逆ではありません。
 
 ## サイドバーで
 

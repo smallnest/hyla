@@ -185,6 +185,8 @@ func run(args []string) error {
 		return answerCmd(args)
 	case "config":
 		return configCmd(args)
+	case "p2p":
+		return p2pCmd(args)
 	case "tailcat":
 		return tailcatCmd(args)
 	case "pocket":

@@ -6,6 +6,15 @@ number; the notes of the upstream releases it includes follow its own.
 
 ## Unreleased
 
+- `hyla p2p` is this machine as a host reachable by a pair code, and it shows
+  the settings it takes: `hyla p2p` alone prints whether it listens, on which
+  port and with which pair code, and `status|enable [port]|disable|port
+  <port>|rotate|code` set them. `hyla tailcat` stays as the same command,
+  after the library behind it; `hyla pocket` still prints the code for a
+  phone. The docs' "other machines" section described `hyla hosts`, `-H` and
+  `ls --all`, gone since hosts left, and a `host` key the file never had;
+  they now describe the SSH sessions the app adds and these commands.
+
 - The `hyla` command gained a table of its own commands: `hyla help` groups
   them, `hyla help <command>` and `hyla <command> --help` print what one
   takes, `hyla help all` prints every flag, and `hyla help --markdown` the

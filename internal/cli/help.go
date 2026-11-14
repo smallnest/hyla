@@ -219,22 +219,31 @@ var commands = []command{
 	},
 
 	{
-		name: "tailcat", group: "machine",
-		summary: "this machine as a host, over a relay, with a pair code",
-		usage: `hyla tailcat enable|disable|port|rotate|code
+		name: "p2p", aliases: []string{"tailcat"}, group: "machine",
+		summary: "peer-to-peer access, by pair code",
+		usage: `hyla p2p status|enable [port]|disable|port <port>|rotate|code
+    status                      whether hylad listens, on which port and with
+                                which pair code
+    enable [port]               listen for peers (default port 7473)
+    disable                     stop listening
+    port <port>                 move the listener
+    rotate                      a new key, and a new pair code
     code                        print the pair code (secret)
-    rotate                      make a new one, and a new key
-    port [n]                    show or set the listener's port (default 7473)`,
+    tailcat is the same command, after the library that carries it: WireGuard
+    between two machines, a relay only to find each other`,
 	},
 	{
 		name: "pocket", group: "machine",
 		summary: "this machine as a host for HylaPocket on a phone",
 		usage: `hyla pocket enable|disable|code|qr
+    the phone reaches this machine over the p2p listener (hyla p2p), and the
+    code it scans is that listener's pair code: one secret, address and
+    admission both
     code                        print the pair code (secret)
     qr                          the QR code a phone scans
     hyla pocket tcp enable|disable [address:port]
-                                listen on this machine's network, with a
-                                password: Hyla or HylaPocket connects by the
+                                listen on this machine's network instead, with
+                                a password: Hyla or HylaPocket connects by the
                                 address (secret)
     hyla pocket addr|token      where it listens, and the password`,
 	},
