@@ -384,7 +384,7 @@ func (a *App) k8sPodRow(c *ui.Context, pal *palette, i int) {
 		s = nil
 	}
 	selected := s != nil && s.ID == a.selected
-	inset := float32(rowInset + projectBadge + projectBadgeGap)
+	inset := float32(rowInset)
 	detailed := a.set.SidebarRows != "compact"
 	height := float32(rowH)
 	if detailed {
@@ -456,14 +456,16 @@ func (a *App) k8sPodRow(c *ui.Context, pal *palette, i int) {
 		// The pod's mark stands on the row's first line, beside its name,
 		// as an agent's stands beside a session's; the command below starts
 		// under the name, past the mark.
-		mark := func() {
-			ui.Icon(c, terminalIcon).Size(14, 14).TextColor(pal.textMuted).Shrink(0)
+		mark := func(gap float32) {
+			markSlot(c, gap).Children(func() {
+				ui.Icon(c, terminalIcon).Size(agentMarkSize, agentMarkSize).TextColor(pal.textMuted)
+			})
 		}
 		top := func() {
 			ui.Text(c, pod.Name).FontSize(13).TextColor(pal.text).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
 		}
 		if !detailed {
-			mark()
+			mark(rowGap)
 			top()
 			ui.Spacer(c)
 			ui.Text(c, pod.Command).Font("monospace").FontSize(12).TextColor(pal.textFaint).SingleLine().Ellipsis("…").Shrink(2).MaxWidth(220)
@@ -472,11 +474,11 @@ func (a *App) k8sPodRow(c *ui.Context, pal *palette, i int) {
 			// session's row has its name and detail.
 			ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
 				ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-					mark()
+					mark(rowGap)
 					top()
 				})
 				cmd := ui.Text(c, pod.Command).Font("monospace").FontSize(12).TextColor(pal.textFaint).SingleLine().Ellipsis("…").MinWidth(0)
-				cmd.Padding(0, 0, 0, 22)
+				cmd.Padding(0, 0, 0, projectBadge+projectBadgeGap)
 			})
 		}
 		if s == nil {
@@ -496,7 +498,7 @@ func (a *App) k8sPodRow(c *ui.Context, pal *palette, i int) {
 // k8sEmpty is the K8s project with no pod in it yet: the row that adds
 // one, in place of a project's sessions.
 func (a *App) k8sEmpty(c *ui.Context, pal *palette) {
-	inset := float32(rowInset + projectBadge + projectBadgeGap)
+	inset := float32(rowInset)
 	row := ui.Row(c.Key("k8s-empty")).Height(rowH).Margin(0, 0, 1, 0).Padding(0, 10, 0, inset).Gap(10).AlignItems(ui.Center).Radius(8)
 	if row.Hovered() {
 		row.Background(pal.rowHover)
@@ -505,7 +507,9 @@ func (a *App) k8sEmpty(c *ui.Context, pal *palette) {
 		a.askK8sPod()
 	}
 	row.Children(func() {
-		ui.Icon(c, plusIcon).Size(13, 13).TextColor(pal.textMuted).Shrink(0)
+		markSlot(c, rowGap).Children(func() {
+			ui.Icon(c, plusIcon).Size(13, 13).TextColor(pal.textMuted)
+		})
 		ui.Text(c, locales.ActionAddK8sPod()).FontSize(13).TextColor(pal.textMuted).SingleLine()
 	})
 }

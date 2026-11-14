@@ -34,6 +34,9 @@ const (
 	// letter; projectBadgeGap is the room after it.
 	projectBadge    = 20
 	projectBadgeGap = 6
+	// rowGap is what a row leaves between its parts: the mark, the name,
+	// the time.
+	rowGap = 10
 )
 
 // chrome is where the sidebar's animation puts things, in whole pixels so
@@ -675,7 +678,7 @@ func (a *App) groupView(c *ui.Context, pal *palette, g group, gi int, n *int) {
 		if ssh && a.sshHostOfSession(s.ID) != nil || k8s && a.k8sPodOfSession(s.ID) != nil {
 			continue
 		}
-		a.sessionRow(c, pal, s, n, float32(rowInset+projectBadge+projectBadgeGap), g.dragKey())
+		a.sessionRow(c, pal, s, n, float32(rowInset), g.dragKey())
 	}
 	if ssh {
 		for i := range a.prefs.SSHHosts {
@@ -760,7 +763,7 @@ func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int, 
 	if detailed {
 		h = rowH2
 	}
-	row := ui.Row(c.Key(s.ID)).Height(h).Padding(0, 10, 0, inset).Gap(10).AlignItems(ui.Center).Radius(8).Margin(0, 0, 1, 0)
+	row := ui.Row(c.Key(s.ID)).Height(h).Padding(0, 10, 0, inset).Gap(rowGap).AlignItems(ui.Center).Radius(8).Margin(0, 0, 1, 0)
 	hovered := row.Hovered()
 	if pal.dark {
 		// Room for the chosen row's edge in every row, so that choosing
@@ -839,9 +842,10 @@ func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int, 
 	// shows none rather than another agent's.
 	agentLogo, agentBrand, agentKnown := agentMark(s.Agent)
 	// The mark's slot is every row's, whether or not this session has an
-	// agent: a project's names line up with each other.
-	mark := func() {
-		slot := ui.Box(c).Size(agentMarkSize, agentMarkSize).Center().Shrink(0)
+	// agent, and as wide as the badge a project's name follows: a project's
+	// names and its sessions' start at one place. gap is the row's own.
+	mark := func(gap float32) {
+		slot := markSlot(c, gap)
 		if !agentKnown {
 			return
 		}
@@ -895,7 +899,7 @@ func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int, 
 			// branch reads as far as it can.
 			ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
 				ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-					mark()
+					mark(8)
 					name()
 					ui.Spacer(c)
 					when()
@@ -925,11 +929,11 @@ func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int, 
 				// Under the name, past the mark's slot: the second line
 				// stays its session's, not the mark's.
 				ui.Text(c, line).FontSize(12).TextColor(fg).SingleLine().Ellipsis("…").MinWidth(0).
-					Padding(0, 0, 0, agentMarkSize+8)
+					Padding(0, 0, 0, projectBadge+projectBadgeGap)
 			})
 			return
 		}
-		mark()
+		mark(rowGap)
 		name()
 		// An SSH or K8s terminal names what it reaches, by its name.
 		if detail := sshAddr; detail != "" {
@@ -951,6 +955,13 @@ func (a *App) sessionRow(c *ui.Context, pal *palette, s *proto.Session, n *int, 
 		when()
 		trailing()
 	})
+}
+
+// markSlot is the room a row keeps before its name: as wide as a project's
+// badge and the gap after it, less the gap the row itself leaves, so that a
+// session's name starts where its project's does, and every row's lines up.
+func markSlot(c *ui.Context, gap float32) ui.Element {
+	return ui.Box(c).Size(projectBadge+projectBadgeGap-gap, agentMarkSize).Center().Shrink(0)
 }
 
 // statusSlot ends a row that stands for a terminal: its status, or, while

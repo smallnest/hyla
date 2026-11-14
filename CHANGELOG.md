@@ -9,6 +9,8 @@ number; the notes of the upstream releases it includes follow its own.
 - Every session row keeps the mark's slot, with an agent in it or not, so that
   a project's names line up across the rows that have one and the rows that
   do not.
+- A project's name and its sessions' start at one place: the badge and the
+  marks share a column, and the rows are no longer inset under the badge.
 
 ## 3.10.1
 
