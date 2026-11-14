@@ -11,6 +11,16 @@ Hyla をインストールしてプロジェクトを開き、終了しても動
 
 [リリースページ](https://github.com/smallnest/hyla/releases)から最新の Hyla をダウンロードします。macOS では **Hyla.app** を“アプリケーション”フォルダにドラッグします。Windows では **Hyla Setup** インストーラを実行します。管理者権限は不要です。
 
+Homebrew でも入ります。チップに合わせて Apple Silicon か Intel のディスクイメージを取ります:
+
+```sh
+brew tap smallnest/hyla
+brew trust smallnest/hyla
+brew install --cask hyla
+```
+
+この cask は独自の tap にあり、Homebrew 7 は `homebrew-cask` 以外の tap を一度だけ信頼するよう求めます。`brew trust` がそれです。
+
 Windows では、セッションは PowerShell 7 がインストールされていればそれで、なければ Windows PowerShell で動きます。`cmd` や Git Bash の `bash` など別のシェルは、**設定 › シェル**で選べます。疑似コンソールを使うため、Hyla には Windows 10 1809 以降が必要です。
 
 ### コマンドラインツールのインストール

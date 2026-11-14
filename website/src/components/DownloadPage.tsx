@@ -132,7 +132,7 @@ export function downloadHead(locale: Locale) {
 const POCKET_URL = 'https://github.com/smallnest/hyla-pocket';
 
 const INSTALL_SCRIPTS: Partial<Record<OS, string>> = {
-  mac: 'brew install --cask hyla',
+  mac: 'brew tap smallnest/hyla && brew trust smallnest/hyla && brew install --cask hyla',
   linux: `curl -fsSL ${GITHUB_URL}/releases/latest/download/install.sh | sh`,
 };
 

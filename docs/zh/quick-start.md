@@ -11,6 +11,17 @@ description: 安装 Hyla，打开项目，启动你的第一个智能体会话�
 
 从[发布页面](https://github.com/smallnest/hyla/releases)下载最新版 Hyla。在 macOS 上，将 **Hyla.app** 拖入“应用程序”文件夹；在 Windows 上，运行 **Hyla Setup** 安装程序，无需管理员权限。
 
+也可以用 Homebrew，它会按芯片自动取 Apple Silicon 或 Intel 的磁盘映像：
+
+```sh
+brew tap smallnest/hyla
+brew trust smallnest/hyla
+brew install --cask hyla
+```
+
+这个 cask 在自己的 tap 里，Homebrew 7 对 `homebrew-cask` 之外的 tap 需要信任一次，`brew trust` 就是这一步。
+
+
 在 Windows 上，如果装有 PowerShell 7，会话默认使用它，否则使用 Windows PowerShell；如需其他 shell，例如 `cmd` 或 Git Bash 的 `bash`，可在 **设置 › Shell** 中选择。由于依赖伪控制台，Hyla 需要 Windows 10 1809 或更高版本。
 
 ### 安装命令行工具

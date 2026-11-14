@@ -11,6 +11,17 @@ Install Hyla, open a project, and run your first agent in a session that keeps g
 
 Download the latest Hyla from the [releases page](https://github.com/smallnest/hyla/releases). On macOS, drag **Hyla.app** into your Applications folder; on Windows, run the **Hyla Setup** installer, which needs no administrator rights.
 
+Or with Homebrew, which fetches the Apple Silicon or Intel disk image for you:
+
+```sh
+brew tap smallnest/hyla
+brew trust smallnest/hyla
+brew install --cask hyla
+```
+
+The cask lives in a tap of its own, and Homebrew 7 asks you to trust a tap outside `homebrew-cask` once; `brew trust` is that answer.
+
+
 On Windows, sessions run in PowerShell 7 when it is installed, else Windows PowerShell; choose another shell, such as `cmd` or Git Bash's `bash`, in **Settings › Shell**. Hyla needs Windows 10 1809 or later, for its pseudo consoles.
 
 ### Install the command line tool
