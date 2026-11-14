@@ -467,11 +467,17 @@ func (a *App) sshHostRow(c *ui.Context, pal *palette, i int) {
 		a.connectSSH(i)
 	}
 	row.Children(func() {
-		ui.Icon(c, terminalIcon).Size(14, 14).TextColor(pal.textMuted).Shrink(0)
+		// The machine's mark stands on the row's first line, beside its
+		// name, as an agent's stands beside a session's; the address below
+		// starts under the name, past the mark.
+		mark := func() {
+			ui.Icon(c, terminalIcon).Size(14, 14).TextColor(pal.textMuted).Shrink(0)
+		}
 		top := func() {
 			ui.Text(c, h.Name).FontSize(13).TextColor(pal.text).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
 		}
 		if !detailed {
+			mark()
 			top()
 			ui.Spacer(c)
 			ui.Text(c, h.Addr).Font("monospace").FontSize(12).TextColor(pal.textFaint).SingleLine().Ellipsis("…").Shrink(2).MaxWidth(220)
@@ -479,8 +485,12 @@ func (a *App) sshHostRow(c *ui.Context, pal *palette, i int) {
 			// The name and the address over the row's width, as a detailed
 			// session's row has its name and detail.
 			ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
-				ui.Row(c).Gap(8).AlignItems(ui.Center).Children(top)
-				ui.Text(c, h.Addr).Font("monospace").FontSize(12).TextColor(pal.textFaint).SingleLine().Ellipsis("…").MinWidth(0)
+				ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
+					mark()
+					top()
+				})
+				addr := ui.Text(c, h.Addr).Font("monospace").FontSize(12).TextColor(pal.textFaint).SingleLine().Ellipsis("…").MinWidth(0)
+				addr.Padding(0, 0, 0, 22)
 			})
 		}
 		if s == nil {
