@@ -4,6 +4,12 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.9.1
+
+- Hyla opens on a **default** project: the home folder's, always first in the
+  sidebar, whose sessions start in `~`. Opening Hyla shows its latest session,
+  and starts one when it has none.
+
 ## 3.9.0
 
 - `hyla p2p` is this machine as a host reached by a pair code, and it shows
