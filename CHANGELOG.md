@@ -4,6 +4,11 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.9.2
+
+- Sessions made in the default project start in `~`, whatever directory the
+  caller was in; before, only a caller that named no directory got there.
+
 ## 3.9.1
 
 - Hyla opens on a **default** project: the home folder's, always first in the
