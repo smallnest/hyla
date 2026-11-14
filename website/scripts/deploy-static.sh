@@ -19,6 +19,23 @@ if [ "${1:-}" = "--dry-run" ]; then
 fi
 dest="${1:-rpcx.io:/opt/hyla}"
 
+# An ssh command of its own, for a host that lives in a config file of its
+# own: RSYNC_RSH="ssh -F ~/.ssh/elsewhere" ./scripts/deploy-static.sh host:/dir
+rsh="${RSYNC_RSH:-ssh}"
+
 bun run build
-rsync -az --delete --chmod=D755,F644 $dry dist/client/ "$dest/"
-echo "dist/client -> $dest"
+rsync -az --delete $dry -e "$rsh" dist/client/ "$dest/"
+
+# rsync keeps each file's mode, and a file only its owner can read is a 403
+# from nginx, which runs as another user: make the whole tree readable.
+host="${dest%%:*}"
+dir="${dest#*:}"
+if [ -n "$dry" ]; then
+  echo "dist/client -> $dest (dry run)"
+elif [ "$host" = "$dest" ]; then
+  chmod -R a+rX "$dir"
+  echo "dist/client -> $dest"
+else
+  $rsh "$host" "chmod -R a+rX '$dir'"
+  echo "dist/client -> $dest"
+fi
