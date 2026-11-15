@@ -86,7 +86,8 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
   - Also: where the pet stands is `internal/app/petspot`, which the pet
     window and the pet's drawing read. The Settings search's entries and
     match are `internal/ui/settings/search`; the pages and the actions'
-    titles stay in the root, as the views do.
+    titles stay in the root, as the views do. A worktree's git state in
+    words is `internal/app/gitinfo`.
   - The guard now fails on a package of `internal/` that no layer's
     names hold. It found `buildinfo`, `fileicons` and `profiling` never
     listed.
