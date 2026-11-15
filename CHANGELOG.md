@@ -4,6 +4,16 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.11.1
+
+- A plan's provider named Antigravity wore Gemini's logo in Magpie's card
+  in the Info view; the card now wears the provider's own logo.
+- A picture behind the terminals, with its opacity and how it fills each
+  terminal, moved from Settings › Appearance to Settings › Terminal, under
+  Terminal transparency.
+- A new installation shows the terminals' picture at its full strength:
+  it showed at 60%, dim under the text. The slider still dims it.
+
 ## 3.11.0
 
 - The Tailcat pair code in Settings › Hosts, and `hyla tailcat code`,
