@@ -291,6 +291,13 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     and `view.go`'s sidebar handle; the settings' window and the
     machines' pages share a name with some of these, which take another
     (`AppSettings`, `PickerView`).
+  - Also: a machine's connection is `internal/app/link` — the dial, the
+    state a hylad sends as it comes, its events, the retry, the wait and
+    the reselect. It is of the ui layer, as it reads the hosts' states as
+    the views do. The root keeps `hosts.go`'s lookups and `link_adapters.go`,
+    whose names take the "Now" suffix where the app's own already take
+    theirs (`Local`, `Update`, `ReportView`, `MergeState`, `Reselect`,
+    `DropTerms`), and `Connected` is exported for the test that drives it.
   - The guard now fails on a package of `internal/` that no layer's
     names hold. It found `buildinfo`, `fileicons` and `profiling` never
     listed.

@@ -1,13 +1,10 @@
 package main
 
 import (
-	"errors"
-	"hyla/internal/app/host"
-	"slices"
 	"strings"
-	"time"
 
-	"hyla/internal/client"
+	"hyla/internal/app/host"
+	"hyla/internal/app/link"
 	"hyla/internal/proto"
 	"hyla/internal/settings"
 	"hyla/internal/ui/hostlink"
@@ -35,147 +32,6 @@ func (a *App) hostNamed(name string) *host.Host {
 
 // selectedHost is the host of the session shown: this machine.
 func (a *App) selectedHost() *host.Host { return a.local() }
-
-// connect connects to this machine's hylad, starting it.
-func (a *App) connect() { a.connectHost(a.local()) }
-
-// connectHost connects to hylad: this machine's, or another machine's,
-// over its tcp:// listener.
-func (a *App) connectHost(h *host.Host) {
-	h.Gen++
-	gen := h.Gen
-	if h.Conn != host.StateReady {
-		h.Conn = host.StateConnecting
-	}
-	h.Dialing = true
-	go func() {
-		var cl *client.Client
-		var err error
-		if h.Remote() {
-			cl, err = client.ConnectVia(h.Dialer())
-		} else {
-			cl, err = connectLocal()
-		}
-		a.update(func() { a.connected(h, gen, cl, err) })
-	}()
-}
-
-// connectLocal connects to this machine's hylad, as client.Connect: one of
-// an earlier Hyla, which runs too, is first stopped, as restarting hylad
-// stops it, so that the two do not stop each other. The app stops it
-// without asking: another Hyla's hylad answers this app's clients none,
-// and its sessions would not show.
-func connectLocal() (*client.Client, error) {
-	for i := 0; i < 3; i++ {
-		cl, err := client.Connect(false)
-		if err != nil || !client.Settle(cl.Welcome) {
-			return cl, err
-		}
-		// The next hylad starts as this connection goes.
-		pid := cl.Welcome.PID
-		cl.Close()
-		client.SettleStop(pid)
-	}
-	return client.Connect(false)
-}
-
-// connected takes the result of connectHost.
-func (a *App) connected(h *host.Host, gen int, cl *client.Client, err error) {
-	if h.Gen != gen || !slices.Contains(a.Machines, h) {
-		if cl != nil {
-			go cl.Close()
-		}
-		return
-	}
-	h.Dialing = false
-	if err != nil {
-		h.Client = nil
-		if errors.Is(err, client.ErrVersion) {
-			h.Conn, h.Err = host.StateVersion, ""
-			return
-		}
-		h.Conn, h.Err = host.StateFailed, err.Error()
-		h.Retries++
-		a.retryLater(h)
-		// The session shown last may be of the hylad that failed.
-		if !h.Loaded {
-			a.reselect()
-		}
-		return
-	}
-	h.Client, h.Conn, h.Err, h.Retries = cl, host.StateReady, "", 0
-	h.Hylad = host.ID(cl)
-	h.DaemonApp, h.DaemonFP = cl.Welcome.App, cl.Welcome.Build
-	if !h.Remote() {
-		host.RelaunchFor(h.DaemonApp)
-	}
-	cl.OnEvent(func(m proto.Message) { a.update(func() { a.event(h, cl, m) }) })
-	cl.Go("subscribe", nil, nil)
-	h.ViewSent = nil
-	a.reportView()
-	go func() {
-		<-cl.Done()
-		a.update(func() { a.disconnected(h, cl) })
-	}()
-}
-
-// retryLater connects again after a failure, a few times, as hylad may be
-// starting.
-func (a *App) retryLater(h *host.Host) {
-	gen := h.Gen
-	if h.Retries >= 4 {
-		return
-	}
-	wait := time.Duration(h.Retries) * 400 * time.Millisecond
-	time.AfterFunc(wait, func() {
-		a.update(func() {
-			if h.Gen == gen && h.Conn == host.StateFailed && slices.Contains(a.Machines, h) {
-				a.connectHost(h)
-			}
-		})
-	})
-}
-
-// disconnected follows hylad going away, as when it was restarted: the
-// terminals attached to it are done, and the app connects again.
-func (a *App) disconnected(h *host.Host, cl *client.Client) {
-	if h.Client != cl {
-		return
-	}
-	h.Client = nil
-	h.Conn = host.StateConnecting
-	a.dropTerms(h)
-	// What changed while the app was away tells nothing new.
-	for _, s := range a.sessionsOn(h) {
-		delete(a.Statuses, s.ID)
-	}
-	time.AfterFunc(300*time.Millisecond, func() { a.update(func() { a.reconnect(h) }) })
-}
-
-// reconnect connects again, unless it is.
-func (a *App) reconnect(h *host.Host) {
-	if slices.Contains(a.Machines, h) && h.Client == nil && !h.Dialing {
-		a.connectHost(h)
-	}
-}
-
-// dropTerms lets go of a host's terminals, which attach again as they
-// show.
-func (a *App) dropTerms(h *host.Host) {
-	for id := range a.Terms {
-		if a.hostOf(id) == h {
-			a.dropTerm(id)
-		}
-	}
-}
-
-// mergeState makes st a host's part of the state the app shows.
-func (a *App) mergeState(h *host.Host, st proto.State) {
-	a.St.Projects, a.St.Sessions, a.Owner = hostlink.Merge(a, h, st)
-}
-
-// own records a session the app just made as a host's.
-func (a *App) own(h *host.Host, s proto.Session) { hostlink.Own(a, h, s) }
 
 // sessionsOn returns a host's sessions, in the state the app shows.
 func (a *App) sessionsOn(h *host.Host) []proto.Session {
@@ -251,3 +107,31 @@ func (a *App) reselect() {
 		a.selectSession(ids[0])
 	}
 }
+
+// mergeState makes st a host's part of the state the app shows.
+func (a *App) mergeState(h *host.Host, st proto.State) {
+	a.St.Projects, a.St.Sessions, a.Owner = hostlink.Merge(a, h, st)
+}
+
+// own records a session the app just made as a host's.
+func (a *App) own(h *host.Host, s proto.Session) { hostlink.Own(a, h, s) }
+
+// dropTerms lets go of a host's terminals, which attach again as they
+// show.
+func (a *App) dropTerms(h *host.Host) {
+	for id := range a.Terms {
+		if a.hostOf(id) == h {
+			a.dropTerm(id)
+		}
+	}
+}
+
+// forgetStatuses forgets the statuses the app last saw of a host's
+// sessions.
+func (a *App) forgetStatuses(h *host.Host) {
+	for _, s := range a.sessionsOn(h) {
+		delete(a.Statuses, s.ID)
+	}
+}
+
+func (a *App) connect() { link.Connect(a) }

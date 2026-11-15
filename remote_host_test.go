@@ -12,6 +12,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
+	"hyla/internal/app/link"
 	"hyla/internal/client"
 	"hyla/internal/proto"
 	"hyla/internal/remote"
@@ -111,7 +112,7 @@ func TestRemoteHost(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { cl.Close() })
-	a.connected(h, h.Gen, cl, nil)
+	link.Connected(a, h, h.Gen, cl, nil)
 	var st proto.State
 	if err := cl.Call("state", nil, &st); err != nil {
 		t.Fatal(err)

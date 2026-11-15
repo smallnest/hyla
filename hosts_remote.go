@@ -4,7 +4,9 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/app/host"
+	"hyla/internal/app/link"
 	"hyla/internal/proto"
+	"hyla/internal/ui/hostlink"
 	"hyla/internal/ui/hosts"
 	"hyla/internal/ui/settings/draft"
 	"hyla/internal/ui/theme"
@@ -15,15 +17,10 @@ import (
 // and PaletteSelectSession.
 var _ hosts.App = (*App)(nil)
 
-func (a *App) DropHostTerms(h *host.Host) { a.dropTerms(h) }
-
 // RemoteHosts are the other machines the app reaches.
 func (a *App) RemoteHosts() []hosts.Remote { return a.Prefs.RemoteHosts }
 
 func (a *App) SetRemoteHosts(rs []hosts.Remote) { a.Prefs.RemoteHosts = rs }
-
-// MachinesNow are the hosts the app holds, this machine's first.
-func (a *App) MachinesNow() []*host.Host { return a.Machines }
 
 func (a *App) SetMachines(ms []*host.Host) { a.Machines = ms }
 
@@ -39,9 +36,11 @@ func (a *App) SessionsOf(h *host.Host) []proto.Session { return a.sessionsOn(h) 
 
 func (a *App) ProjectsOf(h *host.Host) []proto.Project { return a.projectsOn(h) }
 
-func (a *App) Connect(h *host.Host) { a.connectHost(h) }
+func (a *App) Connect(h *host.Host) { link.ConnectHost(a, h) }
 
-func (a *App) MergeState(h *host.Host, st proto.State) { a.mergeState(h, st) }
+func (a *App) MergeState(h *host.Host, st proto.State) {
+	a.St.Projects, a.St.Sessions, a.Owner = hostlink.Merge(a, h, st)
+}
 
 func (a *App) Reselect() { a.reselect() }
 
