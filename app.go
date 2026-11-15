@@ -25,6 +25,7 @@ import (
 
 	"hyla/internal/actions"
 	"hyla/internal/adblock"
+	"hyla/internal/app/filepane"
 	configsync "hyla/internal/app/sync"
 	"hyla/internal/client"
 	"hyla/internal/pets"
@@ -139,7 +140,7 @@ type App struct {
 	Selected   string
 	Terms      map[string]*termEntry
 	Webs       map[string]*webEntry // browser panes' pages, by pane
-	Files      filePaneStates       // file panes' files, by pane
+	Files      filepane.Panes       // file panes' files, by pane
 	Ads        adblock.State        // what their pages block
 	Icons      favicons             // and the icons they show
 	Lru        []string
@@ -433,11 +434,7 @@ func (a *App) setState(h *host, st proto.State) {
 			a.dropWeb(id)
 		}
 	}
-	for id := range a.Files {
-		if !live[id] {
-			delete(a.Files, id)
-		}
-	}
+	a.Files.Forget(func(id string) bool { return live[id] })
 	if a.Settings.SessionHistory {
 		a.syncEnded()
 	} else {

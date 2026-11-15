@@ -1,8 +1,7 @@
 package main
 
 import (
-	"bytes"
-	"errors"
+	"hyla/internal/app/filepane"
 	"hyla/internal/platform"
 	"path"
 	"path/filepath"
@@ -92,14 +91,8 @@ type fileView struct {
 	fetched             time.Time
 }
 
-// The viewer bounds a file shown as text, and one shown as an image.
-const (
-	maxView  = 4 << 20
-	maxImage = 32 << 20
-)
-
 // errFilesGone is a file read that is no longer there.
-var errFilesGone = errors.New("no such file")
+var errFilesGone = filepane.ErrGone
 
 // filesKey keys a path of a host.
 func filesKey(h *host, p string) string { return h.name + "\x00" + p }
@@ -493,9 +486,9 @@ func (a *App) loadFile(cl *client.Client, fv *fileView, stamp string) {
 		var st proto.FSStat
 		var data []byte
 		var bm *ui.Bitmap
-		limit := int64(maxView)
+		limit := int64(filepane.MaxView)
 		if image {
-			limit = maxImage
+			limit = filepane.MaxImage
 		}
 		err := cl.Call("fs.stat", proto.FSStatParams{Path: fv.path}, &st)
 		if err == nil && st.Exists && !st.Dir && st.Size <= limit {
@@ -516,7 +509,7 @@ func (a *App) loadFile(cl *client.Client, fv *fileView, stamp string) {
 			fv.err = ""
 			fv.gone = !st.Exists || st.Dir
 			fv.large = !fv.gone && st.Size > limit
-			fv.binary = !fv.gone && !fv.large && !image && isBinary(data)
+			fv.binary = !fv.gone && !fv.large && !image && filepane.IsBinary(data)
 			if fv.gone || fv.large || fv.binary {
 				fv.bm = nil
 				return
@@ -542,12 +535,6 @@ func showFileText(fv *fileView, text string) {
 		return
 	}
 	replaceText(fv.st.Buffer, text)
-}
-
-// isBinary tells a file that isn't text, as git does: a NUL in its first
-// 8000 bytes.
-func isBinary(data []byte) bool {
-	return bytes.IndexByte(data[:min(len(data), 8000)], 0) >= 0
 }
 
 // openFileInPane opens a file in a file pane beside a pane of its host,

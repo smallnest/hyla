@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"hyla/internal/app/filepane"
 	"image"
 	"image/color"
 	"image/png"
@@ -100,7 +101,7 @@ func TestFilesTab(t *testing.T) {
 }
 
 func TestIsBinary(t *testing.T) {
-	if isBinary([]byte("hello\nworld")) || !isBinary([]byte("PNG\x00\x01")) || isBinary(nil) {
+	if filepane.IsBinary([]byte("hello\nworld")) || !filepane.IsBinary([]byte("PNG\x00\x01")) || filepane.IsBinary(nil) {
 		t.Error("isBinary is wrong")
 	}
 }

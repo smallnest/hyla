@@ -1,12 +1,10 @@
 package main
 
 import (
-	"path/filepath"
-	"strings"
-
 	"github.com/egoist/mygo/ui"
 	"github.com/egoist/mygo/ui/editor"
 
+	"hyla/internal/app/filepane"
 	"hyla/internal/proto"
 	"hyla/internal/ui/theme"
 
@@ -17,58 +15,32 @@ import (
 // language, as a terminal shows a program's cells: the daemon keeps the
 // path, and the app reads the file through fs.read as the Files view does.
 
-// filePaneStates are the files shown in file panes, by pane.
-type filePaneStates map[string]*filePane
-
-// filePane is a file pane's: its file, as read, and when it was, which a
-// pane coming back to view reads again once the file is older.
-type filePane struct {
-	path   string
-	st     *editor.State
-	bm     *ui.Bitmap
-	busy   bool
-	binary bool
-	large  bool
-	err    string
-	gen    uint64
-	read   bool // a read was asked for
-	mod    int64
-}
-
-// filePane returns a pane's file state, made as the pane first shows.
-func (a *App) filePaneFor(p *proto.Pane) *filePane {
-	if a.Files == nil {
-		a.Files = filePaneStates{}
-	}
-	f := a.Files[p.ID]
-	if f == nil || f.path != p.File {
-		f = &filePane{path: p.File}
-		a.Files[p.ID] = f
-	}
-	return f
+// filePaneFor returns a pane's file state, made as the pane first shows.
+func (a *App) filePaneFor(p *proto.Pane) *filepane.State {
+	return a.Files.Of(p.ID, p.File)
 }
 
 // filePane shows the file of a file pane, and reads it as it first shows
 // or changes on disk.
 func (a *App) filePane(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane) {
 	f := a.filePaneFor(p)
-	a.readFilePane(p, f)
+	filepane.Read(f, a.hostOf(p.ID).cl, a.update, remoteError)
 	ui.Box(c.Key("body")).Grow(1).MinHeight(0).Children(func() {
 		switch {
-		case f.err != "":
-			a.message(c, pal, locales.FilesCantRead(), f.err, "", nil)
-		case f.binary:
-			a.message(c, pal, locales.FilesBinary(), f.path, "", nil)
-		case f.large:
-			a.message(c, pal, locales.FilesLarge(), f.path, "", nil)
-		case f.busy || f.st == nil && f.bm == nil:
+		case f.Err != "":
+			a.message(c, pal, locales.FilesCantRead(), f.Err, "", nil)
+		case f.Binary:
+			a.message(c, pal, locales.FilesBinary(), f.Path, "", nil)
+		case f.Large:
+			a.message(c, pal, locales.FilesLarge(), f.Path, "", nil)
+		case f.Busy || f.St == nil && f.BM == nil:
 			ui.Column(c).Fill().Center().Children(func() { ui.Spinner(c) })
-		case f.bm != nil:
+		case f.BM != nil:
 			ui.Column(c.Key("image")).Fill().Padding(8).Center().Children(func() {
-				ui.Image(c, f.bm).Shrink(1)
+				ui.Image(c, f.BM).Shrink(1)
 			})
 		default:
-			st := f.st
+			st := f.St
 			st.ReadOnly = true
 			st.SoftWrap = true
 			st.LineNumbers = editor.LineNumbersOn
@@ -80,68 +52,4 @@ func (a *App) filePane(c *ui.Context, pal *theme.Palette, s *proto.Session, p *p
 			}
 		}
 	})
-}
-
-// readFilePane reads a pane's file, once as it opens: a pane shows what
-// the file was then, as a terminal shows what its program printed.
-func (a *App) readFilePane(p *proto.Pane, f *filePane) {
-	h := a.hostOf(p.ID)
-	if h.cl == nil {
-		return
-	}
-	if f.read {
-		return
-	}
-	f.read = true
-	f.busy, f.err = true, ""
-	f.gen++
-	gen, path := f.gen, f.path
-	image := peekable[strings.ToLower(filepath.Ext(path))]
-	cl := h.cl
-	go func() {
-		var st proto.FSStat
-		var r proto.FSRead
-		var bm *ui.Bitmap
-		err := cl.Call("fs.stat", proto.FSStatParams{Path: path}, &st)
-		large := err == nil && (image && st.Size > maxImage || !image && st.Size > maxView)
-		if err == nil && (!st.Exists || st.Dir) {
-			err = errFilesGone
-		}
-		if err == nil && !large {
-			err = cl.Call("fs.read", proto.FSReadParams{Path: path, Max: max(maxImage, maxView)}, &r)
-		}
-		if err == nil && !large && image {
-			bm, err = ui.DecodeBitmap(r.Data)
-		}
-		if err == nil && !large && image && bm == nil {
-			// The host's hylad cannot draw it: its bytes are as good a
-			// view as a text of them.
-			image = false
-		}
-		a.update(func() {
-			if f.gen != gen {
-				return
-			}
-			f.busy = false
-			if err != nil {
-				f.err = remoteError(err)
-				return
-			}
-			f.err = ""
-			f.large, f.binary = large, false
-			switch {
-			case large:
-				f.st, f.bm = nil, nil
-			case image && bm != nil:
-				f.bm, f.st = bm, nil
-			case isBinary(r.Data):
-				f.binary, f.st, f.bm = true, nil, nil
-			default:
-				f.bm = nil
-				b := editor.NewBuffer(string(r.Data))
-				b.SetLanguage(editor.LanguageFor(filepath.Base(path)))
-				f.st = &editor.State{Buffer: b}
-			}
-		})
-	}()
 }
