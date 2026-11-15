@@ -20,10 +20,6 @@ func (a *App) FocusOf(s *proto.Session) string { return a.focusOf(s) }
 
 func (a *App) Scroll() *ui.ScrollState { return &a.Side.info.scroll }
 
-func (a *App) SideMessage(c *ui.Context, pal *theme.Palette, title, detail string) {
-	a.sideMessage(c, pal, title, detail)
-}
-
 func (a *App) Folded() map[string]bool {
 	if a.Prefs.InfoFolded == nil {
 		a.Prefs.InfoFolded = map[string]bool{}

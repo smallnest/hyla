@@ -127,6 +127,11 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     `internal/app/browse`, in the daemon layer, as they drive a page;
     the root keeps `automate.go` as its adapters, and the entries'
     loads.
+  - Also: the side panel's Changes view is `internal/ui/changesview` —
+    its state and the files' diffs, the bases it lists since, the
+    reading of a file's text, and the folding, the side-by-side layout
+    and the Revert and Keep of a turn's changes. The root keeps the
+    panel's shell, which holds the state.
   - Also: the Chat view is `internal/ui/chat` — a session's windows,
     their reads (`feishu.feed`) and the lines. The root keeps the state
     in the side panel's struct, and `chat.go` as its adapters.

@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/egoist/mygo/ui"
-	"github.com/egoist/mygo/ui/editor"
 
 	"hyla/internal/app/host"
 	"hyla/internal/proto"
@@ -36,8 +35,6 @@ func (a *App) OpenFileInPane(pane, file string) { files.OpenFileInPane(a, pane, 
 func (a *App) OpenFileInEditor(pane, file string) { files.OpenFileInEditor(a, pane, file) }
 
 func (a *App) TermFamily() string { return a.termFamily() }
-
-func (a *App) CodeTheme(c *ui.Context, pal *theme.Palette) *editor.Theme { return a.codeTheme(c, pal) }
 
 func (a *App) FontSize() float32 { return a.settingsIn.FontSize }
 

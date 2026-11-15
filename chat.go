@@ -55,9 +55,4 @@ func (a *App) chatBody(c *ui.Context, pal *theme.Palette, s *proto.Session) {
 	chat.Body(a, c, pal, s)
 }
 
-// Message is the view's, as it has nothing to show.
-func (a *App) Message(c *ui.Context, pal *theme.Palette, title, detail string) {
-	a.sideMessage(c, pal, title, detail)
-}
-
 var _ = locales.ChatNothing

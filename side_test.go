@@ -14,6 +14,7 @@ import (
 
 	"hyla/internal/git"
 	"hyla/internal/proto"
+	"hyla/internal/ui/changesview"
 	"hyla/internal/ui/paints"
 	uisettings "hyla/internal/ui/settings"
 )
@@ -34,15 +35,15 @@ func TestSidePanel(t *testing.T) {
 
 	// What hylad would answer.
 	ch := &a.Side.changes
-	turnScope := changesScope(&s.Panes[0], git.BaseTurn)
-	ch.base, ch.scope, ch.stamp = git.BaseTurn, turnScope, paints.Stamp(g)+"|abc"
-	ch.res = &proto.GitChanges{Root: "/tmp/demo", Files: []proto.GitFile{
+	turnScope := changesview.Scope(&s.Panes[0], git.BaseTurn)
+	ch.Base, ch.Scope, ch.Stamp = git.BaseTurn, turnScope, paints.Stamp(g)+"|abc"
+	ch.Res = &proto.GitChanges{Root: "/tmp/demo", Files: []proto.GitFile{
 		{Path: "internal/auth/login.go", Status: "modified", Added: 30, Removed: 2},
 		{Path: "internal/auth/login_test.go", Status: "added", Added: 10},
 		{Path: "docs/old.md", Status: "deleted", Removed: 12},
 	}}
-	ch.fetched = time.Now()
-	ch.lists = map[string]*proto.GitChanges{}
+	ch.Fetched = time.Now()
+	ch.Lists = map[string]*proto.GitChanges{}
 
 	tt := ui.NewTester(a.view, 1280, 720)
 	tt.Frame()
@@ -55,7 +56,7 @@ func TestSidePanel(t *testing.T) {
 
 	// Another base: the list stays, faded, while its own comes, and one
 	// fetched before shows at once.
-	ch.base = git.BaseHead
+	ch.Base = git.BaseHead
 	tt.Frame()
 	if !tt.HasText("login.go") {
 		t.Errorf("the list blinked away as the base changed; texts %q", tt.Texts())
@@ -65,8 +66,8 @@ func TestSidePanel(t *testing.T) {
 	if tt.HasText("login.go") {
 		t.Error("another base's list stayed past a moment")
 	}
-	ch.lists[turnScope] = ch.res
-	ch.base = git.BaseTurn
+	ch.Lists[turnScope] = ch.Res
+	ch.Base = git.BaseTurn
 	tt.Frame()
 	if !tt.HasText("login.go") {
 		t.Errorf("a list fetched before didn't show at once; texts %q", tt.Texts())
@@ -74,7 +75,7 @@ func TestSidePanel(t *testing.T) {
 
 	// Each file is its header, then its diff, in one scroll: none opens
 	// on its own.
-	sf := ch.files[turnScope+"|internal/auth/login.go"]
+	sf := ch.Files[turnScope+"|internal/auth/login.go"]
 	if sf == nil {
 		t.Fatal("no diff kept for login.go")
 	}
@@ -83,7 +84,7 @@ func TestSidePanel(t *testing.T) {
 		New:  "package auth\n\nimport \"errors\"\n\n// Login signs a user in.\nfunc Login(user, password string) error {\n\tif password == \"\" {\n\t\treturn errors.New(\"no password\")\n\t}\n\treturn nil\n}\n",
 		Hash: "h1",
 	})
-	if test := ch.files[turnScope+"|internal/auth/login_test.go"]; test != nil {
+	if test := ch.Files[turnScope+"|internal/auth/login_test.go"]; test != nil {
 		a.showText(test, proto.GitText{New: "package auth\n\nfunc TestLogin(t *testing.T) {}\n", Hash: "h2"})
 	}
 	tt.Frame()
@@ -94,14 +95,14 @@ func TestSidePanel(t *testing.T) {
 			t.Errorf("no %q among the files and diffs; texts %q", want, tt.Texts())
 		}
 	}
-	if n := len(sf.d.Hunks()); n == 0 {
+	if n := len(sf.D.Hunks()); n == 0 {
 		t.Error("the diff shows no changes")
 	}
 	shot(t, tt, "side-file")
 
 	// The text changing on disk changes the diff in place.
 	a.showText(sf, proto.GitText{Old: "package auth\n", New: "package auth\n\n// More.\n", Hash: "h3"})
-	if got := sf.d.New.String(); got != "package auth\n\n// More.\n" {
+	if got := sf.D.New.String(); got != "package auth\n\n// More.\n" {
 		t.Errorf("the new text is %q", got)
 	}
 
@@ -113,7 +114,7 @@ func TestSidePanel(t *testing.T) {
 	a.showText(sf, proto.GitText{Old: "package auth\n", New: long, Hash: "h4"})
 	tt.Frame()
 	tt.Frame()
-	ls := ch.places[turnScope]
+	ls := ch.Places[turnScope]
 	top, _ := tt.Find("login.go")
 	if pinned(tt, ls, "login.go", top.Y) {
 		t.Error("login.go's header pinned at the top before any scroll")
@@ -140,12 +141,12 @@ func TestSidePanel(t *testing.T) {
 	}
 	tt.ClickAt(hdr.X+hdr.W/2, hdr.Y+hdr.H/2)
 	tt.Frame()
-	if !a.fileCollapsed(turnScope, ch.res.Files[0]) {
+	if !a.fileCollapsed(turnScope, ch.Res.Files[0]) {
 		t.Error("a click didn't fold login.go")
 	}
 	tt.ClickAt(hdr.X+hdr.W/2, hdr.Y+hdr.H/2)
 	tt.Frame()
-	if a.fileCollapsed(turnScope, ch.res.Files[0]) {
+	if a.fileCollapsed(turnScope, ch.Res.Files[0]) {
 		t.Error("a second click didn't unfold login.go")
 	}
 	tt.SetDark(true)
@@ -211,34 +212,34 @@ func TestChangesFollowWorktree(t *testing.T) {
 	s.Panes[0].Git, s.Panes[1].Git = g, g
 	a.Prefs.Side = sideChanges
 	ch := &a.Side.changes
-	scope := changesScope(&s.Panes[0], git.BaseHead)
-	if scope != changesScope(&s.Panes[1], git.BaseHead) {
+	scope := changesview.Scope(&s.Panes[0], git.BaseHead)
+	if scope != changesview.Scope(&s.Panes[1], git.BaseHead) {
 		t.Fatal("two panes of one worktree list different changes")
 	}
-	ch.base, ch.scope, ch.stamp = git.BaseHead, scope, paints.Stamp(g)
-	ch.res = &proto.GitChanges{Root: "/tmp/demo"}
+	ch.Base, ch.Scope, ch.Stamp = git.BaseHead, scope, paints.Stamp(g)
+	ch.Res = &proto.GitChanges{Root: "/tmp/demo"}
 	for i := range 40 {
-		ch.res.Files = append(ch.res.Files, proto.GitFile{Path: fmt.Sprintf("f%02d.go", i), Status: "modified", Added: 10})
+		ch.Res.Files = append(ch.Res.Files, proto.GitFile{Path: fmt.Sprintf("f%02d.go", i), Status: "modified", Added: 10})
 	}
-	ch.fetched = time.Now()
+	ch.Fetched = time.Now()
 	tt := ui.NewTester(a.view, 1280, 720)
 	tt.Frame()
 	tt.Frame()
 	r, _ := tt.Find("f00.go")
 	tt.Scroll(r.X, r.Y, 0, 300)
 	tt.Frame()
-	switched := ch.switched
+	switched := ch.Switched
 	at, _ := tt.Find("f05.go")
-	first, _ := ch.places[scope].Visible()
+	first, _ := ch.Places[scope].Visible()
 
 	a.Focus[s.ID], s.Focus = "b", "b"
 	tt.Frame()
 	tt.Frame()
-	if ch.shown != scope || ch.switched != switched {
-		t.Errorf("focusing the other pane showed another list: %q", ch.shown)
+	if ch.Shown != scope || ch.Switched != switched {
+		t.Errorf("focusing the other pane showed another list: %q", ch.Shown)
 	}
 	now, _ := tt.Find("f05.go")
-	if f, _ := ch.places[scope].Visible(); f != first || now.Y != at.Y {
+	if f, _ := ch.Places[scope].Visible(); f != first || now.Y != at.Y {
 		t.Errorf("focusing the other pane scrolled the list from row %d at %v to row %d at %v", first, at.Y, f, now.Y)
 	}
 }
@@ -261,21 +262,21 @@ func TestStickyHeaderStaysInList(t *testing.T) {
 	s.Panes[0].Git, s.Panes[1].Git = g, g
 	a.Prefs.Side = sideChanges
 	ch := &a.Side.changes
-	scope := changesScope(&s.Panes[0], git.BaseHead)
-	ch.base, ch.scope, ch.stamp = git.BaseHead, scope, paints.Stamp(g)
-	ch.res = &proto.GitChanges{Root: "/tmp/demo"}
+	scope := changesview.Scope(&s.Panes[0], git.BaseHead)
+	ch.Base, ch.Scope, ch.Stamp = git.BaseHead, scope, paints.Stamp(g)
+	ch.Res = &proto.GitChanges{Root: "/tmp/demo"}
 	for _, n := range []string{"a.go", "b.go", "c.go"} {
-		ch.res.Files = append(ch.res.Files, proto.GitFile{Path: n, Status: "added", Added: 20})
+		ch.Res.Files = append(ch.Res.Files, proto.GitFile{Path: n, Status: "added", Added: 20})
 	}
-	ch.fetched = time.Now()
+	ch.Fetched = time.Now()
 	tt := ui.NewTester(a.view, 1280, 500)
 	tt.Frame()
-	for _, f := range ch.res.Files {
+	for _, f := range ch.Res.Files {
 		var b strings.Builder
 		for i := range 20 {
 			fmt.Fprintf(&b, "var %s%d = %d\n", f.Path[:1], i, i)
 		}
-		a.showText(ch.files[scope+"|"+f.Path], proto.GitText{New: b.String(), Hash: f.Path})
+		a.showText(ch.Files[scope+"|"+f.Path], proto.GitText{New: b.String(), Hash: f.Path})
 	}
 	for range 4 {
 		tt.Frame()
@@ -324,14 +325,14 @@ func TestStickyHeaderAsFoldShortensList(t *testing.T) {
 	s.Panes[0].Git, s.Panes[1].Git = g, g
 	a.Prefs.Side = sideChanges
 	ch := &a.Side.changes
-	scope := changesScope(&s.Panes[0], git.BaseHead)
-	ch.base, ch.scope, ch.stamp = git.BaseHead, scope, paints.Stamp(g)
-	ch.res = &proto.GitChanges{Root: "/tmp/demo"}
+	scope := changesview.Scope(&s.Panes[0], git.BaseHead)
+	ch.Base, ch.Scope, ch.Stamp = git.BaseHead, scope, paints.Stamp(g)
+	ch.Res = &proto.GitChanges{Root: "/tmp/demo"}
 	names := []string{"a.go", "b.go", "c.go"}
 	for _, n := range names {
-		ch.res.Files = append(ch.res.Files, proto.GitFile{Path: n, Status: "added", Added: 60})
+		ch.Res.Files = append(ch.Res.Files, proto.GitFile{Path: n, Status: "added", Added: 60})
 	}
-	ch.fetched = time.Now()
+	ch.Fetched = time.Now()
 	var tt *ui.Tester
 	var top ui.Rect
 	// The file whose header shows at the top of the list.
@@ -352,18 +353,18 @@ func TestStickyHeaderAsFoldShortensList(t *testing.T) {
 		a.view(c)
 	}, 1280, 700)
 	tt.Frame()
-	for _, f := range ch.res.Files {
+	for _, f := range ch.Res.Files {
 		var b strings.Builder
 		for i := range 60 {
 			fmt.Fprintf(&b, "var %s%d = %d\n", f.Path[:1], i, i)
 		}
-		a.showText(ch.files[scope+"|"+f.Path], proto.GitText{New: b.String(), Hash: f.Path})
+		a.showText(ch.Files[scope+"|"+f.Path], proto.GitText{New: b.String(), Hash: f.Path})
 	}
 	for range 4 {
 		tt.Frame()
 	}
 	top, _ = tt.Find("a.go")
-	ch.places[scope].ScrollToEnd()
+	ch.Places[scope].ScrollToEnd()
 	for range 4 {
 		tt.Frame()
 	}
@@ -377,7 +378,7 @@ func TestStickyHeaderAsFoldShortensList(t *testing.T) {
 	}
 	recording = false
 	stuck = append(stuck, atTop())
-	if !a.fileCollapsed(scope, ch.res.Files[2]) {
+	if !a.fileCollapsed(scope, ch.Res.Files[2]) {
 		t.Fatal("a click on the header at the top didn't fold c.go")
 	}
 	for i, f := range stuck {
