@@ -52,6 +52,14 @@ type App interface {
 	EndSessionsAndQuit()
 	// SessionsOn are a host's sessions, as EndSessions closes each.
 	SessionsOn(h *host.Host) []proto.Session
+	// Restarting tells that this machine's host connects again, and
+	// StopDaemon stops hylad: its error says why it did not.
+	Restarting()
+	StopDaemon() error
+	// RestartEnded says how it went: the host connects again, or shows why
+	// it did not.
+	RestartEnded(err error)
+	UpdateNow(fn func())
 }
 
 // Requested answers a quit: true lets it go, false takes it back. It ends
@@ -145,6 +153,17 @@ func EndsSession(a App) {
 	if cl != nil {
 		cl.Close()
 	}
+}
+
+// Daemon restarts this machine's hylad, as when it is of another version:
+// its sessions start again where they were, with their scrollback. The
+// stop waits off the main thread.
+func Daemon(a App) {
+	a.Restarting()
+	go func() {
+		err := a.StopDaemon()
+		a.UpdateNow(func() { a.RestartEnded(err) })
+	}()
 }
 
 // QuitNow quits: the daemon may take its time ending the sessions, so the

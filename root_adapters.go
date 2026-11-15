@@ -168,3 +168,18 @@ func (a *App) ArmQuitTimer() { a.armQuitTimer() }
 func (a *App) EndSessionsAndQuit() { a.endSessionsAndQuit() }
 
 func (a *App) SessionsOn(h *host.Host) []proto.Session { return a.sessionsOn(h) }
+
+// The restart's steps, as a quit's restart asks them.
+func (a *App) Restarting() { a.local().Conn = host.StateConnecting }
+
+func (a *App) StopDaemon() error { return stopDaemon() }
+
+func (a *App) RestartEnded(err error) {
+	h := a.local()
+	if err != nil {
+		h.Conn, h.Err = host.StateFailed, err.Error()
+		a.toast(locales.HostRestartFailed(err.Error()))
+		return
+	}
+	a.connect()
+}

@@ -1805,24 +1805,8 @@ func (a *App) restartFeishu() {
 	a.callOn(a.local(), "feishu.restart", p, nil)
 }
 
-// restartDaemon restarts this machine's hylad, as when it is of another
-// version: its sessions start again where they were, with their
-// scrollback.
-func (a *App) restartDaemon() {
-	h := a.local()
-	h.Conn = host.StateConnecting
-	go func() {
-		err := stopDaemon()
-		a.update(func() {
-			if err != nil {
-				h.Conn, h.Err = host.StateFailed, err.Error()
-				a.toast(locales.HostRestartFailed(err.Error()))
-				return
-			}
-			a.connect()
-		})
-	}()
-}
+// restartDaemon restarts this machine's hylad.
+func (a *App) restartDaemon() { quit.Daemon(a) }
 
 // quitAndEnd ends every session of this machine, and its hylad, then
 // quits: other machines' keep running.
