@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"hyla/internal/app/gitinfo"
 	"hyla/internal/platform"
 	"math"
 	"runtime"
@@ -837,9 +838,9 @@ func (a *App) sessionRow(c *ui.Context, pal *theme.Palette, s *proto.Session, n 
 	if s.Message != "" {
 		tip = s.Message + "\n" + tip
 	}
-	g := sessionGit(s)
+	g := gitinfo.Session(s)
 	if g != nil {
-		tip += "\n" + gitSummary(g)
+		tip += "\n" + gitinfo.Summary(g)
 	}
 	pointerTooltip(c, row, "tip-"+s.ID, tip)
 	// The mark of the agent the session runs, before its name, in the
@@ -948,7 +949,7 @@ func (a *App) sessionRow(c *ui.Context, pal *theme.Palette, s *proto.Session, n 
 			ui.Text(c, k8sCmd).Font("monospace").FontSize(12).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").Shrink(3).MinWidth(24).MaxWidth(220)
 		}
 		// A branch of its own, as an agent's in a worktree, by the name.
-		if b := offBranch(g); b != "" {
+		if b := gitinfo.OffBranch(g); b != "" {
 			ui.Text(c, b).FontSize(12).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").Shrink(3).MinWidth(24).MaxWidth(120)
 		}
 		// Without project headers, the project says which list it is.
@@ -999,7 +1000,7 @@ func rowDetail(s *proto.Session, g *proto.GitInfo, dir string) (line string, msg
 		return strings.Join(strings.Fields(s.Message), " "), true
 	}
 	if g != nil {
-		return gitSummary(g), false
+		return gitinfo.Summary(g), false
 	}
 	return dir, false
 }

@@ -93,6 +93,7 @@ var Layers = []Layer{
 		Package: []string{
 			"hyla/internal/actions",
 			"hyla/internal/adblock",
+			"hyla/internal/app/gitinfo",
 			"hyla/internal/app/magpie",
 			"hyla/internal/app/petspot",
 			"hyla/internal/app/sync",
@@ -240,6 +241,7 @@ var layerNames = map[string]string{
 	"hyla/internal/actions":            "base",
 	"hyla/internal/adblock":            "base",
 	"hyla/internal/app/filepane":       "daemon",
+	"hyla/internal/app/gitinfo":        "engine",
 	"hyla/internal/app/magpie":         "engine",
 	"hyla/internal/app/paneinfo":       "daemon",
 	"hyla/internal/app/petspot":        "engine",
