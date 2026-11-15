@@ -95,7 +95,8 @@ type State struct {
 	Confirm         *confirm.Ask                    // a question, asked in this window
 
 	// The forms the root keeps keep their drafts here.
-	Tailcat draft.TailcatDraft // the Tailcat machines' form
+	Tailcat draft.TailcatDraft // the Tailcat form
+	P2P     draft.P2PDraft     // the P2P form
 	TCHost  draft.TCHostDraft  // the machines reached by a pair code
 	Remote  draft.HostDraft    // the other machines' form
 	Feishu  draft.FeishuDraft  // the Feishu page's form

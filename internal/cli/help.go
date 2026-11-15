@@ -219,7 +219,7 @@ var commands = []command{
 	},
 
 	{
-		name: "tailcat", aliases: []string{"p2p"}, group: "machine",
+		name: "tailcat", group: "machine",
 		summary: "peer-to-peer access, by pair code",
 		usage: `hyla tailcat status|enable [port]|disable|port <port>|rotate|code
     status                      whether hylad listens, on which port and with
@@ -231,6 +231,19 @@ var commands = []command{
     code                        print the pair code (secret)
     tailcat is WireGuard between two machines, a relay only to find each
     other; the machines reached by an address and a password are p2p`,
+	},
+	{
+		name: "p2p", group: "machine",
+		summary: "reach this machine on its network, by address and password",
+		usage: `hyla p2p status|enable [port]|disable|port <port>|password
+    status                      whether hylad listens, on which port, by
+                                which addresses and with which password
+    enable [port]               listen on this machine's network (default
+                                port 7473), making a password if none
+    disable                     stop listening
+    port <port>                 move the listener
+    password                    a new password, and print it (secret)
+    the other way to reach a machine is hyla tailcat, by a pair code`,
 	},
 	{
 		name: "pocket", group: "machine",
@@ -520,7 +533,8 @@ var subcommands = map[string][]string{
 	"daemon":      {"status", "stop", "restart", "update", "serve", "install-service", "uninstall-service"},
 	"config":      {"path", "show", "edit", "check"},
 	"pocket":      {"enable", "disable", "code", "qr", "tcp", "addr", "token"},
-	"tailcat":     {"enable", "disable", "port", "rotate", "code"},
+	"tailcat":     {"status", "enable", "disable", "port", "rotate", "code"},
+	"p2p":         {"status", "enable", "disable", "port", "password"},
 	"pets":        {"ls", "install", "use", "rm"},
 	"skill":       {"setup", "status", "show", "remove"},
 	"feishu":      {"setup", "status"},

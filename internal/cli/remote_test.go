@@ -74,3 +74,42 @@ func TestHostsTailcat(t *testing.T) {
 		t.Fatalf("key file %v, %v", st, err)
 	}
 }
+
+// `hyla p2p` turns this machine's network listener on and off, and makes
+// its password, in the settings file it reads: it is not hyla tailcat's
+// pair code.
+func TestHostsP2P(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HYLA_HOME", home)
+	t.Setenv("HYLA_CONFIG", filepath.Join(home, "config"))
+	if err := settings.Save(settings.Load()); err != nil {
+		t.Fatal(err)
+	}
+	if err := p2pCmd([]string{"enable", "7401"}); err != nil {
+		t.Fatal(err)
+	}
+	set := settings.Load()
+	if l, port, ok := set.TCPListen(); !ok || l != "tcp://:7401" || port != "7401" {
+		t.Fatalf("listen %q", set.Listen)
+	}
+	if _, _, ok := set.TailcatListen(); ok {
+		t.Errorf("hyla p2p made a tailcat listener: %q", set.Listen)
+	}
+	if token := set.ListenToken; token == "" {
+		t.Error("no password")
+	} else if err := p2pCmd([]string{"password"}); err != nil {
+		t.Fatal(err)
+	} else if next := settings.Load().ListenToken; next == "" || next == token {
+		t.Errorf("a new password is %q, the old was %q", next, token)
+	}
+	if err := p2pCmd([]string{"port", "http"}); err == nil {
+		t.Error("a bad port")
+	}
+	if err := p2pCmd([]string{"disable"}); err != nil {
+		t.Fatal(err)
+	}
+	set = settings.Load()
+	if _, _, ok := set.TCPListen(); ok {
+		t.Errorf("listen %q", set.Listen)
+	}
+}

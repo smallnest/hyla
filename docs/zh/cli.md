@@ -223,18 +223,24 @@ hyla feishu send <会话> <文字…>   # 按会话 ID 发送一条消息
 
 另一台机器就是 SSH 项目里的一个会话：在边栏的 **+** 菜单里加进来，`ssh` 跑在窗格里，CLI 像对待其他会话一样驱动它（`hyla ls` 列出它，`hyla send` 往里面输入）。在窗格里，`hyla` 与窗格所连的 hylad 通信。
 
-这台机器作为主机，凭配对码被别人点对点连上：
+这台机器作为主机，有两种连法：
 
 ```sh
-hyla p2p status                  # 开没开、端口、配对码
-hyla p2p enable 7400             # 在 7400 端口上监听
+hyla tailcat status              # 开没开、端口、配对码
+hyla tailcat enable 7400         # 经中继在 7400 端口上监听
+hyla tailcat port 7473           # 换端口
+hyla tailcat rotate              # 换一把密钥，换一个配对码
+hyla tailcat code                # 只打印配对码（机密）
+hyla tailcat disable
+
+hyla p2p status                  # 开没开、端口、地址、密码
+hyla p2p enable 7400             # 在本网络上监听 7400 端口
 hyla p2p port 7473               # 换端口
-hyla p2p rotate                  # 换一把密钥，换一个配对码
-hyla p2p code                    # 只打印配对码（机密）
+hyla p2p password                # 换一个密码（机密）
 hyla p2p disable
 ```
 
-`hyla tailcat` 是同一条命令，用的是承载它的库的名字：两台机器之间走 WireGuard，中继只负责找到彼此。
+`hyla tailcat` 凭配对码连上这台机器：两台机器之间走 WireGuard，中继只负责找到彼此。`hyla p2p` 则在本网络上凭地址和密码连上它。配对码不是密码，每条命令只打印自己的。
 
 手机：
 

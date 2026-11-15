@@ -20,6 +20,10 @@ number; the notes of the upstream releases it includes follow its own.
   code over Tailcat, and an address with a password. They share one
   listener, but each command said `p2p:` and pointed at `hyla p2p`: now
   each says its own name.
+- `hyla p2p` still printed the Tailcat listener and its pair code, because
+  it ran `hyla tailcat`. It now runs the `tcp://` listener: `status`
+  prints its addresses and password, and `enable`, `disable`, `port` and
+  `password` change it. A tailcat listener is `hyla tailcat` only.
 - Settings › Remote Connection › P2P calls the machines reached by an
   address and a password P2P, and only the pair-code group Tailcat.
 

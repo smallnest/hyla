@@ -152,9 +152,10 @@ type Settings struct {
 	// ListenToken, the password its clients carry.
 	Listen      []string `json:"listen,omitempty"`
 	ListenToken string   `json:"listenToken,omitempty"`
-	// Tailcat is hylad's tailcat listener, which serves HylaPocket: off,
-	// it starts none, and the app shows no pair code. TailcatRelay is the
-	// DERP map where tailcat finds relays: "" for
+	// Tailcat is the tailcat way, hyla tailcat's, apart from the tcp://
+	// one, hyla p2p's: off, hyla tailcat makes no listener and the app
+	// shows no pair code, and the tcp:// listener stays. TailcatRelay is
+	// the DERP map where tailcat finds relays: "" for
 	// remote.DefaultDERPMapURL, Tailscale's public ones.
 	Tailcat      bool   `json:"tailcat"`
 	TailcatRelay string `json:"tailcatRelay,omitempty"`

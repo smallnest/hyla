@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/tailscale/tailcat"
-	"tailscale.com/wgengine/filter"
 )
 
 // A tailcat listener (tailcat.go) for hylad: a Tailcat server that hylad's
@@ -138,9 +137,11 @@ func ListenTailcat(ctx context.Context, path, port string) (*TailcatRelay, error
 			}
 			return func(c net.Conn) { c.Close() }
 		},
-		// The port among them, as the filter admits the ports a server
-		// serves and not ONTCP's every one.
-		ServedTCPPorts: []filter.PortRange{{First: pocketPort, Last: pocketPort}},
+		// No ServedTCPPorts: the filter admits every port to OnTCP as it
+		// signs the handshake, and the port goes away from it. The
+		// listeners take their own ports when Listen runs, so a
+		// ServedTCPPorts set now would leave one of them out, and its
+		// SYN would go unanswered.
 	}
 	ln, err := s.Listen(ctx, "tcp", ":"+strconv.FormatUint(n, 10))
 	if err != nil {

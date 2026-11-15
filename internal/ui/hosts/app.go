@@ -43,8 +43,8 @@ type App interface {
 	HostState(c *ui.Context, pal *theme.Palette, h *host.Host)
 	// SetConfirm asks the app's confirmation.
 	SetConfirm(a *confirm.Ask)
-	// HostDraft, PairCodeDraft and P2PDraft are the forms' drafts, and
-	// SettingsNow are the settings the pages change.
+	// HostDraft, PairCodeDraft, TailcatDraft and P2PDraft are the forms'
+	// drafts, and SettingsNow are the settings the pages change.
 	SettingsNow() *settings.Settings
 	SetSettingsNow(s settings.Settings)
 	// Update runs fn on the main thread, and Toast tells a failure.
@@ -52,6 +52,7 @@ type App interface {
 	Toast(msg string)
 	HostDraft() *draft.HostDraft
 	PairCodeDraft() *draft.TCHostDraft
-	P2PDraft() *draft.TailcatDraft
-	TCPListen(c *ui.Context, pal *theme.Palette, d *draft.TailcatDraft)
+	TailcatDraft() *draft.TailcatDraft
+	P2PDraft() *draft.P2PDraft
+	TCPListen(c *ui.Context, pal *theme.Palette, d *draft.P2PDraft)
 }

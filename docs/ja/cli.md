@@ -224,18 +224,24 @@ Feishu のチャットは、結び付いたセッションのコーディング�
 
 別のマシンは SSH プロジェクトのセッションです。サイドバーの **+** メニューで追加し、ペインでは `ssh` が動き、CLI は他のセッションと同じに扱います（`hyla ls` に出て、`hyla send` で入力できます）。ペインの中の `hyla` は、そのペインが繋ぐ hylad と話します。
 
-このマシンをホストにし、ペアコードでピアツーピアに繋がせます:
+このマシンをホストにし、二つの方法で繋がせます:
 
 ```sh
-hyla p2p status                  # 有効か、ポート、ペアコード
-hyla p2p enable 7400             # 7400 番で待ち受ける
+hyla tailcat status              # 有効か、ポート、ペアコード
+hyla tailcat enable 7400         # リレー経由で 7400 番で待ち受ける
+hyla tailcat port 7473           # ポートを変える
+hyla tailcat rotate              # 鍵とペアコードを作り直す
+hyla tailcat code                # ペアコードだけ（秘密）
+hyla tailcat disable
+
+hyla p2p status                  # 有効か、ポート、アドレス、パスワード
+hyla p2p enable 7400             # このネットワークで 7400 番で待ち受ける
 hyla p2p port 7473               # ポートを変える
-hyla p2p rotate                  # 鍵とペアコードを作り直す
-hyla p2p code                    # ペアコードだけ（秘密）
+hyla p2p password                # 新しいパスワード（秘密）
 hyla p2p disable
 ```
 
-`hyla tailcat` は同じコマンドです（運ぶライブラリの名前）: 二台の間は WireGuard、リレーは互いを見つけるためだけ。
+`hyla tailcat` はペアコードでこのマシンに繋がります: 二台の間は WireGuard、リレーは互いを見つけるためだけ。`hyla p2p` はこのネットワークでアドレスとパスワードで繋がります。ペアコードはパスワードではなく、各コマンドは自分のものだけを表示します。
 
 スマートフォン:
 

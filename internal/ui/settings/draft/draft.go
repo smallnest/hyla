@@ -10,13 +10,11 @@ import (
 
 // The forms the root draws keep their drafts here, with the window's.
 
-// TailcatDraft is the Tailcat machines' form: this machine as a host, and
-// its pair code.
+// TailcatDraft is the Tailcat form: this machine as a host over a relay,
+// and its pair code.
 type TailcatDraft struct {
-	ListenPort string // this machine's listener's, while a host
+	ListenPort string // this machine's tailcat listener's, while a host
 	Relay      string
-	TCPAddr    string       // the network listener's address, "" for every
-	TCPToken   string       // its password, as listen-token keeps it
 	Err        TailcatField // the field that failed, and why
 	Code       string       // this machine's pair code, as hylad's key makes it
 	CodeErr    string       // why there is none, as a failure
@@ -24,6 +22,15 @@ type TailcatDraft struct {
 	At         time.Time    // when the key was last read, or rotated
 	Copied     time.Time
 	Looking    bool
+}
+
+// P2PDraft is the P2P form: this machine on its network, by an address
+// and a password.
+type P2PDraft struct {
+	Addr   string       // the network listener's address, "" for every
+	Token  string       // its password, as listen-token keeps it
+	Err    TailcatField // the field that failed, and why
+	Copied time.Time
 }
 
 // TCHostDraft is the form that adds a machine by its tailcat pair code.
@@ -58,8 +65,8 @@ type FeishuDraft struct {
 	St      proto.FeishuState // the bot's state, as hylad tells it
 }
 
-// TailcatField is a field of the Tailcat form that failed: which, as its
-// key, and why.
+// TailcatField is a field of the Tailcat or P2P form that failed: which,
+// as its key, and why.
 type TailcatField struct {
 	Key, Err string
 }

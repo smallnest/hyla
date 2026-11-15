@@ -6,6 +6,9 @@ import (
 	"encoding/json"
 	"io"
 	"net"
+	"os"
+	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -16,8 +19,10 @@ import (
 	"hyla/internal/client"
 	"hyla/internal/proto"
 	"hyla/internal/remote"
+	"hyla/internal/settings"
 	"hyla/internal/ui/hosts"
 	uisettings "hyla/internal/ui/settings"
+	"hyla/internal/ui/settings/kit"
 )
 
 // aRemoteHylad answers as another machine's hylad at a tcp:// listener:
@@ -240,4 +245,122 @@ func TestAddRemoteHost(t *testing.T) {
 			t.Errorf("%+v was taken", c)
 		}
 	}
+}
+
+// Settings › Hosts keeps this machine's two listeners apart: each form
+// draws its own listener's port and secret, never the other's, and the
+// tailcat switch off leaves the tcp listener as it was.
+func TestHostsListenersApart(t *testing.T) {
+	home, err := os.MkdirTemp("", "hyla-hosts-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("HYLA_HOME", home)
+	t.Setenv("HYLA_CONFIG", filepath.Join(home, "config"))
+	t.Cleanup(func() { os.RemoveAll(home) })
+	a := testApp(t)
+	a.Ss.Page = "hosts"
+	settings.Reload()
+	set := settings.Load()
+	set.Listen = nil
+	set.SetTCPListen("", "7401")
+	set.SetTailcatListen("7402")
+	set.ListenToken = "s3cret-pass"
+	set.Tailcat = true
+	if err := settings.Save(set); err != nil {
+		t.Fatal(err)
+	}
+	a.applySettings(settings.Load())
+
+	// The two forms hold their own listener's fields.
+	hosts.ResetTailcat(a)
+	hosts.ResetP2P(a)
+	if a.Ss.Tailcat.ListenPort != "7402" || strings.Contains(a.Ss.Tailcat.ListenPort, "7401") {
+		t.Errorf("the tailcat form holds port %q", a.Ss.Tailcat.ListenPort)
+	}
+	if a.Ss.P2P.Addr != ":7401" || a.Ss.P2P.Token != "s3cret-pass" {
+		t.Errorf("the p2p form holds %+v", a.Ss.P2P)
+	}
+
+	// The page shows both, each with its own port and secret, and drawing
+	// it changes no setting. The forms' fields are the drafts', which a
+	// frame shows.
+	kit.Reset()
+	tt := ui.NewTester(uisettings.View(a), 820, 2600)
+	tt.Frame()
+
+	for _, want := range []string{"7401", "s3cret-pass"} {
+		if !tt.HasText(want) {
+			t.Errorf("Settings shows no %q; texts %q", want, tt.Texts())
+		}
+	}
+	if got := settings.Load().Listen; !slices.Equal(got, []string{"tcp://:7401", "tailcat://:7402"}) {
+		t.Errorf("drawing the page changes the listeners: %q", got)
+	}
+
+	// The tailcat switch off: the tailcat listener goes, and the tcp one
+	// stays, in the settings, the file, and the P2P form.
+	toggleTailcat(t, a)
+	ap := settings.Load()
+	if l, _, ok := ap.TailcatListen(); ok {
+		t.Errorf("the tailcat switch off keeps %q of %q", l, ap.Listen)
+	}
+	if l, port, ok := ap.TCPListen(); !ok || l != "tcp://:7401" || port != "7401" {
+		t.Errorf("the tailcat switch off changes the tcp listener: %q", ap.Listen)
+	}
+	hosts.ResetP2P(a)
+	if a.Ss.P2P.Addr != ":7401" || a.Ss.P2P.Token != "s3cret-pass" {
+		t.Errorf("the tailcat switch off empties the P2P form: %+v", a.Ss.P2P)
+	}
+
+	// The P2P switch off: the tcp listener goes, and the tailcat one
+	// stays.
+	toggleP2P(t, a)
+	ap = settings.Load()
+	if _, _, ok := ap.TCPListen(); ok {
+		t.Errorf("the p2p switch off keeps %q", ap.Listen)
+	}
+	if l, port, ok := ap.TailcatListen(); ok {
+		t.Errorf("the p2p switch off adds a tailcat listener: %q %q", l, port)
+	}
+	if ap.ListenToken != "s3cret-pass" {
+		t.Errorf("the p2p switch off changes the password: %q", ap.ListenToken)
+	}
+}
+
+// toggleTailcat does what the Tailcat switch does: it turns this machine's
+// tailcat listener on, or off, and saves.
+func toggleTailcat(t *testing.T, a *App) {
+	t.Helper()
+	s := settings.Load()
+	if _, _, ok := s.TailcatListen(); ok {
+		s.SetTailcatListen("")
+	} else {
+		s.SetTailcatListen(settings.TailcatListenPortDefault())
+	}
+	if err := settings.Save(s); err != nil {
+		t.Fatal(err)
+	}
+	a.SetSettingsNow(settings.Load())
+	hosts.ResetTailcat(a)
+}
+
+// toggleP2P does what the P2P switch does: it turns this machine's tcp
+// listener on, or off, and saves.
+func toggleP2P(t *testing.T, a *App) {
+	t.Helper()
+	s := settings.Load()
+	if _, _, ok := s.TCPListen(); ok {
+		s.SetTCPListen("", "")
+	} else {
+		s.SetTCPListen("", settings.TailcatListenPortDefault())
+		if s.ListenToken == "" {
+			s.ListenToken = "s3cret-pass"
+		}
+	}
+	if err := settings.Save(s); err != nil {
+		t.Fatal(err)
+	}
+	a.SetSettingsNow(settings.Load())
+	hosts.ResetP2P(a)
 }

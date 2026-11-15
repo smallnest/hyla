@@ -229,18 +229,24 @@ A Feishu chat drives the coding agent in the session it's bound to: `/new` start
 
 Another machine is a session of the SSH project: the app adds it from the sidebar's **+** menu, `ssh` runs in the pane, and the CLI drives it like any other session (`hyla ls` lists it, `hyla send` types into it). Inside a pane, `hyla` talks to the hylad the pane runs against.
 
-This machine as a host, reachable peer to peer by a pair code:
+This machine as a host, reached two ways:
 
 ```sh
-hyla p2p status                  # on or off, its port, its pair code
-hyla p2p enable 7400             # listen for peers, on port 7400
+hyla tailcat status              # on or off, its port, its pair code
+hyla tailcat enable 7400         # listen over a relay, on port 7400
+hyla tailcat port 7473           # move the listener
+hyla tailcat rotate              # a new key, and a new pair code
+hyla tailcat code                # just the pair code (secret)
+hyla tailcat disable
+
+hyla p2p status                  # on or off, its port, its addresses, its password
+hyla p2p enable 7400             # listen on this machine's network, on port 7400
 hyla p2p port 7473               # move the listener
-hyla p2p rotate                  # a new key, and a new pair code
-hyla p2p code                    # just the pair code (secret)
+hyla p2p password                # a new password (secret)
 hyla p2p disable
 ```
 
-`hyla tailcat` is the same command, after the library that carries it: WireGuard between the two machines, a relay only to find each other.
+`hyla tailcat` reaches this machine by a pair code: WireGuard between the two machines, a relay only to find each other. `hyla p2p` reaches it by an address and a password on this machine's network. A pair code is not a password, and each command prints only its own.
 
 For a phone:
 

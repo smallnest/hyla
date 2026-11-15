@@ -4,7 +4,6 @@ import (
 	"context"
 	"net"
 	"net/url"
-	"slices"
 	"strings"
 	"time"
 
@@ -27,13 +26,15 @@ import (
 // Tailcat is this machine as a host for HylaPocket: a relay with a pair
 // code (internal/remote/tailcat.go). The tailcat switch in Settings ›
 // Hosts turns it on and off: off, hylad starts no listener of it, and the
-// phone reaches nothing.
+// phone reaches nothing. The tcp:// listener, which a client of Hyla or
+// HylaPocket reaches by an address and a password, is the P2P group's:
+// each switch acts on its own listener, never the other's.
 
 // TailcatGroup is Settings › Hosts › Tailcat: the switch, and with it on,
 // the hosts Hyla adds and this machine as a host.
 func TailcatGroup(a App, c *ui.Context, pal *theme.Palette) {
 	kit.Group(c, pal, locales.SetTailcatTitle(), "", func() {
-		d := a.P2PDraft()
+		d := a.TailcatDraft()
 		if d.ListenPort == "" {
 			ResetTailcat(a)
 		}
@@ -48,7 +49,7 @@ func TailcatGroup(a App, c *ui.Context, pal *theme.Palette) {
 				saveTailcat(a, d, "tailcat-relay")
 			}
 		})
-		tailcatFieldErr(c, pal, d, "tailcat-relay")
+		tailcatFieldErr(c, pal, d.Err, "tailcat-relay")
 		if kit.Rows++; kit.Rows > 1 {
 			ui.Box(c).Height(1).Shrink(0).Background(pal.Text.Alpha(0.07))
 		}
@@ -60,17 +61,15 @@ func TailcatGroup(a App, c *ui.Context, pal *theme.Palette) {
 	})
 }
 
-// ResetTailcat reads the Tailcat group's fields again from the settings,
-// and this machine's pair code with them.
+// ResetTailcat reads the Tailcat form's fields again from the settings,
+// and this machine's pair code with them. The P2P form is ResetP2P's.
 func ResetTailcat(a App) {
 	orig := a.SettingsNow()
 	s := *orig
-	d := a.P2PDraft()
+	d := a.TailcatDraft()
 	*d = draft.TailcatDraft{
 		Relay:      s.TailcatRelay,
 		ListenPort: settings.TailcatListenPortDefault(),
-		TCPAddr:    tcpListenAddr(&s),
-		TCPToken:   s.ListenToken,
 	}
 	if _, port, ok := s.TailcatListen(); ok {
 		d.ListenPort = port
@@ -87,9 +86,6 @@ func tailcatSettingRow(c *ui.Context, pal *theme.Palette, label, detail string, 
 	kit.Rows = n
 }
 
-// tailcatListen is this machine as a host over Tailcat: the switch of
-// hylad's tailcat listener here, its port, and the pair code Hyla on
-// other machines adds with.
 // TailcatListen is this machine as a host over Tailcat: the switch of
 // hylad's tailcat listener here, its port, and the pair code Hyla on
 // other machines adds with.
@@ -138,7 +134,7 @@ func TailcatListen(a App, c *ui.Context, pal *theme.Palette, d *draft.TailcatDra
 				saveTailcat(a, d, "tailcat-listen-port")
 			}
 		})
-		tailcatFieldErr(c, pal, d, "tailcat-listen-port")
+		tailcatFieldErr(c, pal, d.Err, "tailcat-listen-port")
 		ui.Column(c).Gap(3).Children(func() {
 			ui.Text(c, locales.SetTailcatCode()).FontSize(13.5).TextColor(pal.Text)
 			if d := locales.SetTailcatCodeDetail(); d != "" {
@@ -188,16 +184,16 @@ func TailcatListen(a App, c *ui.Context, pal *theme.Palette, d *draft.TailcatDra
 	})
 }
 
-// tailcatFieldErr is the reason a field of the group failed, under it.
-func tailcatFieldErr(c *ui.Context, pal *theme.Palette, d *draft.TailcatDraft, key string) {
-	if d.Err.Key == key {
-		ui.Text(c, d.Err.Err).FontSize(12).TextColor(pal.Danger)
+// tailcatFieldErr is the reason a field of a form failed, under it.
+func tailcatFieldErr(c *ui.Context, pal *theme.Palette, f draft.TailcatField, key string) {
+	if f.Key == key {
+		ui.Text(c, f.Err).FontSize(12).TextColor(pal.Danger)
 	}
 }
 
 // TailcatCode reads this machine's pair code, once.
 func TailcatCode(a App) {
-	d := a.P2PDraft()
+	d := a.TailcatDraft()
 	if d.Looking || !d.At.IsZero() {
 		return
 	}
@@ -218,8 +214,6 @@ func TailcatCode(a App) {
 	}()
 }
 
-// rotateTailcatCode gives this machine a new pair code, which the old
-// one's no longer opens.
 // RotateTailcatCode gives this machine a new pair code, which the old
 // one's no longer opens.
 func RotateTailcatCode(a App) {
@@ -227,7 +221,7 @@ func RotateTailcatCode(a App) {
 		a.Toast(err.Error())
 		return
 	}
-	d := a.P2PDraft()
+	d := a.TailcatDraft()
 	*d = draft.TailcatDraft{Relay: d.Relay, ListenPort: d.ListenPort}
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
@@ -238,9 +232,11 @@ func RotateTailcatCode(a App) {
 		}
 		cancel()
 		a.Update(func() {
-			d.Code, d.CodeErr, d.At = errorText(err), errorText(err), time.Now()
+			d.Code, d.CodeErr, d.At = code, errorText(err), time.Now()
 			if err == nil {
-				d.Code = code
+				// The code a phone scans carries the scheme the code
+				// alone does not.
+				d.QR, _ = qrcode.Encode("tailcat://"+code, qrcode.L)
 			}
 		})
 	}()
@@ -264,11 +260,9 @@ func errorText(err error) string {
 	return err.Error()
 }
 
-// tcpListen is this machine on its own network: a tcp:// listener, whose
+// TCPListen is this machine on its own network: a tcp:// listener, whose
 // address and password a client of Hyla, or of HylaPocket, takes.
-// TCPListen is this machine on its own network: a tcp:// listener,
-// whose address and password a client of Hyla, or of HylaPocket, takes.
-func TCPListen(a App, c *ui.Context, pal *theme.Palette, d *draft.TailcatDraft) {
+func TCPListen(a App, c *ui.Context, pal *theme.Palette, d *draft.P2PDraft) {
 	on := hasTCPListener(a.SettingsNow())
 	detail := locales.SetTCPListenDetail()
 	ui.Column(c).Padding(11, 0).Gap(8).Children(func() {
@@ -283,16 +277,12 @@ func TCPListen(a App, c *ui.Context, pal *theme.Palette, d *draft.TailcatDraft) 
 				style.Toggle(c.Key("tcp-listen"), &on, pal).OnClick(func() {
 					s := a.SettingsNow().Clone()
 					if on {
-						addr := strings.TrimSpace(d.TCPAddr)
+						addr := strings.TrimSpace(d.Addr)
 						if addr == "" {
-							addr = ":" + remote.PocketPort
+							addr = ":" + settings.TailcatListenPortDefault()
 						}
 						if spec, err := remote.ParseListen("tcp://" + addr); err == nil {
-							s.Listen = slices.DeleteFunc(s.Listen, func(l string) bool {
-								o, err := remote.ParseListen(l)
-								return err == nil && o.Kind == "tcp"
-							})
-							s.Listen = append(s.Listen, spec.String())
+							s.SetTCPListen(spec.Host, spec.Port)
 						}
 						if s.ListenToken == "" {
 							if token, err := remote.RandomToken(); err == nil {
@@ -300,13 +290,10 @@ func TCPListen(a App, c *ui.Context, pal *theme.Palette, d *draft.TailcatDraft) 
 							}
 						}
 					} else {
-						s.Listen = slices.DeleteFunc(s.Listen, func(l string) bool {
-							o, err := remote.ParseListen(l)
-							return err == nil && o.Kind == "tcp"
-						})
+						s.SetTCPListen("", "")
 					}
 					a.SetSettingsNow(s)
-					ResetTailcat(a)
+					ResetP2P(a)
 				})
 			})
 		})
@@ -320,11 +307,11 @@ func TCPListen(a App, c *ui.Context, pal *theme.Palette, d *draft.TailcatDraft) 
 					ui.Text(c, d).FontSize(12).TextColor(pal.TextMuted).LineHeight(1.35)
 				}
 			})
-			if in := controls.TextField(c, "tcp-addr", &d.TCPAddr, ":"+remote.PocketPort, 140, pal).Font("monospace"); in.Submitted() {
-				saveTailcat(a, d, "tcp-addr")
+			if in := controls.TextField(c, "tcp-addr", &d.Addr, ":"+settings.TailcatListenPortDefault(), 140, pal).Font("monospace"); in.Submitted() {
+				saveP2P(a, d, "tcp-addr")
 			}
 		})
-		tailcatFieldErr(c, pal, d, "tcp-addr")
+		tailcatFieldErr(c, pal, d.Err, "tcp-addr")
 		ui.Column(c).Gap(3).Children(func() {
 			ui.Text(c, locales.SetTCPPassword()).FontSize(13.5).TextColor(pal.Text)
 			if d := locales.SetTCPPasswordDetail(); d != "" {
@@ -332,14 +319,14 @@ func TCPListen(a App, c *ui.Context, pal *theme.Palette, d *draft.TailcatDraft) 
 			}
 		})
 		ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, d.TCPToken).Font("monospace").FontSize(12.5).TextColor(pal.Text).Selectable().MinWidth(0)
+			ui.Text(c, d.Token).Font("monospace").FontSize(12.5).TextColor(pal.Text).Selectable().MinWidth(0)
 			ui.Row(c).Grow(1)
 			icon, label := glyph.Copy, locales.HostCopyAddress()
 			if time.Since(d.Copied) < 1500*time.Millisecond {
 				icon, label = glyph.Of("lucide-check"), locales.ToastCopied()
 			}
 			paints.IconButton(c, "copy-token", icon, label, pal, func() {
-				c.WriteClipboard(d.TCPToken)
+				c.WriteClipboard(d.Token)
 				d.Copied = time.Now()
 				go func() {
 					time.Sleep(1500 * time.Millisecond)
@@ -355,7 +342,7 @@ func TCPListen(a App, c *ui.Context, pal *theme.Palette, d *draft.TailcatDraft) 
 				s := a.SettingsNow().Clone()
 				s.ListenToken = token
 				a.SetSettingsNow(s)
-				ResetTailcat(a)
+				ResetP2P(a)
 			})
 		})
 		// Where a client of another machine reaches this one: its own
@@ -383,6 +370,12 @@ func TCPListen(a App, c *ui.Context, pal *theme.Palette, d *draft.TailcatDraft) 
 			})
 		})
 	})
+}
+
+// ResetP2P reads the P2P form's fields again from the settings.
+func ResetP2P(a App) {
+	s := *a.SettingsNow()
+	*a.P2PDraft() = draft.P2PDraft{Addr: tcpListenAddr(&s), Token: s.ListenToken}
 }
 
 // hasTCPListener reports whether s listens on this machine's network.
@@ -447,21 +440,39 @@ func tcpListenPort(s *settings.Settings) string {
 	return ""
 }
 
-// save checks and keeps the group's field keyed key, which is one of its
-// fields set.
+// save checks and keeps the Tailcat form's field keyed key, which is one
+// of its fields set.
 func saveTailcat(a App, d *draft.TailcatDraft, key string) {
-	var v string
 	switch key {
 	case "tailcat-relay":
-		v = strings.TrimSpace(d.Relay)
+		v := strings.TrimSpace(d.Relay)
 		if v != "" && !settings.ValidDERPMapURL(v) {
 			d.Err = draft.TailcatField{Key: key, Err: v + ": a relay is the https URL of a DERP map"}
 			return
 		}
-	case "tcp-addr":
-		addr := strings.TrimSpace(d.TCPAddr)
+		s := a.SettingsNow().Clone()
+		s.TailcatRelay = v
+		a.SetSettingsNow(s)
+	case "tailcat-listen-port":
+		v := strings.TrimSpace(d.ListenPort)
+		if !settings.ValidListenPort(v) {
+			d.Err = draft.TailcatField{Key: key, Err: v + ": a port is 1 to 65535"}
+			return
+		}
+		s := a.SettingsNow().Clone()
+		s.SetTailcatListen(v)
+		a.SetSettingsNow(s)
+	}
+	d.Err = draft.TailcatField{}
+}
+
+// saveP2P checks and keeps the P2P form's field keyed key, which is one
+// of its fields set.
+func saveP2P(a App, d *draft.P2PDraft, key string) {
+	if key == "tcp-addr" {
+		addr := strings.TrimSpace(d.Addr)
 		if addr == "" {
-			addr = ":" + remote.PocketPort
+			addr = ":" + settings.TailcatListenPortDefault()
 		}
 		spec, err := remote.ParseListen("tcp://" + addr)
 		if err != nil {
@@ -469,29 +480,8 @@ func saveTailcat(a App, d *draft.TailcatDraft, key string) {
 			return
 		}
 		s := a.SettingsNow().Clone()
-		s.Listen = slices.DeleteFunc(s.Listen, func(l string) bool {
-			o, err := remote.ParseListen(l)
-			return err == nil && o.Kind == "tcp"
-		})
-		s.Listen = append(s.Listen, spec.String())
+		s.SetTCPListen(spec.Host, spec.Port)
 		a.SetSettingsNow(s)
-		d.Err = draft.TailcatField{}
-		return
-	case "tailcat-listen-port":
-		if v = strings.TrimSpace(d.ListenPort); !settings.ValidListenPort(v) {
-			d.Err = draft.TailcatField{Key: key, Err: v + ": a port is 1 to 65535"}
-			return
-		}
-		s := a.SettingsNow().Clone()
-		s.SetTailcatListen(v)
-		a.SetSettingsNow(s)
-		d.Err = draft.TailcatField{}
-		return
 	}
-	s := a.SettingsNow().Clone()
-	if key == "tailcat-relay" {
-		s.TailcatRelay = v
-	}
-	a.SetSettingsNow(s)
 	d.Err = draft.TailcatField{}
 }

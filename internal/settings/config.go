@@ -338,7 +338,7 @@ var keys = append([]key{
 			}
 			return nil
 		}},
-	boolKey("tailcat", "give Hyla other ways to reach its hosts: a relay with a pair code, on unless turned off here", func(s *Settings) *bool { return &s.Tailcat }),
+	boolKey("tailcat", "this machine as a host over a relay, with a pair code, as hyla tailcat turns it on: off, hyla tailcat makes no listener; the tcp:// listener is hyla p2p's, and this does not turn it off", func(s *Settings) *bool { return &s.Tailcat }),
 	{name: "listen-token", doc: "the password of a tcp:// listener: its clients carry it, and hylad refuses every request without it (hyla pocket token prints it)",
 		get: func(s *Settings) []string { return []string{s.ListenToken} },
 		set: func(s *Settings, v []string) error {

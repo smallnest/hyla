@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"strings"
 	"time"
@@ -45,18 +46,10 @@ func versionCmd() error {
 // relay only to find each other). HylaPocket rides the same listener, and
 // `hyla pocket` prints its code as a QR code.
 //
-// `hyla p2p` is the same command for the machines reached by an address
-// and a password: p2p and tailcat are two ways to reach a machine, not
-// one under two names, so each command says its own name.
-func tailcatCmd(args []string) error { return remoteCmd("tailcat", "p2p", args) }
-
-// p2pCmd is `hyla p2p`, which says what the tailcat listener does, named
-// p2p.
-func p2pCmd(args []string) error { return remoteCmd("p2p", "tailcat", args) }
-
-// remoteCmd is `hyla <name>`, the tailcat listener's command, which names
-// the other way to reach a machine, other, where it says where to go.
-func remoteCmd(name, other string, args []string) error {
+// `hyla p2p` is the other way: this machine on its network, by an address
+// and a password (p2pCmd). p2p and tailcat are two ways to reach a
+// machine, not one under two names, so each command says its own name.
+func tailcatCmd(args []string) error {
 	set := settings.Load()
 	spec, port, on := set.TailcatListen()
 	sub := "status"
@@ -67,27 +60,27 @@ func remoteCmd(name, other string, args []string) error {
 	case "status", "show":
 		switch {
 		case !set.Tailcat:
-			fmt.Printf("%s: off (tailcat = false in the configuration)\n", name)
-			fmt.Printf("  turn it on with tailcat = true, then hyla %s enable [port]\n", name)
+			fmt.Println("tailcat: off (tailcat = false in the configuration)")
+			fmt.Println("  turn it on with tailcat = true, then hyla tailcat enable [port]")
 		case !on:
-			fmt.Printf("%s: on, not listening\n", name)
-			fmt.Printf("  hyla %s enable [port]   listen over tailcat (default port 7473)\n", name)
-			fmt.Printf("  hyla %s             the machines reached by address and password\n", other)
-			fmt.Println("  hyla pocket qr           the same code, as a QR code for a phone")
+			fmt.Println("tailcat: on, not listening")
+			fmt.Println("  hyla tailcat enable [port]   listen over tailcat (default port 7473)")
+			fmt.Println("  hyla p2p                     the machines reached by address and password")
+			fmt.Println("  hyla pocket qr               the same code, as a QR code for a phone")
 		default:
-			fmt.Printf("%s: listening on %s (port %s)\n", name, spec, port)
+			fmt.Printf("tailcat: listening on %s (port %s)\n", spec, port)
 			if code, err := localPairCode(); err == nil {
 				fmt.Printf("  pair code: tailcat://%s\n", code)
 			} else {
 				fmt.Printf("  pair code: %v\n", err)
 			}
-			fmt.Fprintf(os.Stderr, "  the pair code is the secret: anyone with it can connect; hyla %s rotate makes a new one\n", name)
+			fmt.Fprintln(os.Stderr, "  the pair code is the secret: anyone with it can connect; hyla tailcat rotate makes a new one")
 			fmt.Fprintln(os.Stderr, "  HylaPocket scans the same code: hyla pocket qr")
 		}
 		return nil
 	case "code":
 		if !set.Tailcat {
-			return fmt.Errorf("tailcat is off: hyla %s enable", name)
+			return errors.New("tailcat is off: hyla tailcat enable")
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		code, err := remote.LocalTailcatAddress(ctx)
@@ -96,16 +89,16 @@ func remoteCmd(name, other string, args []string) error {
 			return err
 		}
 		fmt.Println("tailcat://" + code)
-		fmt.Fprintf(os.Stderr, "the pair code is the secret: anyone with it can connect; hyla %s rotate makes a new one\n", name)
+		fmt.Fprintln(os.Stderr, "the pair code is the secret: anyone with it can connect; hyla tailcat rotate makes a new one")
 		if !on {
-			fmt.Fprintf(os.Stderr, "hylad does not listen over tailcat here: hyla %s enable\n", name)
+			fmt.Fprintln(os.Stderr, "hylad does not listen over tailcat here: hyla tailcat enable")
 		} else {
-			fmt.Fprintf(os.Stderr, "hylad listens on port %s (hyla %s port sets it)\n", port, name)
+			fmt.Fprintf(os.Stderr, "hylad listens on port %s (hyla tailcat port sets it)\n", port)
 		}
 		return nil
 	case "enable":
 		if !set.Tailcat {
-			return fmt.Errorf("tailcat is off in the configuration (tailcat = false): hyla %s needs tailcat = true", name)
+			return errors.New("tailcat is off in the configuration (tailcat = false): hyla tailcat needs tailcat = true")
 		}
 		if !on {
 			set.SetTailcatListen(settings.TailcatListenPortDefault())
@@ -119,17 +112,17 @@ func remoteCmd(name, other string, args []string) error {
 		if err := settings.Save(set); err != nil {
 			return err
 		}
-		fmt.Printf("hylad listens over tailcat: hyla %s code\n", name)
+		fmt.Println("hylad listens over tailcat: hyla tailcat code")
 		return nil
 	case "disable":
 		set.SetTailcatListen("")
 		return settings.Save(set)
 	case "port":
 		if len(args) != 2 || !settings.ValidListenPort(args[1]) {
-			return usageErr("hyla " + name + " port <port>")
+			return usageErr("hyla tailcat port <port>")
 		}
 		if !on {
-			return fmt.Errorf("hylad does not listen over tailcat here: hyla %s enable", name)
+			return errors.New("hylad does not listen over tailcat here: hyla tailcat enable")
 		}
 		set.SetTailcatListen(args[1])
 		return settings.Save(set)
@@ -149,7 +142,7 @@ func remoteCmd(name, other string, args []string) error {
 		fmt.Fprintln(os.Stderr, "the old pair code no longer connects: the phone needs this one")
 		return nil
 	}
-	return usageErr("hyla " + name + " status|enable [port]|disable|port <port>|rotate|code")
+	return usageErr("hyla tailcat status|enable [port]|disable|port <port>|rotate|code")
 }
 
 // localPairCode is this machine's pair code, as hylad's key makes it.
@@ -157,6 +150,117 @@ func localPairCode() (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	return remote.LocalTailcatAddress(ctx)
+}
+
+// p2pCmd is `hyla p2p`: this machine on its network, at an address and
+// with a password (the listener's token), which Hyla and HylaPocket take
+// as the address and the token of a host. It never prints the tailcat
+// pair code, which is hyla tailcat's.
+func p2pCmd(args []string) error {
+	set := settings.Load()
+	spec, port, on := set.TCPListen()
+	sub := "status"
+	if len(args) > 0 {
+		sub = args[0]
+	}
+	switch sub {
+	case "status", "show":
+		switch {
+		case !on:
+			fmt.Println("p2p: not listening")
+			fmt.Println("  hyla p2p enable [port]   listen on this machine's network (default port 7473)")
+			fmt.Println("  hyla tailcat             the machines reached by a pair code")
+		default:
+			fmt.Printf("p2p: listening on %s (port %s)\n", spec, port)
+			for _, addr := range p2pAddrs(spec, port) {
+				fmt.Printf("  address: %s\n", addr)
+			}
+			if set.ListenToken == "" {
+				fmt.Println("  password: none, which hylad refuses: hyla p2p password")
+			} else {
+				fmt.Printf("  password: %s\n", set.ListenToken)
+				fmt.Fprintln(os.Stderr, "  the password is the secret: anyone with it can connect; hyla p2p password makes a new one")
+			}
+			fmt.Fprintln(os.Stderr, "  the code a phone scans: hyla pocket code")
+		}
+		return nil
+	case "enable":
+		if !on {
+			set.SetTCPListen("", settings.TailcatListenPortDefault())
+		}
+		if len(args) > 1 {
+			if !settings.ValidListenPort(args[1]) {
+				return usageErr("%q is not a port", args[1])
+			}
+			set.SetTCPListen(specHost(spec), args[1])
+		}
+		if set.ListenToken == "" {
+			token, err := remote.RandomToken()
+			if err != nil {
+				return err
+			}
+			set.ListenToken = token
+		}
+		if err := settings.Save(set); err != nil {
+			return err
+		}
+		fmt.Println("hylad listens on this machine's network: hyla p2p status")
+		return nil
+	case "disable":
+		set.SetTCPListen("", "")
+		return settings.Save(set)
+	case "port":
+		if len(args) != 2 || !settings.ValidListenPort(args[1]) {
+			return usageErr("hyla p2p port <port>")
+		}
+		if !on {
+			return errors.New("hylad does not listen on this machine's network here: hyla p2p enable")
+		}
+		set.SetTCPListen(specHost(spec), args[1])
+		return settings.Save(set)
+	case "password":
+		token, err := remote.RandomToken()
+		if err != nil {
+			return err
+		}
+		set.ListenToken = token
+		if err := settings.Save(set); err != nil {
+			return err
+		}
+		fmt.Println(token)
+		fmt.Fprintln(os.Stderr, "the old password no longer connects: the hosts that have it need this one")
+		return nil
+	}
+	return usageErr("hyla p2p status|enable [port]|disable|port <port>|password")
+}
+
+// specHost is a listener's bind address, "" for every one of this
+// machine's.
+func specHost(spec string) string {
+	l, err := remote.ParseListen(spec)
+	if err != nil {
+		return ""
+	}
+	return l.Host
+}
+
+// p2pAddrs are the addresses a client of another machine reaches the
+// tcp listener at: the one the listener names, or this machine's own,
+// with the listener's port.
+func p2pAddrs(spec, port string) []string {
+	if host := specHost(spec); host != "" {
+		if ip := net.ParseIP(host); ip == nil || !ip.IsUnspecified() {
+			return []string{net.JoinHostPort(host, port)}
+		}
+	}
+	var out []string
+	for _, addr := range remote.LocalAddrs() {
+		out = append(out, net.JoinHostPort(addr, port))
+	}
+	if out == nil {
+		out = []string{net.JoinHostPort("", port)}
+	}
+	return out
 }
 
 // onOffWord is a setting on or off, as the commands say it.

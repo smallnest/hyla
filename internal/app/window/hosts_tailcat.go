@@ -9,8 +9,8 @@ import (
 	"hyla/internal/ui/theme"
 )
 
-// The Tailcat group is internal/ui/hosts' (tailcat.go), which the app
-// answers here.
+// The Tailcat and P2P groups are internal/ui/hosts' (tailcat.go), which
+// the app answers here.
 
 func (a *App) SettingsNow() *settings.Settings { return &a.settingsIn }
 
@@ -20,14 +20,8 @@ func (a *App) tailcatGroup(c *ui.Context, pal *theme.Palette) { hosts.TailcatGro
 
 func (a *App) resetTailcat() { hosts.ResetTailcat(a) }
 
-func (a *App) tailcatCode() { hosts.TailcatCode(a) }
+func (a *App) resetP2P() { hosts.ResetP2P(a) }
 
-func (a *App) rotateTailcatCode() { hosts.RotateTailcatCode(a) }
-
-func (a *App) tailcatListen(c *ui.Context, pal *theme.Palette, d *draft.TailcatDraft) {
-	hosts.TailcatListen(a, c, pal, d)
-}
-
-func (a *App) tcpListen(c *ui.Context, pal *theme.Palette, d *draft.TailcatDraft) {
+func (a *App) tcpListen(c *ui.Context, pal *theme.Palette, d *draft.P2PDraft) {
 	hosts.TCPListen(a, c, pal, d)
 }
