@@ -104,7 +104,7 @@ func init() {
 	for name, logo := range map[string]string{
 		"claude": "claude", "codex": "openai", "gemini": "googlegemini", "opencode": "opencode",
 		"amp": "amp", "cursor-agent": "cursor", "copilot": "githubcopilot", "qwen": "qwen",
-		"kimi": "kimi", "cline": "cline", "zed": "zed",
+		"kimi": "kimi", "cline": "cline", "zed": "zed", "antigravity": "antigravity",
 		"node": "nodedotjs", "bun": "bun", "deno": "deno", "python": "python", "python3": "python",
 		"vim": "vim", "nvim": "neovim", "git": "git", "docker": "docker",
 	} {

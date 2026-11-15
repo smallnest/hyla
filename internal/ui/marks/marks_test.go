@@ -14,7 +14,7 @@ import (
 func TestAgentMarks(t *testing.T) {
 	for _, agent := range []string{
 		"claude", "codex", "opencode", "pi", "dsh", "gemini", "qwen",
-		"copilot", "cursor-agent", "cline", "amp", "kimi", "windsurf", "zed",
+		"copilot", "cursor-agent", "cline", "amp", "kimi", "windsurf", "zed", "antigravity",
 	} {
 		logo, _, ok := Agent(agent)
 		if !ok || logo == nil {
