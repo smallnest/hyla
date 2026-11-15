@@ -199,6 +199,21 @@ func TestSidebarImage(t *testing.T) {
 	}
 }
 
+// A terminal's picture is a file's path, and none of the settings' own
+// until one is chosen; it shows all of it, as a first installation has it.
+func TestPaneImage(t *testing.T) {
+	s, probs := parse("pane-image = /Users/me/Pictures/side by side.png\npane-image-opacity = 0.6\n")
+	if len(probs) != 0 || s.PaneImage != "/Users/me/Pictures/side by side.png" || s.PaneImageOpacity != 0.6 {
+		t.Errorf("pane-image %q at %v, problems %q", s.PaneImage, s.PaneImageOpacity, probs)
+	}
+	if d := Default(); d.PaneImage != "" || d.PaneImageOpacity != 1 {
+		t.Errorf("defaults %q at %v, want none at 1", d.PaneImage, d.PaneImageOpacity)
+	}
+	if s, _ := parse("pane-image-opacity = 2\n"); s.PaneImageOpacity != DefaultPaneImageOpacity {
+		t.Errorf("out of range: pane-image-opacity %v", s.PaneImageOpacity)
+	}
+}
+
 // The Dock's is a wash of its own, as the Dock's background is.
 func TestDockBackground(t *testing.T) {
 	s, probs := parse("background = dock")

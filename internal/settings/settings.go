@@ -177,9 +177,9 @@ const DefaultSidebarImageOpacity = 0.35
 // terminal while the window is translucent.
 const DefaultPaneOpacity = 0.82
 
-// DefaultPaneImageOpacity is how much of a terminal's picture shows:
-// faintly, as a veil under the text.
-const DefaultPaneImageOpacity = 0.6
+// DefaultPaneImageOpacity is how much of a terminal's picture shows: all
+// of it, as the picture the user chose; the slider dims it.
+const DefaultPaneImageOpacity = 1
 
 // PaneImageFits are how a terminal's picture fills its card, as a macOS
 // desktop picture's options: "fill" as wide as the card, from its top;
