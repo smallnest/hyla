@@ -96,6 +96,10 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     shortcut's keys and how long ago a time was — is `internal/ui/paints`,
     which the sidebar and the panes read too. The confirmation and the
     window's shortcuts stay in the root.
+  - Also: the folder picker is `internal/ui/picker` — its state, the
+    listing of a host's folders (`fs.list`), the items and the view —
+    over the same `App` shape; the root keeps `openProjectOn`,
+    `pickerGo` and `pickerView` as its adapters.
   - Also: `host` is `internal/app/host`.Host — one hylad's address, its
     connection's state and error, what it holds, and the dialers — which
     the views read directly, as the root's field was. Its fields are

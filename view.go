@@ -138,7 +138,7 @@ func (a *App) view(c *ui.Context) {
 		a.Chrome = chromeFor(progress, a.Prefs.SidebarWidth, bar)
 		w := a.Chrome.sideW
 		side := ui.Row(c).Width(w).Shrink(0).AlignItems(ui.Stretch).ClipX()
-		if h := a.local(); h.Conn == host.StateReady && h.Client != nil && !a.Prefs.SidebarHidden && !a.Pal.Open && !a.Picker.open && a.SshAsk == nil && a.K8sAsk == nil && (a.Confirm == nil || !a.Confirm.open) {
+		if h := a.local(); h.Conn == host.StateReady && h.Client != nil && !a.Prefs.SidebarHidden && !a.Pal.Open && !a.Picker.Open && a.SshAsk == nil && a.K8sAsk == nil && (a.Confirm == nil || !a.Confirm.open) {
 			if files := side.DroppedFiles(); len(files) > 0 {
 				go a.openProjectDirs(h, h.Client, slices.Clone(files), true)
 			}

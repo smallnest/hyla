@@ -24,6 +24,7 @@ import (
 	"hyla/internal/proto"
 
 	"hyla/internal/settings"
+	"hyla/internal/ui/picker"
 
 	"hyla/locales"
 )
@@ -121,7 +122,7 @@ func TestSidebarRejectsUnavailableDrops(t *testing.T) {
 		{"disconnected", func(a *App) { a.local().Conn = host.StateFailed }},
 		{"no client", func(a *App) { a.local().Client = nil }},
 		{"palette", func(a *App) { a.Pal.Open = true }},
-		{"folder picker", func(a *App) { a.Picker = folderPicker{open: true, host: a.local()} }},
+		{"folder picker", func(a *App) { a.Picker = picker.State{Open: true, Host: a.local()} }},
 		{"only remote connected", func(a *App) {
 			h := &host.Host{Name: "remote", Conn: host.StateReady, Client: a.local().Client, Loaded: true}
 			a.Hosts = append(a.Hosts, h)

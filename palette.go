@@ -176,7 +176,7 @@ func confirmDialog(c *ui.Context, pal *theme.Palette, pending **confirmation) bo
 
 // shortcuts are the window's keys that no menu item has.
 func (a *App) shortcuts(c *ui.Context) {
-	if a.Pal.Open || a.Picker.open || a.Confirm != nil || a.WtAsk != nil || a.SshAsk != nil || a.K8sAsk != nil {
+	if a.Pal.Open || a.Picker.Open || a.Confirm != nil || a.WtAsk != nil || a.SshAsk != nil || a.K8sAsk != nil {
 		return
 	}
 	keys := []ui.Key{ui.Key1, ui.Key2, ui.Key3, ui.Key4, ui.Key5, ui.Key6, ui.Key7, ui.Key8, ui.Key9}

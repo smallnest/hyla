@@ -35,6 +35,7 @@ import (
 	"hyla/internal/remote"
 	"hyla/internal/settings"
 	"hyla/internal/ui/palette"
+	"hyla/internal/ui/picker"
 	"hyla/internal/ui/theme"
 
 	"hyla/locales"
@@ -232,7 +233,7 @@ type App struct {
 	// from is the host whose program asked for the action being run (hyla
 	// do), nil for the user's.
 	From   *host.Host
-	Picker folderPicker // the folders of a host, to open a project in
+	Picker picker.State // the folders of a host, to open a project in
 	Side   sideState    // the side panel, beside a session's panes
 	// info is what the Info views read, by pane (info.go).
 	Info paneinfo.Panes
