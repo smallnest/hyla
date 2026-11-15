@@ -626,14 +626,14 @@ func TestFindBar(t *testing.T) {
 	tt.Key(0, ui.KeyEscape)
 	tt.Frame()
 	tt.Frame()
-	if a.Find.pane != "" || tt.HasText("3 of 4") || term.SearchStatus().Text != "" {
+	if a.Find.Pane != "" || tt.HasText("3 of 4") || term.SearchStatus().Text != "" {
 		t.Errorf("Escape left the bar open or the search on: %+v; texts %q", term.SearchStatus(), tt.Texts())
 	}
 	a.run("find.next", nil)
 	tt.Frame()
 	tt.Frame()
-	if a.Find.pane != "a" || a.Find.query != "ERROR" || term.SearchStatus().Text != "ERROR" {
-		t.Errorf("Find Next did not search again: %+v, %+v", a.Find.query, term.SearchStatus())
+	if a.Find.Pane != "a" || a.Find.Query != "ERROR" || term.SearchStatus().Text != "ERROR" {
+		t.Errorf("Find Next did not search again: %+v, %+v", a.Find.Query, term.SearchStatus())
 	}
 }
 

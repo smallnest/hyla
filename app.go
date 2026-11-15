@@ -1018,8 +1018,8 @@ func (a *App) dropTerm(id string) {
 		}
 		delete(a.Terms, id)
 	}
-	if a.Find.pane == id {
-		a.Find.pane = ""
+	if a.Find.Pane == id {
+		a.Find.Pane = ""
 	}
 	a.Lru = slices.DeleteFunc(a.Lru, func(x string) bool { return x == id })
 }

@@ -52,7 +52,7 @@ func (a *App) Term(pane string) *panes.TermEntry {
 
 func (a *App) ImagePeek(pane, link string, at, term ui.Rect) { a.imagePeek(pane, link, at, term) }
 
-func (a *App) FindPane() string { return a.Find.pane }
+func (a *App) FindPane() string { return a.Find.Pane }
 
 func (a *App) FindBar(c *ui.Context, pal *theme.Palette, p *proto.Pane, t *terminal.Terminal) {
 	a.findBar(c, pal, p, t)

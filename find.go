@@ -1,144 +1,40 @@
 package main
 
 import (
-	"unicode/utf8"
-
-	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/plugins/terminal"
 	"github.com/egoist/mygo/ui"
 
-	"hyla/internal/proto"
-	"hyla/internal/ui/paints"
-	"hyla/internal/ui/panes"
+	"hyla/internal/ui/findbar"
 	"hyla/internal/ui/theme"
+	"hyla/internal/ui/webpane"
 
-	"hyla/internal/ui/style"
-	"hyla/locales"
-
-	"hyla/internal/ui/glyph"
+	"hyla/internal/proto"
 )
 
-// findState is the find bar's: a search of a pane's output, its scrollback
-// included, as Ghostty's find.
-type findState struct {
-	pane  string // the pane searched; "" while the bar is closed
-	query string
-	// focus has the field take the keyboard, its text selected, as the
-	// bar opens.
-	focus bool
-	input ui.Handle
-}
+// The find bar is internal/ui/findbar's, which this file answers.
 
-// openFind opens the find bar over the pane the user is in, or gives the
-// keyboard back to it, with the last query to type over.
-func (a *App) openFind() {
-	s := a.session(a.Selected)
-	if s == nil {
-		return
-	}
-	id := a.focusOf(s)
-	if id == "" {
-		return
-	}
-	if a.Find.pane != id {
-		if t := a.findTerm(); t != nil {
-			t.EndSearch()
-		}
-	}
-	a.Find.pane, a.Find.focus = id, true
-}
+type findState = findbar.State
 
-// findStep goes to the next match, toward older output, or the previous
-// one; with the bar closed it opens, the last query searched again.
-func (a *App) findStep(back bool) {
-	if a.Find.pane == "" {
-		a.openFind()
-		return
-	}
-	if e := a.Webs[a.Find.pane]; e != nil {
-		a.findInPage(e, true, back)
-		return
-	}
-	t := a.findTerm()
-	if t == nil {
-		return
-	}
-	if back {
-		t.SearchPrevious()
-	} else {
-		t.SearchNext()
-	}
-}
+func (a *App) FindState() *findbar.State { return &a.Find }
 
-// closeFind closes the find bar, its highlights going, and gives the
-// keyboard back to the pane.
-func (a *App) closeFind() {
-	if t := a.findTerm(); t != nil {
-		t.EndSearch()
-	}
-	pane := a.Find.pane
-	if e := a.Webs[pane]; e != nil && e.View != nil {
-		e.FindText, e.Found = "", mygo.FindResult{}
-		e.FindSeq++
-		go e.View.Page().StopFindInPage()
-	}
-	a.Find.pane = ""
-	if pane != "" {
-		a.paneRef(pane).Focus()
-	}
-}
-
-// findTerm returns the terminal of the pane searched.
-func (a *App) findTerm() *terminal.Terminal {
-	if e := a.Terms[a.Find.pane]; e != nil {
+// TermOf is a pane's terminal in the window.
+func (a *App) TermOf(pane string) *terminal.Terminal {
+	if e := a.Terms[pane]; e != nil {
 		return e.term
 	}
 	return nil
 }
 
-// findBar floats over the top right of the pane searched: the query, how
-// many matches it has, and the buttons going through them.
+func (a *App) openFind() { findbar.Open(a) }
+
+func (a *App) findStep(back bool) { findbar.Step(a, back) }
+
+func (a *App) closeFind() { findbar.Close(a) }
+
+func (a *App) findTerm() *terminal.Terminal { return a.TermOf(a.Find.Pane) }
+
+func (a *App) FindInPage(e *webpane.Entry, next, back bool) { webpane.FindInPage(a, e, next, back) }
+
 func (a *App) findBar(c *ui.Context, pal *theme.Palette, p *proto.Pane, t *terminal.Terminal) {
-	f := &a.Find
-	// A terminal attached anew, as settings change, searches again.
-	if f.query != "" && t.SearchStatus().Text != f.query {
-		t.Search(f.query)
-	}
-	bar := ui.Row(c.Key("find")).Absolute().Top(8).Right(12).Height(36).Padding(0, 4, 0, 12).Gap(4).
-		AlignItems(ui.Center).Radius(10).Background(pal.Popover).Label(locales.FindLabel())
-	style.Floating(bar, pal).Children(func() {
-		ui.Icon(c, glyph.Search).Size(13, 13).TextColor(pal.TextMuted).Shrink(0)
-		in := ui.TextInputBase(c.Key("q"), &f.query).Width(180).FontSize(13).Placeholder(locales.FindPlaceholder()).Bind(&f.input)
-		if f.focus {
-			f.focus = false
-			in.Focus().SetTextSelection(0, utf8.RuneCountInString(f.query))
-		}
-		if in.Changed() {
-			t.Search(f.query)
-		}
-		switch {
-		case in.Submitted() && c.Modifiers()&ui.Shift != 0:
-			t.SearchPrevious()
-		case in.Submitted():
-			t.SearchNext()
-		}
-		st := t.SearchStatus()
-		count := ""
-		switch {
-		case f.query == "":
-		case st.Total == 0 && !st.Searching:
-			count = locales.FindNoMatches()
-		case st.Total > 0:
-			count = locales.FindCount(panes.Itoa(st.Selected), panes.Itoa(st.Total))
-		}
-		ui.Text(c, count).FontSize(12).FontFeatures("tnum").TextColor(pal.TextFaint).SingleLine().MinWidth(56).TextAlign(ui.End).Margin(0, 4, 0, 0)
-		// Up goes back through the output, as Enter does, as in Ghostty.
-		paints.IconButton(c, "next", glyph.ChevronUp, a.tip(locales.ActionFindNext(), "find.next"), pal, t.SearchNext)
-		paints.IconButton(c, "previous", glyph.ChevronDown, a.tip(locales.ActionFindPrevious(), "find.previous"), pal, t.SearchPrevious)
-		paints.IconButton(c, "close", glyph.Close, locales.FindClose(), pal, func() { a.defer_(a.closeFind) })
-	})
-	// Escape closes it from its field and its buttons alike.
-	if bar.Shortcut(0, ui.KeyEscape) {
-		a.defer_(a.closeFind)
-	}
+	findbar.Bar(a, c, pal, p, t)
 }

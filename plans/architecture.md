@@ -152,6 +152,8 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     machine's pair code, its rotation and what a phone scans — joined
     `internal/ui/hosts`, which changes the settings through
     `App.SettingsNow`.
+  - Also: the find bar over a pane, a terminal's or a browser's, is
+    `internal/ui/findbar`, which `find.go` answers.
   - Also: the browser panes — the page, its toolbar and address bar, its
     error and find — are `internal/ui/webpane`, whose `Entry` is the
     app's `Webs`. It draws the panes' buttons through `App.Panes()`.

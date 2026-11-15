@@ -27,13 +27,13 @@ func (a *App) ChromeStateOf() panes.Chrome {
 	return panes.Chrome{SideW: a.ChromeState.sideW, MainPad: a.ChromeState.mainPad, HeaderPad: a.ChromeState.headerPad}
 }
 
-func (a *App) FindQuery() string { return a.Find.query }
+func (a *App) FindQuery() string { return a.Find.Query }
 
-func (a *App) FindInput() *ui.Handle { return &a.Find.input }
+func (a *App) FindInput() *ui.Handle { return &a.Find.Input }
 
 func (a *App) SetFindText(q string) {
-	a.Find.query = q
-	a.Find.focus = true
+	a.Find.Query = q
+	a.Find.Focus = true
 }
 
 func (a *App) CloseFindBar() { a.closeFind() }
