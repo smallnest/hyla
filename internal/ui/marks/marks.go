@@ -41,6 +41,7 @@ var agentMarks = map[string]string{
 	"gemini":         "googlegemini",
 	"google":         "google",
 	"antigravity":    "antigravity",
+	"agy":            "antigravity",
 	"amp":            "amp",
 	"cursor-agent":   "cursor",
 	"cursor":         "cursor",

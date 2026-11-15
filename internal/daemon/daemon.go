@@ -684,7 +684,7 @@ func expandHome(p string) string {
 var agents = []string{
 	"claude", "codex", "gemini", "opencode", "amp", "aider", "cursor-agent", "droid",
 	"qwen", "goose", "crush", "copilot", "kiro-cli", "cline", "auggie", "kimi", "pi",
-	"dsh",
+	"antigravity", "agy", "dsh",
 }
 
 func detectAgent(name string, args []string) string {
@@ -697,6 +697,7 @@ func detectAgent(name string, args []string) string {
 	}
 	for _, c := range cands {
 		c = strings.ToLower(strings.TrimSuffix(c, filepath.Ext(c)))
+
 		for _, a := range agents {
 			if c == a || strings.HasPrefix(c, a+"-") && a != "pi" {
 				return a

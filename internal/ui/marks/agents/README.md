@@ -22,7 +22,7 @@ The agent names are hylad's (`daemon.agents`), and `agentMarks` in
 | `pi` | `pi.svg` | near-black (the text's) |
 | `dsh` (DeepSeek Harness) | `deepseek.svg` | DeepSeek's blue |
 | `gemini` | `googlegemini.svg` | Google's purple |
-| `antigravity` | `antigravity.svg` | its black, the text's |
+| `antigravity`, `agy` | `antigravity.svg` | its black, the text's |
 | `amp` | `amp.svg` | its own |
 | `cursor-agent` | `cursor.svg` | near-black |
 | `copilot` | `githubcopilot.svg` | near-black |
