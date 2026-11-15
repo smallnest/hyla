@@ -20,5 +20,5 @@
       "NSAppleEventsUsageDescription": "A program running in Hyla would like to control another app."
     }
   },
-  "cmd": "hyla"
+  "main": "./cmd/hyla"
 }
