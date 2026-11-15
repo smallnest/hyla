@@ -70,7 +70,7 @@ func (a *App) tailcatHosts(c *ui.Context, pal *theme.Palette) { hosts.PairCodeHo
 
 func (a *App) remoteHosts(c *ui.Context, pal *theme.Palette) { hosts.Remotes(a, c, pal) }
 
-func (a *App) remoteHostHeader(c *ui.Context, pal *theme.Palette, h *host.Host, top float32) {
+func (a *App) RemoteHostHeader(c *ui.Context, pal *theme.Palette, h *host.Host, top float32) {
 	hosts.HostHeader(a, c, pal, h, top)
 }
 

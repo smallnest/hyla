@@ -23,7 +23,7 @@ func (a *App) Settings() *settings.Settings { return &a.settingsIn }
 func (a *App) Projects() []proto.Project { return a.St.Projects }
 
 func (a *App) Groups() [][]*proto.Session {
-	groups := sidebar.Groups(a)
+	groups := sidebar.Groups(a.order())
 	out := make([][]*proto.Session, len(groups))
 	for i, g := range groups {
 		for _, id := range g.Sessions {
@@ -126,7 +126,7 @@ func (a *App) shortcuts(c *ui.Context) {
 	keys := []ui.Key{ui.Key1, ui.Key2, ui.Key3, ui.Key4, ui.Key5, ui.Key6, ui.Key7, ui.Key8, ui.Key9}
 	for i, k := range keys {
 		if c.Shortcut(ui.Cmd, k) {
-			ids := sidebar.VisibleOrder(a)
+			ids := sidebar.VisibleOrder(a.order())
 			if i < len(ids) {
 				a.selectSession(ids[i])
 			}

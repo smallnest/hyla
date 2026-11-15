@@ -160,6 +160,7 @@ var Layers = []Layer{
 		Package: []string{
 			"hyla/internal/actions",
 			"hyla/internal/app/favicon",
+			"hyla/internal/app/gitinfo",
 			"hyla/internal/app/history",
 			"hyla/internal/app/host",
 			"hyla/internal/adblock",
@@ -221,6 +222,7 @@ var Layers = []Layer{
 			"hyla/internal/ui/settings/search",
 			"hyla/internal/ui/side",
 			"hyla/internal/ui/sidebar",
+			"hyla/internal/ui/sidebarview",
 			"hyla/internal/ui/sshdialog",
 			"hyla/internal/ui/style",
 			"hyla/internal/ui/syncedit",
@@ -359,6 +361,7 @@ var layerNames = map[string]string{
 	"hyla/internal/ui/menus":           "cli",
 	"hyla/internal/ui/side":            "ui",
 	"hyla/internal/ui/sidebar":         "ui",
+	"hyla/internal/ui/sidebarview":     "ui",
 	"hyla/internal/ui/sshdialog":       "ui",
 	"hyla/internal/ui/style":           "ui",
 	"hyla/internal/ui/theme":           "ui",

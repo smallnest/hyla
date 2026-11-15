@@ -243,7 +243,7 @@ func (a *App) reselect() {
 	if a.session(a.Selected) != nil {
 		return
 	}
-	ids := sidebar.VisibleOrder(a)
+	ids := sidebar.VisibleOrder(a.order())
 	switch {
 	case len(ids) == 0 && a.allLoaded():
 		a.Selected = ""

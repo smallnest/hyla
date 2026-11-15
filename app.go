@@ -44,6 +44,7 @@ import (
 	uisettings "hyla/internal/ui/settings"
 	"hyla/internal/ui/side"
 	"hyla/internal/ui/sidebar"
+	"hyla/internal/ui/sidebarview"
 	"hyla/internal/ui/theme"
 	"hyla/internal/ui/webpane"
 	"hyla/internal/ui/worktree"
@@ -173,11 +174,11 @@ type App struct {
 	Renaming         string
 	RenamingProject  string
 	RenameBuf        string
-	configsync.State // this machine's configuration, kept with the others'
+	RenameFramesF    int // the frames a rename has shown, as the sidebar counts them
+	configsync.State     // this machine's configuration, kept with the others'
 
-	RenameFrames int
-	ChromeState  layout.Chrome // where the sidebar's animation puts things
-	Bar          ui.TitleBar   // the window's title bar, as the frame drew it
+	ChromeState layout.Chrome // where the sidebar's animation puts things
+	Bar         ui.TitleBar   // the window's title bar, as the frame drew it
 
 	Pal     palette.State
 	Find    findState
@@ -1546,7 +1547,7 @@ func (a *App) endSession(id string, p proto.CloseParams) {
 	h := a.hostOf(id)
 	if id == a.Selected {
 		// The next session takes its place, else the one before.
-		ids := sidebar.VisibleOrder(a)
+		ids := sidebar.VisibleOrder(a.order())
 		i := slices.Index(ids, id)
 		next := ""
 		if i >= 0 && i+1 < len(ids) {
@@ -1585,7 +1586,8 @@ func (a *App) startRename(id string) {
 	if s == nil {
 		return
 	}
-	a.Renaming, a.RenamingProject, a.RenameBuf, a.RenameFrames = id, "", s.DisplayName(a.settingsIn.SessionName), 0
+	a.Renaming, a.RenamingProject, a.RenameBuf = id, "", s.DisplayName(a.settingsIn.SessionName)
+	a.RenameFramesF = 0
 }
 
 func (a *App) commitRename() {
@@ -1605,7 +1607,8 @@ func (a *App) commitRename() {
 func (a *App) startProjectRename(id string) {
 	for _, p := range a.St.Projects {
 		if p.ID == id {
-			a.Renaming, a.RenamingProject, a.RenameBuf, a.RenameFrames = "", id, p.Name, 0
+			a.Renaming, a.RenamingProject, a.RenameBuf = "", id, p.Name
+			a.RenameFramesF = 0
 		}
 	}
 }
@@ -1630,7 +1633,7 @@ func (a *App) moveSession(id, project string) {
 }
 
 func (a *App) selectOffset(d int) {
-	ids := sidebar.VisibleOrder(a)
+	ids := sidebar.VisibleOrder(a.order())
 	if len(ids) == 0 {
 		return
 	}
@@ -1648,7 +1651,7 @@ func (a *App) selectOffset(d int) {
 // was one.
 func (a *App) jumpTo(want func(*proto.Session) bool) bool {
 	var ids []string
-	for _, g := range sidebar.Groups(a) {
+	for _, g := range sidebar.Groups(a.order()) {
 		ids = append(ids, g.Sessions...)
 	}
 	i := slices.Index(ids, a.Selected)
@@ -1689,12 +1692,12 @@ func (a *App) toggleProject(id string) {
 // allProjectsCollapsed reports whether every group the sidebar lists by
 // project is folded.
 func (a *App) allProjectsCollapsed() bool {
-	gs := sidebar.Groups(a)
+	gs := sidebar.Groups(a.order())
 	if len(gs) == 0 {
 		return false
 	}
 	for _, g := range gs {
-		if !sidebar.Collapsed(a, g) {
+		if !sidebar.Collapsed(a.order(), g) {
 			return false
 		}
 	}
@@ -1706,7 +1709,7 @@ func (a *App) allProjectsCollapsed() bool {
 // a change.
 func (a *App) toggleAllProjects() {
 	collapse := !a.allProjectsCollapsed()
-	for _, g := range sidebar.Groups(a) {
+	for _, g := range sidebar.Groups(a.order()) {
 		if collapse {
 			a.Prefs.Collapsed[g.Key()] = true
 			continue
@@ -1933,28 +1936,32 @@ func quitAllDetail(n int, hosts bool) string {
 }
 
 // The app, as the sidebar's order asks it.
-var _ sidebar.App = (*App)(nil)
+var _ sidebar.App = order{}
 
 func (a *App) SessionsNow() []proto.Session { return a.St.Sessions }
 
 func (a *App) ProjectsNow() []proto.Project { return a.St.Projects }
 
-func (a *App) PrefsNow() sidebar.Prefs {
+func (a *App) PrefsNowAll() sidebarview.Prefs {
 	// The orders its callers set are a copy's: they go back to the app's
 	// as they are set, which Save keeps.
-	return sidebar.Prefs{
-		Collapsed:    a.Prefs.Collapsed,
-		ProjectOrder: a.Prefs.ProjectOrder,
-		SessionOrder: a.Prefs.SessionOrder,
-		SidebarGroup: a.Prefs.SidebarGroup,
-		SidebarOrder: a.Prefs.SidebarOrder,
-		SetProjectOrder: func(o []string) {
-			a.Prefs.ProjectOrder = o
+	return sidebarview.Prefs{
+		Prefs: sidebar.Prefs{
+			Collapsed:    a.Prefs.Collapsed,
+			ProjectOrder: a.Prefs.ProjectOrder,
+			SessionOrder: a.Prefs.SessionOrder,
+			SidebarGroup: a.Prefs.SidebarGroup,
+			SidebarOrder: a.Prefs.SidebarOrder,
+			SetProjectOrder: func(o []string) {
+				a.Prefs.ProjectOrder = o
+			},
+			SetSessionOrder: func(o []string) {
+				a.Prefs.SessionOrder = o
+			},
+			Save: a.savePrefs,
 		},
-		SetSessionOrder: func(o []string) {
-			a.Prefs.SessionOrder = o
-		},
-		Save: a.savePrefs,
+		SSHProject: a.Prefs.SSHProject,
+		K8sProject: a.Prefs.K8sProject,
 	}
 }
 

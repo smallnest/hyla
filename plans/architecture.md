@@ -271,6 +271,13 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     heights, and `Chrome`, what the sidebar's slide leaves the cards'
     column and the header, with `For` and `SidebarMotion`. The views
     read them as they drew them.
+  - Also: the sidebar is `internal/ui/sidebarview` — its buttons, the
+    sessions under their projects or days, a machine's under its name,
+    the rows' menus and the foot that tells what wants a look. Its
+    `App` names what a row asks (`Shortcut`, `NewSessionOn`,
+    `CloseSession`); `App.Root` is the app as the order asks it. A
+    project's square and its first letter, and a drag's line, are
+    `sidebar.BadgeColor`, `sidebar.ProjectInitial` and `sidebar.DragLine`.
   - The guard now fails on a package of `internal/` that no layer's
     names hold. It found `buildinfo`, `fileicons` and `profiling` never
     listed.
