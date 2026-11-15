@@ -18,7 +18,8 @@ heavily, and almost every helper in the root is a method on `App`.
 ## The target
 
 `package main` keeps `main.go`, `app.go` (the `App` struct and its
-lifecycle), and the wiring that starts it. Everything else moves into
+lifecycle), and the wiring that starts it. Where they are now: the app is
+`internal/app/window`, and `main.go` is `cmd/hyla`, which sets its hooks. Everything else moves into
 `internal/`, in layers that import only downward:
 
 ```
