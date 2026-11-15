@@ -20,7 +20,7 @@ import (
 func TestInfoDemo(t *testing.T) {
 	a := testApp(t)
 	p := a.session("s1").FocusPane()
-	st := a.paneInfoOf(p)
+	st := a.InfoViews().Of(p)
 	st.Dir = "/Users/smallnest/ai/hyla"
 	st.Procs = []proto.Process{
 		{PID: 4211, Name: "zsh", Age: "2-03:11:40"},
@@ -40,7 +40,7 @@ func TestInfoDemo(t *testing.T) {
 func TestInfoMagpieDemo(t *testing.T) {
 	a := testApp(t)
 	p := a.session("s1").FocusPane()
-	st := a.paneInfoOf(p)
+	st := a.InfoViews().Of(p)
 	st.Dir = "/Users/smallnest/ai/hyla"
 	st.Procs = []proto.Process{
 		{PID: 4211, Name: "zsh", Age: "2-03:11:40"},

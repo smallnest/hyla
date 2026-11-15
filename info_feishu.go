@@ -7,6 +7,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"hyla/internal/proto"
+	"hyla/internal/ui/info"
 	"hyla/internal/ui/theme"
 
 	"hyla/locales"
@@ -26,7 +27,7 @@ func (a *App) infoFeishu(c *ui.Context, pal *theme.Palette, p *proto.Pane) {
 	if set == nil || set.App == "" {
 		return
 	}
-	st := a.paneInfoOf(p)
+	st := a.InfoViews().Of(p)
 	connected := st.Feishu != nil && st.Feishu.Connected
 	aside := locales.SetFeishuOff()
 	if connected {
@@ -38,7 +39,7 @@ func (a *App) infoFeishu(c *ui.Context, pal *theme.Palette, p *proto.Pane) {
 		st.FeishuGot = true
 		a.callOn(a.hostOf(p.ID), "feishu.status", nil, func(err error) {
 			a.update(func() {
-				if a.paneInfoOf(p) == st {
+				if a.InfoViews().Of(p) == st {
 					st.FeishuGot = false
 				}
 			})
@@ -52,8 +53,8 @@ func (a *App) infoFeishu(c *ui.Context, pal *theme.Palette, p *proto.Pane) {
 	if len(set.Allow) > 0 {
 		who = locales.SetFeishuAllow() + ": " + strings.Join(set.Allow, ", ")
 	}
-	a.infoCard(c, pal, infoFoldFeishu, glyph.Link, locales.SetFeishu(), aside, func() {
-		infoRows(c, func() {
+	info.Card(c, a, pal, info.FoldFeishu, glyph.Link, locales.SetFeishu(), aside, func() {
+		info.Rows(c, func() {
 			ui.Column(c).Padding(4, 12, 10, 12).Gap(4).Children(func() {
 				ui.Text(c, who).FontSize(12).TextColor(pal.TextMuted).Wrap()
 				if st.Feishu != nil && !st.Feishu.Connected {

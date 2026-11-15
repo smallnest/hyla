@@ -8,6 +8,7 @@ import (
 
 	"hyla/internal/app/magpie"
 	"hyla/internal/proto"
+	"hyla/internal/ui/info"
 	"hyla/internal/ui/theme"
 
 	"hyla/internal/ui/glyph"
@@ -136,10 +137,10 @@ func (a *App) infoMagpie(c *ui.Context, pal *theme.Palette) {
 	if st.err == "" {
 		aside = magpie.Cost(st.usage.Today.Cost)
 	}
-	a.infoCard(c, pal, infoFoldMagpie, magpieGlyph, locales.InfoMagpie(), aside, func() {
+	info.Card(c, a, pal, info.FoldMagpie, magpieGlyph, locales.InfoMagpie(), aside, func() {
 		switch {
 		case st.usage == nil:
-			infoEmpty(c, pal, st.err)
+			info.Empty(c, pal, st.err)
 		default:
 			infoMagpieUsage(c, pal, st.usage, st.err)
 		}
@@ -149,30 +150,30 @@ func (a *App) infoMagpie(c *ui.Context, pal *theme.Palette) {
 // infoMagpieUsage lists what Magpie spent, then its sessions before now,
 // another's or the one that ended.
 func infoMagpieUsage(c *ui.Context, pal *theme.Palette, u *magpie.Usage, down string) {
-	infoRows(c, func() {
+	info.Rows(c, func() {
 		infoMetric(c, pal, locales.InfoMagpieCalls(), strconv.Itoa(u.Today.Calls))
-		infoRule(c, pal)
+		info.Rule(c, pal)
 		infoMetric(c, pal, locales.InfoMagpieTokens(), magpie.Tokens(u.Today.Count()))
-		infoRule(c, pal)
+		info.Rule(c, pal)
 		infoMetricSub(c, pal, locales.InfoMagpieLeft(), magpie.Hit(u.Today), locales.InfoMagpieCache())
 		if u.Session > 0 || u.SessErr {
-			infoRule(c, pal)
+			info.Rule(c, pal)
 			infoMetric(c, pal, locales.InfoMagpieSession(), magpieSessionLine(u))
 		}
 		for i, w := range u.Windows {
 			if i >= 4 {
 				break
 			}
-			infoRule(c, pal)
+			info.Rule(c, pal)
 			infoMetricSub(c, pal, w.Provider, magpie.Left(w.Left), w.Name)
 		}
 		if u.Latest.Served != "" {
-			infoRule(c, pal)
+			info.Rule(c, pal)
 			infoMetric(c, pal, locales.InfoMagpieLatest(), magpieCallLine(u.Latest))
 		}
 		if down != "" {
-			infoRule(c, pal)
-			infoEmpty(c, pal, down)
+			info.Rule(c, pal)
+			info.Empty(c, pal, down)
 		}
 	})
 }

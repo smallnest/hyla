@@ -106,6 +106,9 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     its own `SkillState`, so the layer map need not name `cli`. The
     icon button and the pointer tooltip it draws with moved there too,
     and the root keeps thin adapters.
+  - Also: the side panel's Info view is `internal/ui/info` — the pane's
+    directory, processes and ports, each a card of `info.Card`, and the
+    fold keys. Magpie's and Feishu's cards draw through it from the root.
   - Also: `host` is `internal/app/host`.Host — one hylad's address, its
     connection's state and error, what it holds, and the dialers — which
     the views read directly, as the root's field was. Its fields are
