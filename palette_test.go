@@ -1,6 +1,7 @@
 package main
 
 import (
+	"hyla/internal/ui/fuzzy"
 	"hyla/internal/ui/settings/search"
 	"testing"
 
@@ -33,7 +34,7 @@ func TestPaletteKeywords(t *testing.T) {
 		}
 	}
 	// Keywords match by their starts, not as letters strewn through them.
-	if keywords("bsr", search.ActionWords["pane.browser"]) >= 0 {
+	if fuzzy.Words("bsr", search.ActionWords["pane.browser"]) >= 0 {
 		t.Error("keywords matched letters in order")
 	}
 }

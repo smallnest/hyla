@@ -2,12 +2,12 @@ package main
 
 import (
 	"cmp"
+	"hyla/internal/ui/fuzzy"
 	"hyla/internal/ui/settings/search"
 	"math"
 	"slices"
 	"strings"
 	"time"
-	"unicode"
 
 	"github.com/egoist/mygo/ui"
 
@@ -238,71 +238,15 @@ func (it *paletteItem) kind() int {
 	return paletteCommand
 }
 
-// fuzzy scores how well query matches s, as its letters in order: higher
-// is better, -1 no match. Starts of words and runs score more.
-func fuzzy(query, s string) int {
-	if query == "" {
-		return 0
-	}
-	q := []rune(strings.ToLower(query))
-	r := []rune(strings.ToLower(s))
-	score, qi, run := 0, 0, 0
-	for i := 0; i < len(r) && qi < len(q); i++ {
-		if q[qi] == ' ' {
-			qi++
-			continue
-		}
-		if r[i] == q[qi] {
-			bonus := 1
-			if i == 0 || !unicode.IsLetter(r[i-1]) && !unicode.IsDigit(r[i-1]) {
-				bonus += 6
-			}
-			run++
-			score += bonus + run*2
-			qi++
-		} else {
-			run = 0
-		}
-	}
-	if qi < len(q) {
-		return -1
-	}
-	return score*10 - len(r)
-}
-
-// keywords scores how well query finds words, a list of them: each of its
-// terms the start of one. Too many to match as letters in order, which
-// any query would.
-func keywords(query, words string) int {
-	terms := strings.Fields(strings.ToLower(query))
-	if len(terms) == 0 {
-		return -1
-	}
-	score := 0
-	for _, t := range terms {
-		best := -1
-		for _, w := range strings.Fields(strings.ToLower(words)) {
-			if strings.HasPrefix(w, t) {
-				best = max(best, fuzzy(t, w))
-			}
-		}
-		if best < 0 {
-			return -1
-		}
-		score += best
-	}
-	return score
-}
-
 func (a *App) paletteView(c *ui.Context, pal *theme.Palette) {
 	if !a.Pal.open {
 		return
 	}
 	var items []paletteItem
 	for _, it := range a.paletteItems() {
-		sc := fuzzy(a.Pal.query, it.title+" "+it.detail)
-		sc = max(sc, keywords(a.Pal.query, it.words))
-		if t := fuzzy(a.Pal.query, it.title); t >= 0 {
+		sc := fuzzy.Score(a.Pal.query, it.title+" "+it.detail)
+		sc = max(sc, fuzzy.Words(a.Pal.query, it.words))
+		if t := fuzzy.Score(a.Pal.query, it.title); t >= 0 {
 			sc = max(sc, t+50)
 		}
 		if it.top {

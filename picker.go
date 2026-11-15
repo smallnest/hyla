@@ -1,6 +1,7 @@
 package main
 
 import (
+	"hyla/internal/ui/fuzzy"
 	"slices"
 	"strings"
 
@@ -100,7 +101,7 @@ func (a *App) pickerItems() []pickerItem {
 		if !e.Dir {
 			continue
 		}
-		sc := fuzzy(q, e.Name)
+		sc := fuzzy.Score(q, e.Name)
 		if sc < 0 {
 			continue
 		}
