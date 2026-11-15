@@ -1,6 +1,7 @@
 package settings
 
 import (
+	"hyla/internal/app/host"
 	"time"
 
 	"github.com/egoist/mygo"
@@ -110,6 +111,10 @@ type App interface {
 	P2P(c *ui.Context, pal *theme.Palette)
 	// PetKnob notes the pet's slider, as the pet grows.
 	PetKnob()
+	// Local is this machine, and CallOn asks it something, on the main
+	// thread.
+	Local() *host.Host
+	CallOnLocal(method string, params any, done func(err error))
 }
 
 // RunOnMain runs fn on the app's main thread, and draws.

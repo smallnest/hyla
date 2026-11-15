@@ -50,6 +50,10 @@ func (a *App) BarMid() float32                            { return barMid }
 func (a *App) CardGap() float32                           { return cardGap }
 func (a *App) Vibrancy(s settings.Settings) mygo.Vibrancy { return vibrancyFor(s) }
 
+func (a *App) CallOnLocal(method string, params any, done func(err error)) {
+	a.callOn(a.local(), method, params, done)
+}
+
 // WindowControls draws the window's own buttons, where the system draws
 // none.
 func (a *App) WindowControls(c *ui.Context, pal *theme.Palette) { windowControls(c, pal, a.SetWin) }
@@ -99,7 +103,7 @@ func (a *App) RemoveFallback(at int)   { a.removeFallback(at) }
 
 // Sync, Feishu, Tailcat and P2P are the pages and the forms the root keeps.
 func (a *App) Sync(c *ui.Context, pal *theme.Palette)    { a.syncPage(c, pal) }
-func (a *App) Feishu(c *ui.Context, pal *theme.Palette)  { a.feishuPage(c, pal) }
+func (a *App) Feishu(c *ui.Context, pal *theme.Palette)  { uisettings.Feishu(a, c, pal) }
 func (a *App) Tailcat(c *ui.Context, pal *theme.Palette) { a.tailcatGroup(c, pal) }
 func (a *App) P2P(c *ui.Context, pal *theme.Palette)     { a.p2pGroup(c, pal) }
 

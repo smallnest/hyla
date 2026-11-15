@@ -1,7 +1,6 @@
-package main
+package settings
 
 import (
-	"os"
 	"slices"
 	"strings"
 	"time"
@@ -29,9 +28,9 @@ var feishuAgents = []string{"default", "claude", "codex", "opencode", "pi", "gem
 // prompts, which their sessions and the prompts from Feishu take.
 var feishuYoloAgents = []string{"claude", "codex", "opencode", "pi", "gemini", "qwen", "kimi", "amp", "droid", "cursor-agent"}
 
-// feishuRead asks this machine's hylad for the bot's state.
-func (a *App) feishuRead() {
-	h := a.local()
+// Read asks this machine's hylad for the bot's state.
+func Read(x App) {
+	h := x.Local()
 	if h.Client == nil {
 		return
 	}
@@ -40,16 +39,16 @@ func (a *App) feishuRead() {
 		if err != nil {
 			return
 		}
-		a.update(func() {
-			if st, ok := a.feishuState(h.Client); ok {
-				a.Ss.Feishu.St, a.Ss.Feishu.Known = st, true
+		x.Main(func() {
+			if st, ok := stateOf(x, h.Client); ok {
+				x.SettingsState().Feishu.St, x.SettingsState().Feishu.Known = st, true
 			}
 		})
 	})
 }
 
-// feishuState is the bot's state, as this machine's hylad tells it.
-func (a *App) feishuState(cl *client.Client) (proto.FeishuState, bool) {
+// stateOf is the bot's state, as this machine's hylad tells it.
+func stateOf(x App, cl *client.Client) (proto.FeishuState, bool) {
 	var st proto.FeishuState
 	if err := cl.Call("feishu.status", nil, &st); err != nil {
 		return st, false
@@ -57,19 +56,19 @@ func (a *App) feishuState(cl *client.Client) (proto.FeishuState, bool) {
 	return st, true
 }
 
-// feishuPage is Settings › Feishu.
-func (a *App) feishuPage(c *ui.Context, pal *theme.Palette) {
-	a.feishuGroup(c, pal)
-	if settings.FeishuSet(a.Applied.Feishu) {
-		a.feishuYoloGroup(c, pal)
+// Feishu is Settings › Feishu.
+func Feishu(x App, c *ui.Context, pal *theme.Palette) {
+	group(x, c, pal)
+	if settings.FeishuSet(x.SettingsApplied().Feishu) {
+		yoloGroup(x, c, pal)
 	}
 }
 
-// feishuYoloGroup is Settings › Feishu's yolo modes: every agent runs
+// yoloGroup is Settings › Feishu's yolo modes: every agent runs
 // without its permission prompts or sandbox, as feishu-yolo says, unless
 // an agent's switch turns it off.
-func (a *App) feishuYoloGroup(c *ui.Context, pal *theme.Palette) {
-	s := &a.settingsIn
+func yoloGroup(x App, c *ui.Context, pal *theme.Palette) {
+	s := x.Settings()
 	if s.Feishu == nil {
 		return
 	}
@@ -95,11 +94,11 @@ func (a *App) feishuYoloGroup(c *ui.Context, pal *theme.Palette) {
 	})
 }
 
-// feishuGroup is Settings › Feishu: the app and its secret, who
+// group is Settings › Feishu: the app and its secret, who
 // may use the bot, how a prompt runs, and what its cards show.
-func (a *App) feishuGroup(c *ui.Context, pal *theme.Palette) {
-	d := &a.Ss.Feishu
-	set := a.Applied.Feishu
+func group(x App, c *ui.Context, pal *theme.Palette) {
+	d := &x.SettingsState().Feishu
+	set := x.SettingsApplied().Feishu
 	setup := settings.FeishuSet(set)
 	if set == nil {
 		set = &settings.Feishu{}
@@ -110,7 +109,7 @@ func (a *App) feishuGroup(c *ui.Context, pal *theme.Palette) {
 	d.AppSet = true
 	if !d.Known && d.Err == "" {
 		// Once the first frames show, with the window's.
-		time.AfterFunc(time.Second, func() { a.feishuRead() })
+		time.AfterFunc(time.Second, func() { Read(x) })
 	}
 	// The fields', as the settings have them, until they change.
 	if !d.Filled {
@@ -119,19 +118,19 @@ func (a *App) feishuGroup(c *ui.Context, pal *theme.Palette) {
 		d.Dir = set.Dir
 		d.Filled = true
 	}
-	d.Timeout = settings.FormatDuration(time.Duration(feishuTimeout(set)))
-	d.Stream = settings.FormatDuration(time.Duration(feishuStream(set)))
+	d.Timeout = settings.FormatDuration(time.Duration(timeoutOf(set)))
+	d.Stream = settings.FormatDuration(time.Duration(streamOf(set)))
 	note := locales.SetFeishuDetail()
-	if len(a.Machines) > 1 {
+	if x.HostCount() > 1 {
 		note += " " + locales.SetShellThisComputer()
 	}
 	kit.Group(c, pal, locales.SetFeishu(), note, func() {
-		kit.Row(c, pal, locales.SetFeishuAppId(), a.feishuStatusLine(d), func() {
+		kit.Row(c, pal, locales.SetFeishuAppId(), statusLine(x, d), func() {
 			controls.TextField(c, "feishu-app", &d.App, "cli_…", 200, pal)
 			if d.Busy {
 				ui.Text(c, locales.SetFeishuConnecting()).FontSize(12.5).TextColor(pal.TextMuted).SingleLine()
 			} else if style.Button(c, "feishu-connect", locales.SetFeishuCheck(), "", true, pal) {
-				a.feishuConnect(d)
+				connect(x, d)
 			}
 		})
 		if d.Err != "" {
@@ -151,61 +150,61 @@ func (a *App) feishuGroup(c *ui.Context, pal *theme.Palette) {
 	if !setup {
 		return
 	}
-	a.feishuRow(c, pal, locales.SetFeishuOffState(), a.feishuStatusLine(d), func() {
+	rowGroup(x, c, pal, locales.SetFeishuOffState(), statusLine(x, d), func() {
 		if style.Button(c, "feishu-off", locales.SetFeishuDisconnect(), "", false, pal) {
-			a.feishuDisconnect(d)
+			disconnect(x, d)
 		}
 	})
-	a.feishuRow(c, pal, locales.SetFeishuAllow(), list(set.Allow, locales.SetFeishuOnlySetup()), func() {
-		controls.TextField(c, "feishu-allow", &d.Allow, locales.SetFeishuAllowPlaceholder(), 200, pal).OnSubmit(func() { a.feishuRows(d) })
+	rowGroup(x, c, pal, locales.SetFeishuAllow(), list(set.Allow, locales.SetFeishuOnlySetup()), func() {
+		controls.TextField(c, "feishu-allow", &d.Allow, locales.SetFeishuAllowPlaceholder(), 200, pal).OnSubmit(func() { rows(x, d) })
 	})
-	a.feishuRunRow(c, pal)
+	runRow(x, c, pal)
 	dirDetail := proto.ShortDir(set.Dir)
 	if set.Dir == "" {
 		dirDetail = locales.SetFeishuDirDetail() + " · " + locales.SetFeishuDirDefault()
 	}
-	a.feishuRow(c, pal, locales.SetFeishuAgent(), a.feishuAgent(set.Agent), func() {
+	rowGroup(x, c, pal, locales.SetFeishuAgent(), agentName(x, set.Agent), func() {
 		agents := slices.Clone(feishuAgents)
 		if !slices.Contains(agents, set.Agent) {
 			agents = append(agents, set.Agent)
 		}
-		controls.Popup(c, "feishu-agent", &a.settingsIn.Feishu.Agent, agents, func(agent string) string {
+		controls.Popup(c, "feishu-agent", &feishuSet(x).Agent, agents, func(agent string) string {
 			if agent == "default" {
 				return locales.SetFeishuAgentDefault()
 			}
 			return agent
 		}, 200, pal)
 	})
-	a.feishuRow(c, pal, locales.SetFeishuDir(), dirDetail, func() {
-		controls.TextField(c, "feishu-dir", &d.Dir, locales.SetFeishuDirDefault(), 200, pal).OnSubmit(func() { a.feishuRows(d) })
+	rowGroup(x, c, pal, locales.SetFeishuDir(), dirDetail, func() {
+		controls.TextField(c, "feishu-dir", &d.Dir, locales.SetFeishuDirDefault(), 200, pal).OnSubmit(func() { rows(x, d) })
 	})
-	a.feishuRow(c, pal, locales.SetFeishuHost(), locales.SetFeishuHostDetail(), func() {
-		controls.TextField(c, "feishu-host", &d.Hosts, locales.SetFeishuHostPlaceholder(), 200, pal).OnSubmit(func() { a.feishuRows(d) })
+	rowGroup(x, c, pal, locales.SetFeishuHost(), locales.SetFeishuHostDetail(), func() {
+		controls.TextField(c, "feishu-host", &d.Hosts, locales.SetFeishuHostPlaceholder(), 200, pal).OnSubmit(func() { rows(x, d) })
 	})
-	a.feishuRow(c, pal, locales.SetFeishuTimeout(), locales.SetFeishuTimeoutDetail(), func() {
-		controls.TextField(c, "feishu-timeout", &d.Timeout, "30m", 90, pal).OnSubmit(func() { a.feishuRows(d) })
+	rowGroup(x, c, pal, locales.SetFeishuTimeout(), locales.SetFeishuTimeoutDetail(), func() {
+		controls.TextField(c, "feishu-timeout", &d.Timeout, "30m", 90, pal).OnSubmit(func() { rows(x, d) })
 	})
-	a.feishuRow(c, pal, locales.SetFeishuStream(), locales.SetFeishuStreamDetail(), func() {
-		controls.TextField(c, "feishu-stream", &d.Stream, "30m", 90, pal).OnSubmit(func() { a.feishuRows(d) })
+	rowGroup(x, c, pal, locales.SetFeishuStream(), locales.SetFeishuStreamDetail(), func() {
+		controls.TextField(c, "feishu-stream", &d.Stream, "30m", 90, pal).OnSubmit(func() { rows(x, d) })
 	})
 }
 
-// feishuRunRow is the row of how a prompt runs its agent: a setting the
+// runRow is the row of how a prompt runs its agent: a setting the
 // app applies and saves as the segment changes, as the pages' other
 // controls do, not a field of the form, which a submit saves.
-func (a *App) feishuRunRow(c *ui.Context, pal *theme.Palette) {
-	f := a.settingsIn.Feishu
+func runRow(x App, c *ui.Context, pal *theme.Palette) {
+	f := feishuSet(x)
 	if f == nil {
 		return
 	}
-	a.feishuRow(c, pal, locales.SetFeishuRun(), locales.SetFeishuRunDetail(), func() {
+	rowGroup(x, c, pal, locales.SetFeishuRun(), locales.SetFeishuRunDetail(), func() {
 		kit.Segmented(c, "feishu-run", &f.Run, []string{settings.FeishuRunSession, settings.FeishuRunCommand},
 			[]string{locales.SetFeishuRunSession(), locales.SetFeishuRunCommand()})
 	})
 }
 
-// feishuRow is the group of a row, its controls by build.
-func (a *App) feishuRow(c *ui.Context, pal *theme.Palette, label, detail string, build func()) {
+// rowGroup is the group of a row, its controls by build.
+func rowGroup(x App, c *ui.Context, pal *theme.Palette, label, detail string, build func()) {
 	// The title, as its row reads it.
 	title := label
 	kit.Group(c, pal, label, "", func() {
@@ -213,25 +212,25 @@ func (a *App) feishuRow(c *ui.Context, pal *theme.Palette, label, detail string,
 	})
 }
 
-// feishuRows saves what the fields hold, as one submits: a field the app
+// rowGroups saves what the fields hold, as one submits: a field the app
 // cannot read, as a time that does not parse, stays as it was.
-func (a *App) feishuRows(d *draft.FeishuDraft) {
-	f := a.feishu()
+func rows(x App, d *draft.FeishuDraft) {
+	f := feishuSet(x)
 	f.Allow = splitList(d.Allow)
 	f.Dir = strings.TrimSpace(d.Dir)
 	f.Host = splitList(d.Hosts)
-	f.Timeout = timeoutValue(d.Timeout, feishuTimeout(f))
-	f.Stream = timeoutValue(d.Stream, feishuStream(f))
-	a.feishuNormal()
+	f.Timeout = timeoutValue(d.Timeout, timeoutOf(f))
+	f.Stream = timeoutValue(d.Stream, streamOf(f))
+	normal(x)
 }
 
-// feishuNormal fills in what a Setup of the configuration fills in: the
+// normal fills in what a Setup of the configuration fills in: the
 // times, and the agent and the way a prompt runs, which have each a
 // default.
-func (a *App) feishuNormal() {
-	f := a.feishu()
-	f.Timeout = feishuTimeout(f)
-	f.Stream = feishuStream(f)
+func normal(x App) {
+	f := feishuSet(x)
+	f.Timeout = timeoutOf(f)
+	f.Stream = streamOf(f)
 	if f.Agent == "" {
 		f.Agent = "default"
 	}
@@ -240,50 +239,16 @@ func (a *App) feishuNormal() {
 	}
 }
 
-// feishuAppEnv is the app's environment, which the bot's agent commands
-// run in, as hylad reads it now: a command reaches hylad as its window
-// starts it, or from a login shell's. The variables a login shell's
-// profile reads live, as a token or a socket that changes, are read
-// again with each setting the group applies. The variables of AUTH,
-// Sockets, MCP proxies and tokens are left out, and every variable with
-// a secret in its name: the configuration keeps them as they were.
-func feishuAppEnv() []string {
-	drop := func(k string) bool {
-		k = strings.ToUpper(k)
-		for _, p := range []string{"AUTH", "TOKEN", "SECRET", "PASSWORD", "KEY", "CREDENTIAL", "SOCK", "PROXY"} {
-			if strings.Contains(k, p) {
-				return true
-			}
-		}
-		return k == "PATH" || k == "PWD" || k == "OLDPWD" || k == "SHLVL" || k == "_" || k == "TMPDIR" ||
-			strings.HasPrefix(k, "TMP") || k == "TERM" || k == "COLORTERM" || k == "SHELL" || strings.HasPrefix(k, "SSH_")
-	}
-	// The providers' keys, as ANTHROPIC_API_KEY, which an agent needs.
-	keep := []string{"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY", "DEEPSEEK_API_KEY", "MOONSHOT_API_KEY",
-		"ARK_API_KEY", "ZHIPU_API_KEY", "MIMOCODE_API_KEY", "OPENROUTER_API_KEY", "GROQ_API_KEY", "MISTRAL_API_KEY", "XAI_API_KEY"}
-	var env []string
-	for _, kv := range os.Environ() {
-		k, _, _ := strings.Cut(kv, "=")
-		if len(kv) > 32<<10 || strings.ContainsAny(kv, "\n\r\x00") {
-			continue
-		}
-		if slices.Contains(keep, k) || !drop(k) {
-			env = append(env, kv)
-		}
-	}
-	return env
-}
-
-// feishuTimeout and feishuStream are a turn's time limit, and a card's
+// timeoutOf and streamOf are a turn's time limit, and a card's
 // updates, as the configuration has them or the default.
-func feishuTimeout(f *settings.Feishu) int64 {
+func timeoutOf(f *settings.Feishu) int64 {
 	if f.Timeout > 0 {
 		return f.Timeout
 	}
 	return int64(settings.FeishuDefaultTimeout)
 }
 
-func feishuStream(f *settings.Feishu) int64 {
+func streamOf(f *settings.Feishu) int64 {
 	if f.Stream > 0 {
 		return f.Stream
 	}
@@ -291,11 +256,11 @@ func feishuStream(f *settings.Feishu) int64 {
 }
 
 // feishu is the Feishu settings the group edits, and applies.
-func (a *App) feishu() *settings.Feishu {
-	if a.settingsIn.Feishu == nil {
-		a.settingsIn.Feishu = &settings.Feishu{}
+func feishuSet(x App) *settings.Feishu {
+	if x.Settings().Feishu == nil {
+		x.Settings().Feishu = &settings.Feishu{}
 	}
-	return a.settingsIn.Feishu
+	return x.Settings().Feishu
 }
 
 // timeoutValue reads a time as a field types it, 30m or 1h30m: in
@@ -327,17 +292,17 @@ func list(l []string, empty string) string {
 	return strings.Join(l, ", ")
 }
 
-// feishuAgent tells the agent a new session runs.
-func (a *App) feishuAgent(agent string) string {
+// agentName tells the agent a new session runs.
+func agentName(x App, agent string) string {
 	if agent == "default" || agent == "" {
 		return locales.SetFeishuAgentDefault()
 	}
 	return agent
 }
 
-// feishuStatusLine tells the bot of this machine: connected to which
+// statusLine tells the bot of this machine: connected to which
 // app, off, or why not.
-func (a *App) feishuStatusLine(d *draft.FeishuDraft) string {
+func statusLine(x App, d *draft.FeishuDraft) string {
 	if !d.Known {
 		return ""
 	}
@@ -352,10 +317,10 @@ func (a *App) feishuStatusLine(d *draft.FeishuDraft) string {
 	return locales.SetFeishuNotConnected()
 }
 
-// feishuConnect checks the app with Feishu, keeps its secret and its ID,
+// connect checks the app with Feishu, keeps its secret and its ID,
 // and connects the bot of this machine. The secret is needed when the ID
 // is another app's, or none is kept.
-func (a *App) feishuConnect(d *draft.FeishuDraft) {
+func connect(x App, d *draft.FeishuDraft) {
 	app := strings.TrimSpace(d.App)
 	if app == "" {
 		d.Err = locales.SetFeishuSecretNeeded()
@@ -374,42 +339,42 @@ func (a *App) feishuConnect(d *draft.FeishuDraft) {
 	// Feishu first, over the network: never on the window's thread.
 	go func() {
 		err := feishu.Probe(app, secret)
-		a.update(func() {
+		x.Main(func() {
 			d.Busy = false
 			if err != nil {
 				d.Err = err.Error()
 				return
 			}
-			a.feishuKeep(d, app, secret, kept.Me)
+			keep(x, d, app, secret, kept.Me)
 		})
 	}()
 }
 
-// feishuKeep saves the app's secret, keeping who set it up, writes the
+// keep saves the app's secret, keeping who set it up, writes the
 // app to the configuration, and connects the bot.
-func (a *App) feishuKeep(d *draft.FeishuDraft, app, secret, me string) {
+func keep(x App, d *draft.FeishuDraft, app, secret, me string) {
 	if err := settings.SaveFeishuSecret(settings.FeishuSecret{AppID: app, AppSecret: secret, Me: me}); err != nil {
 		d.Err = err.Error()
 		return
 	}
 	d.Secret = ""
-	f := a.feishu()
+	f := feishuSet(x)
 	f.App = app
 	if err := settings.ValidateFeishu(f); err != nil {
 		d.Err = err.Error()
 		return
 	}
-	a.feishuNormal()
-	a.callOn(a.local(), "feishu.restart", nil, nil)
-	a.feishuRead()
+	normal(x)
+	x.CallOnLocal("feishu.restart", nil, nil)
+	Read(x)
 }
 
-// feishuDisconnect takes the app off the configuration, and stops the
+// disconnect takes the app off the configuration, and stops the
 // bot.
-func (a *App) feishuDisconnect(d *draft.FeishuDraft) {
-	f := a.feishu()
+func disconnect(x App, d *draft.FeishuDraft) {
+	f := feishuSet(x)
 	f.App = ""
-	a.feishuNormal()
-	a.callOn(a.local(), "feishu.restart", nil, nil)
-	a.feishuRead()
+	normal(x)
+	x.CallOnLocal("feishu.restart", nil, nil)
+	Read(x)
 }

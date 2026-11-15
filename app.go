@@ -1375,7 +1375,7 @@ func (a *App) rememberEnv() {
 	if err != nil {
 		return
 	}
-	if err := settings.SetAppEnv(host, feishuAppEnv(), time.Now()); err != nil {
+	if err := settings.SetAppEnv(host, uisettings.AppEnv(), time.Now()); err != nil {
 		a.toast(err.Error())
 	}
 }
@@ -2230,7 +2230,7 @@ func (a *App) busyCount(h *host.Host) int {
 // restartFeishu connects the bot again, with what the configuration says
 // now: the environment its agent's commands run in.
 func (a *App) restartFeishu() {
-	p := proto.FeishuEnv{Env: feishuAppEnv()}
+	p := proto.FeishuEnv{Env: uisettings.AppEnv()}
 	p.Host, _ = os.Hostname()
 	a.callOn(a.local(), "feishu.restart", p, nil)
 }

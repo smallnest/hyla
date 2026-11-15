@@ -181,6 +181,11 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     app's prefs' pod, and `k8s_adapters.go` is its adapters. The SSH and
     K8s rows keep the app's `DragAtAddr` and `DragAfterSide` for their
     insertion lines.
+  - Also: the Feishu page is `internal/ui/settings/feishu.go` — its
+    groups, its app's check and secret, and the bot's state — and the
+    environment the bot's agents run in is the package's `AppEnv`, which
+    the app reads as it applies its settings. The page asks the app for
+    this machine, and for a call on it, as `Local` and `CallOnLocal`.
   - Also: the panes' drawing is `internal/ui/panes`, beside their
     actions: the card, the layout's nodes and its divider, the header and
     its controls, the terminal's body, the drop preview and the moves a

@@ -1648,7 +1648,7 @@ var (
 	P2PPage     pageFunc
 )
 
-func feishuPage(x App, c *ui.Context, pal *theme.Palette) { x.Feishu(c, pal) }
+func feishuPage(x App, c *ui.Context, pal *theme.Palette) { Feishu(x, c, pal) }
 
 // bundledFont is the name of the font hyla brings.
 const bundledFont = "JetBrains Mono Nerd Font"
