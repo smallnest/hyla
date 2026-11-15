@@ -81,7 +81,11 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     `internal/app/magpie`, which the Info view's card calls.
   - Also: the file panes' reads are `internal/app/filepane` (daemon
     layer, as they call a client), with the viewer's bounds and
-    `IsBinary`, which the Files view shares.
+    `IsBinary`, which the Files view shares. The Info views' reads are
+    `internal/app/paneinfo`, in the same layer and the same shape.
+  - The guard now fails on a package of `internal/` that no layer's
+    names hold. It found `buildinfo`, `fileicons` and `profiling` never
+    listed.
   - The table's parts that the views read deeply — `hosts` (the
     connection, the error, the conversations) and the sidebar's state —
     wait for Step 4: a part moves only when it reads another's fields
