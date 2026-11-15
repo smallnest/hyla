@@ -19,6 +19,7 @@ import (
 	"hyla/internal/ui/settings/kit"
 	"hyla/internal/ui/theme"
 
+	"hyla/internal/ui/chat"
 	"hyla/internal/ui/glyph"
 	"hyla/internal/ui/style"
 	"hyla/locales"
@@ -67,7 +68,7 @@ type sideState struct {
 	theme    *editor.Theme
 	themeKey string
 	info     infoState
-	chat     chatState
+	chat     chat.State
 }
 
 // infoState is the Info view's, which keeps its place as the views change.

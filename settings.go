@@ -40,7 +40,7 @@ func (a *App) openSettings(page string) {
 // settings and those as last applied.
 func (a *App) SettingsState() *uisettings.State           { return &a.Ss }
 func (a *App) SettingsApplied() settings.Settings         { return a.Applied }
-func (a *App) Main(fn func())                             { a.update(fn) }
+func (a *App) Main(fn func())                             { a.main(fn) }
 func (a *App) SettingsWindow() *mygo.Window               { return a.SetWin }
 func (a *App) SetSettingsWindow(w *mygo.Window)           { a.SetWin = w }
 func (a *App) RootWindow() *mygo.Window                   { return a.Win }
