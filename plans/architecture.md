@@ -73,6 +73,10 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
 - **Step 1: `App`'s fields exported** — the fields named as JSON and
   used by other files need to leave the root. `app.go` is 2,300 lines
   of methods; its parts go as the table above names them.
+  - Started: `sync` is `internal/app/sync`'s `State`, embedded in `App`,
+    which the state reads through its `Hosts` interface (whether a state
+    came, the main thread, and the lines it says). The Sync page's view
+    stays in the root, `sync_page.go`, until the views are `internal/`.
 - **Step 2: the packages with no view** — done: `profiling`,
   `buildinfo`, `fileicons`, `adblock`.
 - **Step 2b: the views' foundations, which needed no `App`** — done:
