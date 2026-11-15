@@ -7,6 +7,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/proto"
+	"hyla/internal/ui/sshdialog"
 	"hyla/locales"
 )
 
@@ -20,7 +21,7 @@ func TestSidebarHostMarks(t *testing.T) {
 		{ID: "p-k8s", Name: locales.K8sPodsProject()},
 	}
 	a.Prefs.SSHProject, a.Prefs.K8sProject = "p-ssh", "p-k8s"
-	a.Prefs.SSHHosts = []sshHost{{Name: "example.com", Addr: "root@example.com:2222"}, {Name: "devbox", Addr: "me@devbox"}}
+	a.Prefs.SSHHosts = []sshdialog.Host{{Name: "example.com", Addr: "root@example.com:2222"}, {Name: "devbox", Addr: "me@devbox"}}
 	a.Prefs.K8sPods = []k8sPod{{Name: "api-7d9f", Command: "kubectl exec -it api-7d9f -n prod -- bash"}}
 	a.Loaded = true
 	for _, dark := range []bool{false, true} {

@@ -170,6 +170,12 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     its own field, which `Focused` answers, as `focused` had to leave.
     `petspot` moved from the engine layer to the ui layer, which the
     pet's window reads it from.
+  - Also: the machines of the sidebar's SSH project — the dialog that
+    adds one, the rows they show as, and their terminals — are
+    `internal/ui/sshdialog`, beside the dialog's view. Its `Host` is the
+    app's prefs' machine, and `ssh_dialog.go` is its adapters. The row's
+    drag and its insertion line are the machines' own, as the K8s rows
+    keep the app's `DragAtAddr` and `DragAfterSide`.
   - Also: the panes' drawing is `internal/ui/panes`, beside their
     actions: the card, the layout's nodes and its divider, the header and
     its controls, the terminal's body, the drop preview and the moves a

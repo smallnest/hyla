@@ -271,7 +271,7 @@ func (a *App) removeK8sPod(cmd string) {
 		}
 		a.Prefs.K8sPods = slices.Delete(a.Prefs.K8sPods, i, i+1)
 		a.savePrefs()
-		a.undoSays(locales.K8sPodRemoved(pod.Name), func() {
+		a.UndoSays(locales.K8sPodRemoved(pod.Name), func() {
 			a.Prefs.K8sPods = slices.Insert(a.Prefs.K8sPods, min(i, len(a.Prefs.K8sPods)), pod)
 			a.savePrefs()
 		})
@@ -382,16 +382,16 @@ func (a *App) k8sPodRow(c *ui.Context, pal *theme.Palette, i int) {
 	if d, over := ui.DragOver[k8sDrag](row); over && d.command != pod.Command {
 		_, y, _ := row.PointerPosition()
 		after := y > height/2
-		a.DragAt, a.DragAfter = pod.Command, after
+		a.DragAtAddr, a.DragAfterSide = pod.Command, after
 		row.Background(pal.RowHover)
 		dragLine(row, pal, after)
 	}
 	if d, ok := ui.Drop[k8sDrag](row); ok && d.command != pod.Command {
 		_, y, _ := row.PointerPosition()
 		after := y > height/2
-		if a.DragAt == pod.Command {
+		if a.DragAtAddr == pod.Command {
 			// The side the insertion line last showed.
-			after = a.DragAfter
+			after = a.DragAfterSide
 		}
 		to := pod.Command
 		a.defer_(func() { a.moveK8sPod(d.command, to, after) })

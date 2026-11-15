@@ -133,7 +133,7 @@ func TestAddSSHHostOnce(t *testing.T) {
 
 	for i := range 2 {
 		a.SshAsk = &sshdialog.Ask{Open: true, Addr: "root@example.com:2222", Name: "buildbox"}
-		a.addSSHHost()
+		sshdialog.Add(a)
 		deadline := time.Now().Add(2 * time.Second)
 		for len(a.Prefs.SSHHosts) == 0 || a.Prefs.SSHHosts[0].Session == "" {
 			if time.Now().After(deadline) {
@@ -180,8 +180,8 @@ func TestSSHArgs(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", c.addr, err)
 		}
-		if got := sshArgs(addr); !slices.Equal(got, c.want) {
-			t.Errorf("sshArgs(%q) = %q, want %q", c.addr, got, c.want)
+		if got := sshdialog.Args(addr); !slices.Equal(got, c.want) {
+			t.Errorf("sshdialog.Args(%q) = %q, want %q", c.addr, got, c.want)
 		}
 	}
 }
@@ -196,7 +196,7 @@ func TestSidebarSSHHost(t *testing.T) {
 	a.local().Conn = host.StateReady
 	a.mergeState(a.local(), proto.State{Projects: []proto.Project{{ID: "p-ssh", Name: locales.SshHostsProject()}}})
 	a.Prefs.SSHProject = "p-ssh"
-	a.Prefs.SSHHosts = []sshHost{{Name: "example.com", Addr: "root@example.com:2222"}}
+	a.Prefs.SSHHosts = []sshdialog.Host{{Name: "example.com", Addr: "root@example.com:2222"}}
 	creates := make(chan proto.CreateParams, 1)
 	cl, stop := projectClient(t, func(method string, raw json.RawMessage) (any, error) {
 		if method != "create" {
@@ -250,7 +250,7 @@ func TestSSHHostDrag(t *testing.T) {
 	a := testApp(t)
 	a.St.Projects = append(a.St.Projects, proto.Project{ID: "p-ssh", Name: locales.SshHostsProject()})
 	a.Prefs.SSHProject = "p-ssh"
-	a.Prefs.SSHHosts = []sshHost{{Name: "one", Addr: "me@one"}, {Name: "two", Addr: "me@two"}}
+	a.Prefs.SSHHosts = []sshdialog.Host{{Name: "one", Addr: "me@one"}, {Name: "two", Addr: "me@two"}}
 	tt := ui.NewTester(a.view, 1100, 700)
 	tt.Frame()
 	dragRow(t, tt, "two", "one", false)
@@ -277,7 +277,7 @@ func TestSSHHostReconnect(t *testing.T) {
 		}},
 	})
 	a.Prefs.SSHProject = "p-ssh"
-	a.Prefs.SSHHosts = []sshHost{{Name: "example.com", Addr: "root@example.com:2222", Session: "ssh-s"}}
+	a.Prefs.SSHHosts = []sshdialog.Host{{Name: "example.com", Addr: "root@example.com:2222", Session: "ssh-s"}}
 	creates := make(chan proto.CreateParams, 1)
 	cl, stop := projectClient(t, func(method string, raw json.RawMessage) (any, error) {
 		if method != "create" {
@@ -338,7 +338,7 @@ func TestSSHHostReconnectOpen(t *testing.T) {
 		}},
 	})
 	a.Prefs.SSHProject = "p-ssh"
-	a.Prefs.SSHHosts = []sshHost{{Name: "example.com", Addr: "root@example.com:2222", Session: "ssh-s"}}
+	a.Prefs.SSHHosts = []sshdialog.Host{{Name: "example.com", Addr: "root@example.com:2222", Session: "ssh-s"}}
 	creates := make(chan proto.CreateParams, 1)
 	cl, stop := projectClient(t, func(method string, raw json.RawMessage) (any, error) {
 		if method != "create" {
@@ -395,7 +395,7 @@ func TestSSHHostDisconnect(t *testing.T) {
 		}},
 	})
 	a.Prefs.SSHProject = "p-ssh"
-	a.Prefs.SSHHosts = []sshHost{{Name: "example.com", Addr: "root@example.com:2222", Session: "ssh-s"}}
+	a.Prefs.SSHHosts = []sshdialog.Host{{Name: "example.com", Addr: "root@example.com:2222", Session: "ssh-s"}}
 	closes := make(chan proto.CloseParams, 1)
 	cl, stop := projectClient(t, func(method string, raw json.RawMessage) (any, error) {
 		if method != "close" {
@@ -481,7 +481,7 @@ func TestSSHSessionRowShowsAddress(t *testing.T) {
 		}},
 	})
 	a.Prefs.SSHProject = "p-ssh"
-	a.Prefs.SSHHosts = []sshHost{{Name: "example.com", Addr: "root@example.com:2222", Session: "ssh-s"}}
+	a.Prefs.SSHHosts = []sshdialog.Host{{Name: "example.com", Addr: "root@example.com:2222", Session: "ssh-s"}}
 	a.Prefs.SidebarGroup = "none"
 	tt := ui.NewTester(a.view, 1100, 700)
 	tt.Frame()
@@ -500,7 +500,7 @@ func TestSSHSessionRowShowsAddress(t *testing.T) {
 func TestSSHHostHoverClose(t *testing.T) {
 	a := testApp(t)
 	a.Prefs.SSHProject = "ssh-p"
-	a.Prefs.SSHHosts = []sshHost{{Name: "box", Addr: "me@box", Session: "ssh-s"}}
+	a.Prefs.SSHHosts = []sshdialog.Host{{Name: "box", Addr: "me@box", Session: "ssh-s"}}
 	a.St.Projects = append(a.St.Projects, proto.Project{ID: "ssh-p", Name: locales.SshHostsProject()})
 	base := a.St.Sessions[0]
 	base.ID, base.Name, base.Project, base.Process, base.Status = "ssh-s", "box", "ssh-p", "ssh", proto.Working

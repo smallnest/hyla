@@ -21,6 +21,7 @@ import (
 	"hyla/internal/ui/marks"
 	"hyla/internal/ui/paints"
 	"hyla/internal/ui/side"
+	"hyla/internal/ui/sshdialog"
 	"hyla/internal/ui/style"
 	"hyla/locales"
 
@@ -180,7 +181,7 @@ func (a *App) view(c *ui.Context) {
 	a.pickerView(c, pal)
 	a.confirmView(c, pal)
 	a.worktreeView(c, pal)
-	a.sshView(c, pal)
+	a.sshView(c, pal) // the dialog that adds a machine
 	a.k8sView(c, pal)
 	// A preview that showed no more fades in anew next time.
 	if !a.PreviewDrawn {
@@ -468,16 +469,16 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g group, gi int, n *i
 		if d, over := ui.DragOver[projectDrag](hdr); over && d.host == g.host && d.id != id {
 			_, y, _ := hdr.PointerPosition()
 			after := y > 14
-			a.DragAt, a.DragAfter = id, after
+			a.DragAtAddr, a.DragAfterSide = id, after
 			hdr.Background(pal.RowHover)
 			dragLine(hdr, pal, after)
 		}
 		if d, ok := ui.Drop[projectDrag](hdr); ok && d.host == g.host && d.id != id {
 			_, y, _ := hdr.PointerPosition()
 			after := y > 14
-			if a.DragAt == id {
+			if a.DragAtAddr == id {
 				// The side the insertion line last showed.
-				after = a.DragAfter
+				after = a.DragAfterSide
 			}
 			target := id
 			a.defer_(func() { a.moveProject(d, target, after) })
@@ -625,12 +626,7 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g group, gi int, n *i
 		a.sessionRow(c, pal, s, n, float32(rowInset), g.dragKey())
 	}
 	if ssh {
-		for i := range a.Prefs.SSHHosts {
-			a.sshHostRow(c, pal, i)
-		}
-		if len(a.Prefs.SSHHosts) == 0 {
-			a.sshEmpty(c, pal)
-		}
+		sshdialog.Rows(a, c, pal)
 	}
 	if k8s {
 		for i := range a.Prefs.K8sPods {
@@ -741,16 +737,16 @@ func (a *App) sessionRow(c *ui.Context, pal *theme.Palette, s *proto.Session, n 
 		if d, over := ui.DragOver[sessionDrag](row); over && d.group == group && d.id != s.ID {
 			_, y, _ := row.PointerPosition()
 			after := y > h/2
-			a.DragAt, a.DragAfter = s.ID, after
+			a.DragAtAddr, a.DragAfterSide = s.ID, after
 			row.Background(pal.RowHover)
 			dragLine(row, pal, after)
 		}
 		if d, ok := ui.Drop[sessionDrag](row); ok && d.group == group && d.id != s.ID {
 			_, y, _ := row.PointerPosition()
 			after := y > h/2
-			if a.DragAt == s.ID {
+			if a.DragAtAddr == s.ID {
 				// The side the insertion line last showed.
-				after = a.DragAfter
+				after = a.DragAfterSide
 			}
 			target := s.ID
 			a.defer_(func() { a.reorderSession(d, target, after) })

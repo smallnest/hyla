@@ -1,35 +1,52 @@
 package main
 
 import (
-	"slices"
-	"strings"
-	"time"
+	ui "github.com/egoist/mygo/ui"
 
-	"github.com/egoist/mygo/ui"
-
-	"hyla/internal/client"
 	"hyla/internal/proto"
 	"hyla/internal/remote"
 	"hyla/internal/ui/confirm"
-	"hyla/internal/ui/paints"
-	"hyla/internal/ui/theme"
-
-	"hyla/internal/ui/marks"
-	"hyla/internal/ui/style"
-	"hyla/locales"
-
-	"hyla/internal/ui/glyph"
 	"hyla/internal/ui/sshdialog"
+	"hyla/internal/ui/theme"
 )
 
-// sshHost is a machine the sidebar's SSH project lists: the name the user
-// gave it, the address its ssh runs to, and the terminal it has open, if
-// any.
-type sshHost struct {
-	Name    string `json:"name"`
-	Addr    string `json:"addr"`
-	Session string `json:"session,omitempty"`
-}
+// The app, as the machines of the SSH project ask it.
+var _ sshdialog.App = (*App)(nil)
+
+// sshHost is a machine the sidebar's SSH project lists.
+type sshHost = sshdialog.Host
+
+func (a *App) PrefsSSHProject() string { return a.Prefs.SSHProject }
+
+func (a *App) SetPrefsSSHProject(id string) { a.Prefs.SSHProject = id }
+
+func (a *App) PrefsSSHHosts() []sshdialog.Host { return a.Prefs.SSHHosts }
+
+func (a *App) SetPrefsSSHHosts(hs []sshdialog.Host) { a.Prefs.SSHHosts = hs }
+
+func (a *App) ProjectNow(id string) *proto.Project { return a.project(id) }
+
+func (a *App) OpenProject(id string) { delete(a.Prefs.Collapsed, id) }
+
+func (a *App) AddProject(p proto.Project) { a.St.Projects = append(a.St.Projects, p) }
+
+func (a *App) AddPendingSSH(s proto.Session) { a.addPending(a.Machines[0], s) }
+
+func (a *App) CopyAddress(addr string) { a.CopyText = addr }
+
+func (a *App) ConfirmNow(q *confirm.Ask) { a.Confirm = q }
+
+func (a *App) Prompt() *sshdialog.Ask { return a.SshAsk }
+
+func (a *App) SetPrompt(d *sshdialog.Ask) { a.SshAsk = d }
+
+func (a *App) SidebarRows() string { return a.settingsIn.SidebarRows }
+
+func (a *App) DragAt() string { return a.DragAtAddr }
+
+func (a *App) DragAfter() bool { return a.DragAfterSide }
+
+func (a *App) SetDragAt(addr string, after bool) { a.DragAtAddr, a.DragAfterSide = addr, after }
 
 // askSSHHost opens the dialog.
 func (a *App) askSSHHost() {
@@ -38,446 +55,24 @@ func (a *App) askSSHHost() {
 	}
 }
 
-// sshView draws the dialog while it is open, and adds the machine and
-// connects to it once the user says so.
-func (a *App) sshView(c *ui.Context, pal *theme.Palette) {
-	d := a.SshAsk
-	if sshdialog.View(c, pal, d) {
-		a.addSSHHost()
-	}
-	if d != nil && !d.Open {
-		a.SshAsk = nil
-		a.focusTerminal()
-	}
-}
+// sshView draws the dialog while it is open.
+func (a *App) sshView(c *ui.Context, pal *theme.Palette) { sshdialog.Show(a, c, pal) }
 
-// sshProjectName is what the sidebar's SSH project is called, in the
-// language the app shows as it is made.
-func sshProjectName() string { return locales.SshHostsProject() }
-
-// sshProjectOf is the sidebar's SSH project, nil while there is none: the
-// sidebar may have lost its id, as when the project was closed.
-func (a *App) sshProjectOf() *proto.Project {
-	if a.Prefs.SSHProject == "" {
-		return nil
-	}
-	return a.project(a.Prefs.SSHProject)
-}
-
-// addSSHHost adds the machine the dialog names to the SSH project, which
-// it makes if there is none, and connects to it. The machine it reaches
-// needs nothing but an SSH server: ssh runs in a terminal of this one.
-func (a *App) addSSHHost() {
-	d := a.SshAsk
-	if d == nil {
-		return
-	}
-	text := strings.TrimSpace(d.Addr)
-	if text == "" {
-		d.Err = locales.SetHostNeedsAddress()
-		return
-	}
-	// The dialog is for SSH terminals: the other ways of reaching a
-	// machine, Hyla hosts among them, are Settings › Hyla Hosts, and say
-	// so for an address of another scheme before it is read.
-	if i := strings.Index(text, "://"); i > 0 && !strings.EqualFold(text[:i], "ssh") {
-		d.Err = locales.SshHostOnly()
-		return
-	}
-	addr, err := remote.ParseAddr(text)
-	if err != nil {
-		d.Err = err.Error()
-		return
-	}
-	if addr.Scheme != "ssh" {
-		d.Err = locales.SshHostOnly()
-		return
-	}
-	if a.local().Client == nil {
-		d.Err = locales.SshNoService()
-		return
-	}
-	name := strings.TrimSpace(d.Name)
-	if name == "" {
-		name = sshdialog.DefaultName(addr.String())
-	}
-	// The address the project lists already: its terminal comes, rather
-	// than a second row for the same machine.
-	for i := range a.Prefs.SSHHosts {
-		if a.Prefs.SSHHosts[i].Addr == addr.String() {
-			d.Open = false
-			a.connectSSH(i)
-			return
-		}
-	}
-	d.Open = false
-	a.withSSHProject(func(p proto.Project) { a.addSSHHostTo(p, name, addr) })
-}
-
-// withSSHProject runs fn with the sidebar's SSH project, making it first
-// if there is none, off the UI thread as the daemon call is.
-func (a *App) withSSHProject(fn func(proto.Project)) {
-	if p := a.sshProjectOf(); p != nil {
-		fn(*p)
-		return
-	}
-	h := a.local()
-	// Its state has not come: the project may be one the app cannot see
-	// yet, and a second one would follow it.
-	if h.Client == nil || !h.Loaded {
-		a.toast(locales.SshNoService())
-		return
-	}
-	cl := h.Client
-	go func() {
-		p, err := sshProject(cl, sshProjectName())
-		a.main(func() {
-			if err != nil {
-				a.toast(err.Error())
-				return
-			}
-			a.Prefs.SSHProject = p.ID
-			a.savePrefs()
-			// The project shows as its first terminal comes, before the
-			// daemon's state, which has it, does.
-			if a.project(p.ID) == nil {
-				a.St.Projects = append(a.St.Projects, p)
-			}
-			fn(p)
-		})
-	}()
-}
-
-// sshProject makes the sidebar's SSH project: one of this machine's,
-// named for the sidebar, with no directory of its own, as its sessions
-// run wherever ssh does.
-func sshProject(cl *client.Client, name string) (proto.Project, error) {
-	var p proto.Project
-	err := cl.Call("project.create", proto.ProjectParams{Name: name}, &p)
-	return p, err
-}
-
-// addSSHHostTo adds a machine to the SSH project and connects to it.
-func (a *App) addSSHHostTo(p proto.Project, name string, addr remote.Addr) {
-	a.Prefs.SSHHosts = append(a.Prefs.SSHHosts, sshHost{Name: name, Addr: addr.String()})
-	a.savePrefs()
-	a.connectSSH(len(a.Prefs.SSHHosts) - 1)
-}
-
-// connectSSH shows a machine's terminal, starting one in the SSH project
-// if it has none.
-func (a *App) connectSSH(i int) {
-	if i < 0 || i >= len(a.Prefs.SSHHosts) {
-		return
-	}
-	a.showOrStart(a.Prefs.SSHHosts[i])
-}
-
-// showOrStart shows the terminal a machine's row has, if it still
-// runs, else starts one: a row's click.
-func (a *App) showOrStart(host sshHost) {
-	if s := a.session(host.Session); s != nil && s.Status != proto.Exited {
-		a.selectSession(s.ID)
-		return
-	}
-	a.startSSH(host)
-}
-
-// connectSSHTo connects to a machine again, in the row it was read from,
-// whatever its terminal does: one still open closes, and the new
-// terminal takes its place. The row is the machine's, whatever its
-// terminal's end does to the list, and the address finds it once the new
-// one comes.
-func (a *App) connectSSHTo(host sshHost) {
-	if s := a.session(host.Session); s != nil {
-		a.closeSession(s.ID, false)
-	}
-	a.startSSH(host)
-}
-
-// disconnectSSHHost ends a machine's terminal, which ends the ssh running
-// in it, and leaves the row: a click on it starts a new terminal, and
-// with it a new connection.
-func (a *App) disconnectSSHHost(addr string) {
-	i := slices.IndexFunc(a.Prefs.SSHHosts, func(h sshHost) bool { return h.Addr == addr })
-	if i < 0 {
-		return
-	}
-	id := a.Prefs.SSHHosts[i].Session
-	if id == "" {
-		return
-	}
-	// The row has no terminal from here, whatever its end does to the
-	// list.
-	a.Prefs.SSHHosts[i].Session = ""
-	a.savePrefs()
-	if s := a.session(id); s != nil {
-		a.closeSession(id, false)
-	}
-}
-
-// startSSH starts a machine's terminal, in the SSH project.
-func (a *App) startSSH(host sshHost) {
-	addr, err := remote.ParseAddr(host.Addr)
-	if err != nil {
-		return
-	}
-	h := a.local()
-	if h.Client == nil {
-		a.toast(locales.SshNoService())
-		return
-	}
-	a.withSSHProject(func(p proto.Project) {
-		cl := h.Client
-		go func() {
-			var s proto.Session
-			err := cl.Call("create", proto.CreateParams{Project: p.ID, Dir: proto.Home(), Name: host.Name, Command: sshArgs(addr)}, &s)
-			a.main(func() {
-				if err != nil {
-					a.toast(err.Error())
-					return
-				}
-				// The row may have gone as the terminal came, and another
-				// may have taken its place: the address finds it.
-				i := slices.IndexFunc(a.Prefs.SSHHosts, func(h sshHost) bool { return h.Addr == host.Addr })
-				if i < 0 {
-					return
-				}
-				a.Prefs.SSHHosts[i].Session = s.ID
-				a.savePrefs()
-				delete(a.Prefs.Collapsed, p.ID)
-				a.addPending(h, s)
-				a.selectSession(s.ID)
-			})
-		}()
-	})
-}
+// sshHostRow draws a machine in the SSH project.
+func (a *App) sshHostRow(c *ui.Context, pal *theme.Palette, i int) { sshdialog.Row(a, c, pal, i) }
 
 // sshHostOfSession is the machine a session is the terminal of, nil for
 // none.
-func (a *App) sshHostOfSession(id string) *sshHost {
-	if id == "" {
-		return nil
-	}
-	for i := range a.Prefs.SSHHosts {
-		if a.Prefs.SSHHosts[i].Session == id {
-			return &a.Prefs.SSHHosts[i]
-		}
-	}
-	return nil
-}
+func (a *App) sshHostOfSession(id string) *sshHost { return sshdialog.OfSession(a, id) }
 
-// sshDrag is a machine dragged by its row to another place in the SSH
-// project.
-type sshDrag struct {
-	addr string
-}
+// moveSSHHost puts a machine where another is.
+func (a *App) moveSSHHost(from, to string, after bool) { sshdialog.Move(a, from, to, after) }
 
-// moveSSHHost puts the machine named by from where the machine named by
-// to is, before or after it, and keeps the order in the app's
-// preferences.
-func (a *App) moveSSHHost(from, to string, after bool) {
-	at := func(addr string) int {
-		return slices.IndexFunc(a.Prefs.SSHHosts, func(h sshHost) bool { return h.Addr == addr })
-	}
-	i, j := at(from), at(to)
-	if from == "" || from == to || i < 0 || j < 0 {
-		return
-	}
-	h := a.Prefs.SSHHosts[i]
-	a.Prefs.SSHHosts = slices.Delete(a.Prefs.SSHHosts, i, i+1)
-	j = at(to)
-	if after {
-		j++
-	}
-	a.Prefs.SSHHosts = slices.Insert(a.Prefs.SSHHosts, j, h)
-	a.savePrefs()
-}
+// removeSSHHost removes a machine from the SSH project.
+func (a *App) removeSSHHost(addr string) { sshdialog.Remove(a, addr) }
 
-// removeSSHHost removes a machine from the SSH project, ending its
-// terminal as closing one does.
-func (a *App) removeSSHHost(addr string) {
-	for i, h := range a.Prefs.SSHHosts {
-		if h.Addr != addr {
-			continue
-		}
-		a.Prefs.SSHHosts = slices.Delete(a.Prefs.SSHHosts, i, i+1)
-		a.savePrefs()
-		a.undoSays(locales.SshHostRemoved(h.Addr), func() {
-			a.Prefs.SSHHosts = slices.Insert(a.Prefs.SSHHosts, min(i, len(a.Prefs.SSHHosts)), h)
-			a.savePrefs()
-		})
-		if h.Session != "" {
-			// The question above said it goes.
-			a.closeSession(h.Session, false)
-		}
-		return
-	}
-}
+// clearSSHProject forgets the SSH project.
+func (a *App) clearSSHProject() { sshdialog.Clear(a) }
 
-// clearSSHProject forgets the SSH project, whose terminals go with it.
-func (a *App) clearSSHProject() {
-	a.Prefs.SSHProject, a.Prefs.SSHHosts = "", nil
-	a.savePrefs()
-}
-
-// sshArgs is ssh's command line for an address as the user typed it: ssh
-// -p 2222 root@example.com.
-func sshArgs(addr remote.Addr) []string {
-	args := []string{"ssh"}
-	if addr.Port != "" {
-		args = append(args, "-p", addr.Port)
-	}
-	dest := addr.Host
-	if addr.User != "" {
-		dest = addr.User + "@" + addr.Host
-	}
-	return append(args, dest)
-}
-
-// sshHostRow is a machine in the SSH project: its name over the address
-// ssh runs to, as a session's row has what it is at under its name; or
-// on one line, as a compact session's row. A click shows its terminal, or
-// starts one.
-func (a *App) sshHostRow(c *ui.Context, pal *theme.Palette, i int) {
-	h := a.Prefs.SSHHosts[i]
-	s := a.session(h.Session)
-	if s != nil && s.Project != a.Prefs.SSHProject {
-		s = nil
-	}
-	selected := s != nil && s.ID == a.Selected
-	inset := float32(rowInset)
-	detailed := a.settingsIn.SidebarRows != "compact"
-	height := float32(rowH)
-	if detailed {
-		height = rowH2
-	}
-	row := ui.Row(c.Key("ssh-"+h.Addr)).Height(height).Margin(0, 0, 1, 0).Padding(0, 10, 0, inset).Gap(10).AlignItems(ui.Center).Radius(8)
-	row.Border(1, ui.Transparent)
-	bg := ui.Transparent
-	switch {
-	case selected:
-		bg = theme.TranslucentGlass(pal.RowSelected, pal, a.settingsIn)
-		style.Chosen(row, pal)
-	case row.Hovered():
-		bg = theme.TranslucentGlass(pal.RowHover, pal, a.settingsIn)
-	}
-	row.Background(row.AnimateColor("bg", bg, ui.Animation{Duration: 110 * time.Millisecond}))
-	// The row is its machine's handle: dragged, it moves the machine to
-	// another place in the project, its terminal with it.
-	row.Drag(sshDrag{addr: h.Addr}).Cursor(ui.CursorGrab)
-	if row.Dragging() {
-		row.Opacity(0.35)
-	}
-	if d, over := ui.DragOver[sshDrag](row); over && d.addr != h.Addr {
-		_, y, _ := row.PointerPosition()
-		after := y > height/2
-		a.DragAt, a.DragAfter = h.Addr, after
-		row.Background(pal.RowHover)
-		dragLine(row, pal, after)
-	}
-	if d, ok := ui.Drop[sshDrag](row); ok && d.addr != h.Addr {
-		_, y, _ := row.PointerPosition()
-		after := y > height/2
-		if a.DragAt == h.Addr {
-			// The side the insertion line last showed.
-			after = a.DragAfter
-		}
-		to := h.Addr
-		a.defer_(func() { a.moveSSHHost(d.addr, to, after) })
-	}
-	paints.PointerTooltip(c, row, "tip-ssh-"+h.Addr, h.Addr)
-	row.ContextMenu(func(m *ui.Menu) {
-		// Reconnecting goes on a terminal that ended, as ssh's does when
-		// the connection drops, and starts the terminal anew, or replaces
-		// one still open: a click on the row shows that one. The row it
-		// read is the machine's, whatever its terminal's end does to the
-		// list.
-		if m.Item(locales.ActionReconnectHost()).Chosen() {
-			a.connectSSHTo(h)
-		}
-		// Disconnecting ends the machine's terminal, and ssh with it, but
-		// keeps its row: a click on it starts a new terminal.
-		if m.Item(locales.ActionDisconnectHost()).Disabled(s == nil || s.Status == proto.Exited).Chosen() {
-			a.disconnectSSHHost(h.Addr)
-		}
-		m.Separator()
-		if m.Item(locales.HostCopyAddress()).Chosen() {
-			a.CopyText = h.Addr
-		}
-		if m.Item(locales.HostRemove()).Chosen() {
-			name, addr := h.Name, h.Addr
-			a.Confirm = &confirm.Ask{
-				Open:    true,
-				Title:   locales.SshRemoveTitle(name),
-				Detail:  locales.SshRemoveDetail(),
-				Action:  locales.CommonRemove(),
-				Destroy: true,
-				Run:     func() { a.removeSSHHost(addr) },
-			}
-		}
-	})
-	if row.Clicked() && !selected {
-		a.connectSSH(i)
-	}
-	row.Children(func() {
-		// The machine's mark stands on the row's first line, beside its
-		// name, as an agent's stands beside a session's; the address below
-		// starts under the name, past the mark.
-		mark := func(gap float32) {
-			markSlot(c, gap).Children(func() {
-				ui.Icon(c, glyph.Terminal).Size(marks.Size, marks.Size).TextColor(pal.TextMuted)
-			})
-		}
-		top := func() {
-			ui.Text(c, h.Name).FontSize(13).TextColor(pal.Text).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
-		}
-		if !detailed {
-			mark(rowGap)
-			top()
-			ui.Spacer(c)
-			ui.Text(c, h.Addr).Font("monospace").FontSize(12).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").Shrink(2).MaxWidth(220)
-		} else {
-			// The name and the address over the row's width, as a detailed
-			// session's row has its name and detail.
-			ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
-				ui.Row(c).Gap(8).AlignItems(ui.Center).Children(func() {
-					mark(rowGap)
-					top()
-				})
-				addr := ui.Text(c, h.Addr).Font("monospace").FontSize(12).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").MinWidth(0)
-				addr.Padding(0, 0, 0, projectBadge+projectBadgeGap)
-			})
-		}
-		if s == nil {
-			// A machine with no terminal yet keeps the slot the status
-			// (or, under the pointer, the close button) takes.
-			ui.Box(c).Size(20, 20).Shrink(0)
-			return
-		}
-		// Close ends the terminal, as Remove does, without its question.
-		statusSlot(c, pal, row.Hovered(), s.Status, s.Unread, s.Progress, func() {
-			addr := h.Addr
-			a.defer_(func() { a.removeSSHHost(addr) })
-		})
-	})
-}
-
-// sshEmpty is the SSH project with no machine in it yet: the row that
-// adds one, in place of a project's sessions.
-func (a *App) sshEmpty(c *ui.Context, pal *theme.Palette) {
-	inset := float32(rowInset)
-	row := ui.Row(c.Key("ssh-empty")).Height(rowH).Margin(0, 0, 1, 0).Padding(0, 10, 0, inset).Gap(10).AlignItems(ui.Center).Radius(8)
-	if row.Hovered() {
-		row.Background(pal.RowHover)
-	}
-	if row.Clicked() {
-		a.askSSHHost()
-	}
-	row.Children(func() {
-		markSlot(c, rowGap).Children(func() {
-			ui.Icon(c, glyph.Plus).Size(13, 13).TextColor(pal.TextMuted)
-		})
-		ui.Text(c, locales.ActionAddSSHHost()).FontSize(13).TextColor(pal.TextMuted).SingleLine()
-	})
-}
+// sshArgs is ssh's command line for an address.
+func sshArgs(addr remote.Addr) []string { return sshdialog.Args(addr) }

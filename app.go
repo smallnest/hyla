@@ -221,9 +221,9 @@ type App struct {
 	PreviewPane  string
 	// dragAt is the row a drag last hovered, and dragAfter the side of it
 	// a drop lands on: a project's, a session's, a machine's or a pod's.
-	DragAt    string
-	DragAfter bool
-	PreviewAt time.Time
+	DragAtAddr    string // the row an insertion line last showed
+	DragAfterSide bool   // the side of it the line shows
+	PreviewAt     time.Time
 	// previewDrawn tells that the frame built a drop preview, which a
 	// frame that builds none clears.
 	PreviewDrawn bool
@@ -1692,7 +1692,7 @@ func (a *App) toast(msg string) { a.PendingToast = msg }
 
 // undoSays says what a removal took away, and offers undo, which puts it
 // back.
-func (a *App) undoSays(msg string, undo func()) {
+func (a *App) UndoSays(msg string, undo func()) {
 	a.UndoMessage, a.UndoAction = msg, undo
 	a.toast(msg)
 }
