@@ -63,14 +63,14 @@ only that it builds.
 | Sidebar sort and group, project badges, folded projects | #214 | `sortButton`, `sessionSidebar`, `projectBadgeColor`, `projectInitial`, `dateHeader` | `TestProjectOrder`, `TestProjectDrag`, `TestSessionAlign`, `TestCollapseSelectedProject`, `TestSidebarRowKeepsTime` |
 | Background opacity and blur | #211 | `washOpacity`, `vibrancyFor`, `WindowBlur` | `TestVibrancyFor`, `TestBlurlessBackgroundIsTranslucent`, `TestTranslucentGlass` |
 | The menu of installed monospaced fonts | #209 | `fontOptions` | `TestFontOptionsInstalled` |
-| Hyla the frog | #206 | `pet.go`, `petState` | `go test . -run TestPet` |
+| Hyla the frog | #206 | `pet.go`, `petState` | `go test ./internal/app/window -run TestPet` |
 | Quitting ends this machine's sessions | #219 | `quitRequested`, `quitAndEnd`, `QuitEndsSessions` | `TestQuitEndsSessions` |
 
 ```sh
 for s in sideFiles filesRoot sortButton sessionSidebar projectBadgeColor fontOptions petState quitRequested vibrancyFor; do
 	grep -rq "$s" --include='*.go' . || echo "missing: $s"
 done
-go test . -run 'TestFilesTab|TestFilesIconsAndMenu|TestViewerImageAndOpen|TestProjectOrder|TestProjectDrag|TestSessionAlign|TestCollapseSelectedProject|TestSidebarRowKeepsTime|TestQuitEndsSessions|TestFontOptionsInstalled|TestVibrancyFor|TestBlurlessBackgroundIsTranslucent|TestTranslucentGlass'
+go test ./internal/app/window -run 'TestFilesTab|TestFilesIconsAndMenu|TestViewerImageAndOpen|TestProjectOrder|TestProjectDrag|TestSessionAlign|TestCollapseSelectedProject|TestSidebarRowKeepsTime|TestQuitEndsSessions|TestFontOptionsInstalled|TestVibrancyFor|TestBlurlessBackgroundIsTranslucent|TestTranslucentGlass'
 ```
 
 The branches the pull requests came from (`feat/files-view`,
@@ -127,6 +127,9 @@ No release is stranded by it, because a 2.x app does not update from this
 repository anyway. From here on the pair stays as it is.
 
 ## Checks before a push
+
+The app's tests are `./internal/app/window`'s: the root is `cmd/hyla`, with
+none.
 
 ```sh
 go build ./... && go vet ./... && go test ./internal/...
