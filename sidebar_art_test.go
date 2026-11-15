@@ -8,23 +8,25 @@ import (
 	"testing"
 
 	"github.com/egoist/mygo/ui"
+
+	"hyla/internal/ui/art"
 )
 
 // The picture behind the sidebar is as tall as 80% of it, vertically
 // centred, and against its left edge.
 func TestSidebarArtPlacement(t *testing.T) {
-	x, y, w, h := sidebarArtPlacement(720, 40, 80)
+	x, y, w, h := art.Placement(720, 40, 80)
 	if x != 8 || y != 72 || w != 288 || h != 576 {
 		t.Fatalf("a portrait picture: x %v, y %v, w %v, h %v", x, y, w, h)
 	}
 	if y+h/2 != 360 {
 		t.Errorf("not centred: %v to %v of 720", y, y+h)
 	}
-	x, y, w, h = sidebarArtPlacement(500, 100, 100)
+	x, y, w, h = art.Placement(500, 100, 100)
 	if x != 8 || y != 50 || w != 400 || h != 400 {
 		t.Errorf("a square picture: x %v, y %v, w %v, h %v", x, y, w, h)
 	}
-	if x, y, w, h := sidebarArtPlacement(0, 40, 80); w != 0 || h != 0 {
+	if x, y, w, h := art.Placement(0, 40, 80); w != 0 || h != 0 {
 		t.Errorf("no window: x %v, y %v, w %v, h %v", x, y, w, h)
 	}
 }
@@ -46,7 +48,7 @@ func TestSidebarArtShows(t *testing.T) {
 	}
 	a.settingsIn.SidebarImage = "/tmp/picture.png"
 	a.settingsIn.SidebarImageOpacity = 1
-	a.SidebarArt = sidebarArt{path: a.settingsIn.SidebarImage, bm: ui.NewBitmap(pic)}
+	a.SidebarArt = art.Picture{Path: a.settingsIn.SidebarImage, BM: ui.NewBitmap(pic)}
 	tt.Frame()
 	after := tt.Image()
 
@@ -83,7 +85,7 @@ func TestSidebarArtNoPicture(t *testing.T) {
 	if err := os.WriteFile(path, []byte("no picture here"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if bm := decodeSidebarArt(path); bm != nil {
+	if bm := art.Decode(path); bm != nil {
 		t.Errorf("a text file: %v", bm)
 	}
 }

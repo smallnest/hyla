@@ -257,6 +257,11 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     view, with `End` at the end of the frame the app draws. `panes.Path`
     is the file a link names, the root's `resolvePath` among the
     `Peeker` callbacks.
+  - Also: the pictures of the Appearance page are `internal/ui/art` —
+    the `Picture` the sidebar and the terminals show, choosing one with
+    the system's dialog, decoding one off the main thread, and where the
+    sidebar's goes. The root keeps the pickers' paths, the sidebar's
+    view, and `pickImage`, which asks with the Settings' window.
   - The guard now fails on a package of `internal/` that no layer's
     names hold. It found `buildinfo`, `fileicons` and `profiling` never
     listed.

@@ -60,7 +60,7 @@ func (a *App) FindBar(c *ui.Context, pal *theme.Palette, p *proto.Pane, t *termi
 
 func (a *App) LoadPaneArt(path string) { a.loadPaneArt(path) }
 
-func (a *App) PaneArt() panes.Art { return panes.Art{Path: a.PaneArtimage.path, BM: a.PaneArtimage.bm} }
+func (a *App) PaneArt() panes.Art { return panes.Art{Path: a.PaneArtimage.Path, BM: a.PaneArtimage.BM} }
 
 func (a *App) StartRename(id string) { a.startRename(id) }
 

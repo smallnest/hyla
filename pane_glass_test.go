@@ -11,6 +11,8 @@ import (
 	"github.com/egoist/mygo/plugins/terminal"
 	"github.com/egoist/mygo/ui"
 
+	"hyla/internal/ui/art"
+
 	"hyla/internal/settings"
 	"hyla/internal/ui/theme"
 	"hyla/internal/ui/wash"
@@ -139,7 +141,7 @@ func TestPanePicture(t *testing.T) {
 	// ready, and none when it comes or the user chose none.
 	a := testApp(t)
 	a.settingsIn.PaneImage, a.settingsIn.PaneImageOpacity = s.PaneImage, 1
-	a.PaneArtimage = sidebarArt{path: a.settingsIn.PaneImage, bm: ui.NewBitmap(pic)}
+	a.PaneArtimage = art.Picture{Path: a.settingsIn.PaneImage, BM: ui.NewBitmap(pic)}
 	if p := a.paneBackgroundOf(pal, pal.Card, &a.St.Sessions[0].Panes[0]).(*wash.PanePicture); p.Bitmap == nil || p.Base != pal.Card {
 		t.Errorf("the pane's card: %#v", p)
 	}
