@@ -1,6 +1,7 @@
 package main
 
 import (
+	"hyla/internal/app/petspot"
 	"math"
 	"testing"
 	"time"
@@ -131,7 +132,7 @@ func TestPetSpot(t *testing.T) {
 		offset float32
 		x      int
 	}{{0.5, 540}, {0.25, 290}, {0, 40}} {
-		r, bottom := petSpot(main, work, c.offset, setH, 0)
+		r, bottom := petspot.Spot(main, work, c.offset, setH, 0)
 		// Its window runs from its feet's line on the edge down to the
 		// speech's top at 181.
 		if bottom || r.Y != 181 || r.Height != 143 || r.X != c.x {
@@ -141,7 +142,7 @@ func TestPetSpot(t *testing.T) {
 	// Little room above: the speech gives way, the Codex pet still stands
 	// on the edge, its feet on it, and as wide as a pet its size is. edge
 	// is the main window's top where what is above it is just setH.
-	edge := work.Y + int(setH) - petPerch
+	edge := work.Y + int(setH) - petspot.Perch
 	for _, c := range []struct {
 		name   string
 		mainY  int
@@ -156,11 +157,11 @@ func TestPetSpot(t *testing.T) {
 		// No room for a Codex pet, or the window's top off the screen: it
 		// stands inside the window at its bottom edge, as tall as it stands
 		// above the edge, so that the whole of it shows.
-		{"no room", edge - 1, true, edge - 1 + 700 - int(setH) - petPerch, int(setH) + petPerch},
-		{"half on", 13, true, 13 + 700 - int(setH) - petPerch, int(setH) + petPerch},
+		{"no room", edge - 1, true, edge - 1 + 700 - int(setH) - petspot.Perch, int(setH) + petspot.Perch},
+		{"half on", 13, true, 13 + 700 - int(setH) - petspot.Perch, int(setH) + petspot.Perch},
 	} {
 		main.Y = c.mainY
-		got, bottom := petSpot(main, work, 0.5, setH, 0)
+		got, bottom := petspot.Spot(main, work, 0.5, setH, 0)
 		if bottom != c.bottom || got.Height != c.height || got.Y != c.y {
 			t.Errorf("%s at %d: %+v bottom %v, want y %d height %d bottom %v", c.name, c.mainY, got, bottom, c.y, c.height, c.bottom)
 		}
@@ -170,8 +171,8 @@ func TestPetSpot(t *testing.T) {
 	// no room for its hands above it. Its window shows the frog below the
 	// edge: its bottom left there at 607.
 	main.Y = 25
-	got, bottom := petSpot(main, work, 0.5, 87, 0)
-	if !bottom || got.Height != petH || got.Y != 607 {
+	got, bottom := petspot.Spot(main, work, 0.5, 87, 0)
+	if !bottom || got.Height != petspot.H || got.Y != 607 {
 		t.Errorf("inside: %+v bottom %v, want y 607", got, bottom)
 	}
 	// The room a pet's frame leaves empty above its art goes under the
@@ -179,25 +180,13 @@ func TestPetSpot(t *testing.T) {
 	// Its window starts at the menu bar, its bottom staying where the pet
 	// stands.
 	main.Y = edge - 24
-	got, bottom = petSpot(main, work, 0.5, setH, 24)
-	if bottom || got.Y != work.Y || got.Height != int(setH)+petPerch-24 {
+	got, bottom = petspot.Spot(main, work, 0.5, setH, 24)
+	if bottom || got.Y != work.Y || got.Height != int(setH)+petspot.Perch-24 {
 		t.Errorf("a pet with room above its art: %+v bottom %v", got, bottom)
 	}
 	main.Y = edge - 25
-	if _, bottom := petSpot(main, work, 0.5, setH, 24); !bottom {
+	if _, bottom := petspot.Spot(main, work, 0.5, setH, 24); !bottom {
 		t.Error("a pet whose art does not fit still stands above the edge")
-	}
-}
-
-func TestPetOffsetAt(t *testing.T) {
-	main := mygo.Rectangle{X: 100, Width: 1000}
-	for _, c := range []struct {
-		left float32
-		want float32
-	}{{505, 0.5}, {5, 0}, {1005, 1}} {
-		if got := petOffsetAt(main, c.left); got != c.want {
-			t.Errorf("left %v: offset %v, want %v", c.left, got, c.want)
-		}
 	}
 }
 
@@ -205,9 +194,9 @@ func TestPetOffsetAt(t *testing.T) {
 func TestPetClickWinks(t *testing.T) {
 	a := testApp(t)
 	a.Pet.since, a.Pet.lastActive = time.Now(), time.Now()
-	tt := ui.NewTester(a.petView, petW, petH)
+	tt := ui.NewTester(a.petView, petspot.W, petspot.H)
 	tt.Frame()
-	tt.ClickAt(petW/2, petH-30)
+	tt.ClickAt(petspot.W/2, petspot.H-30)
 	tt.Frame()
 	if a.Pet.wink.IsZero() {
 		t.Fatal("a click on the frog did not pet it")
@@ -220,7 +209,7 @@ func TestPetShortWindow(t *testing.T) {
 	a := testApp(t)
 	a.St.Sessions[0].Status, a.St.Sessions[0].Unread = proto.Waiting, true
 	a.Pet.since, a.Pet.lastActive = time.Now(), time.Now()
-	tt := ui.NewTester(a.petView, petW, petH-20)
+	tt := ui.NewTester(a.petView, petspot.W, petspot.H-20)
 	tt.Advance(400 * time.Millisecond)
 	tt.Frame()
 	shot(t, tt, "pet-perched-short")
@@ -252,7 +241,7 @@ func TestPetLooks(t *testing.T) {
 			a.Pet.lastActive = time.Now().Add(-petDoze - 2*time.Second)
 		}
 		a.Pet.since = time.Now().Add(-c.since)
-		tt := ui.NewTester(a.petView, petW, petH)
+		tt := ui.NewTester(a.petView, petspot.W, petspot.H)
 		tt.Advance(c.since + 100*time.Millisecond)
 		tt.Frame()
 		shot(t, tt, "pet-"+c.name)

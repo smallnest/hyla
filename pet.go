@@ -1,6 +1,7 @@
 package main
 
 import (
+	"hyla/internal/app/petspot"
 	"math"
 	"strconv"
 	"time"
@@ -26,21 +27,15 @@ import (
 const (
 	// The pet window: wide enough for a sentence, tall enough for its
 	// speech above the pet.
-	petW       = 190
-	petH       = 118
-	petBodyH   = 87
 	petScale   = 0.8 // the frog is drawn at 108, and stands this tall
 	petBubbleH = 26
-	// petPerch is how far the pet's hands reach over the window's top
-	// edge.
-	petPerch  = 12
-	petFrame  = 33 * time.Millisecond // 30 frames a second
-	petCalm   = 100 * time.Millisecond
-	petDoze   = 45 * time.Second // all calm this long, and it sleeps
-	petWink   = 700 * time.Millisecond
-	petPat    = 1200 * time.Millisecond // a pat shows its wave this long
-	petBubble = 5 * time.Second         // a working or finished word stays this long
-	petLinger = 9 * time.Second         // a failure or a finish says so this long
+	petFrame   = 33 * time.Millisecond // 30 frames a second
+	petCalm    = 100 * time.Millisecond
+	petDoze    = 45 * time.Second // all calm this long, and it sleeps
+	petWink    = 700 * time.Millisecond
+	petPat     = 1200 * time.Millisecond // a pat shows its wave this long
+	petBubble  = 5 * time.Second         // a working or finished word stays this long
+	petLinger  = 9 * time.Second         // a failure or a finish says so this long
 )
 
 // petMood is what the pet shows: the most urgent thing among the sessions.
@@ -105,8 +100,8 @@ func (a *App) petShow() {
 	a.petSetReload()
 	p.win = mygo.NewWindow(mygo.WindowOptions{
 		Title:             locales.PetName(),
-		Width:             petW,
-		Height:            petH,
+		Width:             petspot.W,
+		Height:            petspot.H,
 		Frameless:         true,
 		Transparent:       true,
 		DisableShadow:     true,
@@ -191,7 +186,7 @@ func (a *App) petPlace() {
 	}
 	b := a.Win.Bounds()
 	d := mygo.Screen.DisplayNearestPoint(mygo.Point{X: b.X + b.Width, Y: b.Y})
-	r, _ := petSpot(b, d.WorkArea, a.Settings.PetOffset, petSetBodyH(a), petSetHead(a))
+	r, _ := petspot.Spot(b, d.WorkArea, a.Settings.PetOffset, petSetBodyH(a), petSetHead(a))
 	was := p.win.Bounds()
 	if was != r {
 		p.win.SetBounds(r)
@@ -295,11 +290,11 @@ func (a *App) petView(c *ui.Context) {
 	// that no half a bubble shows, and the pet shows whole.
 	_, h := c.Size()
 	set := a.petShows()
-	bodyH := float32(petBodyH)
+	bodyH := float32(petspot.BodyH)
 	if set != nil {
 		bodyH = petSetBodyH(a)
 	}
-	roomy := h >= bodyH+(petH-petBodyH)-1
+	roomy := h >= bodyH+(petspot.H-petspot.BodyH)-1
 	showing := roomy && a.petSays(now, mood)
 	var body ui.Element
 	clicked := false
@@ -309,7 +304,7 @@ func (a *App) petView(c *ui.Context) {
 			speech.Opacity(speech.Animate("shown", b2f(showing), 180*time.Millisecond))
 			speech.Children(func() {
 				bubble := ui.Row(c.Key("bubble")).Height(petBubbleH).Padding(0, 11).Radius(petBubbleH / 2).Gap(6).
-					AlignItems(ui.Center).Background(fill).MaxWidth(petW - 6).Shrink(1)
+					AlignItems(ui.Center).Background(fill).MaxWidth(petspot.W - 6).Shrink(1)
 				if mood == petWorking {
 					bubble.Shadow(0, 2, 10, 0, pal.FloatShadow).Border(0.5, pal.CardBorder)
 				}
@@ -332,7 +327,7 @@ func (a *App) petView(c *ui.Context) {
 			name = set.pet.Name
 		}
 		// Its width keeps its frame's proportions, at any size.
-		wide := float32(petW)
+		wide := float32(petspot.W)
 		if set != nil {
 			wide = petSetWide(a)
 		}
@@ -515,7 +510,7 @@ func (a *App) petDragTo(left float32) {
 	if a.Pet.win == nil || a.Win == nil {
 		return
 	}
-	off := petOffsetAt(a.Win.Bounds(), left)
+	off := petspot.OffsetAt(a.Win.Bounds(), left)
 	off = float32(math.Round(float64(off)*1000)) / 1000
 	a.Settings.PetOffset = off
 	a.petPlace()
@@ -527,16 +522,6 @@ func (a *App) petDrop() {
 		return
 	}
 	a.applySettings(a.Settings)
-}
-
-// petOffsetAt is where the middle of a pet placed at left stands across
-// a main window, from 0 at its left edge to 1 at its right.
-func petOffsetAt(main mygo.Rectangle, left float32) float32 {
-	if main.Width <= 0 {
-		return 0.5
-	}
-	center := left + petW/2
-	return min(max((center-float32(main.X))/float32(main.Width), 0), 1)
 }
 
 // abs is a float's magnitude.
