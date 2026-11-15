@@ -7,6 +7,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/settings"
 	"hyla/internal/ui/confirm"
+	"hyla/internal/ui/menus"
 	"hyla/internal/ui/palette"
 	uisettings "hyla/internal/ui/settings"
 	"hyla/internal/ui/theme"
@@ -52,7 +53,7 @@ func (a *App) Pages() []palette.Page {
 	return pages
 }
 
-func (a *App) ActionTitle(id string) string { return actionTitle(id) }
+func (a *App) ActionTitle(id string) string { return menus.Title(a, id) }
 
 func (a *App) Run(id string) { a.run(id, nil) }
 

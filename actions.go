@@ -2,18 +2,36 @@ package main
 
 import (
 	"runtime"
-	"strings"
 
 	"github.com/egoist/mygo"
-	"github.com/egoist/mygo/plugins/updater"
 	"github.com/egoist/mygo/ui"
 
-	"hyla/internal/actions"
 	"hyla/internal/proto"
 
-	uisettings "hyla/internal/ui/settings"
-	"hyla/locales"
+	"hyla/internal/ui/menus"
 )
+
+// The app, as the menus ask it.
+var _ menus.App = (*App)(nil)
+
+func (a *App) RunID(id string, args map[string]string) { a.run(id, args) }
+
+func (a *App) CloseSettings() { a.SetWin.Close() }
+
+// item is the menu item of an action.
+func (a *App) item(id string) *mygo.MenuItem { return menus.Item(a, id) }
+
+// menu is the app's menu.
+func (a *App) menu() *mygo.Menu { return menus.Menu(a) }
+
+// keys is an action's shortcut as the menus show it.
+func (a *App) keys(id string) string { return menus.Keys(a, id) }
+
+// tip is a button's tooltip, with its action's shortcut.
+func (a *App) tip(title, id string) string { return menus.Tip(a, title, id) }
+
+// menuShortcut shows an action's shortcut by a context menu's item.
+func (a *App) menuShortcut(it *ui.MenuItem, id string) *ui.MenuItem { return menus.Shortcut(a, it, id) }
 
 // run runs one of the app's actions, from a menu, the palette or
 // `hyla do`, on the main thread.
@@ -117,185 +135,6 @@ func (a *App) run(id string, args map[string]string) {
 	if a.Win != nil {
 		a.Win.Invalidate()
 	}
-}
-
-// item is a menu item running an action, with the user's shortcut.
-func (a *App) item(id string) *mygo.MenuItem {
-	act, _ := actions.Find(id)
-	return &mygo.MenuItem{
-		Label:       actionTitle(id),
-		Accelerator: a.accelerator(act),
-		Click: func(*mygo.MenuItem, *mygo.Window) {
-			// Closing is the window's in front: Settings closes itself.
-			if (id == "pane.close" || id == "session.close") && a.SetWin != nil && mygo.FocusedWindow() == a.SetWin {
-				a.SetWin.Close()
-				return
-			}
-			a.update(func() { a.run(id, nil) })
-		},
-	}
-}
-
-// actionTitles are the actions' titles in the language the app shows;
-// an Action's Title stays English, for `hyla actions`.
-var actionTitles = map[string]func() string{
-	"settings.open":       locales.ActionSettings,
-	"cli.install":         locales.ActionInstallCli,
-	"app.quitAll":         locales.ActionQuitAll,
-	"session.new":         locales.ActionNewSession,
-	"session.newHome":     locales.ActionNewSessionHome,
-	"session.newWorktree": locales.ActionNewSessionWorktree,
-	"project.open":        locales.ActionOpenProject,
-	"palette.open":        locales.ActionGoToSession,
-	"conversation.resume": locales.ActionResumeConversation,
-	"session.attention":   locales.ActionJumpToAttention,
-	"session.next":        locales.ActionNextSession,
-	"session.previous":    locales.ActionPreviousSession,
-	"session.rename":      locales.ActionRenameSession,
-	"pane.restart":        locales.ActionRestartPane,
-	"pane.close":          locales.ActionClose,
-	"session.close":       locales.ActionCloseSession,
-	"find.open":           locales.ActionFind,
-	"find.next":           locales.ActionFindNext,
-	"find.previous":       locales.ActionFindPrevious,
-	"pane.split.right":    locales.ActionSplitRight,
-	"pane.split.down":     locales.ActionSplitDown,
-	"pane.browser":        locales.ActionNewBrowser,
-	"browser.address":     locales.ActionOpenLocation,
-	"pane.zoom":           locales.ActionZoomPane,
-	"pane.next":           locales.ActionNextPane,
-	"pane.previous":       locales.ActionPreviousPane,
-	"pane.left":           locales.ActionPaneLeft,
-	"pane.right":          locales.ActionPaneRight,
-	"pane.up":             locales.ActionPaneAbove,
-	"pane.down":           locales.ActionPaneBelow,
-	"sidebar.toggle":      locales.ActionToggleSidebar,
-	"side.toggle":         locales.ActionTogglePanel,
-	"changes.toggle":      locales.ActionToggleChanges,
-	"files.toggle":        locales.ActionToggleFiles,
-	"info.toggle":         locales.ActionToggleInfo,
-	"text.bigger":         locales.ActionBigger,
-	"text.smaller":        locales.ActionSmaller,
-	"text.reset":          locales.ActionActualSize,
-	"pet.toggle":          locales.ActionTogglePet,
-	QuickAction:           locales.ActionQuickTerminal,
-}
-
-// actionTitle is an action's title as the menus, the palette and
-// Settings show it.
-func actionTitle(id string) string {
-	if t, ok := actionTitles[id]; ok {
-		return t()
-	}
-	act, _ := actions.Find(id)
-	return act.Title
-}
-
-// accelerator is an action's shortcut in the menus: none while the user
-// types a new one in Settings, and none of a global one, which the system
-// takes before the menus.
-func (a *App) accelerator(act actions.Action) string {
-	if a.Ss.Recording != "" || act.Global {
-		return ""
-	}
-	return actions.Keys(act, a.settingsIn.Shortcuts)
-}
-
-// items returns the items of a menu's actions, in their order, with
-// separators where the groups change.
-func (a *App) items(menu string, groups ...[]string) []*mygo.MenuItem {
-	var out []*mygo.MenuItem
-	for i, g := range groups {
-		if i > 0 {
-			out = append(out, mygo.Separator())
-		}
-		for _, id := range g {
-			out = append(out, a.item(id))
-		}
-	}
-	return out
-}
-
-func (a *App) menu() *mygo.Menu {
-	appMenu := []*mygo.MenuItem{{Role: mygo.RoleAbout}, updater.MenuItem(), mygo.Separator(), a.item("settings.open"), a.item("cli.install"),
-		mygo.Separator(), {Role: mygo.RoleHide}, {Role: mygo.RoleHideOthers}, {Role: mygo.RoleUnhide}, mygo.Separator(),
-		{Label: locales.MenuQuitApp(mygo.App.Name()), Accelerator: quitKeys, ToolTip: locales.MenuQuitTip(), Click: func(*mygo.MenuItem, *mygo.Window) { mygo.App.Quit() }},
-		a.item("app.quitAll")}
-	// The app menu is macOS's: MyGo leaves it out elsewhere, with its items'
-	// shortcuts, so they go in a menu of Hyla's there, without macOS's own.
-	hyla := &mygo.MenuItem{Role: mygo.RoleAppMenu, Submenu: appMenu}
-	if runtime.GOOS != "darwin" {
-		hyla = &mygo.MenuItem{Label: "Hyla", Submenu: []*mygo.MenuItem{a.item("settings.open"), a.item("cli.install"), updater.MenuItem(), mygo.Separator(),
-			{Label: locales.MenuQuit(), Accelerator: quitKeys, ToolTip: locales.MenuQuitTip(), Click: func(*mygo.MenuItem, *mygo.Window) { mygo.App.Quit() }},
-			a.item("app.quitAll")}}
-	}
-	view := append(a.items("View", []string{"sidebar.toggle", "side.toggle", "changes.toggle", "files.toggle", "info.toggle", "pet.toggle"}, []string{"text.bigger", "text.smaller", "text.reset"}, []string{QuickAction}),
-		mygo.Separator(), &mygo.MenuItem{Role: mygo.RoleToggleFullScreen})
-	// The inspector is a development build's: a production build leaves it
-	// out, and its window's DevTools off, where the item would do nothing.
-	if mygo.IsDev() {
-		view = append(view, &mygo.MenuItem{Role: mygo.RoleToggleDevTools})
-	}
-	return mygo.NewMenu([]*mygo.MenuItem{
-		hyla,
-		{Label: locales.MenuSession(), Submenu: a.items("Session",
-			[]string{"session.new", "session.newHome", "project.open"},
-			[]string{"palette.open", "session.attention", "session.next", "session.previous"},
-			[]string{"session.rename", "pane.restart"},
-			[]string{"pane.close", "session.close"})},
-		// The Edit menu's own items, then finding.
-		{Role: mygo.RoleEditMenu, Submenu: append([]*mygo.MenuItem{{Role: mygo.RoleUndo}, {Role: mygo.RoleRedo}, mygo.Separator(),
-			{Role: mygo.RoleCut}, {Role: mygo.RoleCopy}, {Role: mygo.RolePaste}, {Role: mygo.RoleSelectAll}, mygo.Separator()},
-			a.items("Edit", []string{"find.open", "find.next", "find.previous"})...)},
-		{Label: locales.MenuPane(), Submenu: a.items("Pane",
-			[]string{"pane.split.right", "pane.split.down"},
-			[]string{"pane.browser", "browser.address"},
-			[]string{"pane.zoom"},
-			[]string{"pane.next", "pane.previous", "pane.left", "pane.right", "pane.up", "pane.down"})},
-		{Label: locales.MenuView(), Submenu: view},
-		{Role: mygo.RoleWindowMenu},
-	})
-}
-
-// keys is an action's shortcut as the menus show it, "" when it has none.
-func (a *App) keys(id string) string {
-	act, _ := actions.Find(id)
-	return actions.Glyphs(actions.Keys(act, a.settingsIn.Shortcuts))
-}
-
-// tip is a button's tooltip: what it does, with its action's shortcut.
-func (a *App) tip(title, id string) string {
-	if k := a.keys(id); k != "" {
-		return title + " (" + k + ")"
-	}
-	return title
-}
-
-// menuShortcut shows an action's shortcut by a context menu's item.
-func (a *App) menuShortcut(it *ui.MenuItem, id string) *ui.MenuItem {
-	act, _ := actions.Find(id)
-	parts := strings.Split(actions.Keys(act, a.settingsIn.Shortcuts), "+")
-	var mods ui.Modifiers
-	for _, p := range parts[:len(parts)-1] {
-		switch strings.ToLower(p) {
-		case "cmdorctrl", "commandorcontrol":
-			mods |= ui.Cmd
-		case "cmd", "command", "super", "meta", "win":
-			mods |= ui.Super
-		case "ctrl", "control":
-			mods |= ui.Ctrl
-		case "alt", "option":
-			mods |= ui.Alt
-		case "shift":
-			mods |= ui.Shift
-		}
-	}
-	for k, name := range uisettings.KeyNames() {
-		if strings.EqualFold(name, parts[len(parts)-1]) {
-			return it.Shortcut(mods, k)
-		}
-	}
-	return it
 }
 
 // quitKeys quits the app: Control+Q is the terminal's on Windows and Linux.

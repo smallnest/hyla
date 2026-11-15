@@ -191,6 +191,11 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     for a program, the paths it pastes and how it quotes them — and
     `paste_adapters.go` is its adapter. The app's `termFor` is `TermFor`,
     as the package reads it.
+  - Also: the menu, its items, the actions' titles and the shortcuts they
+    show are `internal/ui/menus`, which the tray and the palette read
+    too. It is of the cli layer, as it reads Settings' key names;
+    `actions.go` is its adapters, and an action's run as a menu's item is
+    `RunID`, as the palette runs one by its own name.
   - Also: the panes' drawing is `internal/ui/panes`, beside their
     actions: the card, the layout's nodes and its divider, the header and
     its controls, the terminal's body, the drop preview and the moves a
