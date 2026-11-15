@@ -83,6 +83,8 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     layer, as they call a client), with the viewer's bounds and
     `IsBinary`, which the Files view shares. The Info views' reads are
     `internal/app/paneinfo`, in the same layer and the same shape.
+  - Also: where the pet stands is `internal/app/petspot`, which the pet
+    window and the pet's drawing read.
   - The guard now fails on a package of `internal/` that no layer's
     names hold. It found `buildinfo`, `fileicons` and `profiling` never
     listed.
