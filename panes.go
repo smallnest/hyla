@@ -9,7 +9,6 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/proto"
-	"hyla/internal/ui/confirm"
 	"hyla/internal/ui/theme"
 
 	"hyla/internal/ui/paints"
@@ -836,61 +835,14 @@ func (a *App) paneTerminal(c *ui.Context, pal *theme.Palette, s *proto.Session, 
 	})
 }
 
-// --- pane actions ---
-
-func (a *App) splitPane(s *proto.Session, at, direction string) {
-	if s == nil {
-		return
+func itoa(n int) string {
+	if n < 0 {
+		return "-" + itoa(-n)
 	}
-	if at == "" {
-		at = a.focusOf(s)
+	if n < 10 {
+		return string(rune('0' + n))
 	}
-	a.split(s, proto.CreateParams{Split: at, Direction: direction})
-}
-
-// split makes a pane beside another, as p asks, on the session's host,
-// and puts the user in it.
-func (a *App) split(s *proto.Session, p proto.CreateParams) {
-	if s == nil {
-		return
-	}
-	h := a.hostOf(s.ID)
-	if pane := s.PaneByID(p.Split); pane != nil && !pane.Shown() {
-		p.Cols, p.Rows = pane.Cols, pane.Rows
-		if p.Direction == "down" || p.Direction == "up" {
-			p.Rows = max(p.Rows/2, 4)
-		} else {
-			p.Cols = max(p.Cols/2, 10)
-		}
-	}
-	cl := h.Client
-	if cl == nil {
-		return
-	}
-	go func() {
-		var ns proto.Session
-		err := cl.Call("split", p, &ns)
-		a.update(func() {
-			if err != nil {
-				a.toast(err.Error())
-				return
-			}
-			a.replaceSession(h, ns)
-			if cur := a.session(ns.ID); cur != nil {
-				if a.Focus == nil {
-					a.Focus = map[string]string{}
-				}
-				a.Focus[ns.ID] = ns.Focus
-				a.ensureTerm(ns.Focus)
-				a.touch(ns.Focus)
-				if !a.shows(ns.Focus) {
-					// A browser takes the keyboard in its address bar, or
-					// its page once it has one; a file's in its text.
-					a.paneRef(ns.Focus).Focus()
-				}
-			}
-		})
-	}()
+	return itoa(n/10) + string(rune('0'+n%10))
 }
 
 // replaceSession puts a session as hylad answered into the state, before
@@ -903,119 +855,6 @@ func (a *App) replaceSession(h *host.Host, ns proto.Session) {
 		}
 	}
 	a.addPending(h, ns)
-}
-
-func (a *App) closePane(s *proto.Session, pane string, ask bool) {
-	if s == nil {
-		return
-	}
-	if len(s.Panes) <= 1 {
-		a.closeSession(s.ID, ask)
-		return
-	}
-	p := s.PaneByID(pane)
-	if p == nil {
-		return
-	}
-	if ask && a.settingsIn.ConfirmClose && p.Status != proto.Exited && p.Process != "" {
-		sid := s.ID
-		a.Confirm = &confirm.Ask{
-			Open:    true,
-			Title:   locales.ConfirmClosePaneTitle(),
-			Detail:  locales.ConfirmClosePaneDetail(p.Process),
-			Action:  locales.PaneClose(),
-			Destroy: true,
-			Run: func() {
-				if s := a.session(sid); s != nil {
-					a.closePane(s, pane, false)
-				}
-			},
-		}
-		return
-	}
-	// The neighbor taking the room takes the focus, as hylad does.
-	if a.focusOf(s) == pane && s.Layout != nil {
-		for _, dir := range []string{"left", "up", "right", "down"} {
-			if n := s.Layout.Neighbor(pane, dir); n != "" {
-				a.Focus[s.ID] = n
-				break
-			}
-		}
-	}
-	s.Layout = s.Layout.Remove(pane)
-	if s.Layout.Leaf() {
-		s.Layout = nil
-	}
-	if s.Zoomed == pane {
-		s.Zoomed = ""
-	}
-	for i := range s.Panes {
-		if s.Panes[i].ID == pane {
-			s.Panes = append(s.Panes[:i], s.Panes[i+1:]...)
-			break
-		}
-	}
-	a.dropTerm(pane)
-	a.dropWeb(pane)
-	a.call(pane, "pane.close", proto.IDParams{ID: pane}, nil)
-	a.focusTerminal()
-}
-
-func (a *App) zoomPane(s *proto.Session, pane string) {
-	if s == nil || len(s.Panes) < 2 {
-		return
-	}
-	if pane == "" {
-		pane = a.focusOf(s)
-	}
-	if s.Zoomed == pane {
-		s.Zoomed = ""
-	} else {
-		s.Zoomed = pane
-		a.setFocus(s, pane)
-	}
-	a.call(s.ID, "zoom", proto.FocusParams{Session: s.ID, Pane: pane}, nil)
-	a.paneRef(pane).Focus()
-}
-
-// focusDirection moves into the pane next to the focused one.
-func (a *App) focusDirection(dir string) {
-	s := a.session(a.Selected)
-	if s == nil || s.Layout == nil || s.Zoomed != "" {
-		return
-	}
-	if n := s.Layout.Neighbor(a.focusOf(s), dir); n != "" {
-		a.setFocus(s, n)
-		a.paneRef(n).Focus()
-	}
-}
-
-// cyclePane moves to the next or previous pane, in the layout's order.
-func (a *App) cyclePane(d int) {
-	s := a.session(a.Selected)
-	if s == nil || len(s.Panes) < 2 {
-		return
-	}
-	order := s.Layout.Panes()
-	i := 0
-	for j, id := range order {
-		if id == a.focusOf(s) {
-			i = j
-		}
-	}
-	n := order[(i+d+len(order))%len(order)]
-	a.setFocus(s, n)
-	a.paneRef(n).Focus()
-}
-
-func itoa(n int) string {
-	if n < 0 {
-		return "-" + itoa(-n)
-	}
-	if n < 10 {
-		return string(rune('0' + n))
-	}
-	return itoa(n/10) + string(rune('0'+n%10))
 }
 
 // defer_ runs fn once the view is built: for actions that change the

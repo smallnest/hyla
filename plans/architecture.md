@@ -137,6 +137,10 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     moved card and its tabs — over an `App` of the views it shows,
     which the root's `side_adapters.go` gives it. The Info view's
     place, its scroll, is the panel's state's too.
+  - Also: the panes' actions — a split, a close, a zoom and the moves
+    between the panes — are `internal/ui/panes`, which the actions, the
+    panes' controls, a browser and the Info view call; the root keeps
+    `panes_adapters.go`, and the session a replaced one arrives in.
   - Also: the Chat view is `internal/ui/chat` — a session's windows,
     their reads (`feishu.feed`) and the lines. The root keeps the state
     in the side panel's struct, and `chat.go` as its adapters.
