@@ -120,7 +120,7 @@ func TestRemoteHost(t *testing.T) {
 	// has none.
 	h.Loaded = true
 	a.mergeState(h, st)
-	if got := a.sessionsOf(h); len(got) != 1 || got[0].ID != "rs" {
+	if got := a.SessionsOf(h); len(got) != 1 || got[0].ID != "rs" {
 		t.Fatalf("the machine holds %+v", got)
 	}
 	// Its session is the machine's, not this one's: what the app sends it
@@ -167,7 +167,7 @@ func TestRemoteHostWrongPassword(t *testing.T) {
 	if _, err := client.ConnectVia(h.Dialer()); err == nil {
 		t.Fatal("a wrong password connected")
 	}
-	if got := a.sessionsOf(h); len(got) != 0 {
+	if got := a.SessionsOf(h); len(got) != 0 {
 		t.Errorf("the machine holds %+v", got)
 	}
 }

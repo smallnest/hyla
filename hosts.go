@@ -7,16 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/egoist/mygo"
-	"github.com/egoist/mygo/ui"
-
 	"hyla/internal/client"
 	"hyla/internal/proto"
 	"hyla/internal/settings"
-	"hyla/internal/ui/confirm"
-	"hyla/internal/ui/theme"
-
-	"hyla/locales"
+	"hyla/internal/ui/hostlink"
 )
 
 func (a *App) local() *host.Host { return a.Machines[0] }
@@ -151,7 +145,7 @@ func (a *App) disconnected(h *host.Host, cl *client.Client) {
 	h.Conn = host.StateConnecting
 	a.dropTerms(h)
 	// What changed while the app was away tells nothing new.
-	for _, s := range a.sessionsOf(h) {
+	for _, s := range a.sessionsOn(h) {
 		delete(a.Statuses, s.ID)
 	}
 	time.AfterFunc(300*time.Millisecond, func() { a.update(func() { a.reconnect(h) }) })
@@ -174,8 +168,16 @@ func (a *App) dropTerms(h *host.Host) {
 	}
 }
 
-// sessionsOf returns a host's sessions, in the state the app shows.
-func (a *App) sessionsOf(h *host.Host) []proto.Session {
+// mergeState makes st a host's part of the state the app shows.
+func (a *App) mergeState(h *host.Host, st proto.State) {
+	a.St.Projects, a.St.Sessions, a.Owner = hostlink.Merge(a, h, st)
+}
+
+// own records a session the app just made as a host's.
+func (a *App) own(h *host.Host, s proto.Session) { hostlink.Own(a, h, s) }
+
+// sessionsOn returns a host's sessions, in the state the app shows.
+func (a *App) sessionsOn(h *host.Host) []proto.Session {
 	var out []proto.Session
 	for _, s := range a.St.Sessions {
 		if a.hostOf(s.ID) == h {
@@ -185,7 +187,8 @@ func (a *App) sessionsOf(h *host.Host) []proto.Session {
 	return out
 }
 
-func (a *App) projectsOf(h *host.Host) []proto.Project {
+// projectsOn returns a host's projects, in the state the app shows.
+func (a *App) projectsOn(h *host.Host) []proto.Project {
 	var out []proto.Project
 	for _, p := range a.St.Projects {
 		if a.hostOf(p.ID) == h {
@@ -193,46 +196,6 @@ func (a *App) projectsOf(h *host.Host) []proto.Project {
 		}
 	}
 	return out
-}
-
-// mergeState makes st a host's part of the state the app shows, the
-// hosts' parts in their order: what the app changed in the others before
-// their hylads' states come stays.
-func (a *App) mergeState(h *host.Host, st proto.State) {
-	var projects []proto.Project
-	var sessions []proto.Session
-	owner := map[string]*host.Host{}
-	for _, o := range a.Machines {
-		ps, ss := st.Projects, st.Sessions
-		if o != h {
-			ps, ss = a.projectsOf(o), a.sessionsOf(o)
-		}
-		for _, p := range ps {
-			owner[p.ID] = o
-		}
-		for _, s := range ss {
-			owner[s.ID] = o
-			for _, p := range s.Panes {
-				owner[p.ID] = o
-			}
-		}
-		projects = append(projects, ps...)
-		sessions = append(sessions, ss...)
-	}
-	a.St.Projects, a.St.Sessions, a.Owner = projects, sessions, owner
-}
-
-// own records a session the app just made as a host's, before its
-// hylad's state, which has it, comes.
-func (a *App) own(h *host.Host, s proto.Session) {
-	if a.Owner == nil {
-		a.Owner = map[string]*host.Host{}
-	}
-	a.Owner[s.ID] = h
-	a.Owner[s.Project] = h
-	for _, p := range s.Panes {
-		a.Owner[p.ID] = h
-	}
 }
 
 // remoteControl reports whether programs may drive the app (hyla focus,
@@ -285,64 +248,5 @@ func (a *App) reselect() {
 		a.Selected = ""
 	case len(ids) > 0 && (a.Selected == "" || a.allLoaded()):
 		a.selectSession(ids[0])
-	}
-}
-
-// hostDot says how the app stands with this machine's hylad: a dot, and
-// its words as the tooltip.
-func (a *App) hostDot(c *ui.Context, pal *theme.Palette, col ui.Color, label string) {
-	ui.Box(c).Size(7, 7).Radius(3.5).Background(col).Shrink(0).Margin(0, 4, 0, 0).Label(label).Tooltip(label)
-}
-
-// hostState says how the app stands with this machine's hylad: a dot
-// while it connects or failed to, a chip when it wants restarting.
-func (a *App) hostState(c *ui.Context, pal *theme.Palette, h *host.Host) {
-	if h.Remote() {
-		// Another machine's hylad is not this app's to restart: it says
-		// where it stands, and the user reconnects to it.
-		switch {
-		case h.Conn == host.StateConnecting:
-			a.hostDot(c, pal, pal.TextFaint, locales.StatusConnecting())
-		case h.Conn == host.StateFailed:
-			a.hostDot(c, pal, pal.Danger, h.Err)
-		}
-		return
-	}
-	switch {
-	case h.Conn == host.StateConnecting && h.Loaded:
-		a.hostDot(c, pal, pal.Attention, locales.HostReconnecting())
-	case h.Conn == host.StateConnecting:
-		a.hostDot(c, pal, pal.TextFaint, locales.StatusConnecting())
-	case h.Conn == host.StateFailed:
-		a.hostDot(c, pal, pal.Danger, locales.HostCantConnect(h.Name))
-	case h.Conn == host.StateVersion || h.Stale():
-		b := ui.ButtonBase(c.Key("restart")).Height(22).Padding(0, 7).Gap(5).Radius(11).AlignItems(ui.Center).
-			Label(locales.CommonRestart()).Tooltip(locales.HostStaleTip(h.Name, h.DaemonApp, mygo.App.Version()))
-		if b.Hovered() {
-			b.Background(pal.RowHover)
-		}
-		b.Children(func() {
-			ui.Box(c).Size(6, 6).Radius(3).Background(pal.Attention)
-			ui.Text(c, locales.CommonRestart()).FontSize(12).FontWeight(500).TextColor(pal.Attention).SingleLine()
-		})
-		if b.Clicked() {
-			a.offerHostRestart(h)
-		}
-	}
-}
-
-// offerHostRestart restarts hylad, asking first while programs run in its
-// sessions.
-func (a *App) offerHostRestart(h *host.Host) {
-	a.Confirm = &confirm.Ask{
-		Open:    true,
-		Title:   locales.HostRestartTitle(h.Label()),
-		Detail:  locales.HostRestartDetail(h.Label()),
-		Action:  locales.CommonRestart(),
-		Destroy: true,
-		Run:     func() { a.restartDaemon() },
-	}
-	if a.Win != nil {
-		a.Win.Focus()
 	}
 }

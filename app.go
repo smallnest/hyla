@@ -1753,7 +1753,7 @@ func (a *App) newSessionOn(h *host.Host, projectID string) {
 	if a.settingsIn.NewSessionDir == "home" {
 		p.Dir = home
 	}
-	if p.Project == "" && len(a.projectsOf(h)) == 0 {
+	if p.Project == "" && len(a.ProjectsOf(h)) == 0 {
 		p.Dir = home
 	}
 	a.create(h, p, "")
@@ -2168,7 +2168,7 @@ func (a *App) bringToFront() {
 // when the app quits before it connects: the quit-ends-sessions the user
 // chose then takes the sessions' state, so that none starts again.
 func (a *App) quitEndsSession() {
-	for _, s := range a.sessionsOf(a.local()) {
+	for _, s := range a.SessionsOf(a.local()) {
 		if cl, err := client.Connect(true); err == nil {
 			cl.Call("close", proto.IDParams{ID: s.ID}, nil)
 			cl.Close()
@@ -2219,7 +2219,7 @@ func (a *App) offerRestart() {
 // hylad would end.
 func (a *App) busyCount(h *host.Host) int {
 	n := 0
-	for _, s := range a.sessionsOf(h) {
+	for _, s := range a.SessionsOf(h) {
 		if busy(&s) {
 			n++
 		}
@@ -2257,7 +2257,7 @@ func (a *App) restartDaemon() {
 // quitAndEnd ends every session of this machine, and its hylad, then
 // quits: other machines' keep running.
 func (a *App) quitAndEnd() {
-	n := len(a.sessionsOf(a.local()))
+	n := len(a.SessionsOf(a.local()))
 	a.Confirm = &confirm.Ask{
 		Open:    true,
 		Title:   locales.ConfirmQuitAllTitle(),

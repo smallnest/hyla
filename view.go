@@ -599,7 +599,7 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g group, gi int, n *i
 		// This machine's hylad says how the app stands with it here, when
 		// it reconnects, or wants restarting: the first group's header.
 		if g.first {
-			a.hostState(c, pal, g.host)
+			a.hostStateNow(c, pal, g.host)
 		}
 		if needs > 0 {
 			ui.Text(c, locales.SidebarNeedsYou(needs)).FontSize(12.5).FontWeight(500).TextColor(pal.Attention).SingleLine()
@@ -963,7 +963,7 @@ func (a *App) sessionMenu(m *ui.Menu, s *proto.Session) {
 	h := a.hostOf(id)
 	m.Submenu(locales.SessionMoveToProject(), func(m *ui.Menu) {
 		// A session moves among its host's projects alone.
-		for _, p := range a.projectsOf(h) {
+		for _, p := range a.ProjectsOf(h) {
 			if m.Item(p.Name).Checked(p.ID == s.Project).Disabled(p.ID == s.Project).Chosen() {
 				pid := p.ID
 				a.defer_(func() { a.moveSession(id, pid) })

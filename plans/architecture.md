@@ -196,6 +196,11 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     too. It is of the cli layer, as it reads Settings' key names;
     `actions.go` is its adapters, and an action's run as a menu's item is
     `RunID`, as the palette runs one by its own name.
+  - Also: what the app makes of the machines it reaches — the state it
+    merges from their hylads', which host each session is of, and how it
+    stands with each — is `internal/ui/hostlink`, which `hoststate.go`
+    answers. The app's `sessionsOf` and `projectsOf` are its `SessionsOf`
+    and `ProjectsOf`, over `sessionsOn` and `projectsOn`.
   - Also: the panes' drawing is `internal/ui/panes`, beside their
     actions: the card, the layout's nodes and its divider, the header and
     its controls, the terminal's body, the drop preview and the moves a

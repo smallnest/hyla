@@ -35,9 +35,9 @@ func (a *App) PaletteSelectSession(id string) { a.selectSession(id) }
 
 func (a *App) HostNamed(name string) *host.Host { return a.hostNamed(name) }
 
-func (a *App) SessionsOf(h *host.Host) []proto.Session { return a.sessionsOf(h) }
+func (a *App) SessionsOf(h *host.Host) []proto.Session { return a.sessionsOn(h) }
 
-func (a *App) ProjectsOf(h *host.Host) []proto.Project { return a.projectsOf(h) }
+func (a *App) ProjectsOf(h *host.Host) []proto.Project { return a.projectsOn(h) }
 
 func (a *App) Connect(h *host.Host) { a.connectHost(h) }
 
@@ -49,7 +49,7 @@ func (a *App) UpdateTitle() { a.updateTitle() }
 
 func (a *App) NewSessionOn(h *host.Host, projectID string) { a.newSessionOn(h, projectID) }
 
-func (a *App) HostState(c *ui.Context, pal *theme.Palette, h *host.Host) { a.hostState(c, pal, h) }
+func (a *App) HostState(c *ui.Context, pal *theme.Palette, h *host.Host) { a.hostStateNow(c, pal, h) }
 
 func (a *App) HostDraft() *draft.HostDraft { return &a.Ss.Remote }
 
