@@ -23,6 +23,7 @@ import (
 
 	"hyla/internal/actions"
 	"hyla/internal/proto"
+	"hyla/internal/ui/panes"
 	"hyla/internal/ui/sidebar"
 
 	"hyla/internal/settings"
@@ -688,15 +689,15 @@ find:
 	if link, path, _ := term.HoveredLink(); link != "shot.png:3" || !path {
 		t.Fatalf("hovered %q, %v; text %q", link, path, term.Text())
 	}
-	if want := filepath.Join(dir, "shot.png"); a.Peek.path != want {
-		t.Fatalf("peeks at %q, want %q", a.Peek.path, want)
+	if want := filepath.Join(dir, "shot.png"); a.Peek.Path != want {
+		t.Fatalf("peeks at %q, want %q", a.Peek.Path, want)
 	}
 	// The decoded image lands, as the window's update would bring it, and
 	// shows in the flyout.
-	data, _ := os.ReadFile(a.Peek.path)
-	a.Peek.bm, _ = ui.DecodeBitmap(data)
+	data, _ := os.ReadFile(a.Peek.Path)
+	a.Peek.BM, _ = ui.DecodeBitmap(data)
 	tt.Frame()
-	ft := ui.NewTester(a.peekView, peekMinW, 20+peekPad+peekCaption)
+	ft := ui.NewTester(a.peekView, panes.MinWidth, 20+panes.Pad+panes.Caption)
 	ft.Frame()
 	if !ft.HasText("shot.png") || !ft.HasText("30 × 20") {
 		t.Fatalf("no preview; texts %q", ft.Texts())
@@ -704,7 +705,7 @@ find:
 	shot(t, ft, "peek")
 	tt.HoldModifiers(0)
 	tt.Frame()
-	if a.Peek.bm != nil || a.Peek.path != "" {
+	if a.Peek.BM != nil || a.Peek.Path != "" {
 		t.Errorf("the preview stays once Command is let go of: %+v", a.Peek)
 	}
 }

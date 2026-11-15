@@ -252,6 +252,11 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     its state (`Info`, `Usage`), its reading, its tick and the pane's
     agent session. The root keeps `magpie_adapters.go`, which holds the
     app's `Magpie` field as `magpieview.Info`.
+  - Also: the image a path printed in a pane shows while Command hovers
+    it is `internal/ui/panes`.Peek — the flyout, its decoding and its
+    view, with `End` at the end of the frame the app draws. `panes.Path`
+    is the file a link names, the root's `resolvePath` among the
+    `Peeker` callbacks.
   - The guard now fails on a package of `internal/` that no layer's
     names hold. It found `buildinfo`, `fileicons` and `profiling` never
     listed.

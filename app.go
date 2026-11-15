@@ -13,7 +13,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"regexp"
 	"runtime"
 	"slices"
 	"strings"
@@ -1243,8 +1242,6 @@ func vibrancyFor(s settings.Settings) mygo.Vibrancy {
 	return mygo.VibrancySidebar
 }
 
-var lineSuffix = regexp.MustCompile(`(:\d+){1,2}$`)
-
 // openLink opens what a Command+click opens: URLs with the system, and
 // file paths printed in the session, relative to its directory, in the
 // app that opens them.
@@ -1264,7 +1261,7 @@ func (a *App) openLink(id, link string) bool {
 // the directory of the program that printed it, or "" for no such file.
 // id is a pane's, or a session's for its pane in front.
 func (a *App) resolvePath(id, link string) string {
-	path := lineSuffix.ReplaceAllString(link, "")
+	path := panes.Path(link)
 	if strings.HasPrefix(path, "~/") || runtime.GOOS == "windows" && strings.HasPrefix(path, `~`) {
 		path = filepath.Join(proto.Home(), path[2:])
 	}
