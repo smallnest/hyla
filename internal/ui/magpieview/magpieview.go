@@ -228,12 +228,17 @@ func metric(c *ui.Context, pal *theme.Palette, label, value string) {
 // name Magpie gives it, as "Antigravity", and none where Hyla has no mark
 // for it rather than another's.
 func providerMetric(c *ui.Context, pal *theme.Palette, w magpie.Window) {
-	logo, brand, ok := marks.Agent(w.Key)
+	name := w.Key
+	logo, brand, ok := marks.Agent(name)
 	if !ok {
-		logo, brand, ok = marks.Agent(w.Provider)
+		name = w.Provider
+		logo, brand, ok = marks.Agent(name)
 	}
+	full, _ := marks.MarkFull(name)
 	ui.Row(c).MinHeight(42).Padding(6, 12).Gap(10).AlignItems(ui.Center).Children(func() {
-		if ok {
+		if full != nil {
+			ui.Image(c, full).Size(marks.Size, marks.Size).Shrink(0)
+		} else if ok {
 			ui.Icon(c, logo).Size(14, 14).TextColor(marks.Tint(brand, pal.Dark, pal.Text)).Shrink(0)
 		}
 		ui.Text(c, w.Provider).FontSize(12.5).TextColor(pal.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1).MinWidth(0)

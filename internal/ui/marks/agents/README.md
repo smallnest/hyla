@@ -5,11 +5,12 @@ mark in the agent's colour. The files are [Simple Icons](https://simpleicons.org
 SVGs (CC0, the brands their owners' trademarks), as
 [Iconify](https://iconify.design) serves them, and each file's own `fill` is
 its brand's colour. The exception is `antigravity.svg`, Google Antigravity's
-icon in one colour, from its [press page](https://antigravity.google/press),
-which Simple Icons does not have. `markTint` (marks.go) adjusts a mark's
-colour to the window: a
-near-black mark is drawn in the row's text colour, so that it reads on a
-dark window too, and the palest brands are darkened on a light one.
+icon in its own colours, from its [press page](https://antigravity.google/press),
+which Simple Icons does not have: a mark of several colours is drawn as
+its makers drew it (`marks.MarkFull`), the others in the row's text colour.
+`Tint` (marks.go) adjusts a one-colour mark to the window: a near-black
+one is drawn in the row's text colour, so that it reads on a dark window
+too, and the palest brands are darkened on a light one.
 
 The agent names are hylad's (`daemon.agents`), and `agentMarks` in
 `icons.go` is the list itself — this table is the same list, to read.
@@ -22,7 +23,7 @@ The agent names are hylad's (`daemon.agents`), and `agentMarks` in
 | `pi` | `pi.svg` | near-black (the text's) |
 | `dsh` (DeepSeek Harness) | `deepseek.svg` | DeepSeek's blue |
 | `gemini` | `googlegemini.svg` | Google's purple |
-| `antigravity`, `agy` | `antigravity.svg` | its black, the text's |
+| `antigravity`, `agy` | `antigravity.svg` | its own, full colour |
 | `amp` | `amp.svg` | its own |
 | `cursor-agent` | `cursor.svg` | near-black |
 | `copilot` | `githubcopilot.svg` | near-black |

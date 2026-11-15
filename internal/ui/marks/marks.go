@@ -82,10 +82,20 @@ var agentMarks = map[string]string{
 }
 
 // A mark, drawn once: the logo in the colour of the text, and the colour
-// its makers draw it in, for the sidebar to show.
+// its makers draw it in, for the sidebar to show. full is the logo as its
+// makers drew it, for a mark of several colours.
 type mark struct {
 	logo  *ui.SVG
 	brand ui.Color
+	full  *ui.SVG
+}
+
+// The marks drawn in the colours their makers chose, not the row's:
+// Antigravity's is a picture of several colours under a white shape, which
+// the text's colour would leave blank. Every other mark is one shape,
+// drawn in the row's text colour and tinted to the window.
+var fullColor = map[string]bool{
+	"antigravity": true,
 }
 
 var (
@@ -112,6 +122,25 @@ func Agent(agent string) (*ui.SVG, ui.Color, bool) {
 	return m.logo, m.brand, true
 }
 
+// MarkFull returns the agent's mark as its makers drew it, where it has
+// several colours, which the row draws in them: nil for a mark drawn in one
+// colour, which the row draws in its text's. known is false for an agent
+// Hyla has no mark for.
+func MarkFull(agent string) (full *ui.SVG, known bool) {
+	file, ok := agentMarks[strings.ToLower(strings.TrimSpace(agent))]
+	if !ok {
+		return nil, false
+	}
+	m, ok := markOf(file)
+	if !ok {
+		return nil, false
+	}
+	if fullColor[file] {
+		return m.full, true
+	}
+	return nil, true
+}
+
 // markOf reads a logo of the set, once.
 func markOf(file string) (mark, bool) {
 	markMu.Lock()
@@ -125,6 +154,14 @@ func markOf(file string) (mark, bool) {
 		// before anything ships.
 		markCache[file] = mark{}
 		return mark{}, false
+	}
+	// A mark of several colours is kept as drawn: its shapes take their own
+	// colours, and a shape drawn in a colour is not the text's.
+	var full *ui.SVG
+	if fullColor[file] {
+		if s, err := ui.ParseSVG([]byte(markTitle.ReplaceAll(b, nil))); err == nil {
+			full = s
+		}
 	}
 	brand := ui.Hex("#000000")
 	if m := markFill.FindSubmatch(b); m != nil {
@@ -149,7 +186,7 @@ func markOf(file string) (mark, bool) {
 		markCache[file] = mark{}
 		return mark{}, false
 	}
-	m := mark{logo: logo, brand: brand}
+	m := mark{logo: logo, brand: brand, full: full}
 	markCache[file] = m
 	return m, true
 }

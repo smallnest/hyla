@@ -18,9 +18,9 @@ func TestSidebarMarks(t *testing.T) {
 		"claude": "review-pr-42", "codex": "bump-deps", "opencode": "hooks",
 		"dsh": "index-raw-docs", "cursor-agent": "fix-login-redirect",
 		"kimi": "translate-docs", "qwen": "trace-slow-query",
-		"windsurf": "profile-startup", "aider": "tidy-imports", "": "make test",
+		"windsurf": "profile-startup", "antigravity": "ship-the-moon", "aider": "tidy-imports", "": "make test",
 	}
-	order := []string{"claude", "codex", "opencode", "dsh", "cursor-agent", "kimi", "qwen", "windsurf", "aider", ""}
+	order := []string{"claude", "codex", "opencode", "dsh", "cursor-agent", "kimi", "qwen", "windsurf", "antigravity", "aider", ""}
 	var ss []proto.Session
 	for i, agent := range order {
 		p := proto.Pane{ID: fmt.Sprintf("p%d", i), Dir: "/Users/smallnest/ai/hyla", Status: proto.Idle, Progress: -1, Agent: agent, Process: agent}

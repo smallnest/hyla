@@ -54,6 +54,36 @@ func TestAgentMarks(t *testing.T) {
 	}
 }
 
+// A mark of several colours is kept as its makers drew it, for the row to
+// draw in them; a mark of one colour has none, and the row draws it in the
+// text's.
+func TestMarkFull(t *testing.T) {
+	for _, agent := range []string{"antigravity", "agy", "ANTIGRAVITY"} {
+		logo, known := MarkFull(agent)
+		if !known || logo == nil {
+			t.Fatalf("%s: no mark drawn in its colours", agent)
+		}
+		img := logo.Image(28, 28, color.RGBA{A: 255})
+		colours := map[color.RGBA]bool{}
+		for y := 0; y < 28; y++ {
+			for x := 0; x < 28; x++ {
+				if c := img.RGBAAt(x, y); c.A > 200 {
+					colours[c] = true
+				}
+			}
+		}
+		if len(colours) < 3 {
+			t.Errorf("%s: %d colours, want several", agent, len(colours))
+		}
+	}
+	if logo, known := MarkFull("claude"); logo != nil || !known {
+		t.Errorf("Claude's one-colour mark: %v, %v", logo, known)
+	}
+	if logo, known := MarkFull("nonesuch"); logo != nil || known {
+		t.Errorf("an agent with no mark: %v, %v", logo, known)
+	}
+}
+
 // A mark is drawn in the colour of the row's text, whatever colour its
 // makers drew it in: the window decides how bright it is.
 func TestMarkDrawsInTheTextColour(t *testing.T) {
