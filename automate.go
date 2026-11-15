@@ -6,6 +6,7 @@ import (
 	"hyla/internal/app/browse"
 	"hyla/internal/app/host"
 	"hyla/internal/proto"
+	"hyla/internal/ui/webpane"
 )
 
 // browse does what hyla browser asks of a browser pane's page, and
@@ -34,10 +35,10 @@ func (a *App) WebPage(pane string) (*browse.Pane, bool) {
 	_, had := a.Webs[p.ID]
 	e := a.ensureWeb(p)
 	var page *mygo.Page
-	if e.view != nil {
-		page = e.view.Page()
+	if e.View != nil {
+		page = e.View.Page()
 	}
-	return &browse.Pane{Page: page, View: e.view, Err: e.err}, had
+	return &browse.Pane{Page: page, View: e.View, Err: e.Err}, had
 }
 
 // NextLoad returns what the page's next load sends its end to.
@@ -46,20 +47,20 @@ func (a *App) NextLoad(pane string) <-chan error {
 	if s == nil {
 		return nil
 	}
-	return a.Webs[pane].nextLoad()
+	return a.Webs[pane].NextLoad()
 }
 
 // Load sends a page to an address, and tells hylad of it.
 func (a *App) Load(pane, url string) {
 	e := a.Webs[pane]
-	e.load(url)
-	a.tellPage(pane, e)
+	e.Load(url)
+	webpane.TellPage(a, pane, e)
 }
 
 // Loading says that a page loads anew.
-func (a *App) Loading(pane string) { a.Webs[pane].loading = true }
+func (a *App) Loading(pane string) { a.Webs[pane].Loading = true }
 
 // Staged says that the window lays the page out unseen, or stops.
 func (a *App) Staged(pane string, on bool) {
-	a.update(func() { a.Webs[pane].staged = on })
+	a.update(func() { a.Webs[pane].Staged = on })
 }

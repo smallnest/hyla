@@ -53,15 +53,15 @@ func TestBrowseRefuses(t *testing.T) {
 // that wait on the page run carries what it does as JSON.
 func TestLoadEnds(t *testing.T) {
 	e := &webEntry{}
-	one, two := e.nextLoad(), e.nextLoad()
-	e.loadEnded(nil)
+	one, two := e.NextLoad(), e.NextLoad()
+	e.LoadEnded(nil)
 	if err := <-one; err != nil {
 		t.Error(err)
 	}
 	if err := <-two; err != nil {
 		t.Error(err)
 	}
-	if len(e.loads) != 0 {
+	if len(e.Loads) != 0 {
 		t.Error("waiters left")
 	}
 	// A selector's quotes can't break out of it.

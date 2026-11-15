@@ -152,6 +152,10 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     machine's pair code, its rotation and what a phone scans — joined
     `internal/ui/hosts`, which changes the settings through
     `App.SettingsNow`.
+  - Also: the browser panes — the page, its toolbar and address bar, its
+    error and find — are `internal/ui/webpane`, whose `Entry` is the
+    app's `Webs`. It draws the panes' buttons through `App.Panes()`.
+`browser.go` is its adapters.
   - Also: the quick terminal — its panel, the session it shows, its
     slide and its shortcut — is `internal/ui/quick`, over an `App` of the
     app's window and the side panel's state. `quick.go` is its adapters,

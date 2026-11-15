@@ -753,13 +753,13 @@ func TestBrowserPane(t *testing.T) {
 	// goes to the page, as a URL.
 	tt.Type("localhost:5173")
 	tt.Frame()
-	if e.address != "localhost:5173" {
-		t.Errorf("typed %q into the address bar", e.address)
+	if e.Address != "localhost:5173" {
+		t.Errorf("typed %q into the address bar", e.Address)
 	}
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
-	if e.url != "http://localhost:5173" {
-		t.Errorf("went to %q", e.url)
+	if e.URL != "http://localhost:5173" {
+		t.Errorf("went to %q", e.URL)
 	}
 
 	// Its toolbar is its header: no title over it, page's or other.
@@ -777,8 +777,8 @@ func TestBrowserPane(t *testing.T) {
 	tt.Type("kero.sh")
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
-	if e.url != "https://kero.sh" {
-		t.Errorf("Open Location went to %q", e.url)
+	if e.URL != "https://kero.sh" {
+		t.Errorf("Open Location went to %q", e.URL)
 	}
 	shot(t, tt, "browser")
 }

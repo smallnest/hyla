@@ -77,10 +77,10 @@ func (a *App) closeFind() {
 		t.EndSearch()
 	}
 	pane := a.Find.pane
-	if e := a.Webs[pane]; e != nil && e.view != nil {
-		e.findText, e.found = "", mygo.FindResult{}
-		e.findSeq++
-		go e.view.Page().StopFindInPage()
+	if e := a.Webs[pane]; e != nil && e.View != nil {
+		e.FindText, e.Found = "", mygo.FindResult{}
+		e.FindSeq++
+		go e.View.Page().StopFindInPage()
 	}
 	a.Find.pane = ""
 	if pane != "" {

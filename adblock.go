@@ -24,8 +24,8 @@ func (a *App) applyAdBlock() {
 // showAdBlock gives the pages rules.
 func (a *App) showAdBlock(rules []*mygo.ContentRules) {
 	for _, e := range a.Webs {
-		if e.view != nil && !e.view.IsDestroyed() {
-			e.view.Page().SetContentRules(rules...)
+		if e.View != nil && !e.View.IsDestroyed() {
+			e.View.Page().SetContentRules(rules...)
 		}
 	}
 }

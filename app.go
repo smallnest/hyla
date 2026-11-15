@@ -45,6 +45,7 @@ import (
 	uisettings "hyla/internal/ui/settings"
 	"hyla/internal/ui/side"
 	"hyla/internal/ui/theme"
+	"hyla/internal/ui/webpane"
 	"hyla/internal/ui/worktree"
 
 	"hyla/internal/ui/sshdialog"
@@ -144,10 +145,10 @@ type App struct {
 	Ss          uisettings.State
 	Selected    string
 	Terms       map[string]*termEntry
-	Webs        map[string]*webEntry // browser panes' pages, by pane
-	Files       filepane.Panes       // file panes' files, by pane
-	Ads         adblock.State        // what their pages block
-	IconsCache  favicon.Cache        // and the icons they show
+	Webs        map[string]*webpane.Entry // browser panes' pages, by pane
+	Files       filepane.Panes            // file panes' files, by pane
+	Ads         adblock.State             // what their pages block
+	IconsCache  favicon.Cache             // and the icons they show
 	Lru         []string
 	Refs        map[string]*ui.Handle // panes' terminals, and splits, by id
 	Focus       map[string]string     // the pane the user is in, by session
@@ -265,7 +266,7 @@ type App struct {
 // confirmation is a question the app asks before something it cannot undo.
 
 func newApp() *App {
-	a := &App{Terms: map[string]*termEntry{}, Webs: map[string]*webEntry{}, Statuses: map[string]proto.Status{}, Active: true, focused: true,
+	a := &App{Terms: map[string]*termEntry{}, Webs: map[string]*webpane.Entry{}, Statuses: map[string]proto.Status{}, Active: true, focused: true,
 		Refs: map[string]*ui.Handle{}, Focus: map[string]string{}, ArrivedPanes: map[string]bool{}}
 	a.loadPrefs()
 	a.settingsIn = settings.Load()
