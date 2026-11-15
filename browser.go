@@ -27,6 +27,9 @@ import (
 type webEntry struct {
 	view *mygo.WebView
 	err  string
+	// loads are what the page's next load reports to, as hyla browser
+	// waits on it.
+	loads []chan error
 	// url and title are the page's, as it last committed; told is what
 	// hylad was last told.
 	url, title string
@@ -47,8 +50,6 @@ type webEntry struct {
 	found    mygo.FindResult
 	findSeq  int
 	findText string
-	// loads are hyla browser's calls waiting for the page's load to end.
-	loads []chan error
 	// iconURL is the URL of the icon the page told: until it does, its
 	// site's last shows. icon is the page, as the icons ask it.
 	iconURL string
@@ -520,4 +521,20 @@ func (a *App) findInPage(e *webEntry, next, back bool) {
 			}
 		})
 	}()
+}
+
+// nextLoad returns what the page's next load sends its end to: nil, or
+// why it failed.
+func (e *webEntry) nextLoad() <-chan error {
+	ch := make(chan error, 1)
+	e.loads = append(e.loads, ch)
+	return ch
+}
+
+// loadEnded tells those waiting for the page's load that it ended.
+func (e *webEntry) loadEnded(err error) {
+	for _, ch := range e.loads {
+		ch <- err
+	}
+	e.loads = nil
 }

@@ -83,7 +83,7 @@ func (c *Cache) SetSite(origin, u string, img ui.ImageSource) {
 
 // Reading tells whether a site's icon is being read from the disk, and
 // SetReading says it is, or is not.
-func (c *Cache) Reading(origin string) bool     { return c.reading[origin] }
+func (c *Cache) Reading(origin string) bool        { return c.reading[origin] }
 func (c *Cache) SetReading(origin string, on bool) { c.make(); c.reading[origin] = on }
 
 // Fetching tells whether icons are being downloaded, by their list.

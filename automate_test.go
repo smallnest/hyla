@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"hyla/internal/app/browse"
 	"hyla/internal/proto"
 )
 
@@ -64,7 +65,7 @@ func TestLoadEnds(t *testing.T) {
 		t.Error("waiters left")
 	}
 	// A selector's quotes can't break out of it.
-	js := pageScript(proto.BrowserParams{Op: "click", Selector: `a[href="x"]`}, 2*time.Second)
+	js := browse.PageScript(proto.BrowserParams{Op: "click", Selector: `a[href="x"]`}, 2*time.Second)
 	if !strings.HasSuffix(js, `)({"enter":false,"op":"click","ref":"","selector":"a[href=\"x\"]","text":"","timeout":2000})`) {
 		t.Errorf("script ends %q", js[strings.LastIndex(js, ")("):])
 	}

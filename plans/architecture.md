@@ -122,6 +122,11 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
   - Also: the Settings window's groups, rows, segmented control and the
     search's marks are `internal/ui/settings/kit`, which the pages, the
     Sync page and the hosts' forms draw with.
+  - Also: `hyla browser`'s commands — a page's text, its clicks and
+    typing, its snapshot and picture, and the cookies — are
+    `internal/app/browse`, in the daemon layer, as they drive a page;
+    the root keeps `automate.go` as its adapters, and the entries'
+    loads.
   - Also: the Chat view is `internal/ui/chat` — a session's windows,
     their reads (`feishu.feed`) and the lines. The root keeps the state
     in the side panel's struct, and `chat.go` as its adapters.
