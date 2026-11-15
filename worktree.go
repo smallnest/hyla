@@ -8,6 +8,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/ui/theme"
 
+	"hyla/internal/ui/controls"
 	"hyla/internal/ui/style"
 	"hyla/locales"
 )
@@ -58,7 +59,7 @@ func (a *App) worktreeView(c *ui.Context, pal *theme.Palette) {
 		}
 		ui.Text(c, detail).FontSize(13).TextColor(pal.TextMuted).LineHeight(1.4)
 		ui.Row(c).Margin(8, 0, 0, 0).Children(func() {
-			in := textField(c, "branch", &w.branch, locales.WorktreeBranch(), 0, pal)
+			in := controls.TextField(c, "branch", &w.branch, locales.WorktreeBranch(), 0, pal)
 			in.AutoFocus()
 			if in.Submitted() {
 				create = true

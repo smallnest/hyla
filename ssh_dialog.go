@@ -12,6 +12,7 @@ import (
 	"hyla/internal/remote"
 	"hyla/internal/ui/theme"
 
+	"hyla/internal/ui/controls"
 	"hyla/internal/ui/marks"
 	"hyla/internal/ui/style"
 	"hyla/locales"
@@ -57,14 +58,14 @@ func (a *App) sshView(c *ui.Context, pal *theme.Palette) {
 		ui.Text(c, locales.ActionAddSSHHost()).FontSize(15).FontWeight(650).TextColor(pal.Text)
 		ui.Text(c, locales.SshHostDetail()).FontSize(13).TextColor(pal.TextMuted).LineHeight(1.4)
 		ui.Row(c).Margin(8, 0, 1, 0).Children(func() {
-			in := textField(c, "ssh-addr", &d.addr, locales.SshHostAddressPlaceholder(), 0, pal).Font("monospace")
+			in := controls.TextField(c, "ssh-addr", &d.addr, locales.SshHostAddressPlaceholder(), 0, pal).Font("monospace")
 			in.AutoFocus()
 			if in.Submitted() {
 				connect = true
 			}
 		})
 		ui.Row(c).Children(func() {
-			in := textField(c, "ssh-name", &d.name, locales.SetHostNamePlaceholder(sshDefaultName(d.addr)), 0, pal)
+			in := controls.TextField(c, "ssh-name", &d.name, locales.SetHostNamePlaceholder(sshDefaultName(d.addr)), 0, pal)
 			if in.Submitted() {
 				connect = true
 			}

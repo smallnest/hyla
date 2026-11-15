@@ -30,6 +30,7 @@ import (
 	"hyla/internal/ui/theme"
 	"hyla/internal/ui/wash"
 
+	"hyla/internal/ui/controls"
 	"hyla/internal/ui/glyph"
 	"hyla/internal/ui/style"
 	"hyla/locales"
@@ -82,14 +83,14 @@ type settingsState struct {
 	service         string // hylad, as last asked
 	notice          string // a line under the keyboard page, as of a conflict
 	toast           string
-	menus           map[string]*searchMenu     // the search menus', by key
-	problems        []string                   // what the configuration file got wrong
-	scrolls         map[string]*ui.ScrollState // each page's, for its scroll edge
-	tailcat         tailcatDraft               // the Tailcat group's
-	remote          hostDraft                  // the other machines' form
-	tcHost          tcHostDraft                // the Tailcat machines' form
-	feishu          feishuDraft                // the Feishu page's form
-	confirm         *confirmation              // a question, asked in this window
+	menus           map[string]*controls.SearchMenu // the search menus', by key
+	problems        []string                        // what the configuration file got wrong
+	scrolls         map[string]*ui.ScrollState      // each page's, for its scroll edge
+	tailcat         tailcatDraft                    // the Tailcat group's
+	remote          hostDraft                       // the other machines' form
+	tcHost          tcHostDraft                     // the Tailcat machines' form
+	feishu          feishuDraft                     // the Feishu page's form
+	confirm         *confirmation                   // a question, asked in this window
 }
 
 // checkUpdates asks the updater for a newer app, which none does where
@@ -382,7 +383,7 @@ func (a *App) settingsSearch(c *ui.Context, pal *theme.Palette) {
 			}
 		}
 	})
-	field(c, frame, in.Focused(), pal)
+	controls.Field(c, frame, in.Focused(), pal)
 }
 
 func (a *App) settingsNav(c *ui.Context, pal *theme.Palette, p settingsPage) {
@@ -548,7 +549,7 @@ func (a *App) generalPage(c *ui.Context, pal *theme.Palette) {
 		}
 		settingsGroup(c, pal, "", "", func() {
 			settingRow(c, pal, locales.SetAppIcon(), detail, func() {
-				popup(c, "app-icon", &s.AppIcon, settings.AppIcons, appIconName, 180, pal)
+				controls.Popup(c, "app-icon", &s.AppIcon, settings.AppIcons, appIconName, 180, pal)
 			})
 		})
 	}
@@ -682,17 +683,17 @@ func (a *App) appearancePage(c *ui.Context, pal *theme.Palette) {
 			segmented(c, "appearance", &s.Appearance, []string{"system", "light", "dark"}, []string{locales.SetThemeSystem(), locales.SetThemeLight(), locales.SetThemeDark()})
 		})
 		settingRow(c, pal, locales.SetLanguage(), "", func() {
-			popup(c, "language", &s.Language, append([]string{"system"}, settings.Languages...), languageName, 180, pal)
+			controls.Popup(c, "language", &s.Language, append([]string{"system"}, settings.Languages...), languageName, 180, pal)
 		})
 		settingRow(c, pal, locales.SetTranslucent(), locales.SetTranslucentDetail(), func() {
 			style.Toggle(c.Key("vibrancy"), &s.Vibrancy, pal)
 		})
 		settingRow(c, pal, locales.SetSessionSwitch(), locales.SetSessionSwitchDetail(), func() {
-			popup(c, "session-switch", &s.SessionSwitch, settings.SessionSwitches, sessionSwitchName, 160, pal)
+			controls.Popup(c, "session-switch", &s.SessionSwitch, settings.SessionSwitches, sessionSwitchName, 160, pal)
 		})
 		settingRow(c, pal, locales.SetWindowOpacity(), locales.SetWindowOpacityDetail(), func() {
 			v := float64(s.WindowOpacity)
-			slider(c, "window-opacity", &v, 0, 1, 160, pal).OnChange(func() {
+			controls.Slider(c, "window-opacity", &v, 0, 1, 160, pal).OnChange(func() {
 				s.WindowOpacity = float32(int(v*100+0.5)) / 100
 			})
 			ui.Textf(c, "%.0f%%", s.WindowOpacity*100).FontSize(12.5).TextColor(pal.TextMuted).Width(40).FontFeatures("tnum")
@@ -701,7 +702,7 @@ func (a *App) appearancePage(c *ui.Context, pal *theme.Palette) {
 			style.Toggle(c.Key("window-blur"), &s.WindowBlur, pal)
 		})
 		settingRow(c, pal, locales.SetWindowMaterial(), locales.SetWindowMaterialDetail(), func() {
-			popup(c, "window-material", &s.WindowMaterial, []string{"sidebar", "window", "popover", "plastic", "glass", "glass-clear"}, materialName, 200, pal)
+			controls.Popup(c, "window-material", &s.WindowMaterial, []string{"sidebar", "window", "popover", "plastic", "glass", "glass-clear"}, materialName, 200, pal)
 		})
 		detail := locales.SetSidebarImageDetail()
 		if s.SidebarImage != "" {
@@ -718,7 +719,7 @@ func (a *App) appearancePage(c *ui.Context, pal *theme.Palette) {
 		if s.SidebarImage != "" {
 			settingRow(c, pal, locales.SetSidebarImageOpacity(), locales.SetSidebarImageOpacityDetail(), func() {
 				v := float64(s.SidebarImageOpacity)
-				slider(c, "sidebar-image-opacity", &v, 0, 1, 160, pal).OnChange(func() {
+				controls.Slider(c, "sidebar-image-opacity", &v, 0, 1, 160, pal).OnChange(func() {
 					s.SidebarImageOpacity = float32(int(v*100+0.5)) / 100
 				})
 				ui.Textf(c, "%.0f%%", s.SidebarImageOpacity*100).FontSize(12.5).TextColor(pal.TextMuted).Width(40).FontFeatures("tnum")
@@ -739,13 +740,13 @@ func (a *App) appearancePage(c *ui.Context, pal *theme.Palette) {
 		if s.PaneImage != "" {
 			settingRow(c, pal, locales.SetPaneImageOpacity(), locales.SetPaneImageOpacityDetail(), func() {
 				v := float64(s.PaneImageOpacity)
-				slider(c, "pane-image-opacity", &v, 0, 1, 160, pal).OnChange(func() {
+				controls.Slider(c, "pane-image-opacity", &v, 0, 1, 160, pal).OnChange(func() {
 					s.PaneImageOpacity = float32(int(v*100+0.5)) / 100
 				})
 				ui.Textf(c, "%.0f%%", s.PaneImageOpacity*100).FontSize(12.5).TextColor(pal.TextMuted).Width(40).FontFeatures("tnum")
 			})
 			settingRow(c, pal, locales.SetPaneImageFit(), locales.SetPaneImageFitDetail(), func() {
-				popup(c, "pane-image-fit", &s.PaneImageFit, settings.PaneImageFits, paneFitName, 200, pal)
+				controls.Popup(c, "pane-image-fit", &s.PaneImageFit, settings.PaneImageFits, paneFitName, 200, pal)
 			})
 		}
 	})
@@ -758,7 +759,7 @@ func (a *App) appearancePage(c *ui.Context, pal *theme.Palette) {
 		})
 		settingRow(c, pal, locales.SetPetSize(), locales.SetPetSizeDetail(), func() {
 			v := float64(s.PetSize)
-			slider(c, "pet-size", &v, 0.5, 3, 160, pal).OnChange(func() {
+			controls.Slider(c, "pet-size", &v, 0.5, 3, 160, pal).OnChange(func() {
 				// The pet grows as the knob drags; the settings keep its
 				// size when the knob goes.
 				s.PetSize = float32(int(v*10+0.5)) / 10
@@ -957,7 +958,7 @@ func (a *App) terminalPage(c *ui.Context, pal *theme.Palette) {
 			if !slices.Contains(opts, family) {
 				opts = append([]string{family}, opts...)
 			}
-			a.searchPopup(c, "font", family, opts, 240, locales.SetUseFont, pal, func(v string) {
+			controls.SearchPopup(c, &a.ss.menus, "font", family, opts, 240, locales.SetUseFont, pal, func(v string) {
 				switch v {
 				case "JetBrains Mono Nerd Font":
 					v = ""
@@ -976,15 +977,15 @@ func (a *App) terminalPage(c *ui.Context, pal *theme.Palette) {
 				sizes = append(sizes, s.FontSize)
 				slices.Sort(sizes)
 			}
-			popup(c, "size", &s.FontSize, sizes, func(v float32) string { return strconv.FormatFloat(float64(v), 'f', -1, 32) + " pt" }, 90, pal)
+			controls.Popup(c, "size", &s.FontSize, sizes, func(v float32) string { return strconv.FormatFloat(float64(v), 'f', -1, 32) + " pt" }, 90, pal)
 		})
 		settingRow(c, pal, locales.SetLineHeight(), "", func() {
 			v := float64(s.LineHeight)
-			slider(c, "lh", &v, 1, 2, 160, pal).OnChange(func() { a.set.LineHeight = float32(int(v*100+0.5)) / 100 })
+			controls.Slider(c, "lh", &v, 1, 2, 160, pal).OnChange(func() { a.set.LineHeight = float32(int(v*100+0.5)) / 100 })
 			ui.Textf(c, "%.2f×", s.LineHeight).FontSize(12.5).TextColor(pal.TextMuted).Width(40).FontFeatures("tnum")
 		})
 		settingRow(c, pal, locales.SetWeight(), "", func() {
-			popup(c, "weight", &s.FontWeight, []int{100, 200, 300, 400, 500, 600}, func(w int) string {
+			controls.Popup(c, "weight", &s.FontWeight, []int{100, 200, 300, 400, 500, 600}, func(w int) string {
 				return map[int]string{
 					100: locales.SetWeightThin(), 200: locales.SetWeightExtraLight(),
 					300: locales.SetWeightLight(), 400: locales.SetWeightRegular(),
@@ -1005,10 +1006,10 @@ func (a *App) terminalPage(c *ui.Context, pal *theme.Palette) {
 	themes := append([]string{"hyla"}, terminal.GhosttyThemes()...)
 	settingsGroup(c, pal, locales.SetColors(), locales.SetColorsDetail(), func() {
 		settingRow(c, pal, locales.SetLightWindows(), "", func() {
-			a.searchPopup(c, "light", s.LightTheme, themes, 240, nil, pal, func(v string) { a.set.LightTheme = v })
+			controls.SearchPopup(c, &a.ss.menus, "light", s.LightTheme, themes, 240, nil, pal, func(v string) { a.set.LightTheme = v })
 		})
 		settingRow(c, pal, locales.SetDarkWindows(), "", func() {
-			a.searchPopup(c, "dark", s.DarkTheme, themes, 240, nil, pal, func(v string) { a.set.DarkTheme = v })
+			controls.SearchPopup(c, &a.ss.menus, "dark", s.DarkTheme, themes, 240, nil, pal, func(v string) { a.set.DarkTheme = v })
 		})
 		settingRow(c, pal, locales.SetDimUnfocused(), locales.SetDimUnfocusedDetail(), func() {
 			style.Toggle(c.Key("dim-unfocused"), &s.DimUnfocused, pal)
@@ -1018,7 +1019,7 @@ func (a *App) terminalPage(c *ui.Context, pal *theme.Palette) {
 	settingsGroup(c, pal, locales.SetPaneGlass(), "", func() {
 		settingRow(c, pal, locales.SetPaneOpacity(), locales.SetPaneOpacityDetail(), func() {
 			v := float64(s.PaneOpacity)
-			slider(c, "pane-opacity", &v, 0, 1, 160, pal).OnChange(func() {
+			controls.Slider(c, "pane-opacity", &v, 0, 1, 160, pal).OnChange(func() {
 				s.PaneOpacity = float32(int(v*100+0.5)) / 100
 			})
 			ui.Textf(c, "%.0f%%", s.PaneOpacity*100).FontSize(12.5).TextColor(pal.TextMuted).Width(40).FontFeatures("tnum")
@@ -1027,7 +1028,7 @@ func (a *App) terminalPage(c *ui.Context, pal *theme.Palette) {
 			style.Toggle(c.Key("pane-blur"), &s.PaneBlur, pal)
 		})
 		settingRow(c, pal, locales.SetPaneMaterial(), locales.SetPaneMaterialDetail(), func() {
-			popup(c, "pane-material", &s.PaneMaterial, []string{"glass", "plastic", "glass-clear"}, materialName, 200, pal)
+			controls.Popup(c, "pane-material", &s.PaneMaterial, []string{"glass", "plastic", "glass-clear"}, materialName, 200, pal)
 		})
 	})
 	settingsGroup(c, pal, locales.SetCursor(), "", func() {
@@ -1044,7 +1045,7 @@ func (a *App) terminalPage(c *ui.Context, pal *theme.Palette) {
 			style.Toggle(c.Key("cos"), &s.CopyOnSelect, pal)
 		})
 		settingRow(c, pal, locales.SetRightClick(), "", func() {
-			popup(c, "rc", &s.RightClick, []string{"menu", "paste", "copyOrPaste"}, func(id string) string {
+			controls.Popup(c, "rc", &s.RightClick, []string{"menu", "paste", "copyOrPaste"}, func(id string) string {
 				return map[string]string{"menu": locales.SetRightClickMenu(), "paste": locales.SetRightClickPaste(), "copyOrPaste": locales.SetRightClickCopyOrPaste()}[id]
 			}, 170, pal)
 		})
@@ -1060,7 +1061,7 @@ func (a *App) terminalPage(c *ui.Context, pal *theme.Palette) {
 				rows = append(rows, s.ScrollDiscrete)
 				slices.Sort(rows)
 			}
-			popup(c, "wheel", &s.ScrollDiscrete, rows, func(n float32) string {
+			controls.Popup(c, "wheel", &s.ScrollDiscrete, rows, func(n float32) string {
 				if n == float32(int(n)) {
 					return locales.SetScrollRows(int(n))
 				}
@@ -1069,7 +1070,7 @@ func (a *App) terminalPage(c *ui.Context, pal *theme.Palette) {
 		})
 		settingRow(c, pal, locales.SetTrackpadScroll(), locales.SetTrackpadScrollDetail(), func() {
 			v := float64(s.ScrollPrecision)
-			slider(c, "trackpad", &v, 0.25, 3, 160, pal).OnChange(func() { a.set.ScrollPrecision = float32(int(v*20+0.5)) / 20 })
+			controls.Slider(c, "trackpad", &v, 0.25, 3, 160, pal).OnChange(func() { a.set.ScrollPrecision = float32(int(v*20+0.5)) / 20 })
 			ui.Textf(c, "%.2f×", s.ScrollPrecision).FontSize(12.5).TextColor(pal.TextMuted).Width(40).FontFeatures("tnum")
 		})
 	})
@@ -1130,7 +1131,7 @@ func (a *App) fontFallbackField(c *ui.Context, pal *theme.Palette) {
 		label = locales.SetFallbackAddMore()
 	}
 	ui.Row(c).Padding(8, 0).AlignItems(ui.Center).Children(func() {
-		a.searchPopup(c, "fallback", label, fallbackOptions(), 240, locales.SetUseFont, pal, func(v string) {
+		controls.SearchPopup(c, &a.ss.menus, "fallback", label, fallbackOptions(), 240, locales.SetUseFont, pal, func(v string) {
 			a.addFallback(v, -1)
 		})
 	})
@@ -1189,7 +1190,7 @@ func (a *App) fontFeaturesField(c *ui.Context, pal *theme.Palette) {
 	if !a.ss.featuresEditing {
 		a.ss.featuresDraft = strings.Join(a.set.FontFeatures, ", ")
 	}
-	in := textField(c, "features", &a.ss.featuresDraft, "ss01, cv05=2, -calt", 200, pal).Font("monospace")
+	in := controls.TextField(c, "features", &a.ss.featuresDraft, "ss01, cv05=2, -calt", 200, pal).Font("monospace")
 	a.ss.featuresEditing = in.Focused()
 	_, err := settings.ParseFontFeatures(a.ss.featuresDraft)
 	if err != nil {
@@ -1218,7 +1219,7 @@ func (a *App) shellPage(c *ui.Context, pal *theme.Palette) {
 			if !a.ss.shellEditing {
 				a.ss.shellDraft = s.Shell
 			}
-			in := textField(c, "shell", &a.ss.shellDraft, proto.ShortDir(login), 220, pal)
+			in := controls.TextField(c, "shell", &a.ss.shellDraft, proto.ShortDir(login), 220, pal)
 			a.ss.shellEditing = in.Focused()
 			// Kept as it is submitted, or as the field loses the focus.
 			in.OnSubmit(func() { a.set.Shell = strings.TrimSpace(a.ss.shellDraft) })
@@ -1231,7 +1232,7 @@ func (a *App) shellPage(c *ui.Context, pal *theme.Palette) {
 			if !slices.Contains(sizes, s.Scrollback) {
 				sizes = append(sizes, s.Scrollback)
 			}
-			popup(c, "sb", &s.Scrollback, sizes, func(mb int) string {
+			controls.Popup(c, "sb", &s.Scrollback, sizes, func(mb int) string {
 				if mb == 0 {
 					return locales.CommonNone()
 				}
@@ -1258,7 +1259,7 @@ func (a *App) shellPage(c *ui.Context, pal *theme.Palette) {
 					a.ss.envDraft = ""
 				}
 			}
-			textField(c, "env-new", &a.ss.envDraft, "NAME=value", 0, pal).Font("monospace").OnSubmit(addEnv)
+			controls.TextField(c, "env-new", &a.ss.envDraft, "NAME=value", 0, pal).Font("monospace").OnSubmit(addEnv)
 			if style.FieldButton(c, "env-add", locales.CommonAdd(), false, pal) {
 				addEnv()
 			}
@@ -1434,7 +1435,7 @@ func (a *App) toastIn(c *ui.Context, msg string) { c.Toast(msg) }
 
 func (a *App) keyboardPage(c *ui.Context, pal *theme.Palette) {
 	ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
-		textField(c, "kb-search", &a.ss.filter, locales.SetKeyboardSearch(), 0, pal)
+		controls.TextField(c, "kb-search", &a.ss.filter, locales.SetKeyboardSearch(), 0, pal)
 		if len(a.set.Shortcuts) > 0 && style.Button(c, "kb-reset", locales.SetRestoreDefaults(), "", false, pal) {
 			a.set.Shortcuts = nil
 			a.ss.notice = ""

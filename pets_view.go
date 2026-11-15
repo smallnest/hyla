@@ -10,6 +10,7 @@ import (
 	"hyla/internal/settings"
 	"hyla/internal/ui/theme"
 
+	"hyla/internal/ui/controls"
 	"hyla/locales"
 )
 
@@ -73,7 +74,7 @@ func (a *App) petChooser(c *ui.Context, pal *theme.Palette) {
 		}
 	}
 	t := a.set.PetSet
-	popup(c, "pet-set", &t, names, func(n string) string {
+	controls.Popup(c, "pet-set", &t, names, func(n string) string {
 		if s, ok := titles[n]; ok {
 			return s
 		}

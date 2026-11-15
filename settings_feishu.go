@@ -12,6 +12,7 @@ import (
 	"hyla/internal/feishu"
 	"hyla/internal/proto"
 	"hyla/internal/settings"
+	"hyla/internal/ui/controls"
 	"hyla/internal/ui/style"
 	"hyla/internal/ui/theme"
 	"hyla/locales"
@@ -144,7 +145,7 @@ func (a *App) feishuGroup(c *ui.Context, pal *theme.Palette) {
 	}
 	settingsGroup(c, pal, locales.SetFeishu(), note, func() {
 		settingRow(c, pal, locales.SetFeishuAppId(), a.feishuStatusLine(d), func() {
-			textField(c, "feishu-app", &d.app, "cli_…", 200, pal)
+			controls.TextField(c, "feishu-app", &d.app, "cli_…", 200, pal)
 			if d.busy {
 				ui.Text(c, locales.SetFeishuConnecting()).FontSize(12.5).TextColor(pal.TextMuted).SingleLine()
 			} else if style.Button(c, "feishu-connect", locales.SetFeishuCheck(), "", true, pal) {
@@ -157,7 +158,7 @@ func (a *App) feishuGroup(c *ui.Context, pal *theme.Palette) {
 	})
 	settingsGroup(c, pal, "", "", func() {
 		settingRow(c, pal, locales.SetFeishuSecret(), locales.SetFeishuSecretDetail(), func() {
-			secret := textField(c, "feishu-secret", &d.secret, locales.SetFeishuSecretPlaceholder(), 200, pal)
+			secret := controls.TextField(c, "feishu-secret", &d.secret, locales.SetFeishuSecretPlaceholder(), 200, pal)
 			if secret.Valid() {
 				secret.Password()
 			}
@@ -174,7 +175,7 @@ func (a *App) feishuGroup(c *ui.Context, pal *theme.Palette) {
 		}
 	})
 	a.feishuRow(c, pal, locales.SetFeishuAllow(), list(set.Allow, locales.SetFeishuOnlySetup()), func() {
-		textField(c, "feishu-allow", &d.allow, locales.SetFeishuAllowPlaceholder(), 200, pal).OnSubmit(func() { a.feishuRows(d) })
+		controls.TextField(c, "feishu-allow", &d.allow, locales.SetFeishuAllowPlaceholder(), 200, pal).OnSubmit(func() { a.feishuRows(d) })
 	})
 	a.feishuRunRow(c, pal)
 	dirDetail := proto.ShortDir(set.Dir)
@@ -186,7 +187,7 @@ func (a *App) feishuGroup(c *ui.Context, pal *theme.Palette) {
 		if !slices.Contains(agents, set.Agent) {
 			agents = append(agents, set.Agent)
 		}
-		popup(c, "feishu-agent", &a.set.Feishu.Agent, agents, func(agent string) string {
+		controls.Popup(c, "feishu-agent", &a.set.Feishu.Agent, agents, func(agent string) string {
 			if agent == "default" {
 				return locales.SetFeishuAgentDefault()
 			}
@@ -194,16 +195,16 @@ func (a *App) feishuGroup(c *ui.Context, pal *theme.Palette) {
 		}, 200, pal)
 	})
 	a.feishuRow(c, pal, locales.SetFeishuDir(), dirDetail, func() {
-		textField(c, "feishu-dir", &d.dir, locales.SetFeishuDirDefault(), 200, pal).OnSubmit(func() { a.feishuRows(d) })
+		controls.TextField(c, "feishu-dir", &d.dir, locales.SetFeishuDirDefault(), 200, pal).OnSubmit(func() { a.feishuRows(d) })
 	})
 	a.feishuRow(c, pal, locales.SetFeishuHost(), locales.SetFeishuHostDetail(), func() {
-		textField(c, "feishu-host", &d.hosts, locales.SetFeishuHostPlaceholder(), 200, pal).OnSubmit(func() { a.feishuRows(d) })
+		controls.TextField(c, "feishu-host", &d.hosts, locales.SetFeishuHostPlaceholder(), 200, pal).OnSubmit(func() { a.feishuRows(d) })
 	})
 	a.feishuRow(c, pal, locales.SetFeishuTimeout(), locales.SetFeishuTimeoutDetail(), func() {
-		textField(c, "feishu-timeout", &d.timeout, "30m", 90, pal).OnSubmit(func() { a.feishuRows(d) })
+		controls.TextField(c, "feishu-timeout", &d.timeout, "30m", 90, pal).OnSubmit(func() { a.feishuRows(d) })
 	})
 	a.feishuRow(c, pal, locales.SetFeishuStream(), locales.SetFeishuStreamDetail(), func() {
-		textField(c, "feishu-stream", &d.stream, "30m", 90, pal).OnSubmit(func() { a.feishuRows(d) })
+		controls.TextField(c, "feishu-stream", &d.stream, "30m", 90, pal).OnSubmit(func() { a.feishuRows(d) })
 	})
 }
 

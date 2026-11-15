@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"strings"
 	"time"
 
@@ -442,7 +443,7 @@ const pageOps = `async (a) => {
       if (pressed === "mixed") s.push("pressed=mixed");
       if (role === "link" && el.getAttribute("href")) s.push("url=" + quote(el.getAttribute("href"), 120));
       if (el.tagName === "SELECT" && el.selectedOptions.length) s.push("value=" + quote(norm(el.selectedOptions[0].text), 80));
-      else if (field(el) && el.type !== "password" && !(role in { button: 1, checkbox: 1, radio: 1 }) && el.value) s.push("value=" + quote(el.value, 80));
+      else if (controls.Field(el) && el.type !== "password" && !(role in { button: 1, checkbox: 1, radio: 1 }) && el.value) s.push("value=" + quote(el.value, 80));
       return s;
     };
     const skip = new Set(["SCRIPT", "STYLE", "TEMPLATE", "NOSCRIPT", "HEAD", "DATALIST"]);
@@ -500,7 +501,7 @@ const pageOps = `async (a) => {
       parts.push(...statesOf(el, role).map((s) => "[" + s + "]"), "[ref=" + refOf(el) + "]");
       lines.push(parts.join(" "));
       // A field shows its value, an image what it is named.
-      if (field(el) || role === "textbox" || role === "img") return;
+      if (controls.Field(el) || role === "textbox" || role === "img") return;
       if (el.tagName === "IFRAME") {
         try {
           if (el.contentDocument && el.contentDocument.body) walk(el.contentDocument.body, depth + 1, false);
@@ -548,7 +549,7 @@ const pageOps = `async (a) => {
       if (!o) throw new Error(what + " has no option " + JSON.stringify(a.text));
       el.value = o.value;
       fire(el, "input"); fire(el, "change");
-    } else if (field(el)) {
+    } else if (controls.Field(el)) {
       try { el.select(); } catch {}
       const typed = a.text === "" ? document.execCommand("delete") : document.execCommand("insertText", false, a.text);
       if (!typed || el.value !== a.text) {
@@ -575,7 +576,7 @@ const pageOps = `async (a) => {
         // it submits the form, or breaks the line, unless the page
         // prevents it. What it did is not done again.
         const form = el instanceof HTMLInputElement ? el.form : null;
-        const content = () => field(el) ? el.value : el.innerHTML;
+        const content = () => controls.Field(el) ? el.value : el.innerHTML;
         const before = content();
         let submitted = false;
         const mark = () => { submitted = true; };

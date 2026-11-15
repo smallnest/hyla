@@ -18,6 +18,7 @@ import (
 	"hyla/internal/settings"
 	"hyla/internal/ui/theme"
 
+	"hyla/internal/ui/controls"
 	"hyla/locales"
 )
 
@@ -388,7 +389,7 @@ func TestPopupButtons(t *testing.T) {
 			t.Fatalf("the weight menu did not open; texts %q", tt.Texts())
 		}
 		// The current item lies on the button.
-		if got, ok := tt.Find("Medium"); !ok || got.Y > r.Y+r.H+menuItemH || got.Y < r.Y-r.H {
+		if got, ok := tt.Find("Medium"); !ok || got.Y > r.Y+r.H+controls.MenuItemH || got.Y < r.Y-r.H {
 			t.Errorf("Medium at %v, the button at %v: the menu is not over it", got, r)
 		}
 		shot(t, tt, "popup-open-"+name)
@@ -414,7 +415,7 @@ func TestPopupButtons(t *testing.T) {
 		if a.set.LightTheme != "Catppuccin Mocha" {
 			t.Errorf("light theme %q, want Catppuccin Mocha", a.set.LightTheme)
 		}
-		if a.ss.menus["light"].open {
+		if a.ss.menus["light"].Open {
 			t.Error("the theme menu stayed open")
 		}
 
@@ -475,7 +476,7 @@ func TestPopupMenuStaysInWindow(t *testing.T) {
 		at, _ := tt.Find("12 pt")
 		if h == 900 {
 			// Room enough: 15 pt lies on the button, three items under 12 pt.
-			if d := r.Y - (at.Y + 3*menuItemH); d < -4 || d > 4 {
+			if d := r.Y - (at.Y + 3*controls.MenuItemH); d < -4 || d > 4 {
 				t.Errorf("h %d: 12 pt at %v, the button at %v: 15 pt is not on the button", h, at, r)
 			}
 		}
@@ -576,7 +577,7 @@ func TestSearchMenuOneHighlight(t *testing.T) {
 		}
 		// On the line between f and the item above it, which both rows
 		// take for theirs.
-		tt.Move(r.X+r.W/2, r.Y-(menuItemH-r.H)/2)
+		tt.Move(r.X+r.W/2, r.Y-(controls.MenuItemH-r.H)/2)
 		for range 3 {
 			tt.Frame()
 		}
@@ -616,7 +617,7 @@ func TestSearchMenuIsModal(t *testing.T) {
 		tt.Frame()
 		tt.Advance(time.Second)
 		tt.Frame()
-		if !a.ss.menus["font"].open {
+		if !a.ss.menus["font"].Open {
 			t.Fatal("the font menu did not open")
 		}
 	}
@@ -626,7 +627,7 @@ func TestSearchMenuIsModal(t *testing.T) {
 	if y := a.ss.scrolls["terminal"].Y; y != 0 {
 		t.Errorf("the page scrolled %g under the menu", y)
 	}
-	if !a.ss.menus["font"].open {
+	if !a.ss.menus["font"].Open {
 		t.Error("the wheel closed the menu")
 	}
 	// The menu's own list still scrolls.
@@ -640,7 +641,7 @@ func TestSearchMenuIsModal(t *testing.T) {
 	r, _ := tt.Find("General")
 	tt.ClickAt(r.X+r.W/2, r.Y+r.H/2)
 	tt.Frame()
-	if a.ss.menus["font"].open {
+	if a.ss.menus["font"].Open {
 		t.Error("a press outside left the menu open")
 	}
 	if a.ss.page != "terminal" {

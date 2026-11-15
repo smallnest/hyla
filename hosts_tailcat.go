@@ -15,6 +15,8 @@ import (
 	"hyla/internal/settings"
 	"hyla/internal/ui/theme"
 
+	"hyla/internal/ui/controls"
+	"hyla/internal/ui/glyph"
 	"hyla/internal/ui/style"
 	"hyla/locales"
 )
@@ -61,7 +63,7 @@ func (a *App) tailcatGroup(c *ui.Context, pal *theme.Palette) {
 		// so is this machine's listener.
 		ui.Column(c).Gap(6).Children(func() {
 			ui.Text(c, locales.SetTailcatRelay()).FontSize(13.5).TextColor(pal.Text)
-			if in := textField(c, "tailcat-relay", &d.relay, remote.DefaultDERPMapURL, 0, pal); in.Submitted() {
+			if in := controls.TextField(c, "tailcat-relay", &d.relay, remote.DefaultDERPMapURL, 0, pal); in.Submitted() {
 				d.save(a, "tailcat-relay")
 			}
 		})
@@ -147,7 +149,7 @@ func (a *App) tailcatListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) 
 					ui.Text(c, d).FontSize(12).TextColor(pal.TextMuted).LineHeight(1.35)
 				}
 			})
-			if in := textField(c, "tailcat-listen-port", &d.listenPort, settings.TailcatListenPortDefault(), 70, pal); in.Submitted() {
+			if in := controls.TextField(c, "tailcat-listen-port", &d.listenPort, settings.TailcatListenPortDefault(), 70, pal); in.Submitted() {
 				d.save(a, "tailcat-listen-port")
 			}
 		})
@@ -178,7 +180,7 @@ func (a *App) tailcatListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) 
 			}
 			icon, label := copyIcon, locales.HostCopyAddress()
 			if time.Since(d.copied) < 1500*time.Millisecond {
-				icon, label = checkIcon, locales.ToastCopied()
+				icon, label = glyph.Of("lucide-check"), locales.ToastCopied()
 			}
 			iconButton(c, "copy-tailcat", icon, label, pal, func() {
 				c.WriteClipboard(code)
@@ -328,7 +330,7 @@ func (a *App) tcpListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) {
 					ui.Text(c, d).FontSize(12).TextColor(pal.TextMuted).LineHeight(1.35)
 				}
 			})
-			if in := textField(c, "tcp-addr", &d.tcpAddr, ":"+remote.PocketPort, 140, pal).Font("monospace"); in.Submitted() {
+			if in := controls.TextField(c, "tcp-addr", &d.tcpAddr, ":"+remote.PocketPort, 140, pal).Font("monospace"); in.Submitted() {
 				d.save(a, "tcp-addr")
 			}
 		})
@@ -344,7 +346,7 @@ func (a *App) tcpListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) {
 			ui.Row(c).Grow(1)
 			icon, label := copyIcon, locales.HostCopyAddress()
 			if time.Since(d.copied) < 1500*time.Millisecond {
-				icon, label = checkIcon, locales.ToastCopied()
+				icon, label = glyph.Of("lucide-check"), locales.ToastCopied()
 			}
 			iconButton(c, "copy-token", icon, label, pal, func() {
 				c.WriteClipboard(d.tcpToken)

@@ -15,6 +15,7 @@ import (
 	"hyla/internal/settings"
 	"hyla/internal/ui/theme"
 
+	"hyla/internal/ui/controls"
 	"hyla/internal/ui/style"
 	"hyla/locales"
 )
@@ -277,13 +278,13 @@ func (a *App) tailcatHosts(c *ui.Context, pal *theme.Palette) {
 			*d = tcHostDraft{}
 		}
 		ui.Row(c).Padding(2, 0, 10, 0).Gap(8).AlignItems(ui.Center).Children(func() {
-			if in := textField(c, "tc-code", &d.code, locales.SetTailcatHostCode(), 190, pal).Font("monospace"); in.Submitted() {
+			if in := controls.TextField(c, "tc-code", &d.code, locales.SetTailcatHostCode(), 190, pal).Font("monospace"); in.Submitted() {
 				add()
 			}
-			if in := textField(c, "tc-name", &d.name, locales.SetTailcatHostName(), 100, pal); in.Submitted() {
+			if in := controls.TextField(c, "tc-name", &d.name, locales.SetTailcatHostName(), 100, pal); in.Submitted() {
 				add()
 			}
-			if in := textField(c, "tc-port", &d.port, remote.DefaultPort, 70, pal); in.Submitted() {
+			if in := controls.TextField(c, "tc-port", &d.port, remote.DefaultPort, 70, pal); in.Submitted() {
 				add()
 			}
 			if style.FieldButton(c, "tc-add", locales.CommonAdd(), true, pal) {
@@ -350,11 +351,11 @@ func (a *App) remoteHosts(c *ui.Context, pal *theme.Palette) {
 			*d = hostDraft{}
 		}
 		ui.Row(c).Padding(2, 0, 10, 0).Gap(8).AlignItems(ui.Center).Children(func() {
-			textField(c, "remote-addr", &d.addr, locales.SetRemoteHostAddress(), 170, pal).Font("monospace").OnSubmit(add)
-			if in := textField(c, "remote-name", &d.name, locales.SetHostNamePlaceholder(""), 110, pal); in.Submitted() {
+			controls.TextField(c, "remote-addr", &d.addr, locales.SetRemoteHostAddress(), 170, pal).Font("monospace").OnSubmit(add)
+			if in := controls.TextField(c, "remote-name", &d.name, locales.SetHostNamePlaceholder(""), 110, pal); in.Submitted() {
 				add()
 			}
-			if in := textField(c, "remote-token", &d.token, locales.SetRemoteHostPassword(), 150, pal); in.Submitted() {
+			if in := controls.TextField(c, "remote-token", &d.token, locales.SetRemoteHostPassword(), 150, pal); in.Submitted() {
 				add()
 			}
 			if style.FieldButton(c, "remote-add", locales.CommonAdd(), true, pal) {

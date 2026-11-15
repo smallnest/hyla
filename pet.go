@@ -538,3 +538,11 @@ func petOffsetAt(main mygo.Rectangle, left float32) float32 {
 	center := left + petW/2
 	return min(max((center-float32(main.X))/float32(main.Width), 0), 1)
 }
+
+// abs is a float's magnitude.
+func abs(v float32) float32 {
+	if v < 0 {
+		return -v
+	}
+	return v
+}

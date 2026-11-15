@@ -16,6 +16,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/ui/theme"
 
+	"hyla/internal/ui/glyph"
 	"hyla/internal/ui/style"
 	"hyla/locales"
 )
@@ -934,7 +935,7 @@ func (a *App) diffOptions(c *ui.Context, pal *theme.Palette, s *proto.Session, s
 				h.Revert()
 				a.writeBack(sf)
 			}
-			if hunkButton(c, "keep", checkIcon, locales.ChangesKeep(), locales.ChangesKeepTip(), pal) {
+			if hunkButton(c, "keep", glyph.Of("lucide-check"), locales.ChangesKeep(), locales.ChangesKeepTip(), pal) {
 				h.Keep()
 			}
 		})

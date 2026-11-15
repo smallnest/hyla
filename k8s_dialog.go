@@ -14,6 +14,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/ui/theme"
 
+	"hyla/internal/ui/controls"
 	"hyla/internal/ui/marks"
 	"hyla/internal/ui/style"
 	"hyla/locales"
@@ -63,7 +64,7 @@ func (a *App) k8sView(c *ui.Context, pal *theme.Palette) {
 		ui.Text(c, locales.ActionAddK8sPod()).FontSize(15).FontWeight(650).TextColor(pal.Text)
 		ui.Text(c, locales.K8sPodDetail()).FontSize(13).TextColor(pal.TextMuted).LineHeight(1.4)
 		ui.Row(c).Margin(8, 0, 1, 0).Children(func() {
-			in := textField(c, "k8s-cmd", &d.cmd, locales.K8sPodCommandPlaceholder(), 0, pal).Font("monospace")
+			in := controls.TextField(c, "k8s-cmd", &d.cmd, locales.K8sPodCommandPlaceholder(), 0, pal).Font("monospace")
 			in.AutoFocus()
 			if in.Submitted() {
 				connect = true

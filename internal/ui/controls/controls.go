@@ -1,4 +1,4 @@
-package main
+package controls
 
 import (
 	"slices"
@@ -27,17 +27,17 @@ var (
 )
 
 const (
-	popupH = 28 // a pop-up button's, its disc 22
+	PopupH = 28 // a pop-up button's, its disc 22
 	// A menu's padding, its items' height, and where their labels start,
 	// past the check.
-	menuPad, menuItemH, menuTextX = 5, 24, 22
+	MenuPad, MenuItemH, MenuTextX = 5, 24, 22
 )
 
 // popupFace draws a pop-up button on trig: its text, and the chevrons in
 // a disc, which the button's own tint takes the place of as the pointer
 // comes, deepening while its menu is open.
-func popupFace(c *ui.Context, trig ui.Element, text string, open bool, pal *theme.Palette) {
-	trig.Height(popupH).Padding(0, 3, 0, 10).Gap(6).Radius(popupH / 2).AlignItems(ui.Center).Cursor(ui.CursorDefault)
+func PopupFace(c *ui.Context, trig ui.Element, text string, open bool, pal *theme.Palette) {
+	trig.Height(PopupH).Padding(0, 3, 0, 10).Gap(6).Radius(PopupH / 2).AlignItems(ui.Center).Cursor(ui.CursorDefault)
 	tint := pal.Text.Alpha(0.065)
 	if pal.Dark {
 		tint = ui.RGBA(255, 255, 255, 0.09)
@@ -64,21 +64,21 @@ func popupFace(c *ui.Context, trig ui.Element, text string, open bool, pal *them
 // popup chooses *value among options, labeled by label, as a pop-up
 // button no wider than width. It binds *value itself: the choice lands
 // in it.
-func popup[T comparable](c *ui.Context, key string, value *T, options []T, label func(T) string, width float32, pal *theme.Palette) ui.Element {
+func Popup[T comparable](c *ui.Context, key string, value *T, options []T, label func(T) string, width float32, pal *theme.Palette) ui.Element {
 	sel := ui.SelectBase(c.Key(key), value)
 	trig := sel.Trigger.MaxWidth(width)
 	open := sel.Open()
-	popupFace(c, trig, label(*value), open, pal)
+	PopupFace(c, trig, label(*value), open, pal)
 	var spot ui.Element
 	maxH := float32(0)
 	if open {
-		spot, maxH = menuSpot(c, key, trig.Bounds(), max(slices.Index(options, *value), 0), len(options))
+		spot, maxH = MenuSpot(c, key, trig.Bounds(), max(slices.Index(options, *value), 0), len(options))
 	}
 	sel.Popup(func(panel ui.Element) {
-		menuPanel(panel, pal).AttachTo(spot, ui.AnchorTopLeft, ui.AnchorTopLeft)
+		MenuPanel(panel, pal).AttachTo(spot, ui.AnchorTopLeft, ui.AnchorTopLeft)
 		menuWidths[key] = panel.Bounds().W
 		over := panel.Hovered()
-		ui.Scroll(c.Key("items")).MaxHeight(maxH - 2*menuPad).Children(func() {
+		ui.Scroll(c.Key("items")).MaxHeight(maxH - 2*MenuPad).Children(func() {
 			for _, o := range options {
 				item := sel.Item(o)
 				// As macOS's: the item under the pointer, or the one the
@@ -86,7 +86,7 @@ func popup[T comparable](c *ui.Context, key string, value *T, options []T, label
 				// as the current item, highlighted as the menu opens, is
 				// then.
 				hi := item.Highlighted() && (item.Hovered() || !over && o != *value)
-				menuRow(c, item, label(o), o == *value, hi, pal)
+				MenuRow(c, item, label(o), o == *value, hi, pal)
 			}
 		})
 	})
@@ -107,14 +107,14 @@ var menuWidths = map[string]float32{}
 // moves what would leave the window to the other side of its target
 // before Top and Left move it, which threw a menu under the bottom of
 // the window above the button, and further up.
-func menuSpot(c *ui.Context, key string, b ui.Rect, at, n int) (ui.Element, float32) {
+func MenuSpot(c *ui.Context, key string, b ui.Rect, at, n int) (ui.Element, float32) {
 	const edge = 8 // kept from the window's edges
 	w, h := c.Size()
 	maxH := h - 2*edge
-	menuH := min(2*menuPad+float32(n)*menuItemH, maxH)
-	y := b.Y - (menuPad + float32(at)*menuItemH + (menuItemH-popupH)/2)
+	menuH := min(2*MenuPad+float32(n)*MenuItemH, maxH)
+	y := b.Y - (MenuPad + float32(at)*MenuItemH + (MenuItemH-PopupH)/2)
 	y = max(edge, min(y, h-edge-menuH))
-	x := b.X - (menuPad + menuTextX - 10)
+	x := b.X - (MenuPad + MenuTextX - 10)
 	if mw := max(menuWidths[key], b.W); x+mw > w-edge {
 		x = w - edge - mw
 	}
@@ -127,18 +127,18 @@ func menuSpot(c *ui.Context, key string, b ui.Rect, at, n int) (ui.Element, floa
 }
 
 // menuPanel styles a menu: rounded, lifted off the window.
-func menuPanel(panel ui.Element, pal *theme.Palette) ui.Element {
-	return style.Menu(panel.Padding(menuPad).Radius(13), pal)
+func MenuPanel(panel ui.Element, pal *theme.Palette) ui.Element {
+	return style.Menu(panel.Padding(MenuPad).Radius(13), pal)
 }
 
 // menuItem styles an item of a menu: a check by the current one, and the
 // accent behind the one the pointer or the arrows are on.
-func menuItem(c *ui.Context, item ui.Element, label string, current bool, pal *theme.Palette) {
-	menuRow(c, item, label, current, item.Highlighted(), pal)
+func MenuItem(c *ui.Context, item ui.Element, label string, current bool, pal *theme.Palette) {
+	MenuRow(c, item, label, current, item.Highlighted(), pal)
 }
 
-func menuRow(c *ui.Context, item ui.Element, label string, current, highlighted bool, pal *theme.Palette) {
-	item.Height(menuItemH).Padding(0, 12, 0, 6).Gap(5).Radius(7).AlignItems(ui.Center)
+func MenuRow(c *ui.Context, item ui.Element, label string, current, highlighted bool, pal *theme.Palette) {
+	item.Height(MenuItemH).Padding(0, 12, 0, 6).Gap(5).Radius(7).AlignItems(ui.Center)
 	fg := pal.Text
 	if highlighted {
 		item.Background(pal.Accent)
@@ -153,15 +153,15 @@ func menuRow(c *ui.Context, item ui.Element, label string, current, highlighted 
 	})
 }
 
-// searchMenu is a search menu's state: open, what is typed, and the item
+// SearchMenu is a search menu's state: open, what is typed, and the item
 // the arrows or the pointer are on.
-type searchMenu struct {
-	open    bool
-	query   string
-	hi      int
-	hovered string  // the item the pointer came to last
-	reveal  bool    // the highlighted item scrolls into view, once
-	at      ui.Rect // the button's bounds as the menu opened
+type SearchMenu struct {
+	Open    bool
+	Query   string
+	Hi      int
+	Hovered string  // the item the pointer came to last
+	Reveal  bool    // the highlighted item scrolls into view, once
+	At      ui.Rect // the button's bounds as the menu opened
 }
 
 // searchPopup chooses value among options as a pop-up button, whose menu
@@ -169,50 +169,50 @@ type searchMenu struct {
 // through: typing filters them, the arrows move, Return chooses and
 // Escape closes. With custom set, a query no option is offers itself, as
 // custom labels it: "Use “%s”". choose gets the choice.
-func (a *App) searchPopup(c *ui.Context, key, value string, options []string, width float32, custom func(string) string, pal *theme.Palette, choose func(string)) {
-	if a.ss.menus == nil {
-		a.ss.menus = map[string]*searchMenu{}
+func SearchPopup(c *ui.Context, menus *map[string]*SearchMenu, key, value string, options []string, width float32, custom func(string) string, pal *theme.Palette, choose func(string)) {
+	if *menus == nil {
+		*menus = map[string]*SearchMenu{}
 	}
-	m := a.ss.menus[key]
+	m := (*menus)[key]
 	if m == nil {
-		m = &searchMenu{}
-		a.ss.menus[key] = m
+		m = &SearchMenu{}
+		(*menus)[key] = m
 	}
 	trig := ui.ButtonBase(c.Key(key)).MaxWidth(width).Label(value)
 	if trig.Clicked() {
-		m.open = !m.open
-		m.query, m.hovered, m.reveal = "", "", true
-		m.hi = max(slices.Index(options, value), 0)
-		m.at = trig.Bounds()
+		m.Open = !m.Open
+		m.Query, m.Hovered, m.Reveal = "", "", true
+		m.Hi = max(slices.Index(options, value), 0)
+		m.At = trig.Bounds()
 	}
 	// The window resizing closes the menu, which would follow the button
 	// off where it opened.
-	if b := trig.Bounds(); m.open && (abs(b.X-m.at.X) > 0.5 || abs(b.Y-m.at.Y) > 0.5) {
-		m.open = false
+	if b := trig.Bounds(); m.Open && (abs(b.X-m.At.X) > 0.5 || abs(b.Y-m.At.Y) > 0.5) {
+		m.Open = false
 	}
-	if m.open {
+	if m.Open {
 		// As a menu of macOS's, the menu holds the window while it is
 		// open: a backdrop under it takes the wheel, so the page does not
 		// scroll, and a press, which closes the menu and goes no further.
 		ui.Overlay(c, func() {
 			back := ui.ButtonBase(c.Key(key + "-back")).Absolute().Left(0).Top(0).Right(0).Bottom(0).Label(locales.CloseTheMenu())
 			if back.Clicked() {
-				m.open = false
+				m.Open = false
 			}
 		})
 	}
-	popupFace(c, trig, value, m.open, pal)
+	PopupFace(c, trig, value, m.Open, pal)
 	// The list takes what the window has below the button, or above it,
 	// where the menu goes when there is more room there, less the search
 	// field and the menu's padding.
-	const edge, gap, inset = 8, 4, 3 // the window's edge kept; the gap to the button; the field's inset past menuPad
+	const edge, gap, inset = 8, 4, 3 // the window's edge kept; the gap to the button; the field's inset past MenuPad
 	b := trig.Bounds()
 	_, h := c.Size()
 	room := max(h-(b.Y+b.H)-gap-edge, b.Y-gap-edge)
-	listH := min(300, room-(2*menuPad+2*inset+style.ControlH+2+menuPad))
-	ui.PopoverBase(c.Key(key+"-menu"), trig, &m.open, func(panel ui.Element) {
-		menuPanel(panel, pal).Margin(gap, 0, 0, 0).Width(max(width, 260))
-		q := strings.ToLower(strings.TrimSpace(m.query))
+	listH := min(300, room-(2*MenuPad+2*inset+style.ControlH+2+MenuPad))
+	ui.PopoverBase(c.Key(key+"-menu"), trig, &m.Open, func(panel ui.Element) {
+		MenuPanel(panel, pal).Margin(gap, 0, 0, 0).Width(max(width, 260))
+		q := strings.ToLower(strings.TrimSpace(m.Query))
 		var shown []string
 		exact := false
 		for _, o := range options {
@@ -223,13 +223,13 @@ func (a *App) searchPopup(c *ui.Context, key, value string, options []string, wi
 		}
 		labels := slices.Clone(shown)
 		if custom != nil && q != "" && !exact {
-			shown = append(shown, strings.TrimSpace(m.query))
-			labels = append(labels, custom(strings.TrimSpace(m.query)))
+			shown = append(shown, strings.TrimSpace(m.Query))
+			labels = append(labels, custom(strings.TrimSpace(m.Query)))
 		}
-		m.hi = min(max(m.hi, 0), max(len(shown)-1, 0))
+		m.Hi = min(max(m.Hi, 0), max(len(shown)-1, 0))
 		pick := func(i int) {
 			if i >= 0 && i < len(shown) {
-				m.open = false
+				m.Open = false
 				if shown[i] != value {
 					choose(shown[i])
 				}
@@ -238,51 +238,51 @@ func (a *App) searchPopup(c *ui.Context, key, value string, options []string, wi
 		var in ui.Element
 		// Inset past the items, so that its focus glow keeps clear of
 		// the menu's edge.
-		frame := ui.Row(c.Key("search")).Margin(inset, inset, menuPad+inset, inset).Cursor(ui.CursorText)
+		frame := ui.Row(c.Key("search")).Margin(inset, inset, MenuPad+inset, inset).Cursor(ui.CursorText)
 		frame.Children(func() {
-			ui.Icon(c, searchIcon).Size(12, 12).TextColor(pal.TextFaint).Shrink(0)
-			in = ui.TextInputBase(c.Key("q"), &m.query).AutoFocus().Grow(1).MinWidth(0).AlignSelf(ui.Stretch).FontSize(13).
+			ui.Icon(c, glyph.Of("f7-search")).Size(12, 12).TextColor(pal.TextFaint).Shrink(0)
+			in = ui.TextInputBase(c.Key("q"), &m.Query).AutoFocus().Grow(1).MinWidth(0).AlignSelf(ui.Stretch).FontSize(13).
 				Placeholder(locales.CommonSearch()).Label(locales.CommonSearch())
 		})
-		field(c, frame, in.Focused(), pal)
-		in.OnChange(func() { m.hi, m.reveal = 0, true })
-		in.OnShortcut(0, ui.KeyDown, func() { m.hi, m.reveal = min(m.hi+1, len(shown)-1), true })
-		in.OnShortcut(0, ui.KeyUp, func() { m.hi, m.reveal = max(m.hi-1, 0), true })
-		in.OnSubmit(func() { pick(m.hi) })
+		Field(c, frame, in.Focused(), pal)
+		in.OnChange(func() { m.Hi, m.Reveal = 0, true })
+		in.OnShortcut(0, ui.KeyDown, func() { m.Hi, m.Reveal = min(m.Hi+1, len(shown)-1), true })
+		in.OnShortcut(0, ui.KeyUp, func() { m.Hi, m.Reveal = max(m.Hi-1, 0), true })
+		in.OnSubmit(func() { pick(m.Hi) })
 		if len(shown) == 0 {
 			ui.Text(c, locales.CommonNoResults()).FontSize(13).TextColor(pal.TextFaint).Padding(6, 12)
 			return
 		}
-		reveal := m.reveal
-		m.reveal = false
+		reveal := m.Reveal
+		m.Reveal = false
 		// The pointer coming to an item moves the highlight once the items
 		// are built, and the menu builds again: moved as a row learns it,
 		// the rows built before it would keep the old one lit too.
 		moved := -1
-		ui.Scroll(c.Key("items")).MaxHeight(max(listH, menuItemH)).Children(func() {
+		ui.Scroll(c.Key("items")).MaxHeight(max(listH, MenuItemH)).Children(func() {
 			for i, o := range shown {
 				row := ui.Row(c.Key(o)).Label(labels[i])
-				if row.Hovered() && m.hovered != o {
+				if row.Hovered() && m.Hovered != o {
 					moved = i
 				}
 				if row.Clicked() {
 					pick(i)
 				}
-				menuRow(c, row, labels[i], o == value, i == m.hi, pal)
-				if reveal && i == m.hi {
+				MenuRow(c, row, labels[i], o == value, i == m.Hi, pal)
+				if reveal && i == m.Hi {
 					row.ScrollIntoView()
 				}
 			}
 		})
 		if moved >= 0 {
-			m.hovered, m.hi = shown[moved], moved
+			m.Hovered, m.Hi = shown[moved], moved
 			c.After(0)
 		}
 	})
 }
 
 // field styles a text field's frame, around its input.
-func field(c *ui.Context, frame ui.Element, focused bool, pal *theme.Palette) ui.Element {
+func Field(c *ui.Context, frame ui.Element, focused bool, pal *theme.Palette) ui.Element {
 	frame.Height(style.ControlH+2).Padding(0, 8).Gap(6).Radius(7).AlignItems(ui.Center)
 	stroke := ui.RGBA(0, 0, 0, 0.13)
 	bg := ui.Hex("#ffffff")
@@ -290,7 +290,7 @@ func field(c *ui.Context, frame ui.Element, focused bool, pal *theme.Palette) ui
 		stroke, bg = ui.RGBA(255, 255, 255, 0.13), ui.RGBA(255, 255, 255, 0.06)
 	}
 	frame.Background(bg).InsetShadow(0, 0, 0, 1, stroke)
-	glow := frame.Animate("glow", b2f(focused), 120*time.Millisecond)
+	glow := frame.Animate("glow", style.B2F(focused), 120*time.Millisecond)
 	if glow > 0 {
 		frame.Shadow(0, 0, 0, 3.5*glow, pal.Accent.Alpha(0.32*glow)).InsetShadow(0, 0, 0, 1, pal.Accent.Alpha(0.75*glow))
 	}
@@ -299,7 +299,7 @@ func field(c *ui.Context, frame ui.Element, focused bool, pal *theme.Palette) ui
 
 // textField edits *value in a field, returning its input, for
 // Submitted, OnSubmit and Focused.
-func textField(c *ui.Context, key string, value *string, placeholder string, width float32, pal *theme.Palette) ui.Element {
+func TextField(c *ui.Context, key string, value *string, placeholder string, width float32, pal *theme.Palette) ui.Element {
 	var in ui.Element
 	frame := ui.Row(c.Key(key)).Cursor(ui.CursorText)
 	if width > 0 {
@@ -312,7 +312,7 @@ func textField(c *ui.Context, key string, value *string, placeholder string, wid
 		// anywhere in the field lands in it.
 		in = ui.TextInputBase(c.Key("in"), value).Grow(1).MinWidth(0).AlignSelf(ui.Stretch).Padding(0, 8).FontSize(13).Placeholder(placeholder).Label(placeholder)
 	})
-	field(c, frame, in.Focused(), pal).Padding(0)
+	Field(c, frame, in.Focused(), pal).Padding(0)
 	return in
 }
 
@@ -321,7 +321,7 @@ func textField(c *ui.Context, key string, value *string, placeholder string, wid
 // Held, the knob grows into a lens of glass that the track shows through,
 // as AppKit's does, and as MyGo's own slider draws it. The knob's half
 // width pads the track, so that the value spans the knob's travel.
-func slider(c *ui.Context, key string, value *float64, lo, hi float64, width float32, pal *theme.Palette) ui.Element {
+func Slider(c *ui.Context, key string, value *float64, lo, hi float64, width float32, pal *theme.Palette) ui.Element {
 	const knobW, knobH, trackH = 20, 16, 4
 	s := ui.SliderBase(c.Key(key), value, lo, hi).Width(width).Height(style.ControlH).Padding(0, knobW/2).FocusRing(false)
 	track := pal.Text.Alpha(0.14)
@@ -333,7 +333,7 @@ func slider(c *ui.Context, key string, value *float64, lo, hi float64, width flo
 		f = float32((*value - lo) / (hi - lo))
 	}
 	f = min(max(f, 0), 1)
-	held := s.Animate("held", b2f(s.Pressed()), 150*time.Millisecond)
+	held := s.Animate("held", style.B2F(s.Pressed()), 150*time.Millisecond)
 	accent, dark, focus := pal.Accent, pal.Dark, s.FocusVisible()
 	s.Draw(func(p *ui.Painter, r ui.Rect) {
 		x0, x1 := r.X+knobW/2, r.X+r.W-knobW/2
