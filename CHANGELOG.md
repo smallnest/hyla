@@ -4,6 +4,11 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.11.3
+
+- Antigravity's logo in the sidebar, and beside its plan in Magpie's card,
+  is now the coloured one: it was drawn in the window's text colour.
+
 ## 3.11.2
 
 - The Antigravity CLI, `agy`, was no agent Hyla knew, so its sessions wore
