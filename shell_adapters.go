@@ -35,3 +35,6 @@ func (a *App) EnsureWeb(p *proto.Pane) *webpane.Entry { return a.ensureWeb(p) }
 
 // TellPage tells a host's page where it went.
 func (a *App) TellPage(pane string, e *webpane.Entry) { webpane.TellPage(a, pane, e) }
+
+// EntryOf is the page of a pane, as a page's commands read it.
+func (a *App) EntryOf(pane string) *webpane.Entry { return a.Webs[pane] }

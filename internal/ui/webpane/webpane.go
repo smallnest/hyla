@@ -176,6 +176,20 @@ func (e *Entry) Load(text string) {
 	e.Loading = true
 }
 
+// Shell is what a page of a browser pane asks of the app, as the
+// commands a shell sends it drive it.
+type Shell interface {
+	App
+	// SessionOfPane is the session a pane belongs to: nil when none has it.
+	SessionOfPane(pane string) *proto.Session
+	// EntryOf is the page of a pane: nil when the pane has none.
+	EntryOf(pane string) *Entry
+	// TellPage tells hylad the page a browser pane shows.
+	TellPage(pane string, e *Entry)
+	// UpdateNow runs fn on the main thread.
+	UpdateNow(fn func())
+}
+
 // TellPage tells hylad the page a browser pane shows, which it keeps for
 // a restore, and the title that names the pane.
 func TellPage(a App, id string, e *Entry) {
@@ -510,7 +524,6 @@ func (e *Entry) NextLoad() <-chan error {
 	return ch
 }
 
-// loadEnded tells those waiting for the page's load that it ended.
 // LoadEnded tells those waiting for the page's load that it ended.
 func (e *Entry) LoadEnded(err error) {
 	for _, ch := range e.Loads {
