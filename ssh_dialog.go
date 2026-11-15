@@ -14,23 +14,13 @@ import (
 	"hyla/internal/ui/paints"
 	"hyla/internal/ui/theme"
 
-	"hyla/internal/ui/controls"
 	"hyla/internal/ui/marks"
 	"hyla/internal/ui/style"
 	"hyla/locales"
 
 	"hyla/internal/ui/glyph"
+	"hyla/internal/ui/sshdialog"
 )
-
-// sshAsk is the dialog that adds an SSH terminal to the sidebar: the
-// address the user types, as ssh takes it ("root@example.com:2222"), and
-// the name the SSH project gives the machine, the address's host while
-// the user types none.
-type sshAsk struct {
-	open       bool
-	addr, name string
-	err        string
-}
 
 // sshHost is a machine the sidebar's SSH project lists: the name the user
 // gave it, the address its ssh runs to, and the terminal it has open, if
@@ -44,7 +34,7 @@ type sshHost struct {
 // askSSHHost opens the dialog.
 func (a *App) askSSHHost() {
 	if a.SshAsk == nil {
-		a.SshAsk = &sshAsk{open: true}
+		a.SshAsk = &sshdialog.Ask{Open: true}
 	}
 }
 
@@ -52,57 +42,13 @@ func (a *App) askSSHHost() {
 // connects to it once the user says so.
 func (a *App) sshView(c *ui.Context, pal *theme.Palette) {
 	d := a.SshAsk
-	if d == nil {
-		return
-	}
-	connect := false
-	ui.DialogBase(c.Key("ssh"), &d.open, func(backdrop, panel ui.Element) {
-		backdrop.Background(pal.Overlay)
-		style.Floating(panel.Width(420).Padding(22).Gap(8).Radius(14).Background(pal.Popover), pal).Label(locales.ActionAddSSHHost())
-		ui.Text(c, locales.ActionAddSSHHost()).FontSize(15).FontWeight(650).TextColor(pal.Text)
-		ui.Text(c, locales.SshHostDetail()).FontSize(13).TextColor(pal.TextMuted).LineHeight(1.4)
-		ui.Row(c).Margin(8, 0, 1, 0).Children(func() {
-			in := controls.TextField(c, "ssh-addr", &d.addr, locales.SshHostAddressPlaceholder(), 0, pal).Font("monospace")
-			in.AutoFocus()
-			if in.Submitted() {
-				connect = true
-			}
-		})
-		ui.Row(c).Children(func() {
-			in := controls.TextField(c, "ssh-name", &d.name, locales.SetHostNamePlaceholder(sshDefaultName(d.addr)), 0, pal)
-			if in.Submitted() {
-				connect = true
-			}
-		})
-		if d.err != "" {
-			ui.Text(c, d.err).FontSize(12).TextColor(pal.Danger)
-		}
-		ui.Row(c).Gap(8).Justify(ui.End).Margin(14, 0, 0, 0).Children(func() {
-			if style.Button(c, "cancel", locales.CommonCancel(), "esc", false, pal) {
-				d.open = false
-			}
-			if style.Button(c, "ok", locales.CommonConnect(), "↩", true, pal) {
-				connect = true
-			}
-		})
-	})
-	if connect {
+	if sshdialog.View(c, pal, d) {
 		a.addSSHHost()
 	}
-	if !d.open {
+	if d != nil && !d.Open {
 		a.SshAsk = nil
 		a.focusTerminal()
 	}
-}
-
-// sshDefaultName is the name a machine takes while the user types none:
-// the address's host, as config names it.
-func sshDefaultName(addr string) string {
-	a, err := remote.ParseAddr(addr)
-	if err != nil || a.Host == "" {
-		return "devbox"
-	}
-	return a.Host
 }
 
 // sshProjectName is what the sidebar's SSH project is called, in the
@@ -126,45 +72,45 @@ func (a *App) addSSHHost() {
 	if d == nil {
 		return
 	}
-	text := strings.TrimSpace(d.addr)
+	text := strings.TrimSpace(d.Addr)
 	if text == "" {
-		d.err = locales.SetHostNeedsAddress()
+		d.Err = locales.SetHostNeedsAddress()
 		return
 	}
 	// The dialog is for SSH terminals: the other ways of reaching a
 	// machine, Hyla hosts among them, are Settings › Hyla Hosts, and say
 	// so for an address of another scheme before it is read.
 	if i := strings.Index(text, "://"); i > 0 && !strings.EqualFold(text[:i], "ssh") {
-		d.err = locales.SshHostOnly()
+		d.Err = locales.SshHostOnly()
 		return
 	}
 	addr, err := remote.ParseAddr(text)
 	if err != nil {
-		d.err = err.Error()
+		d.Err = err.Error()
 		return
 	}
 	if addr.Scheme != "ssh" {
-		d.err = locales.SshHostOnly()
+		d.Err = locales.SshHostOnly()
 		return
 	}
 	if a.local().Client == nil {
-		d.err = locales.SshNoService()
+		d.Err = locales.SshNoService()
 		return
 	}
-	name := strings.TrimSpace(d.name)
+	name := strings.TrimSpace(d.Name)
 	if name == "" {
-		name = sshDefaultName(addr.String())
+		name = sshdialog.DefaultName(addr.String())
 	}
 	// The address the project lists already: its terminal comes, rather
 	// than a second row for the same machine.
 	for i := range a.Prefs.SSHHosts {
 		if a.Prefs.SSHHosts[i].Addr == addr.String() {
-			d.open = false
+			d.Open = false
 			a.connectSSH(i)
 			return
 		}
 	}
-	d.open = false
+	d.Open = false
 	a.withSSHProject(func(p proto.Project) { a.addSSHHostTo(p, name, addr) })
 }
 

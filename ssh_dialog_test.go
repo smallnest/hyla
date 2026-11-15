@@ -15,6 +15,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/remote"
 
+	"hyla/internal/ui/sshdialog"
 	"hyla/locales"
 )
 
@@ -62,7 +63,7 @@ func TestAddSSHHostFromSidebar(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.SshAsk == nil || !a.SshAsk.open {
+	if a.SshAsk == nil || !a.SshAsk.Open {
 		t.Fatalf("Add SSH Host opened no dialog")
 	}
 	tt.Type("root@example.com:2222")
@@ -76,7 +77,7 @@ func TestAddSSHHostFromSidebar(t *testing.T) {
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
 	if a.SshAsk != nil {
-		t.Errorf("the dialog stays open, with %q", a.SshAsk.err)
+		t.Errorf("the dialog stays open, with %q", a.SshAsk.Err)
 	}
 
 	var p proto.CreateParams
@@ -131,7 +132,7 @@ func TestAddSSHHostOnce(t *testing.T) {
 	a.local().Client = cl
 
 	for i := range 2 {
-		a.SshAsk = &sshAsk{open: true, addr: "root@example.com:2222", name: "buildbox"}
+		a.SshAsk = &sshdialog.Ask{Open: true, Addr: "root@example.com:2222", Name: "buildbox"}
 		a.addSSHHost()
 		deadline := time.Now().Add(2 * time.Second)
 		for len(a.Prefs.SSHHosts) == 0 || a.Prefs.SSHHosts[0].Session == "" {
@@ -152,13 +153,13 @@ func TestAddSSHHostOnlySSH(t *testing.T) {
 	a := testApp(t)
 	tt := ui.NewTester(a.view, 1100, 700)
 	for _, addr := range []string{"http://devbox:7473", "wsl://Ubuntu"} {
-		a.SshAsk = &sshAsk{open: true, addr: addr}
+		a.SshAsk = &sshdialog.Ask{Open: true, Addr: addr}
 		tt.Frame()
 		if err := tt.Click(locales.CommonConnect()); err != nil {
 			t.Fatal(err)
 		}
 		tt.Frame()
-		if a.SshAsk == nil || a.SshAsk.err != locales.SshHostOnly() {
+		if a.SshAsk == nil || a.SshAsk.Err != locales.SshHostOnly() {
 			t.Errorf("%s: the dialog said %v, want %q", addr, a.SshAsk, locales.SshHostOnly())
 		}
 	}
@@ -463,7 +464,7 @@ func TestSidebarSSHProjectEmpty(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.SshAsk == nil || !a.SshAsk.open {
+	if a.SshAsk == nil || !a.SshAsk.Open {
 		t.Fatal("the row opened no dialog")
 	}
 }
