@@ -39,8 +39,11 @@ func (a *App) openSettings(page string) {
 
 // SettingsState, Settings and SettingsApplied are the window's state, its
 // settings and those as last applied.
-func (a *App) SettingsState() *uisettings.State           { return &a.Ss }
-func (a *App) SettingsApplied() settings.Settings         { return a.Applied }
+func (a *App) SettingsState() *uisettings.State   { return &a.Ss }
+func (a *App) SettingsApplied() settings.Settings { return a.Applied }
+
+// Main runs fn on the main thread, and draws, as a settings window's
+// timer's does.
 func (a *App) Main(fn func())                             { a.main(fn) }
 func (a *App) SettingsWindow() *mygo.Window               { return a.SetWin }
 func (a *App) SetSettingsWindow(w *mygo.Window)           { a.SetWin = w }

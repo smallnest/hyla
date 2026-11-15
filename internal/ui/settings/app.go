@@ -24,8 +24,6 @@ type App interface {
 	SettingsApplied() settings.Settings
 	// ApplySettings makes settings the app's, saving them.
 	ApplySettings(s settings.Settings)
-	// Main runs fn on the main thread.
-	Main(fn func())
 	// SettingsWindow is the window, while it is open.
 	SettingsWindow() *mygo.Window
 	// SetSettingsWindow holds the window, or none.
@@ -106,6 +104,9 @@ type App interface {
 	// thread.
 	Local() *host.Host
 	CallOnLocal(method string, params any, done func(err error))
+	// Main runs fn on the main thread, and draws; RecordKey and the
+	// rest are its functions, in this file.
+	Main(fn func())
 }
 
 // RunOnMain runs fn on the app's main thread, and draws.
