@@ -91,8 +91,10 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
   and the card materials), `internal/ui/glyph` (the icons),
   `internal/ui/marks` (the agents'), `internal/ui/style` (surfaces and
   buttons), `internal/ui/controls` (pop-ups, menus, fields, sliders).
-  Next: `platform`'s pure parts (`fileManager`, `openPath`, `framed`),
-  once `windowControls` finds a home.
+  Also done: `internal/platform` (`fileManager`, `openPath`,
+  `revealPath`, `openTextFile`, `framed`), `internal/app/magpie` (the
+  Info view's reads of Magpie). `windowControls` stays in the root: it
+  draws Hyla's own buttons, and reads the header's metrics.
 - **Step 3: the app's behaviour** — `automate.go`, `browser.go`,
   `hosts*.go`, `files*.go`, `sync.go`, `branch.go`, `worktree.go` into
   `internal/app/`.
