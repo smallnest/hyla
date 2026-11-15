@@ -1,6 +1,7 @@
 package main
 
 import (
+	"hyla/internal/ui/settings/search"
 	"testing"
 
 	"github.com/egoist/mygo/i18n"
@@ -32,7 +33,7 @@ func TestPaletteKeywords(t *testing.T) {
 		}
 	}
 	// Keywords match by their starts, not as letters strewn through them.
-	if keywords("bsr", actionWords["pane.browser"]) >= 0 {
+	if keywords("bsr", search.ActionWords["pane.browser"]) >= 0 {
 		t.Error("keywords matched letters in order")
 	}
 }

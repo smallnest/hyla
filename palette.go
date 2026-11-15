@@ -2,6 +2,7 @@ package main
 
 import (
 	"cmp"
+	"hyla/internal/ui/settings/search"
 	"math"
 	"slices"
 	"strings"
@@ -199,11 +200,11 @@ func (a *App) paletteItems() []paletteItem {
 			keys += " " + locales.PaletteShortcutGlobal()
 		}
 		cmds = append(cmds, paletteItem{title: strings.TrimSuffix(actionTitle(act.ID), "…"), keys: keys,
-			words: act.Title + " " + actionWords[id], run: func() { a.run(id, nil) }})
+			words: act.Title + " " + search.ActionWords[id], run: func() { a.run(id, nil) }})
 	}
 	for _, page := range settingsPages {
 		id := page.id
-		cmds = append(cmds, paletteItem{title: locales.PaletteSettingsPage(page.title()), words: "settings preferences " + id + " " + pageWords[id], run: func() { a.openSettings(id) }})
+		cmds = append(cmds, paletteItem{title: locales.PaletteSettingsPage(page.title()), words: "settings preferences " + id + " " + search.PageWords[id], run: func() { a.openSettings(id) }})
 	}
 	cmds = append(cmds, paletteItem{title: locales.PaletteRestartService(), detail: locales.PaletteRestartServiceDetail(),
 		words: en.PaletteRestartService() + " " + en.PaletteRestartServiceDetail(), run: a.restartDaemon})
