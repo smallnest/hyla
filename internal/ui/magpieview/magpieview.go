@@ -14,6 +14,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/ui/glyph"
 	"hyla/internal/ui/info"
+	"hyla/internal/ui/marks"
 	"hyla/internal/ui/theme"
 	"hyla/locales"
 )
@@ -194,7 +195,7 @@ func usageRows(c *ui.Context, pal *theme.Palette, u *magpie.Usage, down string) 
 				break
 			}
 			info.Rule(c, pal)
-			metricSub(c, pal, w.Provider, magpie.Left(w.Left), w.Name)
+			providerMetric(c, pal, w)
 		}
 		if u.Latest.Served != "" {
 			info.Rule(c, pal)
@@ -219,6 +220,27 @@ func metric(c *ui.Context, pal *theme.Palette, label, value string) {
 	ui.Row(c).MinHeight(32).Padding(0, 12).Gap(10).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, label).FontSize(12.5).TextColor(pal.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1).MinWidth(0)
 		metricValue(c, pal, value)
+	})
+}
+
+// providerMetric is a plan window's row: the provider wears its mark,
+// which it shows by the name hylad gives it, as "antigravity", else by the
+// name Magpie gives it, as "Antigravity", and none where Hyla has no mark
+// for it rather than another's.
+func providerMetric(c *ui.Context, pal *theme.Palette, w magpie.Window) {
+	logo, brand, ok := marks.Agent(w.Key)
+	if !ok {
+		logo, brand, ok = marks.Agent(w.Provider)
+	}
+	ui.Row(c).MinHeight(42).Padding(6, 12).Gap(10).AlignItems(ui.Center).Children(func() {
+		if ok {
+			ui.Icon(c, logo).Size(14, 14).TextColor(marks.Tint(brand, pal.Dark, pal.Text)).Shrink(0)
+		}
+		ui.Text(c, w.Provider).FontSize(12.5).TextColor(pal.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1).MinWidth(0)
+		ui.Column(c).Gap(1).AlignItems(ui.End).Shrink(1).MinWidth(80).Children(func() {
+			metricValue(c, pal, magpie.Left(w.Left))
+			ui.Text(c, w.Name).FontSize(11).TextColor(pal.TextFaint).SingleLine()
+		})
 	})
 }
 

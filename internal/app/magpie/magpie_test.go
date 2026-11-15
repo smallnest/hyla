@@ -35,7 +35,7 @@ func magpieFake(t *testing.T, day time.Time, series []string, rows []map[string]
 		json.NewEncoder(w).Encode(map[string]any{"calls": 1, "series": s})
 	})
 	mux.HandleFunc("/v1/magpie/quotas", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, `{"data":[{"name":"A","windows":[{"name":"5h","remaining":60},{"name":"inf","remaining":100,"unlimited":true}]},{"name":"B","windows":[{"name":"7d","remaining":12.5}]}]}`)
+		fmt.Fprintf(w, `{"data":[{"provider":"a","name":"A","windows":[{"name":"5h","remaining":60},{"name":"inf","remaining":100,"unlimited":true}]},{"provider":"b","name":"B","windows":[{"name":"7d","remaining":12.5}]}]}`)
 	})
 	mux.HandleFunc("/v1/magpie/usage/requests", func(w http.ResponseWriter, r *http.Request) {
 		offset := queryInt(r, "offset")
@@ -107,7 +107,7 @@ func TestFetchMagpie(t *testing.T) {
 	if u.Latest.Served != "m" || u.Latest.Ms != 1446 || u.Latest.Status != 200 {
 		t.Errorf("latest = %+v", u.Latest)
 	}
-	if len(u.Windows) != 2 || u.Windows[0].Provider != "B" || u.Windows[1].Left != 60 {
+	if len(u.Windows) != 2 || u.Windows[0].Provider != "B" || u.Windows[0].Key != "b" || u.Windows[1].Left != 60 {
 		t.Errorf("windows = %+v", u.Windows)
 	}
 }

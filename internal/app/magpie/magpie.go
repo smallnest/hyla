@@ -44,6 +44,7 @@ type Call struct {
 // Window is a plan's window, as left.
 type Window struct {
 	Provider string // the provider's name, as Magpie names it
+	Key      string // the provider's key, as an agent's name: "antigravity"
 	Name     string
 	Left     float64 // percent
 }
@@ -210,7 +211,7 @@ func mostLeft(q quotasJSON) []Window {
 			if w.Unlimited {
 				continue
 			}
-			all = append(all, Window{Provider: p.Name, Name: w.Name, Left: w.Remaining})
+			all = append(all, Window{Provider: p.Name, Key: p.Provider, Name: w.Name, Left: w.Remaining})
 		}
 	}
 	sort.SliceStable(all, func(i, j int) bool { return all[i].Left < all[j].Left })
@@ -239,8 +240,9 @@ type requestsJSON struct {
 
 type quotasJSON struct {
 	Data []struct {
-		Name    string `json:"name"`
-		Windows []struct {
+		Name     string `json:"name"`
+		Provider string `json:"provider"`
+		Windows  []struct {
 			Name      string  `json:"name"`
 			Remaining float64 `json:"remaining"`
 			Unlimited bool    `json:"unlimited"`

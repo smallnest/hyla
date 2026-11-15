@@ -54,7 +54,7 @@ func TestInfoMagpieDemo(t *testing.T) {
 		Windows: []magpie.Window{
 			{Provider: "OpenCode Go", Name: "Month", Left: 4},
 			{Provider: "OpenCode Go", Name: "5 hours", Left: 37},
-			{Provider: "Antigravity", Name: "Claude & GPT · 7 days", Left: 88},
+			{Provider: "Antigravity", Key: "antigravity", Name: "Claude & GPT · 7 days", Left: 88},
 			{Provider: "Antigravity", Name: "Claude & GPT · 5 hours", Left: 100},
 		},
 	}}
