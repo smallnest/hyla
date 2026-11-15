@@ -1,141 +1,71 @@
 package main
 
 import (
-	"cmp"
-	"hyla/internal/app/host"
-	"hyla/internal/ui/fuzzy"
-	"hyla/internal/ui/settings/search"
-	"math"
-	"slices"
-	"strings"
-	"time"
-
 	"github.com/egoist/mygo/ui"
 
-	"hyla/internal/actions"
-	"hyla/internal/ui/theme"
-
+	"hyla/internal/app/host"
 	"hyla/internal/proto"
-
+	"hyla/internal/settings"
+	"hyla/internal/ui/palette"
 	"hyla/internal/ui/style"
+	"hyla/internal/ui/theme"
 	"hyla/locales"
-
-	"hyla/internal/ui/glyph"
 )
 
-// paletteState is the command palette's: a field that finds sessions and
-// commands as one types.
-type paletteState struct {
-	open   bool
-	query  string
-	index  int
-	scroll ui.ScrollState
-	reveal bool // the chosen item scrolls into view, once
-	// convs are the conversations the hosts' hylads remember, the last to
-	// run first, as they come; only shows them alone (Resume
-	// Conversation…), and gen tells the palette they came for.
-	convs []hostConversation
-	only  bool
-	gen   int
-}
+// The app, as the palette finds and runs what it offers.
+var _ palette.App = (*App)(nil)
 
-// hostConversation is a conversation a host's hylad remembers.
-type hostConversation struct {
-	host *host.Host
-	proto.Conversation
-}
+func (a *App) Settings() *settings.Settings { return &a.settingsIn }
 
-// recentConversations is how many conversations the palette shows before
-// the user types.
-const recentConversations = 5
+func (a *App) Projects() []proto.Project { return a.St.Projects }
 
-// paletteItem is a session or a command the palette offers.
-type paletteItem struct {
-	session *proto.Session
-	conv    *hostConversation
-	title   string
-	detail  string
-	keys    string
-	run     func()
-	score   int
-	words   string // what finds it besides its title and detail, unshown
-	top     bool   // what the query asks for outright, before any match
-}
-
-func (a *App) openPalette() {
-	a.Pal = paletteState{open: true, reveal: true, gen: a.Pal.gen + 1}
-	a.loadConversations()
-}
-
-// openConversations opens the palette on the conversations alone.
-func (a *App) openConversations() {
-	a.openPalette()
-	a.Pal.only = true
-}
-
-// loadConversations asks every host's hylad for the conversations it
-// remembers. An older one knows of none.
-func (a *App) loadConversations() {
-	gen := a.Pal.gen
-	for _, h := range a.Hosts {
-		cl := h.Client
-		if cl == nil {
-			continue
-		}
-		go func() {
-			var list []proto.Conversation
-			if cl.Call("conversations", nil, &list) != nil {
-				return
-			}
-			a.update(func() {
-				if a.Pal.gen != gen || !a.Pal.open {
-					return
-				}
-				for _, cv := range list {
-					a.Pal.convs = append(a.Pal.convs, hostConversation{h, cv})
-				}
-				slices.SortStableFunc(a.Pal.convs, func(x, y hostConversation) int { return cmp.Compare(y.Updated, x.Updated) })
-			})
-		}()
+func (a *App) Groups() [][]*proto.Session {
+	groups := a.groups()
+	out := make([][]*proto.Session, len(groups))
+	for i, g := range groups {
+		out[i] = g.sessions
 	}
+	return out
 }
 
-// conversationItems are the palette's conversations: those no pane runs,
-// as a session the palette has already shows them; all of them with only.
-func (a *App) conversationItems() []paletteItem {
-	var items []paletteItem
-	names := map[string]string{}
-	for _, p := range a.St.Projects {
-		names[p.ID] = p.Name
+func (a *App) HostOf(id string) *host.Host { return a.hostOf(id) }
+
+func (a *App) Local() *host.Host { return a.local() }
+
+func (a *App) Shown() string { return a.Selected }
+
+func (a *App) Session(id string) *proto.Session { return a.session(id) }
+
+func (a *App) Collapsed() map[string]bool {
+	if a.Prefs.Collapsed == nil {
+		a.Prefs.Collapsed = map[string]bool{}
 	}
-	now := time.Now()
-	for i := range a.Pal.convs {
-		cv := &a.Pal.convs[i]
-		if cv.Session != "" && !a.Pal.only {
-			continue
-		}
-		detail := cmp.Or(proto.AgentNames[cv.Agent], cv.Agent)
-		if cv.Name != "" && cv.Title != "" {
-			detail = cv.Title + " · " + detail
-		}
-		if n := names[cv.Project]; n != "" {
-			detail += " · " + n
-		}
-		if cv.Session != "" {
-			detail += " · " + locales.PaletteConversationRunning()
-		} else {
-			detail += " · " + ago(cv.Updated, now)
-		}
-		items = append(items, paletteItem{conv: cv, title: cv.Label(), detail: detail,
-			words: cv.Title + " " + cv.Name + " " + cv.Dir + " " + cv.Agent + " " + cv.ID,
-			run:   func() { a.resumeConversation(cv.host, cv.Conversation) }})
-	}
-	return items
+	return a.Prefs.Collapsed
 }
 
-// resumeConversation shows the session running a conversation of a
-// host's, or starts one resuming it, beside the session shown.
-func (a *App) resumeConversation(h *host.Host, cv proto.Conversation) {
+func (a *App) AllHosts() []*host.Host { return a.Hosts }
+
+func (a *App) Pages() []palette.Page {
+	pages := make([]palette.Page, len(settingsPages))
+	for i, p := range settingsPages {
+		pages[i] = palette.Page{ID: p.id, Title: p.title()}
+	}
+	return pages
+}
+
+func (a *App) ActionTitle(id string) string { return actionTitle(id) }
+
+func (a *App) Run(id string) { a.run(id, nil) }
+
+func (a *App) OpenSettings(id string) { a.openSettings(id) }
+
+func (a *App) NewSession(projectID string) { a.newSession(projectID) }
+
+func (a *App) AddPending(h *host.Host, s proto.Session) { a.addPending(h, s) }
+
+func (a *App) SelectSession(id string) { a.selectSession(id) }
+
+func (a *App) ResumeConversation(h *host.Host, cv proto.Conversation) {
 	cl := h.Client
 	if cl == nil {
 		a.toast(locales.HostNotConnected(h.Name))
@@ -156,200 +86,26 @@ func (a *App) resumeConversation(h *host.Host, cv proto.Conversation) {
 				a.toast(err.Error())
 				return
 			}
-			delete(a.Prefs.Collapsed, s.Project)
+			delete(a.Collapsed(), s.Project)
 			a.addPending(h, s)
 			a.selectSession(s.ID)
 		})
 	}()
 }
 
-func (a *App) paletteItems() []paletteItem {
-	if a.Pal.only {
-		return a.conversationItems()
-	}
-	var items []paletteItem
-	names := map[string]string{}
-	for _, p := range a.St.Projects {
-		names[p.ID] = p.Name
-	}
-	for _, g := range a.groups() {
-		for _, s := range g.sessions {
-			id := s.ID
-			detail := names[s.Project]
-			if s.Process != "" {
-				detail += " · " + s.Process
-			}
-			h := a.hostOf(id)
-			items = append(items, paletteItem{session: s, title: s.DisplayName(a.Settings.SessionName), detail: detail + " · " + h.ShortDir(s.WorkDir()),
-				run: func() { delete(a.Prefs.Collapsed, s.Project); a.selectSession(id) }})
-		}
-	}
-	var cmds []paletteItem
-	// Commands are found by their English names too, in any language.
-	en := locales.In("en")
-	// An address typed opens in a browser beside the pane the user is in.
-	if q := strings.TrimSpace(a.Pal.query); proto.IsAddress(q) && a.session(a.Selected) != nil {
-		cmds = append(cmds, paletteItem{title: locales.PaletteOpenInBrowser(), detail: proto.BrowserURL(q), top: true,
-			run: func() { a.openBrowser(q) }})
-	}
-	for _, act := range actions.All {
-		id := act.ID
-		// A global shortcut shows too, marked, though the menus leave it to
-		// the system to take.
-		keys := actions.Glyphs(actions.Keys(act, a.Settings.Shortcuts))
-		if keys != "" && act.Global {
-			keys += " " + locales.PaletteShortcutGlobal()
-		}
-		cmds = append(cmds, paletteItem{title: strings.TrimSuffix(actionTitle(act.ID), "…"), keys: keys,
-			words: act.Title + " " + search.ActionWords[id], run: func() { a.run(id, nil) }})
-	}
-	for _, page := range settingsPages {
-		id := page.id
-		cmds = append(cmds, paletteItem{title: locales.PaletteSettingsPage(page.title()), words: "settings preferences " + id + " " + search.PageWords[id], run: func() { a.openSettings(id) }})
-	}
-	cmds = append(cmds, paletteItem{title: locales.PaletteRestartService(), detail: locales.PaletteRestartServiceDetail(),
-		words: en.PaletteRestartService() + " " + en.PaletteRestartServiceDetail(), run: a.restartDaemon})
-	for _, p := range a.St.Projects {
-		id := p.ID
-		detail := a.local().ShortDir(p.Dir)
-		cmds = append(cmds, paletteItem{title: locales.NewSessionIn(p.Name), detail: detail, words: en.NewSessionIn(p.Name), run: func() { a.newSession(id) }})
-	}
-	convs := a.conversationItems()
-	if a.Pal.query == "" && len(convs) > recentConversations {
-		convs = convs[:recentConversations]
-	}
-	items = append(items, convs...)
-	return append(items, cmds...)
-}
+func (a *App) RestartDaemon() { a.restartDaemon() }
 
-// What a palette's item is, which its group in the list goes by.
-const (
-	paletteSession = iota
-	paletteConversation
-	paletteCommand
-)
+func (a *App) FocusTerminal() { a.focusTerminal() }
 
-func (it *paletteItem) kind() int {
-	switch {
-	case it.session != nil:
-		return paletteSession
-	case it.conv != nil:
-		return paletteConversation
-	}
-	return paletteCommand
-}
+// openPalette opens the command palette.
+func (a *App) openPalette() { palette.Open(&a.Pal, a) }
 
-func (a *App) paletteView(c *ui.Context, pal *theme.Palette) {
-	if !a.Pal.open {
-		return
-	}
-	var items []paletteItem
-	for _, it := range a.paletteItems() {
-		sc := fuzzy.Score(a.Pal.query, it.title+" "+it.detail)
-		sc = max(sc, fuzzy.Words(a.Pal.query, it.words))
-		if t := fuzzy.Score(a.Pal.query, it.title); t >= 0 {
-			sc = max(sc, t+50)
-		}
-		if it.top {
-			sc = math.MaxInt32
-		}
-		if sc < 0 {
-			continue
-		}
-		it.score = sc
-		items = append(items, it)
-	}
-	if a.Pal.query != "" {
-		slices.SortStableFunc(items, func(x, y paletteItem) int { return y.score - x.score })
-	}
-	a.Pal.index = min(max(a.Pal.index, 0), max(len(items)-1, 0))
+// openConversations opens the palette on the conversations alone.
+func (a *App) openConversations() { palette.OpenConversations(&a.Pal, a) }
 
-	var chosen func()
-	label, placeholder, none := locales.PaletteLabel(), locales.PalettePlaceholder(), locales.PaletteNoMatches()
-	if a.Pal.only {
-		label, placeholder = locales.PaletteConversationsLabel(), locales.PaletteConversationsPlaceholder()
-		if a.Pal.query == "" {
-			none = locales.PaletteNoConversations()
-		}
-	}
-	ui.DialogBase(c.Key("palette"), &a.Pal.open, func(backdrop, panel ui.Element) {
-		backdrop.Background(pal.Overlay).Justify(ui.Start).Padding(84, 0, 0, 0)
-		style.Floating(panel.Width(600).MaxHeight(460).Radius(14).Background(pal.Popover), pal).Clip().
-			Label(label)
-		ui.Row(c).Height(50).Shrink(0).Padding(0, 16).Gap(10).AlignItems(ui.Center).Children(func() {
-			ui.Icon(c, glyph.Search).Size(16, 16).TextColor(pal.TextMuted)
-			in := ui.TextInputBase(c.Key("q"), &a.Pal.query).Grow(1).FontSize(15).Placeholder(placeholder).AutoFocus()
-			if in.Changed() {
-				a.Pal.index, a.Pal.reveal = 0, true
-			}
-			if c.Shortcut(0, ui.KeyDown) || c.Shortcut(ui.Ctrl, ui.KeyN) {
-				a.Pal.index, a.Pal.reveal = min(a.Pal.index+1, len(items)-1), true
-			}
-			if c.Shortcut(0, ui.KeyUp) || c.Shortcut(ui.Ctrl, ui.KeyP) {
-				a.Pal.index, a.Pal.reveal = max(a.Pal.index-1, 0), true
-			}
-			if (in.Submitted() || c.Shortcut(0, ui.KeyEnter)) && len(items) > 0 {
-				chosen = items[a.Pal.index].run
-			}
-		})
-		list := ui.Scroll(c.Key("results")).Grow(1).MinHeight(0).Padding(6).TrackScroll(&a.Pal.scroll)
-		reveal := a.Pal.reveal
-		a.Pal.reveal = false
-		list.Children(func() {
-			if len(items) == 0 {
-				ui.Text(c, none).FontSize(13).TextColor(pal.TextFaint).Padding(12, 12).LineHeight(1.4)
-			}
-			lastKind := paletteSession
-			for i, it := range items {
-				kind := it.kind()
-				// Conversations head their group even first, as with no
-				// sessions, or they would read as sessions.
-				if (i > 0 || kind == paletteConversation) && kind != lastKind && a.Pal.query == "" && !a.Pal.only {
-					title := locales.PaletteCommands()
-					if kind == paletteConversation {
-						title = locales.PaletteConversations()
-					}
-					ui.Text(c, title).FontSize(11.5).FontWeight(600).TextColor(pal.TextFaint).Padding(10, 10, 4, 10)
-				}
-				lastKind = kind
-				row := ui.Row(c.Key(i)).Height(38).Padding(0, 10).Gap(10).AlignItems(ui.Center).Radius(8)
-				if i == a.Pal.index {
-					row.Background(pal.Accent.Alpha(0.12))
-					if reveal {
-						row.ScrollIntoView()
-					}
-				} else if row.Hovered() {
-					row.Background(pal.RowHover)
-				}
-				if row.Clicked() {
-					chosen = it.run
-				}
-				row.Children(func() {
-					switch kind {
-					case paletteSession:
-						statusIcon(c, pal, it.session.Status, it.session.Unread, 14)
-					case paletteConversation:
-						ui.Icon(c, glyph.ProgramIcon(&proto.Pane{Agent: it.conv.Agent})).Size(14, 14).TextColor(pal.TextFaint)
-					default:
-						ui.Icon(c, glyph.Return).Size(14, 14).TextColor(pal.TextFaint)
-					}
-					ui.Text(c, it.title).FontSize(13.5).TextColor(pal.Text).SingleLine().Ellipsis("…").Shrink(0).MaxWidth(300)
-					ui.Text(c, it.detail).FontSize(12.5).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").Grow(1).MinWidth(0)
-					if it.keys != "" {
-						kbd(c, pal, it.keys)
-					}
-				})
-			}
-		})
-	})
-	if chosen != nil {
-		a.Pal.open = false
-		chosen()
-	}
-	if !a.Pal.open && chosen == nil {
-		a.focusTerminal()
-	}
-}
+func (a *App) paletteItems() []string { return palette.Titles(&a.Pal, a) }
+
+func (a *App) paletteView(c *ui.Context, pal *theme.Palette) { palette.View(c, &a.Pal, a, pal) }
 
 func (a *App) confirmView(c *ui.Context, pal *theme.Palette) {
 	if a.Confirm != nil && confirmDialog(c, pal, &a.Confirm) {
@@ -420,7 +176,7 @@ func confirmDialog(c *ui.Context, pal *theme.Palette, pending **confirmation) bo
 
 // shortcuts are the window's keys that no menu item has.
 func (a *App) shortcuts(c *ui.Context) {
-	if a.Pal.open || a.Picker.open || a.Confirm != nil || a.WtAsk != nil || a.SshAsk != nil || a.K8sAsk != nil {
+	if a.Pal.Open || a.Picker.open || a.Confirm != nil || a.WtAsk != nil || a.SshAsk != nil || a.K8sAsk != nil {
 		return
 	}
 	keys := []ui.Key{ui.Key1, ui.Key2, ui.Key3, ui.Key4, ui.Key5, ui.Key6, ui.Key7, ui.Key8, ui.Key9}

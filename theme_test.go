@@ -48,11 +48,11 @@ func TestBackgroundTiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.Settings.Background != "umbra" || settings.Load().Background != "umbra" {
-		t.Errorf("choosing Umbra left %q", a.Settings.Background)
+	if a.settingsIn.Background != "umbra" || settings.Load().Background != "umbra" {
+		t.Errorf("choosing Umbra left %q", a.settingsIn.Background)
 	}
 	// A window of it, either theme, draws its scene without a panic.
-	a.Settings.Background = "static"
+	a.settingsIn.Background = "static"
 	for _, dark := range []bool{false, true} {
 		main := ui.NewTester(a.view, 1000, 600)
 		main.SetDark(dark)
@@ -68,12 +68,12 @@ func TestWashShots(t *testing.T) {
 	for _, id := range []string{"ember", "tidal", "umbra", "static"} {
 		for _, dark := range []bool{false, true} {
 			a := testApp(t)
-			a.Settings.Background = id
-			a.Settings.Appearance = "light"
+			a.settingsIn.Background = id
+			a.settingsIn.Appearance = "light"
 			if dark {
-				a.Settings.Appearance = "dark"
+				a.settingsIn.Appearance = "dark"
 			}
-			a.Applied = a.Settings.Clone()
+			a.Applied = a.settingsIn.Clone()
 			tt := ui.NewTester(a.view, 1000, 600)
 			tt.SetDark(dark)
 			tt.Frame()

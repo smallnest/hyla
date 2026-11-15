@@ -49,7 +49,7 @@ func activationPolicy(s settings.Settings) mygo.ActivationPolicy {
 // user chose another place for it.
 func (a *App) changeAppIcon() {
 	if runtime.GOOS == "darwin" {
-		mygo.App.SetActivationPolicy(activationPolicy(a.Settings))
+		mygo.App.SetActivationPolicy(activationPolicy(a.settingsIn))
 		// Without a Dock icon, macOS may leave the app inactive behind
 		// another's windows: the Settings window the user chose in stays
 		// in front.
@@ -61,7 +61,7 @@ func (a *App) changeAppIcon() {
 // applyTray adds or removes the icon in the menu bar or notification area,
 // as the settings say, in the running app.
 func (a *App) applyTray() {
-	switch show := showsTray(a.Settings); {
+	switch show := showsTray(a.settingsIn); {
 	case show && a.Tray == nil:
 		icon, template := trayColor, false
 		if runtime.GOOS == "darwin" {

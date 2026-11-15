@@ -68,10 +68,10 @@ func TestRecordShortcut(t *testing.T) {
 	tt.Key(mods, key)
 	tt.Frame()
 	tt.Frame()
-	if got := a.Settings.Shortcuts["pane.split.right"]; got != accel {
+	if got := a.settingsIn.Shortcuts["pane.split.right"]; got != accel {
 		t.Fatalf("Split Right's shortcut %q", got)
 	}
-	if got, ok := a.Settings.Shortcuts["pane.split.down"]; !ok || got != "" {
+	if got, ok := a.settingsIn.Shortcuts["pane.split.down"]; !ok || got != "" {
 		t.Errorf("Split Down kept its keys: %q", got)
 	}
 	if !tt.HasText(actions.Glyphs(accel) + " was Split Down’s: it has none now.") {
@@ -95,8 +95,8 @@ func TestSegmentedChoiceSticks(t *testing.T) {
 	for range 3 {
 		tt.Frame()
 	}
-	if a.Settings.Appearance != "light" {
-		t.Fatalf("appearance %q after choosing Light", a.Settings.Appearance)
+	if a.settingsIn.Appearance != "light" {
+		t.Fatalf("appearance %q after choosing Light", a.settingsIn.Appearance)
 	}
 	if got := settings.Load().Appearance; got != "light" {
 		t.Fatalf("saved appearance %q", got)
@@ -107,8 +107,8 @@ func TestSegmentedChoiceSticks(t *testing.T) {
 	for range 3 {
 		tt.Frame()
 	}
-	if a.Settings.Appearance != "system" || settings.Load().Appearance != "system" {
-		t.Fatalf("appearance %q, saved %q, after choosing System", a.Settings.Appearance, settings.Load().Appearance)
+	if a.settingsIn.Appearance != "system" || settings.Load().Appearance != "system" {
+		t.Fatalf("appearance %q, saved %q, after choosing System", a.settingsIn.Appearance, settings.Load().Appearance)
 	}
 }
 
@@ -117,8 +117,8 @@ func TestSegmentedChoiceSticks(t *testing.T) {
 func TestFeishuRunChoiceSticks(t *testing.T) {
 	a := testApp(t)
 	a.Ss.draft = map[string]string{}
-	a.Settings.Feishu = &settings.Feishu{App: "cli_a", Allow: []string{"*"}, Run: settings.FeishuRunSession}
-	a.Applied = a.Settings.Clone()
+	a.settingsIn.Feishu = &settings.Feishu{App: "cli_a", Allow: []string{"*"}, Run: settings.FeishuRunSession}
+	a.Applied = a.settingsIn.Clone()
 	a.Ss.page = "feishu"
 	tt := ui.NewTester(a.settingsView, 820, 900)
 	tt.Frame()
@@ -131,7 +131,7 @@ func TestFeishuRunChoiceSticks(t *testing.T) {
 	for range 3 {
 		tt.Frame()
 	}
-	if got := a.Settings.Feishu.Run; got != settings.FeishuRunCommand {
+	if got := a.settingsIn.Feishu.Run; got != settings.FeishuRunCommand {
 		t.Fatalf("the run is %q after choosing the background", got)
 	}
 	if f := settings.Load().Feishu; f == nil || f.Run != settings.FeishuRunCommand {
@@ -149,8 +149,8 @@ func TestDarkShots(t *testing.T) {
 		tt.Frame()
 		shot(t, tt, "dark-"+p)
 	}
-	a.Settings.Background = "plain"
-	a.Applied = a.Settings.Clone()
+	a.settingsIn.Background = "plain"
+	a.Applied = a.settingsIn.Clone()
 	main := ui.NewTester(a.view, 1000, 560)
 	main.SetDark(true)
 	main.Frame()
@@ -164,8 +164,8 @@ func TestSegmentedShots(t *testing.T) {
 	for _, dark := range []bool{false, true} {
 		a := testApp(t)
 		a.Ss.page = "appearance"
-		a.Settings.Appearance = "light"
-		a.Applied = a.Settings.Clone()
+		a.settingsIn.Appearance = "light"
+		a.Applied = a.settingsIn.Clone()
 		tt := ui.NewTester(a.settingsView, 820, 240)
 		tt.SetDark(dark)
 		tt.Frame()
@@ -203,8 +203,8 @@ func TestControlShots(t *testing.T) {
 		tt.Key(0, ui.KeyDown)
 		tt.Key(0, ui.KeyEnter)
 		tt.Frame()
-		if a.Settings.Scrollback != 16 {
-			t.Errorf("chose scrollback %d, want 16", a.Settings.Scrollback)
+		if a.settingsIn.Scrollback != 16 {
+			t.Errorf("chose scrollback %d, want 16", a.settingsIn.Scrollback)
 		}
 		if err := tt.Click("NAME=value"); err != nil {
 			t.Fatal(err)
@@ -235,8 +235,8 @@ func TestSlider(t *testing.T) {
 		tt.ClickAt(label.X-16, label.Y+label.H/2)
 		tt.Frame()
 		tt.Frame()
-		if a.Settings.LineHeight < 1.85 {
-			t.Errorf("line height %v after a click near the slider's end", a.Settings.LineHeight)
+		if a.settingsIn.LineHeight < 1.85 {
+			t.Errorf("line height %v after a click near the slider's end", a.settingsIn.LineHeight)
 		}
 		// Held, the knob is a lens of glass. (The taller lines moved
 		// the slider down.)
@@ -262,11 +262,11 @@ func TestBundledFont(t *testing.T) {
 	if got := a.termFont().Family; got != bundledFont {
 		t.Errorf("default terminal font %q, want %q", got, bundledFont)
 	}
-	a.Settings.FontFamily = "monospace"
+	a.settingsIn.FontFamily = "monospace"
 	if got := a.termFont().Family; got != "monospace" {
 		t.Errorf("System picked, terminal font %q", got)
 	}
-	a.Settings.FontFamily = ""
+	a.settingsIn.FontFamily = ""
 	a.Ss.page = "terminal"
 	tt := ui.NewTester(a.settingsView, 820, 320)
 	tt.Frame()
@@ -396,8 +396,8 @@ func TestPopupButtons(t *testing.T) {
 		tt.Key(0, ui.KeyDown)
 		tt.Key(0, ui.KeyEnter)
 		tt.Frame()
-		if a.Settings.FontWeight != 500 {
-			t.Errorf("chose weight %d, want 500", a.Settings.FontWeight)
+		if a.settingsIn.FontWeight != 500 {
+			t.Errorf("chose weight %d, want 500", a.settingsIn.FontWeight)
 		}
 
 		// The theme picker: typing filters, Return chooses.
@@ -412,8 +412,8 @@ func TestPopupButtons(t *testing.T) {
 		shot(t, tt, "popup-search-"+name)
 		tt.Key(0, ui.KeyEnter)
 		tt.Frame()
-		if a.Settings.LightTheme != "Catppuccin Mocha" {
-			t.Errorf("light theme %q, want Catppuccin Mocha", a.Settings.LightTheme)
+		if a.settingsIn.LightTheme != "Catppuccin Mocha" {
+			t.Errorf("light theme %q, want Catppuccin Mocha", a.settingsIn.LightTheme)
 		}
 		if a.Ss.menus["light"].Open {
 			t.Error("the theme menu stayed open")
@@ -431,8 +431,8 @@ func TestPopupButtons(t *testing.T) {
 		}
 		tt.Key(0, ui.KeyEnter)
 		tt.Frame()
-		if a.Settings.FontFamily != "Iosevka Term, Symbols Nerd Font" {
-			t.Errorf("font %q", a.Settings.FontFamily)
+		if a.settingsIn.FontFamily != "Iosevka Term, Symbols Nerd Font" {
+			t.Errorf("font %q", a.settingsIn.FontFamily)
 		}
 	}
 }
@@ -446,7 +446,7 @@ func TestPopupMenuStaysInWindow(t *testing.T) {
 	for _, h := range []int{900, 460} {
 		a := testApp(t)
 		a.Ss.page = "terminal"
-		a.Settings.FontSize = 15
+		a.settingsIn.FontSize = 15
 		tt := ui.NewTester(a.settingsView, 820, h)
 		tt.Frame()
 		r, ok := tt.Find("15 pt")
@@ -680,15 +680,15 @@ func TestAdListToggles(t *testing.T) {
 	}
 	flip("Peter Lowe's Ad and tracking server list")
 	flip("EasyList")
-	if want := []string{"easyprivacy", "peter-lowe"}; !slices.Equal(a.Settings.AdLists, want) || !slices.Equal(settings.Load().AdLists, want) {
-		t.Fatalf("lists %q, saved %q, want %q", a.Settings.AdLists, settings.Load().AdLists, want)
+	if want := []string{"easyprivacy", "peter-lowe"}; !slices.Equal(a.settingsIn.AdLists, want) || !slices.Equal(settings.Load().AdLists, want) {
+		t.Fatalf("lists %q, saved %q, want %q", a.settingsIn.AdLists, settings.Load().AdLists, want)
 	}
 	flip("EasyPrivacy")
 	flip("Peter Lowe's Ad and tracking server list")
 	if got := settings.Load().AdLists; len(got) != 0 {
 		t.Fatalf("no lists saved as %q", got)
 	}
-	a.Settings.BlockAds = false
+	a.settingsIn.BlockAds = false
 	tt.Frame()
 	if tt.HasText("EasyPrivacy") {
 		t.Error("the lists show while Block ads is off")
@@ -727,7 +727,7 @@ func TestVibrancyFor(t *testing.T) {
 func TestBlurlessBackgroundIsTranslucent(t *testing.T) {
 	// The wash's alpha in the sidebar, below its nav and above its tip.
 	a := testApp(t)
-	a.Settings.Vibrancy, a.Settings.WindowBlur = true, false
+	a.settingsIn.Vibrancy, a.settingsIn.WindowBlur = true, false
 	tt := ui.NewTester(a.view, 1100, 640)
 	tt.Frame()
 	for _, p := range [][2]int{{8, 300}, {8, 600}} {
@@ -775,8 +775,8 @@ func TestFontFeaturesField(t *testing.T) {
 		tt.Type("ss01, cv05=2")
 		tt.Key(0, ui.KeyEnter)
 		tt.Frame()
-		if want := []string{"ss01", "cv05=2"}; !slices.Equal(a.Settings.FontFeatures, want) {
-			t.Fatalf("font-feature %q, want %q", a.Settings.FontFeatures, want)
+		if want := []string{"ss01", "cv05=2"}; !slices.Equal(a.settingsIn.FontFeatures, want) {
+			t.Fatalf("font-feature %q, want %q", a.settingsIn.FontFeatures, want)
 		}
 		tt.Advance(time.Second)
 		tt.Frame()
@@ -785,8 +785,8 @@ func TestFontFeaturesField(t *testing.T) {
 		tt.Type(", ligatures")
 		tt.Key(0, ui.KeyEnter)
 		tt.Frame()
-		if want := []string{"ss01", "cv05=2"}; !slices.Equal(a.Settings.FontFeatures, want) {
-			t.Errorf("after a bad tag, font-feature %q, want %q", a.Settings.FontFeatures, want)
+		if want := []string{"ss01", "cv05=2"}; !slices.Equal(a.settingsIn.FontFeatures, want) {
+			t.Errorf("after a bad tag, font-feature %q, want %q", a.settingsIn.FontFeatures, want)
 		}
 		shot(t, tt, "font-features-bad-"+name)
 	}
@@ -797,7 +797,7 @@ func TestFontFeaturesField(t *testing.T) {
 func TestFallbackFont(t *testing.T) {
 	a := testApp(t)
 	a.Ss.page = "terminal"
-	a.Settings.FontFallback = "PingFang SC, Menlo"
+	a.settingsIn.FontFallback = "PingFang SC, Menlo"
 	// Room for every row: a page too short for the picker's menu shows
 	// the font under the window's foot.
 	tt := ui.NewTester(a.settingsView, 820, 980)
@@ -819,8 +819,8 @@ func TestFallbackFont(t *testing.T) {
 		tt.ClickAt(item.X+6, item.Y+item.H/2)
 	}
 	tt.Frame()
-	if want := "PingFang SC, Menlo"; a.Settings.FontFallback != want {
-		t.Errorf("fallback %q, want %q", a.Settings.FontFallback, want)
+	if want := "PingFang SC, Menlo"; a.settingsIn.FontFallback != want {
+		t.Errorf("fallback %q, want %q", a.settingsIn.FontFallback, want)
 	}
 	// The terminals' font, then the fallbacks in order.
 	if got := a.termFamily(); !strings.HasSuffix(got, ", PingFang SC, Menlo") {
@@ -829,13 +829,13 @@ func TestFallbackFont(t *testing.T) {
 	shot(t, tt, "fallback-font")
 	// Each x takes out its family.
 	remove(t, tt, "PingFang SC")
-	if want := "Menlo"; a.Settings.FontFallback != want {
-		t.Fatalf("after PingFang SC's x, fallback %q, want %q", a.Settings.FontFallback, want)
+	if want := "Menlo"; a.settingsIn.FontFallback != want {
+		t.Fatalf("after PingFang SC's x, fallback %q, want %q", a.settingsIn.FontFallback, want)
 	}
 	remove(t, tt, "Menlo")
 	tt.Frame()
-	if a.Settings.FontFallback != "" {
-		t.Errorf("after Menlo's x, fallback %q, want none", a.Settings.FontFallback)
+	if a.settingsIn.FontFallback != "" {
+		t.Errorf("after Menlo's x, fallback %q, want none", a.settingsIn.FontFallback)
 	}
 	// With none, the terminals draw with their font alone.
 	if got := a.termFamily(); strings.Contains(got, ",") {
@@ -890,8 +890,8 @@ func TestWeightExtraLight(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.Settings.FontWeight != 200 {
-		t.Errorf("chose weight %d, want 200", a.Settings.FontWeight)
+	if a.settingsIn.FontWeight != 200 {
+		t.Errorf("chose weight %d, want 200", a.settingsIn.FontWeight)
 	}
 }
 
@@ -899,14 +899,14 @@ func TestWeightExtraLight(t *testing.T) {
 // loaded once is one the app would save as is.
 func TestApplyKeepsWhatTheFileKept(t *testing.T) {
 	a := testApp(t)
-	s := a.Settings
+	s := a.settingsIn
 	s.FontSize = 100
 	a.apply(s, true)
-	if got := a.Settings.FontSize; got != settings.Default().FontSize {
+	if got := a.settingsIn.FontSize; got != settings.Default().FontSize {
 		t.Errorf("the app holds font-size %v, the file %v", got, settings.Load().FontSize)
 	}
-	if again := settings.Load(); again.FontSize != a.Settings.FontSize {
-		t.Errorf("a save of the app's writes font-size %v, the app holds %v", again.FontSize, a.Settings.FontSize)
+	if again := settings.Load(); again.FontSize != a.settingsIn.FontSize {
+		t.Errorf("a save of the app's writes font-size %v, the app holds %v", again.FontSize, a.settingsIn.FontSize)
 	}
 }
 
@@ -914,8 +914,8 @@ func TestApplyKeepsWhatTheFileKept(t *testing.T) {
 // is on, and no list download failure keeps every page bare.
 func TestAdsCompileAgainAfterAFailure(t *testing.T) {
 	a := testApp(t)
-	a.Settings.BlockAds = true
-	a.Settings.AdLists = []string{"https://example.com/filters.txt"} // a list no cache holds, as a first run's
+	a.settingsIn.BlockAds = true
+	a.settingsIn.AdLists = []string{"https://example.com/filters.txt"} // a list no cache holds, as a first run's
 	var calls atomic.Int32
 	fail := atomic.Bool{}
 	fail.Store(true)
@@ -965,8 +965,8 @@ func TestAdsCompileAgainAfterAFailure(t *testing.T) {
 // ends the wait.
 func TestAdsWaitAfterAFailure(t *testing.T) {
 	a := testApp(t)
-	a.Settings.BlockAds = true
-	a.Settings.AdLists = []string{"https://example.com/filters.txt"}
+	a.settingsIn.BlockAds = true
+	a.settingsIn.AdLists = []string{"https://example.com/filters.txt"}
 	var calls atomic.Int32
 	fail := atomic.Bool{}
 	fail.Store(true)

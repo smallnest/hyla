@@ -38,13 +38,13 @@ type sidebarArt struct {
 // pickSidebarImage asks for a picture of this machine for the sidebar,
 // with the system's dialog, and keeps its path in the settings.
 func (a *App) pickSidebarImage() {
-	a.pickImage(&a.Settings.SidebarImage, locales.SetSidebarImage(), locales.SetSidebarImageDetail())
+	a.pickImage(&a.settingsIn.SidebarImage, locales.SetSidebarImage(), locales.SetSidebarImageDetail())
 }
 
 // pickPaneImage asks for a picture of this machine for the terminals,
 // with the system's dialog, and keeps its path in the settings.
 func (a *App) pickPaneImage() {
-	a.pickImage(&a.Settings.PaneImage, locales.SetPaneImage(), locales.SetPaneImageDetail())
+	a.pickImage(&a.settingsIn.PaneImage, locales.SetPaneImage(), locales.SetPaneImageDetail())
 }
 
 // pickImage asks for a picture of this machine with the system's dialog,
@@ -77,8 +77,8 @@ func (a *App) pickImage(set *string, title, detail string) {
 // as wide as its shape makes it, and cropped by the sidebar where that
 // is wider than the sidebar.
 func (a *App) sidebarArtView(c *ui.Context) {
-	if a.Art.path != a.Settings.SidebarImage {
-		a.loadSidebarArt(a.Settings.SidebarImage)
+	if a.Art.path != a.settingsIn.SidebarImage {
+		a.loadSidebarArt(a.settingsIn.SidebarImage)
 	}
 	bm := a.Art.bm
 	if bm == nil {
@@ -92,7 +92,7 @@ func (a *App) sidebarArtView(c *ui.Context) {
 	}
 	// Under the sidebar's rows, which paint over the picture.
 	ui.Image(c, bm).Absolute().Left(x).Top(y).Size(w, h).ZIndex(-1).PassThrough().
-		Opacity(a.Settings.SidebarImageOpacity)
+		Opacity(a.settingsIn.SidebarImageOpacity)
 }
 
 // sidebarArtPlacement is where the picture goes in a window winH tall: as

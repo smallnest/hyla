@@ -34,6 +34,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/remote"
 	"hyla/internal/settings"
+	"hyla/internal/ui/palette"
 	"hyla/internal/ui/theme"
 
 	"hyla/locales"
@@ -126,7 +127,7 @@ type App struct {
 	Loaded bool // a state came
 
 	Prefs      prefs
-	Settings   settings.Settings // the user's settings: Settings' controls edit it
+	settingsIn settings.Settings // the user's settings: Settings' controls edit it
 	Applied    settings.Settings // set, as last applied and saved
 	SetWin     *mygo.Window      // the Settings window, while open
 	Ss         settingsState
@@ -168,7 +169,7 @@ type App struct {
 	RenameFrames int
 	Chrome       chrome // where the sidebar's animation puts things
 
-	Pal     paletteState
+	Pal     palette.State
 	Find    findState
 	Confirm *confirmation
 	WtAsk   *worktreeAsk
@@ -272,13 +273,13 @@ func newApp() *App {
 	a := &App{Terms: map[string]*termEntry{}, Webs: map[string]*webEntry{}, Statuses: map[string]proto.Status{}, Active: true, Focused: true,
 		Refs: map[string]*ui.Handle{}, Focus: map[string]string{}, Arrived: map[string]bool{}}
 	a.loadPrefs()
-	a.Settings = settings.Load()
-	remote.SetRelay(a.Settings.TailcatRelay)
+	a.settingsIn = settings.Load()
+	remote.SetRelay(a.settingsIn.TailcatRelay)
 	applied.Lock()
-	applied.s = a.Settings
+	applied.s = a.settingsIn
 	applied.Unlock()
 	a.Ss.problems = settings.Problems()
-	a.Applied = a.Settings.Clone()
+	a.Applied = a.settingsIn.Clone()
 	a.Selected = a.Prefs.Selected
 	a.Hosts = []*host.Host{{Conn: host.StateConnecting}}
 	return a
@@ -389,7 +390,7 @@ func (a *App) event(h *host.Host, cl *client.Client, m proto.Message) {
 		}
 		title := n.Title
 		if title == "" {
-			title = s.DisplayName(a.Settings.SessionName)
+			title = s.DisplayName(a.settingsIn.SessionName)
 		}
 		a.showNotification(n.Session, title, n.Body)
 	}
@@ -428,7 +429,7 @@ func (a *App) setState(h *host.Host, st proto.State) {
 		}
 	}
 	a.Files.Forget(func(id string) bool { return live[id] })
-	if a.Settings.SessionHistory {
+	if a.settingsIn.SessionHistory {
 		a.syncEnded()
 	} else {
 		for _, h := range a.Hosts {
@@ -482,7 +483,7 @@ func (a *App) showNotification(id, title, body string) {
 	if !mygo.NotificationsSupported() {
 		return
 	}
-	n := mygo.NewNotification(mygo.NotificationOptions{ID: "session/" + id, Group: id, Title: title, Body: body, Silent: !a.Settings.NotifySound})
+	n := mygo.NewNotification(mygo.NotificationOptions{ID: "session/" + id, Group: id, Title: title, Body: body, Silent: !a.settingsIn.NotifySound})
 	n.OnClick(func() {
 		a.update(func() {
 			a.selectSession(id)
@@ -509,17 +510,17 @@ func (a *App) notify(first bool) {
 		}
 		var title, body string
 		switch {
-		case s.Status == proto.Waiting && a.Settings.NotifyWaiting:
+		case s.Status == proto.Waiting && a.settingsIn.NotifyWaiting:
 			title, body = locales.NotifyNeedsYouTitle(a.hostedName(s)), s.Message
 			if body == "" {
 				body = locales.NotifyWaitingBody()
 			}
-		case s.Status == proto.Failed && a.Settings.NotifyFailed:
+		case s.Status == proto.Failed && a.settingsIn.NotifyFailed:
 			title, body = locales.NotifyFailedTitle(a.hostedName(s)), s.Message
 			if body == "" {
 				body = locales.NotifyFailedBody(s.PaneName())
 			}
-		case s.Status == proto.Idle && prev == proto.Working && s.Unread && a.Settings.NotifyDone && (s.Agent != "" || s.Message != ""):
+		case s.Status == proto.Idle && prev == proto.Working && s.Unread && a.settingsIn.NotifyDone && (s.Agent != "" || s.Message != ""):
 			title, body = locales.NotifyDoneTitle(a.hostedName(s)), s.Message
 			if body == "" {
 				body = locales.NotifyDoneBody(s.Agent, a.hostOf(s.ID).ShortDir(s.WorkDir()))
@@ -527,7 +528,7 @@ func (a *App) notify(first bool) {
 		default:
 			continue
 		}
-		if a.Settings.BounceDock && (s.Status == proto.Waiting || s.Status == proto.Failed) {
+		if a.settingsIn.BounceDock && (s.Status == proto.Waiting || s.Status == proto.Failed) {
 			mygo.App.Dock.Bounce(false)
 		}
 		a.showNotification(s.ID, title, body)
@@ -537,7 +538,7 @@ func (a *App) notify(first bool) {
 			delete(a.Statuses, id)
 		}
 	}
-	if !a.Settings.DockBadge {
+	if !a.settingsIn.DockBadge {
 		waiting = 0
 	}
 	mygo.App.SetBadgeCount(waiting)
@@ -1149,8 +1150,8 @@ func (a *App) watchReturn() {
 }
 
 func (a *App) termFont() terminal.Font {
-	f := terminal.Font{Family: a.termFamily(), Size: a.Settings.FontSize, Weight: a.Settings.FontWeight,
-		CellWidth: a.Settings.CellWidth, LineHeight: a.Settings.LineHeight, Thicken: a.Settings.Thicken}
+	f := terminal.Font{Family: a.termFamily(), Size: a.settingsIn.FontSize, Weight: a.settingsIn.FontWeight,
+		CellWidth: a.settingsIn.CellWidth, LineHeight: a.settingsIn.LineHeight, Thicken: a.settingsIn.Thicken}
 	f.Features = a.fontFeatures()
 	return f
 }
@@ -1160,14 +1161,14 @@ func (a *App) termFont() terminal.Font {
 // font-feature, which win over them for the tags they name.
 func (a *App) fontFeatures() []string {
 	var fs []string
-	if !a.Settings.Ligatures {
+	if !a.settingsIn.Ligatures {
 		for _, tag := range []string{"calt", "liga", "dlig"} {
-			if !slices.ContainsFunc(a.Settings.FontFeatures, func(f string) bool { return featureTag(f) == tag }) {
+			if !slices.ContainsFunc(a.settingsIn.FontFeatures, func(f string) bool { return featureTag(f) == tag }) {
 				fs = append(fs, "-"+tag)
 			}
 		}
 	}
-	return append(fs, a.Settings.FontFeatures...)
+	return append(fs, a.settingsIn.FontFeatures...)
 }
 
 // featureTag is the tag of a feature as terminal.Font takes it.
@@ -1203,7 +1204,7 @@ func (a *App) termThemes() (light, dark *terminal.Theme) {
 		}
 		return def
 	}
-	return pick(a.Settings.LightTheme, theme.LightTerm()), pick(a.Settings.DarkTheme, theme.DarkTerm())
+	return pick(a.settingsIn.LightTheme, theme.LightTerm()), pick(a.settingsIn.DarkTheme, theme.DarkTerm())
 }
 
 // commandKeys are the keys that, with ⌘ alone on a Mac, send the program a
@@ -1221,11 +1222,11 @@ func (a *App) termOptions(id string, conn *gated) terminal.Options {
 		Font:          a.termFont(),
 		Theme:         light,
 		DarkTheme:     dark,
-		Cursor:        map[string]terminal.CursorStyle{"block": terminal.CursorBlock, "bar": terminal.CursorBar, "underline": terminal.CursorUnderline}[a.Settings.Cursor],
-		NoBlink:       !a.Settings.CursorBlink,
-		OptionAsAlt:   a.Settings.OptionAsAlt,
-		ClipboardRead: map[string]terminal.ClipboardAccess{"ask": terminal.ClipboardAsk, "allow": terminal.ClipboardAllow, "deny": terminal.ClipboardDeny}[a.Settings.Clipboard],
-		RightClick:    map[string]terminal.RightClickAction{"menu": terminal.RightClickContextMenu, "paste": terminal.RightClickPaste, "copyOrPaste": terminal.RightClickCopyOrPaste}[a.Settings.RightClick],
+		Cursor:        map[string]terminal.CursorStyle{"block": terminal.CursorBlock, "bar": terminal.CursorBar, "underline": terminal.CursorUnderline}[a.settingsIn.Cursor],
+		NoBlink:       !a.settingsIn.CursorBlink,
+		OptionAsAlt:   a.settingsIn.OptionAsAlt,
+		ClipboardRead: map[string]terminal.ClipboardAccess{"ask": terminal.ClipboardAsk, "allow": terminal.ClipboardAllow, "deny": terminal.ClipboardDeny}[a.settingsIn.Clipboard],
+		RightClick:    map[string]terminal.RightClickAction{"menu": terminal.RightClickContextMenu, "paste": terminal.RightClickPaste, "copyOrPaste": terminal.RightClickCopyOrPaste}[a.settingsIn.RightClick],
 		// The pane's card shows under it, dimmed when the user is in
 		// another pane.
 		Transparent: true,
@@ -1235,11 +1236,11 @@ func (a *App) termOptions(id string, conn *gated) terminal.Options {
 		PaddingColor: terminal.PaddingExtend,
 		// Text a program colored for the other appearance, as a dark
 		// theme's light grays on a light one, stays legible.
-		MinimumContrast:  a.Settings.MinContrast,
-		ScrollMultiplier: terminal.ScrollMultiplier{Precision: a.Settings.ScrollPrecision, Discrete: a.Settings.ScrollDiscrete},
+		MinimumContrast:  a.settingsIn.MinContrast,
+		ScrollMultiplier: terminal.ScrollMultiplier{Precision: a.settingsIn.ScrollPrecision, Discrete: a.settingsIn.ScrollDiscrete},
 		// The scrollback-limit hylad's copy keeps, never the terminal's
 		// default, 10 MB, which would keep more here than there.
-		Scrollback: a.Settings.ScrollbackBytes(),
+		Scrollback: a.settingsIn.ScrollbackBytes(),
 		// Every terminal zooms together, and the size is remembered.
 		OnZoom: func(z terminal.Zoom) bool {
 			a.zoom(z.Steps, z.Reset)
@@ -1295,7 +1296,7 @@ func (a *App) termOptions(id string, conn *gated) terminal.Options {
 			}
 		},
 	}
-	if a.Settings.CopyOnSelect {
+	if a.settingsIn.CopyOnSelect {
 		o.CopyOnSelect = terminal.CopyOnSelectClipboard
 	}
 	return o
@@ -1352,12 +1353,12 @@ const claimRest = 150 * time.Millisecond
 // zoom makes every terminal's text bigger or smaller, which Settings
 // remembers as the font's size.
 func (a *App) zoom(steps int, reset bool) {
-	s := a.Settings
+	s := a.settingsIn
 	s.FontSize = min(max(s.FontSize+float32(steps), 8), 36)
 	if reset {
 		s.FontSize = settings.Default().FontSize
 	}
-	if s.FontSize != a.Settings.FontSize {
+	if s.FontSize != a.settingsIn.FontSize {
 		a.applySettings(s)
 	}
 }
@@ -1403,9 +1404,9 @@ func (a *App) apply(s settings.Settings, save bool) {
 		// reads as another, is one the app shows as saved.
 		s = settings.Load()
 	}
-	a.Settings, a.Applied = s, s.Clone()
+	a.settingsIn, a.Applied = s, s.Clone()
 	applied.Lock()
-	applied.s = a.Settings
+	applied.s = a.settingsIn
 	applied.Unlock()
 	font := old.FontFamily != s.FontFamily || old.FontFallback != s.FontFallback || old.FontSize != s.FontSize || old.FontWeight != s.FontWeight ||
 		old.CellWidth != s.CellWidth || old.LineHeight != s.LineHeight || old.Ligatures != s.Ligatures || old.Thicken != s.Thicken ||
@@ -1754,14 +1755,14 @@ func (a *App) newSessionOn(h *host.Host, projectID string) {
 	if cur := a.session(a.Selected); cur != nil && a.hostOf(cur.ID) == h {
 		if projectID == "" || cur.Project == projectID {
 			p.Project, p.After = cur.Project, cur.ID
-			if a.Settings.NewSessionDir == "current" {
+			if a.settingsIn.NewSessionDir == "current" {
 				p.Dir = cur.FocusPane().WorkDir()
 			}
 		}
 		p.Cols, p.Rows = cur.Cols, cur.Rows
 	}
 	home := proto.Home()
-	if a.Settings.NewSessionDir == "home" {
+	if a.settingsIn.NewSessionDir == "home" {
 		p.Dir = home
 	}
 	if p.Project == "" && len(a.projectsOf(h)) == 0 {
@@ -1897,8 +1898,8 @@ func (a *App) closeSession(id string, ask bool) {
 		a.askCloseWorktree(id)
 		return
 	}
-	if ask && a.Settings.ConfirmClose && busy(s) {
-		name := s.DisplayName(a.Settings.SessionName)
+	if ask && a.settingsIn.ConfirmClose && busy(s) {
+		name := s.DisplayName(a.settingsIn.SessionName)
 		a.Confirm = &confirmation{
 			open:    true,
 			title:   locales.ConfirmCloseTitle(name),
@@ -1964,14 +1965,14 @@ func (a *App) startRename(id string) {
 	if s == nil {
 		return
 	}
-	a.Renaming, a.RenamingProject, a.RenameBuf, a.RenameFrames = id, "", s.DisplayName(a.Settings.SessionName), 0
+	a.Renaming, a.RenamingProject, a.RenameBuf, a.RenameFrames = id, "", s.DisplayName(a.settingsIn.SessionName), 0
 }
 
 func (a *App) commitRename() {
 	id, name := a.Renaming, strings.TrimSpace(a.RenameBuf)
 	a.Renaming = ""
 	s := a.session(id)
-	if s == nil || name == s.DisplayName(a.Settings.SessionName) {
+	if s == nil || name == s.DisplayName(a.settingsIn.SessionName) {
 		a.focusTerminal()
 		return
 	}
@@ -2104,7 +2105,7 @@ func (a *App) toggleAllProjects() {
 // while a program runs, and closes nothing until the answer says so.
 func (a *App) quitRequested() bool {
 	a.savePrefs()
-	if !a.Settings.QuitEndsSessions || a.quitting {
+	if !a.settingsIn.QuitEndsSessions || a.quitting {
 		// A quit taken back before, or the one its answer makes: either
 		// way it is over.
 		a.quitting = false
@@ -2112,7 +2113,7 @@ func (a *App) quitRequested() bool {
 	}
 	busy := a.busyCount(a.local())
 	switch {
-	case busy > 0 && a.Settings.ConfirmClose:
+	case busy > 0 && a.settingsIn.ConfirmClose:
 		a.quitting = true
 		a.Confirm = &confirmation{
 			open:    true,

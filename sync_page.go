@@ -6,6 +6,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
+	"hyla/internal/ui/paints"
 	"hyla/internal/ui/style"
 	"hyla/internal/ui/theme"
 	"hyla/locales"
@@ -29,7 +30,7 @@ func (a *App) syncLine() string {
 	if at.IsZero() {
 		return locales.SetSyncNever()
 	}
-	when := ago(at.UnixMilli(), time.Now())
+	when := paints.Ago(at.UnixMilli(), time.Now())
 	if st.Action == "" {
 		return locales.SetSyncLast(when, orMachine(st.Cfg.Last.Host))
 	}

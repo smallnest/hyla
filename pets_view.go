@@ -19,10 +19,10 @@ import (
 // app has, then those hyla installed. It reads them once, and again when
 // a pet is installed, or another chosen.
 func (a *App) listPets() []pets.Builtin {
-	if a.PetList != nil && a.PetListFor == a.Settings.PetSet && a.PetListGen == petsGen {
+	if a.PetList != nil && a.PetListFor == a.settingsIn.PetSet && a.PetListGen == petsGen {
 		return a.PetList
 	}
-	a.PetList, a.PetListFor, a.PetListGen = a.readPets(), a.Settings.PetSet, petsGen
+	a.PetList, a.PetListFor, a.PetListGen = a.readPets(), a.settingsIn.PetSet, petsGen
 	return a.PetList
 }
 
@@ -65,23 +65,23 @@ func (a *App) readPets() []pets.Builtin {
 func (a *App) petChooser(c *ui.Context, pal *theme.Palette) {
 	ps := a.listPets()
 	names := make([]string, 1, len(ps)+1)
-	names[0] = a.Settings.PetSet
+	names[0] = a.settingsIn.PetSet
 	titles := make(map[string]string, len(ps))
 	for _, p := range ps {
 		titles[p.Name] = p.Title
-		if p.Name != a.Settings.PetSet {
+		if p.Name != a.settingsIn.PetSet {
 			names = append(names, p.Name)
 		}
 	}
-	t := a.Settings.PetSet
+	t := a.settingsIn.PetSet
 	controls.Popup(c, "pet-set", &t, names, func(n string) string {
 		if s, ok := titles[n]; ok {
 			return s
 		}
 		return n
 	}, 240, pal)
-	if t != a.Settings.PetSet {
-		setPet(&a.Settings, t)
+	if t != a.settingsIn.PetSet {
+		setPet(&a.settingsIn, t)
 	}
 }
 
@@ -94,12 +94,12 @@ func setPet(s *settings.Settings, name string) {
 // petGallery is the pet's setting's detail: what its description says,
 // or what went wrong with it.
 func (a *App) petGallery() string {
-	if a.Settings.PetSet == settings.PetSetHyla {
+	if a.settingsIn.PetSet == settings.PetSetHyla {
 		return ""
 	}
-	p, err := pets.NameID(a.Settings.PetSet)
+	p, err := pets.NameID(a.settingsIn.PetSet)
 	if err != nil {
-		return locales.SetPetMissing(a.Settings.PetSet, err.Error())
+		return locales.SetPetMissing(a.settingsIn.PetSet, err.Error())
 	}
 	desc := strings.TrimSpace(p.Description)
 	// A pet of the same name in both directories: say which one shows.

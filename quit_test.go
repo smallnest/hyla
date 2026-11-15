@@ -13,14 +13,14 @@ import (
 // sessions, asking first while a program runs.
 func TestQuitEndsSessions(t *testing.T) {
 	a := testApp(t)
-	if a.Settings.QuitEndsSessions {
+	if a.settingsIn.QuitEndsSessions {
 		t.Fatal("quit-ends-sessions is on by default")
 	}
 
 	// A shell alone: the quit is let through, to end the sessions as it
 	// goes, not to close the window and leave them.
 	a.local().Conn, a.local().Loaded = host.StateReady, true
-	a.Settings.QuitEndsSessions = true
+	a.settingsIn.QuitEndsSessions = true
 	if !a.quitRequested() {
 		t.Fatal("a quit of idle sessions was taken back")
 	}
@@ -28,7 +28,7 @@ func TestQuitEndsSessions(t *testing.T) {
 	// A program runs: the quit asks, and the question takes a click.
 	a = testApp(t)
 	a.local().Conn, a.local().Loaded = host.StateReady, true
-	a.Settings.QuitEndsSessions, a.St.Sessions[0].Process = true, "claude" // the sessions came
+	a.settingsIn.QuitEndsSessions, a.St.Sessions[0].Process = true, "claude" // the sessions came
 	if a.quitRequested() {
 		t.Fatal("a quit that ends a running program went ahead unasked")
 	}
@@ -65,7 +65,7 @@ func TestQuitAllQuestionCancel(t *testing.T) {
 	for _, answer := range []string{"click", "esc"} {
 		a := testApp(t)
 		a.local().Conn, a.local().Loaded = host.StateReady, true
-		a.Settings.QuitEndsSessions, a.St.Sessions[0].Process = true, "claude"
+		a.settingsIn.QuitEndsSessions, a.St.Sessions[0].Process = true, "claude"
 		if a.quitRequested() || a.Confirm == nil {
 			t.Fatalf("%s: the quit did not ask: %+v", answer, a.Confirm)
 		}
@@ -91,7 +91,7 @@ func TestQuitAllQuestionCancel(t *testing.T) {
 // its windows.
 func TestQuitEndsSessionsNotLoaded(t *testing.T) {
 	a := testApp(t)
-	a.Settings.QuitEndsSessions = true
+	a.settingsIn.QuitEndsSessions = true
 	if a.quitRequested() {
 		t.Fatal("a quit of sessions the app has not seen went ahead")
 	}
@@ -118,7 +118,7 @@ func TestQuitLeavesTheQuickTerminal(t *testing.T) {
 
 	a = testApp(t)
 	a.local().Conn, a.local().Loaded = host.StateReady, true
-	a.Settings.QuitEndsSessions, a.St.Sessions[0].Process = true, "claude"
+	a.settingsIn.QuitEndsSessions, a.St.Sessions[0].Process = true, "claude"
 	if a.quitRequested() {
 		t.Fatal("a quit that ends a program went ahead unasked")
 	}

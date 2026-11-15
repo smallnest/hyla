@@ -98,8 +98,8 @@ func runApp() {
 	mygo.Use(native.Plugin)
 	a := newApp()
 	loadFonts()
-	mygo.Theme.SetSource(mygo.ThemeSource(a.Settings.Appearance))
-	mygo.App.SetLocale(localeTag(a.Settings.Language))
+	mygo.Theme.SetSource(mygo.ThemeSource(a.settingsIn.Appearance))
+	mygo.App.SetLocale(localeTag(a.settingsIn.Language))
 	mygo.App.SetMenu(a.menu())
 	// Windows draw anew in another language; the menu and the titles,
 	// set once, are made again in it.
@@ -148,7 +148,7 @@ func runApp() {
 	})
 	// No Dock icon from the start for the menu bar alone.
 	if runtime.GOOS == "darwin" {
-		mygo.App.SetActivationPolicy(activationPolicy(a.Settings))
+		mygo.App.SetActivationPolicy(activationPolicy(a.settingsIn))
 	}
 	mygo.App.WhenReady(func() {
 		a.openWindow()
@@ -176,7 +176,7 @@ func (a *App) openWindow() {
 		MinWidth:  560,
 		MinHeight: 360,
 		StateKey:  "main",
-		Vibrancy:  vibrancyFor(a.Settings),
+		Vibrancy:  vibrancyFor(a.settingsIn),
 		Content:   ui.View(a.view),
 	}, topBar, barMid))
 	a.WinOpen = true

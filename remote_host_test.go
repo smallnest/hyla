@@ -197,7 +197,7 @@ func TestAddRemoteHost(t *testing.T) {
 	}
 	// A Tailcat machine comes as its pair code, or as the code a phone
 	// scans, and its port is the listener's; Tailcat off reaches none.
-	a.Settings.Tailcat = true
+	a.settingsIn.Tailcat = true
 	k, err := remote.NewTailcatKey()
 	if err != nil {
 		t.Fatal(err)

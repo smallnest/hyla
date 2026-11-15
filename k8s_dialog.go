@@ -391,7 +391,7 @@ func (a *App) k8sPodRow(c *ui.Context, pal *theme.Palette, i int) {
 	}
 	selected := s != nil && s.ID == a.Selected
 	inset := float32(rowInset)
-	detailed := a.Settings.SidebarRows != "compact"
+	detailed := a.settingsIn.SidebarRows != "compact"
 	height := float32(rowH)
 	if detailed {
 		height = rowH2
@@ -401,10 +401,10 @@ func (a *App) k8sPodRow(c *ui.Context, pal *theme.Palette, i int) {
 	bg := ui.Transparent
 	switch {
 	case selected:
-		bg = theme.TranslucentGlass(pal.RowSelected, pal, a.Settings)
+		bg = theme.TranslucentGlass(pal.RowSelected, pal, a.settingsIn)
 		style.Chosen(row, pal)
 	case row.Hovered():
-		bg = theme.TranslucentGlass(pal.RowHover, pal, a.Settings)
+		bg = theme.TranslucentGlass(pal.RowHover, pal, a.settingsIn)
 	}
 	row.Background(row.AnimateColor("bg", bg, ui.Animation{Duration: 110 * time.Millisecond}))
 	// The row is its pod's handle: dragged, it moves the pod to another

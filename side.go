@@ -241,7 +241,7 @@ func (a *App) sideEdge(c *ui.Context, pal *theme.Palette, row float32) {
 // tell that it touches the window's top and right edges, where its header
 // drags the window and holds the window's controls (windowControls).
 func (a *App) sidePanel(c *ui.Context, pal *theme.Palette, s *proto.Session, width float32, right bool) {
-	card := ui.Column(c.Key("side")).Width(width).Shrink(0).MinHeight(0).Radius(14).Clip().Background(theme.TranslucentGlass(pal.Card, pal, a.Settings)).
+	card := ui.Column(c.Key("side")).Width(width).Shrink(0).MinHeight(0).Radius(14).Clip().Background(theme.TranslucentGlass(pal.Card, pal, a.settingsIn)).
 		Focusable().Bind(a.paneRef("side-card"))
 	style.Raised(card, pal)
 	a.Side.focused = card.FocusWithin()
@@ -389,7 +389,7 @@ func gitStamp(g *proto.GitInfo) string {
 func (a *App) changesView(c *ui.Context, pal *theme.Palette, s *proto.Session, width float32) {
 	ch := &a.Side.changes
 	here, turn := a.changesPanes(s)
-	if !a.Settings.GitStatus {
+	if !a.settingsIn.GitStatus {
 		a.sideMessage(c, pal, locales.ChangesGitOff(), locales.ChangesGitOffDetail())
 		return
 	}
@@ -481,7 +481,7 @@ func (a *App) changesView(c *ui.Context, pal *theme.Palette, s *proto.Session, w
 				layoutIcon, layoutTip = glyph.SplitDown, locales.ChangesUnified()
 			}
 			iconButton(c, "layout", layoutIcon, layoutTip, pal, func() {
-				set := a.Settings
+				set := a.settingsIn
 				set.DiffLayout = "split"
 				if split {
 					set.DiffLayout = "unified"
@@ -554,7 +554,7 @@ func (a *App) changesView(c *ui.Context, pal *theme.Palette, s *proto.Session, w
 				if i+1 < len(rows) && rows[i+1].diff {
 					gap = 0
 				}
-				ui.Column(c).FillWidth().AlignItems(ui.Stretch).Padding(0, 0, gap, 0).Background(theme.TranslucentGlass(pal.Card, pal, a.Settings)).Children(func() {
+				ui.Column(c).FillWidth().AlignItems(ui.Stretch).Padding(0, 0, gap, 0).Background(theme.TranslucentGlass(pal.Card, pal, a.settingsIn)).Children(func() {
 					a.fileHeader(c, pal, scope, res.Root, r.f, func() {
 						// Folding it as the list pins it brings it back where
 						// it stays: at the top.
@@ -902,7 +902,7 @@ func replaceText(b *editor.Buffer, text string) {
 
 // diffSplit tells whether diffs show side by side in a panel this wide.
 func (a *App) diffSplit(width float32) bool {
-	switch a.Settings.DiffLayout {
+	switch a.settingsIn.DiffLayout {
 	case "split":
 		return true
 	case "unified":
@@ -917,7 +917,7 @@ func (a *App) diffSplit(width float32) bool {
 func (a *App) diffOptions(c *ui.Context, pal *theme.Palette, s *proto.Session, sf *sideFile, width float32) {
 	d := sf.d
 	d.FitContent = true
-	d.Font = ui.Font{Family: a.termFamily(), Size: max(a.Settings.FontSize-1, 10)}
+	d.Font = ui.Font{Family: a.termFamily(), Size: max(a.settingsIn.FontSize-1, 10)}
 	d.Theme = a.codeTheme(c, pal)
 	d.Layout = editor.DiffUnified
 	if a.diffSplit(width) {

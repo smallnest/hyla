@@ -115,13 +115,13 @@ func TestPetSpot(t *testing.T) {
 	a := testApp(t)
 	// The room a Codex pet takes above the edge at its default size: 1.5
 	// times the Codex app's 82 DIPs, and a little.
-	a.Settings.PetSize = settings.DefaultPetSize
+	a.settingsIn.PetSize = settings.DefaultPetSize
 	setH := petSetBodyH(a)
 	if setH != 123+8 {
 		t.Fatalf("petSetBodyH = %v, want %d", setH, 131)
 	}
 	for _, size := range []float32{0.5, 1, 1.5, 2, 3} {
-		a.Settings.PetSize = size
+		a.settingsIn.PetSize = size
 		if h := petSetBodyH(a); h != float32(math.Round(float64(82*size)))+8 {
 			t.Errorf("size %v: petSetBodyH = %v", size, h)
 		}
@@ -271,15 +271,15 @@ func TestPetToggleAction(t *testing.T) {
 		t.Fatal("no pet.toggle action, or no shortcut for it")
 	}
 	a := testApp(t)
-	if !a.Settings.Pet {
+	if !a.settingsIn.Pet {
 		t.Fatal("the pet starts off")
 	}
 	a.run("pet.toggle", nil)
-	if a.Settings.Pet || a.Applied.Pet {
+	if a.settingsIn.Pet || a.Applied.Pet {
 		t.Error("the action left the pet on")
 	}
 	a.run("pet.toggle", nil)
-	if !a.Settings.Pet || !a.Applied.Pet {
+	if !a.settingsIn.Pet || !a.Applied.Pet {
 		t.Error("the action did not turn the pet back on")
 	}
 }

@@ -120,7 +120,7 @@ func TestSidebarRejectsUnavailableDrops(t *testing.T) {
 		{"connecting", func(a *App) { a.local().Conn = host.StateConnecting }},
 		{"disconnected", func(a *App) { a.local().Conn = host.StateFailed }},
 		{"no client", func(a *App) { a.local().Client = nil }},
-		{"palette", func(a *App) { a.Pal.open = true }},
+		{"palette", func(a *App) { a.Pal.Open = true }},
 		{"folder picker", func(a *App) { a.Picker = folderPicker{open: true, host: a.local()} }},
 		{"only remote connected", func(a *App) {
 			h := &host.Host{Name: "remote", Conn: host.StateReady, Client: a.local().Client, Loaded: true}
@@ -407,7 +407,7 @@ func TestSessionHoverClose(t *testing.T) {
 		for _, selected := range []bool{false, true} {
 			t.Run(fmt.Sprintf("%s/selected=%t", mode, selected), func(t *testing.T) {
 				a := testApp(t)
-				a.Settings.SidebarRows, a.Settings.ConfirmClose = mode, true
+				a.settingsIn.SidebarRows, a.settingsIn.ConfirmClose = mode, true
 				other := a.St.Sessions[0]
 				other.ID, other.Name = "s2", "other session"
 				other.Panes = []proto.Pane{{ID: "c", Shell: "fish", Progress: -1}}
@@ -789,7 +789,7 @@ func TestPaletteOpensAddress(t *testing.T) {
 	if len(rows) < 2 || rows[0] != locales.PaletteOpenInBrowser() || rows[1] != "http://localhost:5173" {
 		t.Fatalf("the address is not the first item; rows %q", rows)
 	}
-	a.Pal.query = ""
+	a.Pal.Query = ""
 	tt.Frame()
 	tt.Type("web")
 	tt.Frame()
@@ -802,7 +802,7 @@ func TestPaletteOpensAddress(t *testing.T) {
 // a pane that comes under a pointer standing still does not.
 func TestFocusFollowsMouse(t *testing.T) {
 	a := testApp(t)
-	a.Settings.FocusFollowsMouse = true
+	a.settingsIn.FocusFollowsMouse = true
 	s := &a.St.Sessions[0]
 	tt := ui.NewTester(a.view, 1100, 640)
 	tt.Frame()
@@ -846,7 +846,7 @@ func TestFocusFollowsMouse(t *testing.T) {
 	}
 
 	// Off, the pointer leaves the focus be.
-	a.Settings.FocusFollowsMouse = false
+	a.settingsIn.FocusFollowsMouse = false
 	move(ar.X + 40)
 	move(br.X + 40)
 	if got := a.focusOf(s); got != "a" {
@@ -1338,7 +1338,7 @@ func TestSidebarRows(t *testing.T) {
 			t.Errorf("detailed rows have no %q; texts %q", want, tt.Texts())
 		}
 	}
-	a.Settings.SidebarRows = "compact"
+	a.settingsIn.SidebarRows = "compact"
 	tt.Frame()
 	shot(t, tt, "sidebar-rows-compact")
 	texts = strings.Join(tt.Texts(), "\n")
@@ -1394,7 +1394,7 @@ func TestSessionSwitchAnimates(t *testing.T) {
 func TestSessionSwitchStyles(t *testing.T) {
 	a := testApp(t)
 	for _, style := range settings.SessionSwitches {
-		a.Settings.SessionSwitch = style
+		a.settingsIn.SessionSwitch = style
 		sw := a.sessionSwitch()
 		if style == "none" {
 			if sw != switchNone || sw.transition().Duration >= 0 || sw.transition().Exit != nil {

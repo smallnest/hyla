@@ -53,7 +53,7 @@ func TestPaneGlassKeepsTheTerminal(t *testing.T) {
 		}
 		term.Feed([]byte("ready\r\n"))
 		a.Terms["a"], a.Terms["b"] = &termEntry{term: term}, &termEntry{}
-		a.Settings.PaneOpacity = opacity
+		a.settingsIn.PaneOpacity = opacity
 		tt := ui.NewTester(a.view, 1100, 640)
 		tt.Advance(time.Second)
 		tt.Frame()
@@ -138,13 +138,13 @@ func TestPanePicture(t *testing.T) {
 	// The card shows it in place of the window's background: a picture
 	// ready, and none when it comes or the user chose none.
 	a := testApp(t)
-	a.Settings.PaneImage, a.Settings.PaneImageOpacity = s.PaneImage, 1
-	a.PaneArt = sidebarArt{path: a.Settings.PaneImage, bm: ui.NewBitmap(pic)}
+	a.settingsIn.PaneImage, a.settingsIn.PaneImageOpacity = s.PaneImage, 1
+	a.PaneArt = sidebarArt{path: a.settingsIn.PaneImage, bm: ui.NewBitmap(pic)}
 	if p := a.paneBackground(pal, pal.Card, &a.St.Sessions[0].Panes[0]).(*wash.PanePicture); p.Bitmap == nil || p.Base != pal.Card {
 		t.Errorf("the pane's card: %#v", p)
 	}
 	// A window that is not translucent: the card's color alone.
-	a.Settings.PaneImage, a.Settings.Vibrancy = "", false
+	a.settingsIn.PaneImage, a.settingsIn.Vibrancy = "", false
 	if m := a.paneBackground(pal, pal.Card, &a.St.Sessions[0].Panes[0]); m != nil {
 		t.Errorf("no picture, and an opaque window: %T", m)
 	}

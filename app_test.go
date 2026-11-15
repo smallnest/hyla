@@ -227,7 +227,7 @@ func TestOpenProjectRemotePaths(t *testing.T) {
 func TestTermScrollback(t *testing.T) {
 	a := testApp(t)
 	for _, c := range []struct{ mb, want int }{{4, 4 << 20}, {16, 16 << 20}, {0, -1}} {
-		a.Settings.Scrollback = c.mb
+		a.settingsIn.Scrollback = c.mb
 		if got := a.termOptions("a", nil).Scrollback; got != c.want {
 			t.Errorf("scrollback-limit %d: the terminal keeps %d, want %d", c.mb, got, c.want)
 		}
@@ -250,7 +250,7 @@ func TestTermFontFeatures(t *testing.T) {
 		{false, []string{"+calt", "ss02"}, []string{"-liga", "-dlig", "+calt", "ss02"}, "liga=0,dlig=0,calt,ss02"},
 		{true, []string{"-calt"}, []string{"-calt"}, "calt=0"},
 	} {
-		a.Settings.Ligatures, a.Settings.FontFeatures = c.liga, c.user
+		a.settingsIn.Ligatures, a.settingsIn.FontFeatures = c.liga, c.user
 		got := a.termOptions("a", nil).Font.Features
 		if !slices.Equal(got, c.want) {
 			t.Errorf("ligatures %v, font-feature %q: the terminal has %q, want %q", c.liga, c.user, got, c.want)

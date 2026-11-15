@@ -63,7 +63,7 @@ func (a *App) applyGlobalShortcuts() {
 	want := ""
 	if a.Ss.recording == "" {
 		act, _ := actions.Find(quickAction)
-		want = actions.Keys(act, a.Settings.Shortcuts)
+		want = actions.Keys(act, a.settingsIn.Shortcuts)
 	}
 	if want == q.asked {
 		return

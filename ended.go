@@ -11,6 +11,7 @@ import (
 
 	"hyla/internal/cli"
 	"hyla/internal/proto"
+	"hyla/internal/ui/paints"
 	"hyla/internal/ui/theme"
 	"hyla/locales"
 
@@ -142,7 +143,7 @@ func (a *App) endedRow(c *ui.Context, pal *theme.Palette, h *host.Host, cv proto
 		row.Background(pal.RowHover)
 	}
 	if row.Clicked() {
-		a.resumeConversation(h, cv)
+		a.ResumeConversation(h, cv)
 	}
 	row.ContextMenu(func(m *ui.Menu) { a.endedMenu(m, h, cv) })
 	row.Children(func() {
@@ -162,7 +163,7 @@ func (a *App) endedRow(c *ui.Context, pal *theme.Palette, h *host.Host, cv proto
 				a.conversationCall(h, "conversation.archive", cv, nil)
 			})
 		} else {
-			ui.Text(c, ago(cv.Updated, now)).FontSize(12).TextColor(pal.TextFaint).SingleLine().Shrink(0)
+			ui.Text(c, paints.Ago(cv.Updated, now)).FontSize(12).TextColor(pal.TextFaint).SingleLine().Shrink(0)
 		}
 	})
 }
@@ -183,7 +184,7 @@ func (a *App) conversationCall(h *host.Host, method string, cv proto.Conversatio
 
 func (a *App) endedMenu(m *ui.Menu, h *host.Host, cv proto.Conversation) {
 	if m.Item(locales.EndedResume()).Chosen() {
-		a.resumeConversation(h, cv)
+		a.ResumeConversation(h, cv)
 	}
 	if cv.Archived {
 		if m.Item(locales.EndedRestore()).Chosen() {

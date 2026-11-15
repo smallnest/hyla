@@ -42,7 +42,7 @@ func TestBrowseRefuses(t *testing.T) {
 		t.Error("no page made for a pane never shown")
 	}
 	// Remote Control off, nothing the page does is let.
-	a.Settings.RemoteControl = false
+	a.settingsIn.RemoteControl = false
 	if err := ask(proto.BrowserRequest{Pane: "b", BrowserParams: proto.BrowserParams{Op: "text"}}); err == nil || !strings.Contains(err.Error(), "Remote Control") {
 		t.Errorf("with Remote Control off: %v", err)
 	}

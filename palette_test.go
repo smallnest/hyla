@@ -25,7 +25,7 @@ func TestPaletteKeywords(t *testing.T) {
 		"adblock":  locales.In("zh-Hans").PaletteSettingsPage(locales.In("zh-Hans").PageBrowser()),
 		"maximize": locales.In("zh-Hans").ActionZoomPane(),
 	} {
-		a.Pal.query = ""
+		a.Pal.Query = ""
 		tt.Frame()
 		tt.Type(query)
 		tt.Frame()
@@ -45,14 +45,14 @@ func TestPaletteScrolls(t *testing.T) {
 	tt := ui.NewTester(a.view, 1100, 900)
 	a.openPalette()
 	tt.Frame()
-	r, ok := tt.Find(a.paletteItems()[3].title)
+	r, ok := tt.Find(a.paletteItems()[3])
 	if !ok {
 		t.Fatalf("no commands shown; texts %q", tt.Texts())
 	}
 	tt.Scroll(r.X+20, r.Y, 0, 300)
 	tt.Frame()
 	tt.Frame()
-	if y := a.Pal.scroll.Y; y < 100 {
+	if y := a.Pal.Scroll.Y; y < 100 {
 		t.Errorf("the wheel scrolled the palette to %g, want 300", y)
 	}
 }

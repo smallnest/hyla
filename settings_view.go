@@ -129,7 +129,7 @@ func (a *App) openSettings(page string) {
 	a.SetWin = mygo.NewWindow(platform.Frame(mygo.WindowOptions{
 		Title: locales.SettingsTitle(), Width: 820, Height: 620, MinWidth: 700, MinHeight: 480,
 		StateKey: "settings",
-		Vibrancy: vibrancyFor(a.Settings),
+		Vibrancy: vibrancyFor(a.settingsIn),
 		Content:  ui.View(a.settingsView),
 	}, topBar, barMid))
 	a.SetWin.OnClosed(func() {
@@ -211,7 +211,7 @@ func (a *App) settingsView(c *ui.Context) {
 	found := a.searchSettings()
 	c.OnShortcut(ui.Cmd, ui.KeyF, func() { a.Ss.searchRef.Focus(c) })
 	row := ui.Row(c).Fill().AlignItems(ui.Stretch)
-	theme.Backdrop(c, pal, row, a.Settings)
+	theme.Backdrop(c, pal, row, a.settingsIn)
 	row.Children(func() {
 		// Under the traffic lights on macOS; elsewhere the search starts
 		// the sidebar, centered on barMid as the page's title and the
@@ -322,9 +322,9 @@ func (a *App) settingsView(c *ui.Context) {
 	if a.Ss.confirm != nil {
 		confirmDialog(c, pal, &a.Ss.confirm)
 	}
-	// The controls edit a.Settings: what changed applies, and saves.
-	if !reflect.DeepEqual(a.Settings, a.Applied) {
-		a.applySettings(a.Settings)
+	// The controls edit a.settingsIn: what changed applies, and saves.
+	if !reflect.DeepEqual(a.settingsIn, a.Applied) {
+		a.applySettings(a.settingsIn)
 	}
 }
 
@@ -332,7 +332,7 @@ func (a *App) settingsView(c *ui.Context) {
 // finds, when the page shown has none, and sets what the pages highlight.
 // It returns what searchResults does.
 func (a *App) searchSettings() map[string][]string {
-	found := searchResults(a.Ss.query, a.Settings.Shortcuts)
+	found := searchResults(a.Ss.query, a.settingsIn.Shortcuts)
 	searchHits, searchReveal = nil, ""
 	if found == nil {
 		a.Ss.revealed = ""
@@ -503,7 +503,7 @@ func segmented(c *ui.Context, key string, value *string, ids, labels []string) {
 }
 
 func (a *App) generalPage(c *ui.Context, pal *theme.Palette) {
-	s := &a.Settings
+	s := &a.settingsIn
 	settingsGroup(c, pal, locales.SetSessions(), locales.SetSessionsDetail(a.tip(strings.TrimSuffix(actionTitle("app.quitAll"), "…"), "app.quitAll")), func() {
 		settingRow(c, pal, locales.SetNewSessionsStartIn(), "", func() {
 			segmented(c, "newdir", &s.NewSessionDir, []string{"current", "project", "home"}, []string{locales.SetDirCurrent(), locales.SetDirProject(), locales.SetDirHome()})
@@ -569,7 +569,7 @@ func (a *App) generalPage(c *ui.Context, pal *theme.Palette) {
 
 // browserPage is Settings › Browser: what browser panes block.
 func (a *App) browserPage(c *ui.Context, pal *theme.Palette) {
-	s := &a.Settings
+	s := &a.settingsIn
 	lists := ""
 	if s.BlockAds {
 		lists = locales.SetAdListsNote()
@@ -678,7 +678,7 @@ func materialName(id string) string {
 }
 
 func (a *App) appearancePage(c *ui.Context, pal *theme.Palette) {
-	s := &a.Settings
+	s := &a.settingsIn
 	settingsGroup(c, pal, "", "", func() {
 		settingRow(c, pal, locales.SetAppearance(), "", func() {
 			segmented(c, "appearance", &s.Appearance, []string{"system", "light", "dark"}, []string{locales.SetThemeSystem(), locales.SetThemeLight(), locales.SetThemeDark()})
@@ -861,16 +861,16 @@ func backgroundName(id, name string) string {
 
 // backgroundTile previews a wash, choosing it on a click.
 func (a *App) backgroundTile(c *ui.Context, pal *theme.Palette, id, name string) {
-	sel := a.Settings.Background == id
+	sel := a.settingsIn.Background == id
 	tile := ui.ButtonBase(c.Key("bg-" + id)).Column().Width(104).Gap(8).AlignItems(ui.Stretch).Label(name)
 	if tile.Clicked() {
-		a.Settings.Background = id
+		a.settingsIn.Background = id
 		if id == "dock" {
 			// The Dock's is Liquid Glass under a thin veil: choose it, and
 			// let the veil show where the wash covered nothing at all.
-			a.Settings.WindowMaterial = "glass"
-			if a.Settings.WindowOpacity < 0.2 {
-				a.Settings.WindowOpacity = 0.45
+			a.settingsIn.WindowMaterial = "glass"
+			if a.settingsIn.WindowOpacity < 0.2 {
+				a.settingsIn.WindowOpacity = 0.45
 			}
 		}
 	}
@@ -942,7 +942,7 @@ var otherFonts = sync.OnceValue(func() []string {
 })
 
 func (a *App) terminalPage(c *ui.Context, pal *theme.Palette) {
-	s := &a.Settings
+	s := &a.settingsIn
 	a.terminalPreview(c, pal)
 	settingsGroup(c, pal, locales.SetText(), "", func() {
 		settingRow(c, pal, locales.SetFont(), locales.SetFontDetail(), func() {
@@ -966,7 +966,7 @@ func (a *App) terminalPage(c *ui.Context, pal *theme.Palette) {
 				case locales.SetFontSystem():
 					v = "monospace"
 				}
-				a.Settings.FontFamily = v
+				a.settingsIn.FontFamily = v
 			})
 		})
 		settingsGroup(c, pal, "", locales.SetFontFallbackDetail(), func() {
@@ -982,7 +982,7 @@ func (a *App) terminalPage(c *ui.Context, pal *theme.Palette) {
 		})
 		settingRow(c, pal, locales.SetLineHeight(), "", func() {
 			v := float64(s.LineHeight)
-			controls.Slider(c, "lh", &v, 1, 2, 160, pal).OnChange(func() { a.Settings.LineHeight = float32(int(v*100+0.5)) / 100 })
+			controls.Slider(c, "lh", &v, 1, 2, 160, pal).OnChange(func() { a.settingsIn.LineHeight = float32(int(v*100+0.5)) / 100 })
 			ui.Textf(c, "%.2f×", s.LineHeight).FontSize(12.5).TextColor(pal.TextMuted).Width(40).FontFeatures("tnum")
 		})
 		settingRow(c, pal, locales.SetWeight(), "", func() {
@@ -1007,10 +1007,10 @@ func (a *App) terminalPage(c *ui.Context, pal *theme.Palette) {
 	themes := append([]string{"hyla"}, terminal.GhosttyThemes()...)
 	settingsGroup(c, pal, locales.SetColors(), locales.SetColorsDetail(), func() {
 		settingRow(c, pal, locales.SetLightWindows(), "", func() {
-			controls.SearchPopup(c, &a.Ss.menus, "light", s.LightTheme, themes, 240, nil, pal, func(v string) { a.Settings.LightTheme = v })
+			controls.SearchPopup(c, &a.Ss.menus, "light", s.LightTheme, themes, 240, nil, pal, func(v string) { a.settingsIn.LightTheme = v })
 		})
 		settingRow(c, pal, locales.SetDarkWindows(), "", func() {
-			controls.SearchPopup(c, &a.Ss.menus, "dark", s.DarkTheme, themes, 240, nil, pal, func(v string) { a.Settings.DarkTheme = v })
+			controls.SearchPopup(c, &a.Ss.menus, "dark", s.DarkTheme, themes, 240, nil, pal, func(v string) { a.settingsIn.DarkTheme = v })
 		})
 		settingRow(c, pal, locales.SetDimUnfocused(), locales.SetDimUnfocusedDetail(), func() {
 			style.Toggle(c.Key("dim-unfocused"), &s.DimUnfocused, pal)
@@ -1071,7 +1071,7 @@ func (a *App) terminalPage(c *ui.Context, pal *theme.Palette) {
 		})
 		settingRow(c, pal, locales.SetTrackpadScroll(), locales.SetTrackpadScrollDetail(), func() {
 			v := float64(s.ScrollPrecision)
-			controls.Slider(c, "trackpad", &v, 0.25, 3, 160, pal).OnChange(func() { a.Settings.ScrollPrecision = float32(int(v*20+0.5)) / 20 })
+			controls.Slider(c, "trackpad", &v, 0.25, 3, 160, pal).OnChange(func() { a.settingsIn.ScrollPrecision = float32(int(v*20+0.5)) / 20 })
 			ui.Textf(c, "%.2f×", s.ScrollPrecision).FontSize(12.5).TextColor(pal.TextMuted).Width(40).FontFeatures("tnum")
 		})
 	})
@@ -1091,9 +1091,9 @@ func (a *App) terminalPreview(c *ui.Context, pal *theme.Palette) {
 		// weight and features: another family shapes the lines with its own
 		// advances, and the preview keeps no cell width of its own.
 		for i := range spans {
-			spans[i].Size, spans[i].Weight, spans[i].Features = a.Settings.FontSize, a.Settings.FontWeight, features
+			spans[i].Size, spans[i].Weight, spans[i].Features = a.settingsIn.FontSize, a.settingsIn.FontWeight, features
 		}
-		ui.RichText(c, spans...).LineHeight(a.Settings.LineHeight).SingleLine()
+		ui.RichText(c, spans...).LineHeight(a.settingsIn.LineHeight).SingleLine()
 	}
 	box := style.Raised(ui.Column(c).Radius(12).Padding(16, 18).Gap(0).Background(th.Background), pal)
 	box.Children(func() {
@@ -1123,7 +1123,7 @@ func (a *App) fontFallbackField(c *ui.Context, pal *theme.Palette) {
 			ui.Textf(c, "%d", at+1).FontSize(12).TextColor(pal.TextFaint).Width(14).FontFeatures("tnum").Shrink(0)
 			ui.Text(c, family).FontSize(13).TextColor(pal.Text).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1).Grow(1)
 			iconButton(c, "fb-x-"+family, glyph.Close, locales.CommonRemove(), pal, func() {
-				a.Settings.FontFallback = strings.Join(slices.Delete(slices.Clone(cur), at, at+1), ", ")
+				a.settingsIn.FontFallback = strings.Join(slices.Delete(slices.Clone(cur), at, at+1), ", ")
 			})
 		})
 	}
@@ -1189,7 +1189,7 @@ func cjkFamily(name string) bool {
 // can't is left in the field, marked, for the user to fix.
 func (a *App) fontFeaturesField(c *ui.Context, pal *theme.Palette) {
 	if !a.Ss.featuresEditing {
-		a.Ss.featuresDraft = strings.Join(a.Settings.FontFeatures, ", ")
+		a.Ss.featuresDraft = strings.Join(a.settingsIn.FontFeatures, ", ")
 	}
 	in := controls.TextField(c, "features", &a.Ss.featuresDraft, "ss01, cv05=2, -calt", 200, pal).Font("monospace")
 	a.Ss.featuresEditing = in.Focused()
@@ -1198,8 +1198,8 @@ func (a *App) fontFeaturesField(c *ui.Context, pal *theme.Palette) {
 		in.TextColor(pal.Danger)
 	}
 	keep := func() {
-		if fs, err := settings.ParseFontFeatures(a.Ss.featuresDraft); err == nil && !slices.Equal(fs, a.Settings.FontFeatures) {
-			a.Settings.FontFeatures = fs
+		if fs, err := settings.ParseFontFeatures(a.Ss.featuresDraft); err == nil && !slices.Equal(fs, a.settingsIn.FontFeatures) {
+			a.settingsIn.FontFeatures = fs
 		}
 	}
 	in.OnSubmit(keep)
@@ -1209,7 +1209,7 @@ func (a *App) fontFeaturesField(c *ui.Context, pal *theme.Palette) {
 }
 
 func (a *App) shellPage(c *ui.Context, pal *theme.Palette) {
-	s := &a.Settings
+	s := &a.settingsIn
 	login := shell.Login()
 	note := locales.SetShellGroupDetail()
 	if len(a.Hosts) > 1 {
@@ -1223,9 +1223,9 @@ func (a *App) shellPage(c *ui.Context, pal *theme.Palette) {
 			in := controls.TextField(c, "shell", &a.Ss.shellDraft, proto.ShortDir(login), 220, pal)
 			a.Ss.shellEditing = in.Focused()
 			// Kept as it is submitted, or as the field loses the focus.
-			in.OnSubmit(func() { a.Settings.Shell = strings.TrimSpace(a.Ss.shellDraft) })
+			in.OnSubmit(func() { a.settingsIn.Shell = strings.TrimSpace(a.Ss.shellDraft) })
 			if !a.Ss.shellEditing && strings.TrimSpace(a.Ss.shellDraft) != s.Shell {
-				a.Settings.Shell = strings.TrimSpace(a.Ss.shellDraft)
+				a.settingsIn.Shell = strings.TrimSpace(a.Ss.shellDraft)
 			}
 		})
 		settingRow(c, pal, locales.SetScrollback(), locales.SetScrollbackDetail(), func() {
@@ -1249,14 +1249,14 @@ func (a *App) shellPage(c *ui.Context, pal *theme.Palette) {
 				ui.Text(c, v).Font("monospace").FontSize(12.5).TextColor(pal.TextMuted).Grow(1).SingleLine().Ellipsis("…").MinWidth(0)
 				idx := i
 				iconButton(c, "rm", glyph.Close, locales.CommonRemove(), pal, func() {
-					a.Settings.Env = slices.Delete(slices.Clone(a.Settings.Env), idx, idx+1)
+					a.settingsIn.Env = slices.Delete(slices.Clone(a.settingsIn.Env), idx, idx+1)
 				})
 			})
 		}
 		ui.Row(c).Padding(8, 0).Gap(8).AlignItems(ui.Center).Children(func() {
 			addEnv := func() {
 				if kv := strings.TrimSpace(a.Ss.envDraft); strings.Contains(kv, "=") {
-					a.Settings.Env = append(slices.Clone(a.Settings.Env), kv)
+					a.settingsIn.Env = append(slices.Clone(a.settingsIn.Env), kv)
 					a.Ss.envDraft = ""
 				}
 			}
@@ -1269,7 +1269,7 @@ func (a *App) shellPage(c *ui.Context, pal *theme.Palette) {
 }
 
 func (a *App) notificationsPage(c *ui.Context, pal *theme.Palette) {
-	s := &a.Settings
+	s := &a.settingsIn
 	note := ""
 	if !mygo.NotificationsSupported() {
 		note = locales.SetNotifyUnpackaged()
@@ -1306,7 +1306,7 @@ func (a *App) notificationsPage(c *ui.Context, pal *theme.Palette) {
 }
 
 func (a *App) agentsPage(c *ui.Context, pal *theme.Palette) {
-	s := &a.Settings
+	s := &a.settingsIn
 	settingsGroup(c, pal, locales.SetRemoteControl(), "", func() {
 		settingRow(c, pal, locales.SetRemoteControlRow(), locales.SetRemoteControlDetail(), func() {
 			style.Toggle(c.Key("remote"), &s.RemoteControl, pal)
@@ -1419,7 +1419,7 @@ func (a *App) advancedPage(c *ui.Context, pal *theme.Palette) {
 // there is none yet, so that there is a file to open.
 func (a *App) ensureConfig() {
 	if _, err := os.Stat(settings.Path()); err != nil {
-		settings.Save(a.Settings)
+		settings.Save(a.settingsIn)
 	}
 }
 
@@ -1437,8 +1437,8 @@ func (a *App) toastIn(c *ui.Context, msg string) { c.Toast(msg) }
 func (a *App) keyboardPage(c *ui.Context, pal *theme.Palette) {
 	ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
 		controls.TextField(c, "kb-search", &a.Ss.filter, locales.SetKeyboardSearch(), 0, pal)
-		if len(a.Settings.Shortcuts) > 0 && style.Button(c, "kb-reset", locales.SetRestoreDefaults(), "", false, pal) {
-			a.Settings.Shortcuts = nil
+		if len(a.settingsIn.Shortcuts) > 0 && style.Button(c, "kb-reset", locales.SetRestoreDefaults(), "", false, pal) {
+			a.settingsIn.Shortcuts = nil
 			a.Ss.notice = ""
 		}
 	})
@@ -1450,7 +1450,7 @@ func (a *App) keyboardPage(c *ui.Context, pal *theme.Palette) {
 	for _, menu := range menus {
 		var acts []actions.Action
 		for _, act := range actions.All {
-			keys := actions.Glyphs(actions.Keys(act, a.Settings.Shortcuts))
+			keys := actions.Glyphs(actions.Keys(act, a.settingsIn.Shortcuts))
 			found := q == "" || strings.Contains(strings.ToLower(actionTitle(act.ID)), q) || strings.Contains(strings.ToLower(act.Title), q) || strings.Contains(strings.ToLower(keys), q) || strings.Contains(act.ID, q)
 			if searchHits != nil {
 				found = found && searchHits[strings.TrimSuffix(actionTitle(act.ID), "…")]
@@ -1473,8 +1473,8 @@ func (a *App) keyboardPage(c *ui.Context, pal *theme.Palette) {
 }
 
 func (a *App) shortcutRow(c *ui.Context, pal *theme.Palette, act actions.Action) {
-	keys := actions.Keys(act, a.Settings.Shortcuts)
-	_, custom := a.Settings.Shortcuts[act.ID]
+	keys := actions.Keys(act, a.settingsIn.Shortcuts)
+	_, custom := a.settingsIn.Shortcuts[act.ID]
 	ui.Row(c.Key(act.ID)).Padding(7, 0).Gap(10).AlignItems(ui.Center).Children(func() {
 		ui.Column(c).Grow(1).Gap(2).Children(func() {
 			ui.Text(c, strings.TrimSuffix(actionTitle(act.ID), "…")).FontSize(13.5).TextColor(pal.Text).SingleLine()
@@ -1489,9 +1489,9 @@ func (a *App) shortcutRow(c *ui.Context, pal *theme.Palette, act actions.Action)
 			}
 			b.Children(func() { ui.Icon(c, glyph.Return).Size(12, 12) })
 			if b.Clicked() {
-				delete(a.Settings.Shortcuts, act.ID)
-				if len(a.Settings.Shortcuts) == 0 {
-					a.Settings.Shortcuts = nil
+				delete(a.settingsIn.Shortcuts, act.ID)
+				if len(a.settingsIn.Shortcuts) == 0 {
+					a.settingsIn.Shortcuts = nil
 				}
 			}
 		}
@@ -1601,7 +1601,7 @@ func (a *App) recordKey(act actions.Action, mods ui.Modifiers, key ui.Key) bool 
 // them.
 func (a *App) setShortcut(id, accel string) {
 	sc := map[string]string{}
-	for k, v := range a.Settings.Shortcuts {
+	for k, v := range a.settingsIn.Shortcuts {
 		sc[k] = v
 	}
 	a.Ss.notice = ""
@@ -1622,7 +1622,7 @@ func (a *App) setShortcut(id, accel string) {
 	if len(sc) == 0 {
 		sc = nil
 	}
-	a.Settings.Shortcuts = sc
+	a.settingsIn.Shortcuts = sc
 }
 
 // keyNames are the keys a shortcut takes, by their accelerator names.

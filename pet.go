@@ -82,9 +82,9 @@ func (a *App) syncPet() {
 		return
 	}
 	switch {
-	case a.Settings.Pet && a.Pet.win == nil:
+	case a.settingsIn.Pet && a.Pet.win == nil:
 		a.petShow()
-	case !a.Settings.Pet && a.Pet.win != nil:
+	case !a.settingsIn.Pet && a.Pet.win != nil:
 		a.petClose()
 	}
 }
@@ -186,7 +186,7 @@ func (a *App) petPlace() {
 	}
 	b := a.Win.Bounds()
 	d := mygo.Screen.DisplayNearestPoint(mygo.Point{X: b.X + b.Width, Y: b.Y})
-	r, _ := petspot.Spot(b, d.WorkArea, a.Settings.PetOffset, petSetBodyH(a), petSetHead(a))
+	r, _ := petspot.Spot(b, d.WorkArea, a.settingsIn.PetOffset, petSetBodyH(a), petSetHead(a))
 	was := p.win.Bounds()
 	if was != r {
 		p.win.SetBounds(r)
@@ -512,7 +512,7 @@ func (a *App) petDragTo(left float32) {
 	}
 	off := petspot.OffsetAt(a.Win.Bounds(), left)
 	off = float32(math.Round(float64(off)*1000)) / 1000
-	a.Settings.PetOffset = off
+	a.settingsIn.PetOffset = off
 	a.petPlace()
 }
 
@@ -521,7 +521,7 @@ func (a *App) petDrop() {
 	if a.Pet.win == nil {
 		return
 	}
-	a.applySettings(a.Settings)
+	a.applySettings(a.settingsIn)
 }
 
 // abs is a float's magnitude.

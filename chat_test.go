@@ -145,7 +145,7 @@ func chatApp(t *testing.T) (*App, *fakeHylad) {
 	}
 	t.Setenv("HYLA_CONFIG", path)
 	set := settings.Load()
-	a.Settings.Feishu = set.Feishu
+	a.settingsIn.Feishu = set.Feishu
 	f := &fakeHylad{a: a}
 	f.feed = proto.FeishuFeed{ID: "s1", Chat: "oc_1", Name: "Hyla bot", Host: "mac", Pane: "a", Agent: "claude", Lines: []proto.FeishuLine{
 		{Kind: "note", Text: "Fix the build"},

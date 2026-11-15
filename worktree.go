@@ -38,7 +38,7 @@ func (a *App) newWorktreeSession() {
 		p.Project, p.After, p.Dir = cur.Project, cur.ID, cur.FocusPane().WorkDir()
 		p.Cols, p.Rows = cur.Cols, cur.Rows
 	}
-	if a.Settings.WorktreeBase == "current" {
+	if a.settingsIn.WorktreeBase == "current" {
 		p.Base = "HEAD"
 	}
 	a.WtAsk = &worktreeAsk{open: true, host: h, p: p}
@@ -96,7 +96,7 @@ func (a *App) askCloseWorktree(id string) {
 	if s == nil || cl == nil {
 		return
 	}
-	name := s.DisplayName(a.Settings.SessionName)
+	name := s.DisplayName(a.settingsIn.SessionName)
 	go func() {
 		var wc proto.WorktreeCheck
 		err := cl.Call("worktree.check", proto.IDParams{ID: id}, &wc)

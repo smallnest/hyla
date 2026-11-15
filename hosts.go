@@ -245,13 +245,13 @@ func (a *App) remoteControl(h *host.Host) bool {
 	if settings.Load().Feishu != nil && settings.Load().Feishu.App != "" {
 		return true
 	}
-	return a.Settings.RemoteControl
+	return a.settingsIn.RemoteControl
 }
 
 // hostedName is a session's name, as a notification and the window's
 // title say it.
 func (a *App) hostedName(s *proto.Session) string {
-	name := s.DisplayName(a.Settings.SessionName)
+	name := s.DisplayName(a.settingsIn.SessionName)
 	if h := a.hostOf(s.ID); h.Remote() {
 		return name + " · " + h.Name
 	}

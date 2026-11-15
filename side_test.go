@@ -181,7 +181,7 @@ func TestChangesInPalette(t *testing.T) {
 	for _, q := range []string{"", "toggle changes", "git", "diff"} {
 		a := testApp(t)
 		a.openPalette()
-		a.Pal.query = q
+		a.Pal.Query = q
 		tt := ui.NewTester(a.view, 1100, 2000)
 		tt.Frame()
 		if !tt.HasText("Toggle Changes") {
@@ -190,7 +190,7 @@ func TestChangesInPalette(t *testing.T) {
 	}
 	a := testApp(t)
 	a.openPalette()
-	a.Pal.query = "git"
+	a.Pal.Query = "git"
 	tt := ui.NewTester(a.view, 1100, 720)
 	tt.Frame()
 	tt.Key(0, ui.KeyEnter)

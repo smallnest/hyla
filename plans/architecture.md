@@ -89,6 +89,13 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     titles stay in the root, as the views do. A worktree's git state in
     words is `internal/app/gitinfo`; the palette's and the picker's
     scoring is `internal/ui/fuzzy`.
+  - Also: the command palette is `internal/ui/palette` — its state, the
+    items it finds (sessions, conversations, the actions, the pages and
+    the restart), and its view, which take an `App` interface of what
+    they ask. What they draw of a session — its status icon, a
+    shortcut's keys and how long ago a time was — is `internal/ui/paints`,
+    which the sidebar and the panes read too. The confirmation and the
+    window's shortcuts stay in the root.
   - Also: `host` is `internal/app/host`.Host — one hylad's address, its
     connection's state and error, what it holds, and the dialers — which
     the views read directly, as the root's field was. Its fields are

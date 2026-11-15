@@ -11,6 +11,8 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/ui/theme"
 
+	"hyla/internal/ui/paints"
+
 	"hyla/internal/ui/style"
 	"hyla/locales"
 
@@ -299,7 +301,7 @@ func (a *App) paneCard(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown
 	bg := pal.Card
 	// A browser's page stays opaque, so its toolbar does too, and neither
 	// fades: a page is read, not typed into, from beside it.
-	if multi && !focused && !p.Shown() && a.Settings.DimUnfocused {
+	if multi && !focused && !p.Shown() && a.settingsIn.DimUnfocused {
 		bg = pal.CardDim
 	}
 	card := ui.Column(c.Key("pane-" + p.ID)).Grow(1).Basis(0).MinWidth(0).MinHeight(0).Radius(14).Clip().Bind(a.paneRef("card-" + p.ID))
@@ -324,7 +326,7 @@ func (a *App) paneCard(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown
 	if chat {
 		card.Background(bgNow)
 	}
-	if a.Settings.FocusFollowsMouse && multi {
+	if a.settingsIn.FocusFollowsMouse && multi {
 		a.followMouse(c, s, p, card, hovered, focused)
 	}
 	// The card takes presses: one on its padding, beside the terminal,
@@ -378,7 +380,7 @@ func (a *App) paneCard(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown
 				a.paneTerminal(c, pal, s, p)
 			}
 		}
-		if multi && !p.Shown() && a.Settings.DimUnfocused {
+		if multi && !p.Shown() && a.settingsIn.DimUnfocused {
 			// The terminals the user is not in fade, text and all.
 			v := ui.Box(c.Key("veil")).Absolute().Top(0).Left(0).Right(0).Bottom(0).PassThrough().Background(pal.Veil)
 			v.Opacity(v.Animate("on", b2f(!focused), 160*time.Millisecond))
@@ -416,13 +418,13 @@ func (a *App) paneBackground(pal *theme.Palette, bg ui.Color, p *proto.Pane) ui.
 	if p.Browser() || p.FilePane() {
 		return nil
 	}
-	if a.Settings.PaneImage != "" {
-		if a.PaneArt.path != a.Settings.PaneImage {
-			a.loadPaneArt(a.Settings.PaneImage)
+	if a.settingsIn.PaneImage != "" {
+		if a.PaneArt.path != a.settingsIn.PaneImage {
+			a.loadPaneArt(a.settingsIn.PaneImage)
 		}
-		return theme.PaneGlass(pal, a.Settings, a.PaneArt.bm, &bg)
+		return theme.PaneGlass(pal, a.settingsIn, a.PaneArt.bm, &bg)
 	}
-	return theme.PaneGlass(pal, a.Settings, nil, nil)
+	return theme.PaneGlass(pal, a.settingsIn, nil, nil)
 }
 
 // followMouse focuses the pane the pointer moves into. Only the pointer
@@ -614,14 +616,14 @@ func (a *App) paneHeader(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, sho
 		grip.Children(func() {
 			if multi {
 				if p.Status != proto.Idle || p.Unread {
-					statusIconP(c, pal, p.Status, p.Unread, p.Progress, 13)
+					paints.StatusP(c, pal, p.Status, p.Unread, p.Progress, 13)
 				} else {
 					ui.Icon(c, glyph.ProgramIcon(p)).Size(14, 14).TextColor(pal.TextFaint)
 				}
 			}
 			title, size := p.PaneName(), float32(13.5)
 			if !multi {
-				title, size = s.DisplayName(a.Settings.SessionName), 14
+				title, size = s.DisplayName(a.settingsIn.SessionName), 14
 			}
 			name := ui.Text(c, title).FontSize(size).FontWeight(600).TextColor(pal.Text).SingleLine().Ellipsis("…").Shrink(1).MinWidth(30)
 			if multi && !focused && !dragging {
@@ -699,7 +701,7 @@ func (a *App) paneControls(c *ui.Context, pal *theme.Palette, s *proto.Session, 
 
 // feishuOn tells that an app of Feishu is configured, whose chats the
 // panes show (chat.go).
-func (a *App) feishuOn() bool { return a.Settings.Feishu != nil && a.Settings.Feishu.App != "" }
+func (a *App) feishuOn() bool { return a.settingsIn.Feishu != nil && a.settingsIn.Feishu.App != "" }
 
 // showPaneChat shows the focused pane's chat in its terminal's place:
 // the window shows the pane alone, so that the chat has its place.
@@ -740,16 +742,16 @@ func (a *App) paneChips(c *ui.Context, pal *theme.Palette, p *proto.Pane, icon b
 		}
 		chip(c, pal, pal.AttnSoft, pal.Attention, func() {
 			if icon {
-				statusIcon(c, pal, p.Status, p.Unread, 11)
+				paints.Status(c, pal, p.Status, p.Unread, 11)
 			}
 			ui.Text(c, msg).FontSize(12).FontWeight(500).SingleLine().Ellipsis("…").MaxWidth(320)
 		})
 	case proto.Working:
 		chip(c, pal, pal.Chip, pal.TextMuted, func() {
 			if icon {
-				statusIconP(c, pal, p.Status, false, p.Progress, 11)
+				paints.StatusP(c, pal, p.Status, false, p.Progress, 11)
 			}
-			label := ago(p.Since, c.Now())
+			label := paints.Ago(p.Since, c.Now())
 			if p.Progress >= 0 {
 				label = itoa(p.Progress) + "%"
 			}
@@ -761,7 +763,7 @@ func (a *App) paneChips(c *ui.Context, pal *theme.Palette, p *proto.Pane, icon b
 	case proto.Failed:
 		chip(c, pal, pal.Danger.Alpha(0.1), pal.Danger, func() {
 			if icon {
-				statusIcon(c, pal, p.Status, true, 11)
+				paints.Status(c, pal, p.Status, true, 11)
 			}
 			msg := p.Message
 			if msg == "" {
@@ -780,7 +782,7 @@ func (a *App) paneChips(c *ui.Context, pal *theme.Palette, p *proto.Pane, icon b
 		if p.Message != "" {
 			chip(c, pal, pal.Chip, pal.TextMuted, func() {
 				if icon {
-					statusIcon(c, pal, p.Status, p.Unread, 11)
+					paints.Status(c, pal, p.Status, p.Unread, 11)
 				}
 				ui.Text(c, p.Message).FontSize(12).SingleLine().Ellipsis("…").MaxWidth(320)
 			})
@@ -914,7 +916,7 @@ func (a *App) closePane(s *proto.Session, pane string, ask bool) {
 	if p == nil {
 		return
 	}
-	if ask && a.Settings.ConfirmClose && p.Status != proto.Exited && p.Process != "" {
+	if ask && a.settingsIn.ConfirmClose && p.Status != proto.Exited && p.Process != "" {
 		sid := s.ID
 		a.Confirm = &confirmation{
 			open:    true,

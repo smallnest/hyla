@@ -102,8 +102,8 @@ func (a *App) run(id string, args map[string]string) {
 	case "info.toggle":
 		a.toggleSide(sideInfo)
 	case "pet.toggle":
-		a.Settings.Pet = !a.Settings.Pet
-		a.applySettings(a.Settings)
+		a.settingsIn.Pet = !a.settingsIn.Pet
+		a.applySettings(a.settingsIn)
 	case "text.bigger":
 		a.zoom(1, false)
 	case "text.smaller":
@@ -197,7 +197,7 @@ func (a *App) accelerator(act actions.Action) string {
 	if a.Ss.recording != "" || act.Global {
 		return ""
 	}
-	return actions.Keys(act, a.Settings.Shortcuts)
+	return actions.Keys(act, a.settingsIn.Shortcuts)
 }
 
 // items returns the items of a menu's actions, in their order, with
@@ -259,7 +259,7 @@ func (a *App) menu() *mygo.Menu {
 // keys is an action's shortcut as the menus show it, "" when it has none.
 func (a *App) keys(id string) string {
 	act, _ := actions.Find(id)
-	return actions.Glyphs(actions.Keys(act, a.Settings.Shortcuts))
+	return actions.Glyphs(actions.Keys(act, a.settingsIn.Shortcuts))
 }
 
 // tip is a button's tooltip: what it does, with its action's shortcut.
@@ -273,7 +273,7 @@ func (a *App) tip(title, id string) string {
 // menuShortcut shows an action's shortcut by a context menu's item.
 func (a *App) menuShortcut(it *ui.MenuItem, id string) *ui.MenuItem {
 	act, _ := actions.Find(id)
-	parts := strings.Split(actions.Keys(act, a.Settings.Shortcuts), "+")
+	parts := strings.Split(actions.Keys(act, a.settingsIn.Shortcuts), "+")
 	var mods ui.Modifiers
 	for _, p := range parts[:len(parts)-1] {
 		switch strings.ToLower(p) {

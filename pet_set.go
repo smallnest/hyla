@@ -25,7 +25,7 @@ const (
 // petSetGround is how tall a Codex pet's frame shows, in DIPs, from its
 // size setting: feet on the edge.
 func petSetGround(a *App) float32 {
-	n := float64(petSetFrame0) * float64(a.Settings.PetSize)
+	n := float64(petSetFrame0) * float64(a.settingsIn.PetSize)
 	return float32(math.Round(n))
 }
 
@@ -48,19 +48,19 @@ type petSet struct {
 // petSetLoad reads the pet the settings show, if it is no frog, and
 // says when it is not there, for the pet shows Hyla, the tree frog then.
 func (a *App) petSetLoad() *petSet {
-	if a.Settings.PetSet == settings.PetSetHyla {
+	if a.settingsIn.PetSet == settings.PetSetHyla {
 		return nil
 	}
-	p, err := pets.LoadID(a.Settings.PetSet)
+	p, err := pets.LoadID(a.settingsIn.PetSet)
 	if err != nil {
 		if !a.Pet.setAgain {
 			// Once a window: the pet's view asks every frame.
 			a.Pet.setAgain = true
-			a.toast(locales.SetPetMissing(a.Settings.PetSet, err.Error()))
+			a.toast(locales.SetPetMissing(a.settingsIn.PetSet, err.Error()))
 		}
 		return nil
 	}
-	return &petSet{name: a.Settings.PetSet, pet: p}
+	return &petSet{name: a.settingsIn.PetSet, pet: p}
 }
 
 // petSetReload reads the pet again, as settings changed, or a pack

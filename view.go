@@ -18,6 +18,7 @@ import (
 	"hyla/internal/ui/theme"
 
 	"hyla/internal/ui/marks"
+	"hyla/internal/ui/paints"
 	"hyla/internal/ui/style"
 	"hyla/locales"
 
@@ -115,7 +116,7 @@ func (a *App) view(c *ui.Context) {
 
 	bar := c.TitleBar()
 	row := ui.Row(c).Fill().AlignItems(ui.Stretch)
-	theme.Backdrop(c, pal, row, a.Settings)
+	theme.Backdrop(c, pal, row, a.settingsIn)
 	// A curve, not a spring: a spring's long tail crawls under a pixel a
 	// frame, which whole pixels turn into hops and holds, a shake as it
 	// settles. This one lands in about 13 frames, moving in every one.
@@ -137,7 +138,7 @@ func (a *App) view(c *ui.Context) {
 		a.Chrome = chromeFor(progress, a.Prefs.SidebarWidth, bar)
 		w := a.Chrome.sideW
 		side := ui.Row(c).Width(w).Shrink(0).AlignItems(ui.Stretch).ClipX()
-		if h := a.local(); h.Conn == host.StateReady && h.Client != nil && !a.Prefs.SidebarHidden && !a.Pal.open && !a.Picker.open && a.SshAsk == nil && a.K8sAsk == nil && (a.Confirm == nil || !a.Confirm.open) {
+		if h := a.local(); h.Conn == host.StateReady && h.Client != nil && !a.Prefs.SidebarHidden && !a.Pal.Open && !a.Picker.open && a.SshAsk == nil && a.K8sAsk == nil && (a.Confirm == nil || !a.Confirm.open) {
 			if files := side.DroppedFiles(); len(files) > 0 {
 				go a.openProjectDirs(h, h.Client, slices.Clone(files), true)
 			}
@@ -279,11 +280,6 @@ func pointerTooltip(c *ui.Context, el ui.Element, key, s string) {
 	} else {
 		delete(tipsAt, key)
 	}
-}
-
-func kbd(c *ui.Context, pal *theme.Palette, keys string) {
-	ui.Text(c, keys).FontSize(11).TextColor(pal.TextMuted).Padding(1, 5).Radius(4).
-		Background(pal.Kbd).SingleLine()
 }
 
 // --- the sidebar ---
@@ -766,7 +762,7 @@ func (a *App) sessionRow(c *ui.Context, pal *theme.Palette, s *proto.Session, n 
 	selected := s.ID == a.Selected
 	// A detailed row gives the session's status message, else its branch
 	// and changes, a line of its own under the name.
-	detailed := a.Settings.SidebarRows != "compact"
+	detailed := a.settingsIn.SidebarRows != "compact"
 	h := float32(rowH)
 	if detailed {
 		h = rowH2
@@ -781,10 +777,10 @@ func (a *App) sessionRow(c *ui.Context, pal *theme.Palette, s *proto.Session, n 
 	bg := ui.Transparent
 	switch {
 	case selected:
-		bg = theme.TranslucentGlass(pal.RowSelected, pal, a.Settings)
+		bg = theme.TranslucentGlass(pal.RowSelected, pal, a.settingsIn)
 		style.Chosen(row, pal)
 	case hovered:
-		bg = theme.TranslucentGlass(pal.RowHover, pal, a.Settings)
+		bg = theme.TranslucentGlass(pal.RowHover, pal, a.settingsIn)
 	}
 	row.Background(row.AnimateColor("bg", bg, ui.Animation{Duration: 110 * time.Millisecond}))
 	if (row.Pressed() || row.Clicked()) && !selected {
@@ -878,7 +874,7 @@ func (a *App) sessionRow(c *ui.Context, pal *theme.Palette, s *proto.Session, n 
 			return
 		}
 		name := func() {
-			name := ui.Text(c, s.DisplayName(a.Settings.SessionName)).FontSize(13.5).FontWeight(400).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0).TextColor(pal.Text)
+			name := ui.Text(c, s.DisplayName(a.settingsIn.SessionName)).FontSize(13.5).FontWeight(400).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0).TextColor(pal.Text)
 			if s.Unread {
 				name.FontWeight(650)
 			}
@@ -893,7 +889,7 @@ func (a *App) sessionRow(c *ui.Context, pal *theme.Palette, s *proto.Session, n 
 				return
 			}
 			// The name gives way to these, never they to the name.
-			ui.Text(c, ago(s.Since, c.Now())).FontSize(12.5).TextColor(pal.TextFaint).FontFeatures("tnum").SingleLine().Shrink(0)
+			ui.Text(c, paints.Ago(s.Since, c.Now())).FontSize(12.5).TextColor(pal.TextFaint).FontFeatures("tnum").SingleLine().Shrink(0)
 		}
 		// A session goes at once, as Close Pane goes (^D), without the
 		// menu's asking; after the frame, which its end reshapes.
@@ -978,7 +974,7 @@ func markSlot(c *ui.Context, gap float32) ui.Element {
 func statusSlot(c *ui.Context, pal *theme.Palette, hovered bool, st proto.Status, unread bool, progress int, close func()) {
 	ui.Box(c.Key("trailing")).Size(20, 20).Shrink(0).Center().Children(func() {
 		if !hovered {
-			statusIconP(c, pal, st, unread, progress, 15)
+			paints.StatusP(c, pal, st, unread, progress, 15)
 			return
 		}
 		b := ui.ButtonBase(c.Key("close")).Size(20, 20).Radius(5).Center().TextColor(pal.TextMuted).
@@ -1042,7 +1038,7 @@ func (a *App) sessionMenu(m *ui.Menu, s *proto.Session) {
 			}
 		}
 	})
-	if a.Settings.Feishu != nil && a.Settings.Feishu.App != "" {
+	if a.settingsIn.Feishu != nil && a.settingsIn.Feishu.App != "" {
 		// The session's conversation, as a chat: its agent's, with the
 		// Feishu chat it is with (chat.go).
 		// It shows in the pane the user is in, in its terminal's place.
@@ -1120,7 +1116,7 @@ func (a *App) footerChip(c *ui.Context, pal *theme.Palette, st proto.Status, unr
 		b.Background(pal.RowHover)
 	}
 	b.Children(func() {
-		statusIcon(c, pal, st, unread, 12)
+		paints.Status(c, pal, st, unread, 12)
 		ui.Textf(c, "%d", n).FontSize(12).FontWeight(500).TextColor(fg).FontFeatures("tnum")
 	})
 	if b.Clicked() {
@@ -1158,120 +1154,6 @@ func (a *App) footerNote(c *ui.Context, pal *theme.Palette, dot ui.Color, label 
 	})
 }
 
-// ago is how long ago a time in Unix milliseconds was, shortly, as
-// proto.Ago writes it, in the language the app shows.
-func ago(ms int64, now time.Time) string {
-	if ms == 0 {
-		return ""
-	}
-	d := now.Sub(time.UnixMilli(ms))
-	switch {
-	case d < time.Minute:
-		return locales.AgoNow()
-	case d < time.Hour:
-		return locales.AgoMinutes(int(d / time.Minute))
-	case d < 24*time.Hour:
-		return locales.AgoHours(int(d / time.Hour))
-	case d < 7*24*time.Hour:
-		return locales.AgoDays(int(d / (24 * time.Hour)))
-	}
-	return locales.AgoWeeks(int(d / (7 * 24 * time.Hour)))
-}
-
-// statusIcon draws a session's status, as the sidebar shows it: a ring
-// turning while it works, an amber ring when it needs the user, a filled
-// check when it finished unseen, a faint check once seen.
-func statusIcon(c *ui.Context, pal *theme.Palette, st proto.Status, unread bool, size float32) ui.Element {
-	return statusIconP(c, pal, st, unread, -1, size)
-}
-
-// statusIconP is statusIcon with a program's progress (OSC 7501), 0–100,
-// which a working ring fills instead of turning; -1 for none.
-func statusIconP(c *ui.Context, pal *theme.Palette, st proto.Status, unread bool, progress int, size float32) ui.Element {
-	box := ui.Box(c).Size(size, size).Shrink(0)
-	switch {
-	case st == proto.Working:
-		box.Label(locales.StatusWorking())
-	case st == proto.Waiting:
-		box.Label(locales.StatusNeedsYou())
-	case st == proto.Exited:
-		box.Label(locales.StatusExited())
-	case st == proto.Failed:
-		box.Label(locales.StatusFailed())
-	case unread:
-		box.Label(locales.StatusDone())
-	}
-	box.Draw(func(p *ui.Painter, r ui.Rect) {
-		cx, cy := r.X+r.W/2, r.Y+r.H/2
-		rad := min(r.W, r.H)/2 - 1
-		switch {
-		case st == proto.Working && progress >= 0:
-			var track ui.Path
-			track.Circle(cx, cy, rad)
-			p.StrokePath(&track, 1.7, pal.Text.Alpha(0.13))
-			// From the top, clockwise: the circle starts at 3 o'clock.
-			p.Transform(ui.Rotation(-90), cx, cy, func() {
-				var arc ui.Path
-				arc.Circle(cx, cy, rad)
-				p.StrokePath(arc.Trim(0, max(0.02, float32(progress)/100)), 1.7, pal.Text)
-			})
-		case st == proto.Working:
-			var track ui.Path
-			track.Circle(cx, cy, rad)
-			p.StrokePath(&track, 1.7, pal.Text.Alpha(0.13))
-			p.AnimationFrame()
-			deg := float32(p.Now().UnixMilli()%1000) / 1000 * 360
-			p.Transform(ui.Rotation(deg), cx, cy, func() {
-				var arc ui.Path
-				arc.Circle(cx, cy, rad)
-				p.StrokePath(arc.Trim(0, 0.3), 1.7, pal.Text)
-			})
-		case st == proto.Waiting:
-			var ring ui.Path
-			ring.Circle(cx, cy, rad)
-			p.StrokePath(&ring, 1.7, pal.Attention)
-			p.AnimationFrame()
-			pulse := float32(0.5 + 0.5*math.Sin(float64(p.Now().UnixMilli()%1600)/1600*2*math.Pi))
-			var dot ui.Path
-			dot.Circle(cx, cy, rad*0.42)
-			p.FillPath(&dot, pal.Attention.Alpha(0.65+0.35*pulse))
-		case st == proto.Failed:
-			var disc ui.Path
-			disc.Circle(cx, cy, rad+0.5)
-			col := pal.Danger
-			if !unread {
-				col = pal.Danger.Alpha(0.75)
-			}
-			p.FillPath(&disc, col)
-			p.Line(cx, cy-rad*0.45, cx, cy+rad*0.08, 1.7, pal.OnDone)
-			var dot ui.Path
-			dot.Circle(cx, cy+rad*0.42, 1)
-			p.FillPath(&dot, pal.OnDone)
-		case st == proto.Exited:
-			col := pal.TextFaint
-			if unread {
-				col = pal.Danger
-			}
-			var ring ui.Path
-			ring.Circle(cx, cy, rad)
-			p.StrokePath(&ring, 1.5, col)
-			k := rad * 0.38
-			p.Line(cx-k, cy-k, cx+k, cy+k, 1.5, col)
-			p.Line(cx+k, cy-k, cx-k, cy+k, 1.5, col)
-		case unread:
-			var disc ui.Path
-			disc.Circle(cx, cy, rad+0.5)
-			p.FillPath(&disc, pal.Done)
-			check := (&ui.Path{}).MoveTo(cx-rad*0.42, cy+0.2).LineTo(cx-rad*0.08, cy+rad*0.36).LineTo(cx+rad*0.46, cy-rad*0.34)
-			p.StrokePath(check, 1.6, pal.OnDone)
-		default:
-			check := (&ui.Path{}).MoveTo(cx-rad*0.62, cy+0.4).LineTo(cx-rad*0.12, cy+rad*0.5).LineTo(cx+rad*0.66, cy-rad*0.46)
-			p.StrokePath(check, 1.5, pal.TextFaint)
-		}
-	})
-	return box
-}
-
 // --- the card ---
 
 // sessionSwitch is how a session shown in place of another, as when the
@@ -1301,7 +1183,7 @@ const (
 // sessionSwitch returns how a session comes in place of another, as the
 // settings say (session-switch).
 func (a *App) sessionSwitch() sessionSwitch {
-	switch a.Settings.SessionSwitch {
+	switch a.settingsIn.SessionSwitch {
 	case "slide":
 		return switchSlide
 	case "push":
@@ -1408,7 +1290,7 @@ func (a *App) cardFor(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown 
 		return
 	}
 	// No session: one card, for what the app has to say.
-	card := style.Raised(ui.Column(c).Grow(1).MinHeight(0).Radius(14).Background(theme.TranslucentGlass(pal.Card, pal, a.Settings)), pal).Clip()
+	card := style.Raised(ui.Column(c).Grow(1).MinHeight(0).Radius(14).Background(theme.TranslucentGlass(pal.Card, pal, a.settingsIn)), pal).Clip()
 	card.Children(func() {
 		left := a.Chrome.headerPad
 		ui.Row(c).Height(headerH).Shrink(0).AlignItems(ui.Center).Padding(0, 10, 0, left).DragWindow().Children(func() {

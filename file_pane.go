@@ -44,7 +44,7 @@ func (a *App) filePane(c *ui.Context, pal *theme.Palette, s *proto.Session, p *p
 			st.ReadOnly = true
 			st.SoftWrap = true
 			st.LineNumbers = editor.LineNumbersOn
-			st.Font = ui.Font{Family: a.termFamily(), Size: max(a.Settings.FontSize-1, 10)}
+			st.Font = ui.Font{Family: a.termFamily(), Size: max(a.settingsIn.FontSize-1, 10)}
 			st.Theme = a.codeTheme(c, pal)
 			ed := editor.View(c.Key("file-"+p.ID), st).Fill()
 			if ed.FocusWithin() && a.focusOf(s) != p.ID {

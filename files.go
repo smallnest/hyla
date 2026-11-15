@@ -467,7 +467,7 @@ func (a *App) fileViewer(c *ui.Context, pal *theme.Palette, s *proto.Session, fv
 		case fv.st == nil:
 			ui.Column(c).Grow(1).Center().Children(func() { ui.Spinner(c) })
 		default:
-			fv.st.Font = ui.Font{Family: a.termFamily(), Size: max(a.Settings.FontSize-1, 10)}
+			fv.st.Font = ui.Font{Family: a.termFamily(), Size: max(a.settingsIn.FontSize-1, 10)}
 			fv.st.Theme = a.codeTheme(c, pal)
 			fv.st.ReadOnly = true
 			fv.st.NoActiveLine = true

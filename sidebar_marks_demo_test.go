@@ -35,9 +35,9 @@ func TestSidebarMarks(t *testing.T) {
 	}{{false, false}, {true, false}, {false, true}} {
 		name := []string{"sidebar-marks", "sidebar-marks-dark", "sidebar-marks-compact"}[i]
 		dark := c.dark
-		a.Settings.SidebarRows = "detailed"
+		a.settingsIn.SidebarRows = "detailed"
 		if c.compact {
-			a.Settings.SidebarRows = "compact"
+			a.settingsIn.SidebarRows = "compact"
 		}
 		tt := ui.NewTesterWith(a.view, 420, 620, ui.TesterOptions{Dark: dark})
 		for i := 0; i < 60 && tt.FramePending(); i++ {
