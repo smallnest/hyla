@@ -28,9 +28,9 @@ func pocketCmd(args []string) error {
 	}
 	switch sub {
 	case "enable":
-		return p2pCmd([]string{"enable"})
+		return tailcatCmd([]string{"enable"})
 	case "disable":
-		return p2pCmd([]string{"disable"})
+		return tailcatCmd([]string{"disable"})
 	case "code":
 		return pocketCode(false)
 	case "qr":

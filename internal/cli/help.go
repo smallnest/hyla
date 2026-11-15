@@ -219,24 +219,24 @@ var commands = []command{
 	},
 
 	{
-		name: "p2p", aliases: []string{"tailcat"}, group: "machine",
+		name: "tailcat", aliases: []string{"p2p"}, group: "machine",
 		summary: "peer-to-peer access, by pair code",
-		usage: `hyla p2p status|enable [port]|disable|port <port>|rotate|code
+		usage: `hyla tailcat status|enable [port]|disable|port <port>|rotate|code
     status                      whether hylad listens, on which port and with
                                 which pair code
-    enable [port]               listen for peers (default port 7473)
+    enable [port]               listen over tailcat (default port 7473)
     disable                     stop listening
     port <port>                 move the listener
     rotate                      a new key, and a new pair code
     code                        print the pair code (secret)
-    tailcat is the same command, after the library that carries it: WireGuard
-    between two machines, a relay only to find each other`,
+    tailcat is WireGuard between two machines, a relay only to find each
+    other; the machines reached by an address and a password are p2p`,
 	},
 	{
 		name: "pocket", group: "machine",
 		summary: "this machine as a host for HylaPocket on a phone",
 		usage: `hyla pocket enable|disable|code|qr
-    the phone reaches this machine over the p2p listener (hyla p2p), and the
+    the phone reaches this machine over the tailcat listener (hyla tailcat), and the
     code it scans is that listener's pair code: one secret, address and
     admission both
     code                        print the pair code (secret)

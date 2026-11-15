@@ -165,6 +165,43 @@ func TestTCPListenerPocket(t *testing.T) {
 	}
 }
 
+// A tcp:// listener whose port another program holds takes the port once
+// it is free, as the program exits, rather than staying off.
+func TestTCPListenerWaitsForPort(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HYLA_HOME", home)
+	t.Setenv("HYLA_CONFIG", filepath.Join(home, "config"))
+	held, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	addr := held.Addr().String()
+	set := settings.Load()
+	set.Listen = []string{"tcp://" + addr}
+	if err := settings.Save(set); err != nil {
+		t.Fatal(err)
+	}
+	settings.Reload()
+	l := &listeners{d: testDaemon(t), on: map[string]*listener{}}
+	t.Cleanup(l.close)
+	l.set(set.Listen)
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		held.Close()
+	}()
+	for end := time.Now().Add(10 * time.Second); ; {
+		c, err := net.DialTimeout("tcp", addr, time.Second)
+		if err == nil {
+			c.Close()
+			return
+		}
+		if time.Now().After(end) {
+			t.Fatalf("listening on %s after the port was free: %v", addr, err)
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+}
+
 // A connection that starts as HTTP is HylaPocket's, and one that starts
 // with a password is Hyla's.
 func TestLooksHTTP(t *testing.T) {

@@ -809,7 +809,7 @@
   "setTailcatHostCode": "tc… または hyla://pair?code=…",
   "setTailcatHostName": "名前",
   "setTailcatHostPort": "ポート",
-  "setTCPTitle": "P2P 設定",
+  "setTCPTitle": "P2P",
   "setTCP": "アドレスでこのマシンに接続できるようにする",
   "setTCPDetail": "",
   "setTCPListenDetail": "",

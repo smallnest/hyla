@@ -6,12 +6,22 @@ number; the notes of the upstream releases it includes follow its own.
 
 ## Unreleased
 
-- The Tailcat pair code in Settings › Hosts, and `hyla p2p code`, carried
-  `tailcat://` twice: a phone scanned `tailcat://tailcat://tc…` and
+- The Tailcat pair code in Settings › Hosts, and `hyla tailcat code`,
+  carried `tailcat://` twice: a phone scanned `tailcat://tailcat://tc…` and
   reached nothing. If HylaPocket cannot reach a machine over Tailcat,
   copy the code again.
 - The address Settings › Hosts shows as an example is `192.168.1.5:7473`,
   the port hylad listens on: it said 7297, the port of HylaPocket.
+- A `tcp://` listener whose port was taken when hylad started, as by the
+  hylad it replaces, tried the port once and stayed off until the
+  configuration changed. It now tries again until the port is free; a
+  tailcat listener did this already.
+- `hyla tailcat` and `hyla p2p` name two ways to reach a machine: a pair
+  code over Tailcat, and an address with a password. They share one
+  listener, but each command said `p2p:` and pointed at `hyla p2p`: now
+  each says its own name.
+- Settings › Remote Connection › P2P calls the machines reached by an
+  address and a password P2P, and only the pair-code group Tailcat.
 
 ## 3.10.3
 

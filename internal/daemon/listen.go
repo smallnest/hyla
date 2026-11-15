@@ -259,10 +259,21 @@ func (l *listeners) serveTailcat(r *remote.TailcatRelay) {
 // connection, which Hyla and HylaPocket ask for by the address alone.
 func (l *listeners) tcpListener(lis *listener) {
 	addr := net.JoinHostPort(lis.spec.Host, lis.spec.Port)
-	ln, err := net.Listen("tcp", addr)
-	if err != nil {
-		l.d.log.Printf("listen %s: %v", lis.spec, err)
-		return
+	var ln net.Listener
+	var err error
+	// A port another program took may be free a moment later, as after a
+	// restart: this machine's listener asks again, as the tailcat one does.
+	for wait := time.Second; ; wait = min(wait*2, time.Minute) {
+		ln, err = net.Listen("tcp", addr)
+		if err == nil {
+			break
+		}
+		l.d.log.Printf("listen %s: %v: trying again in %s", lis.spec, err, wait)
+		select {
+		case <-lis.ctx.Done():
+			return
+		case <-time.After(wait):
+		}
 	}
 	l.mu.Lock()
 	if lis.ctx.Err() != nil {
@@ -276,6 +287,13 @@ func (l *listeners) tcpListener(lis *listener) {
 	for {
 		c, err := ln.Accept()
 		if err != nil {
+			if lis.ctx.Err() != nil {
+				return
+			}
+			// The listener closed under it, as it is no longer asked for:
+			// it starts again, as a configuration's listener does.
+			l.d.log.Printf("listen %s: %v: trying again", lis.spec, err)
+			go l.tcpListener(lis)
 			return
 		}
 		go l.serveTCP(c)
