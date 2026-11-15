@@ -337,8 +337,19 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
   `elevation.go`, `controls.go` into `internal/ui/theme`; `view.go`,
   `side.go`, `panes.go` into `internal/ui/layout`; the settings views,
   the dialogs, and the pets, each into its own package.
+- **Step 3a: what Step 3 left** — done: `automate.go` is
+  `internal/app/shell` (with `browser.go`'s answers to a page), and
+  `worktree.go` joined `internal/ui/worktree`. `files.go`, `sync.go` and
+  `branch.go` were adapters of the small parts the root has always held:
+  they stay until `App` itself moves.
 - **Step 5: the end** — `package main` is `main.go` and `app.go`, and the
-  architecture test names every package.
+  architecture test names every package. Not done: `App`'s state — the
+  hosts, the sessions, the terminals, the settings — is what every view
+  it holds reads. It is the window's state, so it moves to a package of
+  the cli layer (`internal/app/window`) with `main.go`, which sets the
+  hooks. That is a move by fields, not by files: `App` becomes the
+  window's struct there, and the root's `*_adapters.go` files go, as each
+  view's `App` is that struct's methods.
 
 ## What a move looks like
 
