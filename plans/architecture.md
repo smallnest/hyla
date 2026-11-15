@@ -77,6 +77,12 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     which the state reads through its `Hosts` interface (whether a state
     came, the main thread, and the lines it says). The Sync page's view
     stays in the root, `sync_page.go`, until the views are `internal/`.
+  - Also: `App`'s fields are exported, and Magpie's reads are
+    `internal/app/magpie`, which the Info view's card calls.
+  - The table's parts that the views read deeply — `hosts` (the
+    connection, the error, the conversations) and the sidebar's state —
+    wait for Step 4: a part moves only when it reads another's fields
+    nowhere, and the views read these on nearly every frame.
 - **Step 2: the packages with no view** — done: `profiling`,
   `buildinfo`, `fileicons`, `adblock`.
 - **Step 2b: the views' foundations, which needed no `App`** — done:
