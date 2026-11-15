@@ -79,6 +79,9 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     stays in the root, `sync_page.go`, until the views are `internal/`.
   - Also: `App`'s fields are exported, and Magpie's reads are
     `internal/app/magpie`, which the Info view's card calls.
+  - Also: the file panes' reads are `internal/app/filepane` (daemon
+    layer, as they call a client), with the viewer's bounds and
+    `IsBinary`, which the Files view shares.
   - The table's parts that the views read deeply — `hosts` (the
     connection, the error, the conversations) and the sidebar's state —
     wait for Step 4: a part moves only when it reads another's fields
