@@ -35,6 +35,7 @@ import (
 	"hyla/internal/remote"
 	"hyla/internal/settings"
 	"hyla/internal/ui/confirm"
+	"hyla/internal/ui/k8sdialog"
 	"hyla/internal/ui/palette"
 	"hyla/internal/ui/picker"
 	uisettings "hyla/internal/ui/settings"
@@ -179,7 +180,7 @@ type App struct {
 	Confirm *confirm.Ask
 	WtAsk   *worktree.Ask  // the new session's branch, while asked
 	SshAsk  *sshdialog.Ask // the sidebar's add-a-host-over-SSH dialog
-	K8sAsk  *k8sAsk        // the sidebar's add-a-kubectl-exec-pod dialog
+	K8sAsk  *k8sdialog.Ask // the sidebar's add-a-kubectl-exec-pod dialog
 	// endedAll shows all of the sidebar's Ended; skillMissing tells, as
 	// of skillsAt, that no kind of agent has Hyla's skill (ended.go).
 	// This fork has no Ended (session history): the fields stay for

@@ -16,21 +16,13 @@ import (
 	"hyla/internal/ui/paints"
 	"hyla/internal/ui/theme"
 
-	"hyla/internal/ui/controls"
 	"hyla/internal/ui/marks"
 	"hyla/internal/ui/style"
 	"hyla/locales"
 
 	"hyla/internal/ui/glyph"
+	"hyla/internal/ui/k8sdialog"
 )
-
-// k8sAsk is the dialog that adds a kubectl terminal to the sidebar: the
-// command that enters a pod, as kubectl exec takes it.
-type k8sAsk struct {
-	open bool
-	cmd  string
-	err  string
-}
 
 // k8sPod is a pod the sidebar's K8s project lists: its name, the kubectl
 // command that enters it, and the terminal it has open, if any.
@@ -50,7 +42,7 @@ var (
 // askK8sPod opens the dialog.
 func (a *App) askK8sPod() {
 	if a.K8sAsk == nil {
-		a.K8sAsk = &k8sAsk{open: true}
+		a.K8sAsk = &k8sdialog.Ask{Open: true}
 	}
 }
 
@@ -58,38 +50,10 @@ func (a *App) askK8sPod() {
 // the user says so.
 func (a *App) k8sView(c *ui.Context, pal *theme.Palette) {
 	d := a.K8sAsk
-	if d == nil {
-		return
-	}
-	connect := false
-	ui.DialogBase(c.Key("k8s"), &d.open, func(backdrop, panel ui.Element) {
-		backdrop.Background(pal.Overlay)
-		style.Floating(panel.Width(520).Padding(22).Gap(8).Radius(14).Background(pal.Popover), pal).Label(locales.ActionAddK8sPod())
-		ui.Text(c, locales.ActionAddK8sPod()).FontSize(15).FontWeight(650).TextColor(pal.Text)
-		ui.Text(c, locales.K8sPodDetail()).FontSize(13).TextColor(pal.TextMuted).LineHeight(1.4)
-		ui.Row(c).Margin(8, 0, 1, 0).Children(func() {
-			in := controls.TextField(c, "k8s-cmd", &d.cmd, locales.K8sPodCommandPlaceholder(), 0, pal).Font("monospace")
-			in.AutoFocus()
-			if in.Submitted() {
-				connect = true
-			}
-		})
-		if d.err != "" {
-			ui.Text(c, d.err).FontSize(12).TextColor(pal.Danger)
-		}
-		ui.Row(c).Gap(8).Justify(ui.End).Margin(14, 0, 0, 0).Children(func() {
-			if style.Button(c, "cancel", locales.CommonCancel(), "esc", false, pal) {
-				d.open = false
-			}
-			if style.Button(c, "ok", locales.CommonConnect(), "↩", true, pal) {
-				connect = true
-			}
-		})
-	})
-	if connect {
+	if k8sdialog.View(c, pal, d) {
 		a.addK8sPod()
 	}
-	if !d.open {
+	if d != nil && !d.Open {
 		a.K8sAsk = nil
 		a.focusTerminal()
 	}
@@ -114,34 +78,34 @@ func (a *App) addK8sPod() {
 	if d == nil {
 		return
 	}
-	cmd := strings.TrimSpace(d.cmd)
+	cmd := strings.TrimSpace(d.Cmd)
 	if cmd == "" {
-		d.err = locales.K8sPodOnly()
+		d.Err = locales.K8sPodOnly()
 		return
 	}
 	_, pod, err := k8sCommand(cmd)
 	switch {
 	case errors.Is(err, errK8sNoPod):
-		d.err = locales.K8sPodNeedsPod()
+		d.Err = locales.K8sPodNeedsPod()
 		return
 	case err != nil:
-		d.err = locales.K8sPodOnly()
+		d.Err = locales.K8sPodOnly()
 		return
 	}
 	if a.local().Client == nil {
-		d.err = locales.SshNoService()
+		d.Err = locales.SshNoService()
 		return
 	}
 	// The command the project lists already: its terminal comes, rather
 	// than a second row for the same pod.
 	for i := range a.Prefs.K8sPods {
 		if a.Prefs.K8sPods[i].Command == cmd {
-			d.open = false
+			d.Open = false
 			a.connectK8s(i)
 			return
 		}
 	}
-	d.open = false
+	d.Open = false
 	a.withK8sProject(func(p proto.Project) { a.addK8sPodTo(p, pod, cmd) })
 }
 

@@ -14,6 +14,7 @@ import (
 
 	"hyla/internal/proto"
 
+	"hyla/internal/ui/k8sdialog"
 	"hyla/locales"
 )
 
@@ -60,7 +61,7 @@ func TestAddK8sPodFromSidebar(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.K8sAsk == nil || !a.K8sAsk.open {
+	if a.K8sAsk == nil || !a.K8sAsk.Open {
 		t.Fatalf("Add K8s Pod opened no dialog")
 	}
 	shot(t, tt, "add-k8s-pod")
@@ -68,7 +69,7 @@ func TestAddK8sPodFromSidebar(t *testing.T) {
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
 	if a.K8sAsk != nil {
-		t.Errorf("the dialog stays open, with %q", a.K8sAsk.err)
+		t.Errorf("the dialog stays open, with %q", a.K8sAsk.Err)
 	}
 
 	var p proto.CreateParams
@@ -123,7 +124,7 @@ func TestAddK8sPodOnce(t *testing.T) {
 	a.local().Client = cl
 
 	for i := range 2 {
-		a.K8sAsk = &k8sAsk{open: true, cmd: "kubectl exec -it web-0 -n prod -- /bin/bash"}
+		a.K8sAsk = &k8sdialog.Ask{Open: true, Cmd: "kubectl exec -it web-0 -n prod -- /bin/bash"}
 		a.addK8sPod()
 		deadline := time.Now().Add(2 * time.Second)
 		for len(a.Prefs.K8sPods) == 0 || a.Prefs.K8sPods[0].Session == "" {
@@ -150,7 +151,7 @@ func TestAddK8sPodOnlyExec(t *testing.T) {
 		{"kubectl exec -it -n prod -- sh", locales.K8sPodNeedsPod()},
 		{"kubectl exec -it web-0 -- sh", ""},
 	} {
-		a.K8sAsk = &k8sAsk{open: true, cmd: c.cmd}
+		a.K8sAsk = &k8sdialog.Ask{Open: true, Cmd: c.cmd}
 		tt.Frame()
 		if err := tt.Click(locales.CommonConnect()); err != nil {
 			t.Fatal(err)
@@ -159,7 +160,7 @@ func TestAddK8sPodOnlyExec(t *testing.T) {
 		if c.want == "" {
 			continue
 		}
-		if a.K8sAsk == nil || a.K8sAsk.err != c.want {
+		if a.K8sAsk == nil || a.K8sAsk.Err != c.want {
 			t.Errorf("%q: the dialog said %v, want %q", c.cmd, a.K8sAsk, c.want)
 		}
 	}
@@ -264,7 +265,7 @@ func TestSidebarK8sPod(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.K8sAsk == nil || !a.K8sAsk.open {
+	if a.K8sAsk == nil || !a.K8sAsk.Open {
 		t.Fatal("the row opened no dialog")
 	}
 }

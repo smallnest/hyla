@@ -122,8 +122,9 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
   - Also: the Settings window's groups, rows, segmented control and the
     search's marks are `internal/ui/settings/kit`, which the pages, the
     Sync page and the hosts' forms draw with.
-  - Also: the dialog that adds an SSH host is `internal/ui/sshdialog`,
-    with the name a machine takes while none is typed.
+  - Also: the dialogs that add an SSH host and a kubectl pod are
+    `internal/ui/sshdialog` and `internal/ui/k8sdialog`; the root keeps
+    the hosts they add, and the name a machine takes while none is typed.
   - Also: the dialog of a new session's worktree is
     `internal/ui/worktree`; its closing question stays in the root, with
     the confirm dialog.
