@@ -24,6 +24,7 @@ import (
 
 	"hyla/internal/actions"
 	"hyla/internal/adblock"
+	configsync "hyla/internal/app/sync"
 	"hyla/internal/client"
 	"hyla/internal/pets"
 	"hyla/internal/proto"
@@ -164,10 +165,10 @@ type App struct {
 	// in tests.
 	idleTime func() time.Duration
 
-	renaming        string
-	renamingProject string
-	renameBuf       string
-	sync            syncState // this machine's configuration, kept with the others'
+	renaming         string
+	renamingProject  string
+	renameBuf        string
+	configsync.State // this machine's configuration, kept with the others'
 
 	renameFrames int
 	chrome       chrome // where the sidebar's animation puts things
@@ -1378,7 +1379,7 @@ func (a *App) applySettings(s settings.Settings) {
 	remote.SetRelay(s.TailcatRelay)
 	a.apply(s, true)
 	a.rememberEnv()
-	a.syncSoon()
+	a.State.Soon()
 }
 
 // rememberEnv keeps this window's environment, which hylad runs the

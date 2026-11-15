@@ -85,6 +85,7 @@ var Layers = []Layer{
 		Package: []string{
 			"hyla/internal/actions",
 			"hyla/internal/adblock",
+			"hyla/internal/app/sync",
 			"hyla/internal/build",
 			"hyla/internal/claude",
 			"hyla/internal/clilink",
@@ -108,6 +109,7 @@ var Layers = []Layer{
 		Package: []string{
 			"hyla/internal/actions",
 			"hyla/internal/adblock",
+			"hyla/internal/app/sync",
 			"hyla/internal/build",
 			"hyla/internal/claude",
 			"hyla/internal/clilink",
@@ -133,6 +135,7 @@ var Layers = []Layer{
 		Package: []string{
 			"hyla/internal/actions",
 			"hyla/internal/adblock",
+			"hyla/internal/app/sync",
 			"hyla/internal/build",
 			"hyla/internal/claude",
 			"hyla/internal/clilink",
@@ -165,6 +168,7 @@ var Layers = []Layer{
 		Package: []string{
 			"hyla/internal/actions",
 			"hyla/internal/adblock",
+			"hyla/internal/app/sync",
 			"hyla/internal/build",
 			"hyla/internal/claude",
 			"hyla/internal/cli",
@@ -199,6 +203,7 @@ func Imported(path string) bool {
 // layerNames are the packages of internal/ and the layer each is of.
 var layerNames = map[string]string{
 	"hyla/internal/actions":     "base",
+	"hyla/internal/app/sync":    "engine",
 	"hyla/internal/adblock":     "base",
 	"hyla/internal/arch":        "base",
 	"hyla/internal/build":       "base",

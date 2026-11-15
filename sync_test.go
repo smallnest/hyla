@@ -15,14 +15,14 @@ import (
 // says where the last sync got to.
 func TestSyncSettingsPage(t *testing.T) {
 	a := testApp(t)
-	a.sync.cfg = hylasync.Config{
+	a.State.Cfg = hylasync.Config{
 		Backend:    "webdav",
 		WebDAV:     hylasync.WebDAV{URL: "https://dav.jianguoyun.com/dav/", User: "me"},
 		Passphrase: "correct horse",
 		Auto:       true,
 		Last:       hylasync.State{Hash: "abcdef0123456789", Host: "desk", At: time.Now().Add(-2 * time.Minute).UnixMilli()},
 	}
-	a.sync.saved, a.sync.loaded, a.sync.action, a.sync.host = a.sync.cfg, true, "pulled", "desk"
+	a.State.Saved, a.State.Loaded, a.State.Action, a.State.Host = a.State.Cfg, true, "pulled", "desk"
 	a.ss.page = "sync"
 	tt := ui.NewTester(a.settingsView, 900, 900)
 	for i := 0; i < 30 && tt.FramePending(); i++ {
@@ -40,8 +40,8 @@ func TestSyncSettingsPage(t *testing.T) {
 	shot(t, tt, "settings-sync")
 
 	// A server whose fields are missing says so, rather than syncing.
-	a.sync.cfg.WebDAV.URL = ""
-	if hylasync.Configured(a.sync.cfg) {
+	a.State.Cfg.WebDAV.URL = ""
+	if hylasync.Configured(a.State.Cfg) {
 		t.Error("a WebDAV server with no address counts as set")
 	}
 }

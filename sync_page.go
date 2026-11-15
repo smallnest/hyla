@@ -1,163 +1,41 @@
 package main
 
 import (
-	"context"
-	"os"
 	"reflect"
-	"strings"
 	"time"
 
 	"github.com/egoist/mygo/ui"
 
-	"hyla/internal/settings"
-	hylasync "hyla/internal/sync"
 	"hyla/internal/ui/style"
 	"hyla/internal/ui/theme"
 	"hyla/locales"
 )
 
-// syncDelay is how long a change waits before it goes up: the controls save
-// as they change, and a run of them is one push.
-const syncDelay = 30 * time.Second
-
-// syncWait bounds a sync: a server that does not answer in that time leaves
-// the next one to try.
-const syncWait = 90 * time.Second
-
-// syncState is what the app knows of syncing this machine's configuration:
-// the server it syncs to, as the Sync page last saved it, and what the last
-// sync did.
-type syncState struct {
-	cfg     hylasync.Config
-	saved   hylasync.Config // as the file has it, for what changed
-	loaded  bool
-	busy    bool      // a sync runs
-	pulled  bool      // the launch pull is done
-	applied bool      // the settings being applied are a pull's, not a change
-	due     time.Time // a change waiting for its push
-	at      time.Time // the last attempt
-	action  string
-	host    string
-	err     string
-}
-
-// syncTick pulls at launch, and pushes a change once it waited, as the Sync
-// page says.
-func (a *App) syncTick() {
-	st := &a.sync
-	if !st.loaded {
-		st.cfg, st.saved, st.loaded = hylasync.Load(), hylasync.Load(), true
-	}
-	if !hylasync.Configured(st.cfg) || st.busy {
-		return
-	}
-	if !st.pulled && a.loaded {
-		st.pulled = true
-		a.syncRun("")
-		return
-	}
-	if st.due.IsZero() || time.Now().Before(st.due) {
-		return
-	}
-	st.due = time.Time{}
-	a.syncRun("")
-}
-
-// syncSoon marks the configuration changed, for a push once the change
-// settled.
-func (a *App) syncSoon() {
-	st := &a.sync
-	if st.applied || !st.cfg.Auto || !hylasync.Configured(st.cfg) {
-		return
-	}
-	st.due = time.Now().Add(syncDelay)
-}
-
-// syncRun syncs now, way being "" to decide by what both sides did, or
-// "push"/"pull".
-func (a *App) syncRun(way string) {
-	st := &a.sync
-	if st.busy || !hylasync.Configured(st.cfg) {
-		return
-	}
-	cfg := st.cfg
-	st.busy, st.at, st.due = true, time.Now(), time.Time{}
-	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), syncWait)
-		defer cancel()
-		res, out, err := hylasync.Run(ctx, cfg, way, machineName())
-		if err == nil {
-			err = hylasync.Save(out)
-		}
-		a.update(func() {
-			st.busy = false
-			if err != nil {
-				st.err, st.action = err.Error(), ""
-				return
-			}
-			st.cfg, st.err, st.action, st.host = out, "", res.Action, res.Host
-			if res.Action == "pulled" {
-				// The configuration the server had is this machine's now:
-				// applying it is no change to send back.
-				st.applied = true
-				a.applySettings(settings.Load())
-				st.applied = false
-			}
-			if res.Backup != "" {
-				a.toast(locales.ToastSyncKept(res.Backup))
-			}
-		})
-	}()
-}
-
-// syncSave keeps the Sync page's changes, and starts the push they wait for.
-func (a *App) syncSave() {
-	st := &a.sync
-	if err := hylasync.Save(st.cfg); err != nil {
-		a.toast(err.Error())
-		return
-	}
-	st.saved, st.loaded, st.err = st.cfg, true, ""
-	a.syncSoon()
-}
-
-// machineName is this machine, as a commit in a repository names it.
-func machineName() string {
-	h, err := os.Hostname()
-	if err != nil || h == "" {
-		return "a machine"
-	}
-	if i := strings.IndexByte(h, '.'); i > 0 {
-		h = h[:i]
-	}
-	return h
-}
-
 // syncLine is what the last sync did, as the Sync page says it.
 func (a *App) syncLine() string {
-	st := &a.sync
+	st := &a.State
 	switch {
-	case st.busy:
+	case st.Busy:
 		return locales.SetSyncRunning()
-	case st.err != "":
-		return st.err
+	case st.Err != "":
+		return st.Err
 	}
 	// The last attempt this run, else the one the file kept from a start
 	// before this.
-	at := st.at
-	if at.IsZero() && st.cfg.Last.At != 0 {
-		at = time.UnixMilli(st.cfg.Last.At)
+	at := st.At
+	if at.IsZero() && st.Cfg.Last.At != 0 {
+		at = time.UnixMilli(st.Cfg.Last.At)
 	}
 	if at.IsZero() {
 		return locales.SetSyncNever()
 	}
 	when := ago(at.UnixMilli(), time.Now())
-	if st.action == "" {
-		return locales.SetSyncLast(when, orMachine(st.cfg.Last.Host))
+	if st.Action == "" {
+		return locales.SetSyncLast(when, orMachine(st.Cfg.Last.Host))
 	}
-	switch st.action {
+	switch st.Action {
 	case "pulled":
-		return locales.SetSyncPulled(orMachine(st.host), when)
+		return locales.SetSyncPulled(orMachine(st.Host), when)
 	case "created", "pushed":
 		return locales.SetSyncPushed(when)
 	}
@@ -184,12 +62,10 @@ type syncField struct {
 // syncPage is Settings › Sync: where this machine's configuration goes, the
 // passphrase that seals it, and the button that syncs now.
 func (a *App) syncPage(c *ui.Context, pal *theme.Palette) {
-	st := &a.sync
-	if !st.loaded {
-		st.cfg, st.saved, st.loaded = hylasync.Load(), hylasync.Load(), true
-	}
-	cfg := &st.cfg
-	saved := func() { a.syncSave() }
+	st := &a.State
+	st.Ensure()
+	cfg := &st.Cfg
+	saved := func() { st.Save(a) }
 	settingsGroup(c, pal, locales.SetSyncServer(), locales.SetSyncServerDetail(), func() {
 		settingRow(c, pal, locales.SetSyncWhere(), locales.SetSyncWhereDetail(), func() {
 			segmented(c, "sync-backend", &cfg.Backend, []string{"", "webdav", "s3", "github"},
@@ -234,8 +110,8 @@ func (a *App) syncPage(c *ui.Context, pal *theme.Palette) {
 	// The controls edit the settings: what changed is saved, and its push
 	// waits with the settings' own.
 	defer func() {
-		if !reflect.DeepEqual(st.cfg, st.saved) {
-			a.syncSave()
+		if !reflect.DeepEqual(st.Cfg, st.Saved) {
+			st.Save(a)
 		}
 	}()
 	if cfg.Backend == "" {
@@ -254,8 +130,8 @@ func (a *App) syncPage(c *ui.Context, pal *theme.Palette) {
 		settingRow(c, pal, locales.SetSyncNow(), a.syncLine(), func() {
 			b := ui.Button(c.Key("sync-now"), locales.SetSyncNow()).Padding(5, 12).Radius(7).FontSize(12.5)
 			b.Background(pal.Card).TextColor(pal.Text)
-			if b.Clicked() && !st.busy {
-				a.syncRun("")
+			if b.Clicked() && !st.Busy {
+				st.Run(a, "")
 			}
 		})
 	})
