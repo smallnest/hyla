@@ -14,6 +14,7 @@ import (
 	"hyla/internal/pets"
 	"hyla/internal/proto"
 	"hyla/internal/settings"
+	"hyla/internal/ui/petme"
 	"hyla/locales"
 )
 
@@ -21,24 +22,24 @@ import (
 // of failures, which beat finishes, which beat work.
 func TestPetMood(t *testing.T) {
 	a := testApp(t)
-	a.Pet.lastActive = time.Now()
+	a.Pet.LastActive = time.Now()
 	s := &a.St.Sessions[0]
 	cases := []struct {
 		name   string
 		status proto.Status
 		unread bool
-		want   petMood
+		want   petme.Mood
 	}{
-		{"idle", proto.Idle, false, petIdle},
-		{"working", proto.Working, false, petWorking},
-		{"done", proto.Idle, true, petDone},
-		{"done exited", proto.Exited, true, petDone},
-		{"failed", proto.Failed, true, petFailed},
-		{"waiting", proto.Waiting, true, petWaiting},
+		{"idle", proto.Idle, false, petme.Idle},
+		{"working", proto.Working, false, petme.Working},
+		{"done", proto.Idle, true, petme.Done},
+		{"done exited", proto.Exited, true, petme.Done},
+		{"failed", proto.Failed, true, petme.Failed},
+		{"waiting", proto.Waiting, true, petme.Waiting},
 	}
 	for _, c := range cases {
 		s.Status, s.Unread = c.status, c.unread
-		if got, _ := a.petCurrent(time.Now()); got != c.want {
+		if got, _ := petme.MoodNow(a.St.Sessions, a.Pet.LastActive, time.Now()); got != c.want {
 			t.Errorf("%s: mood %v, want %v", c.name, got, c.want)
 		}
 	}
@@ -46,7 +47,7 @@ func TestPetMood(t *testing.T) {
 	s.Status, s.Unread = proto.Waiting, true
 	a.St.Sessions = append(a.St.Sessions, proto.Session{ID: "s2", Project: "p1"})
 	a.St.Sessions[1].Status, a.St.Sessions[1].Unread = proto.Waiting, true
-	if got, n := a.petCurrent(time.Now()); got != petWaiting || n != 2 {
+	if got, n := petme.MoodNow(a.St.Sessions, a.Pet.LastActive, time.Now()); got != petme.Waiting || n != 2 {
 		t.Errorf("two waiting: %v, %d", got, n)
 	}
 }
@@ -55,19 +56,20 @@ func TestPetMood(t *testing.T) {
 // it waits, a failure failing, a finish jumping, and at rest, or asleep,
 // idle.
 func TestPetSetState(t *testing.T) {
+	a := testApp(t)
 	cases := []struct {
-		mood petMood
+		mood petme.Mood
 		want pets.State
 	}{
-		{petIdle, pets.Idle},
-		{petWorking, pets.Working},
-		{petWaiting, pets.Waiting},
-		{petDone, pets.Jump},
-		{petFailed, pets.Fail},
-		{petAsleep, pets.Idle},
+		{petme.Idle, pets.Idle},
+		{petme.Working, pets.Working},
+		{petme.Waiting, pets.Waiting},
+		{petme.Done, pets.Jump},
+		{petme.Failed, pets.Fail},
+		{petme.Asleep, pets.Idle},
 	}
 	for _, c := range cases {
-		if got := petSetState(c.mood); got != c.want {
+		if got, _ := petme.StateAt(a, c.mood, time.Now()); got != c.want {
 			t.Errorf("mood %v: state %v, want %v", c.mood, got, c.want)
 		}
 	}
@@ -78,18 +80,18 @@ func TestPetSetState(t *testing.T) {
 func TestPetClickWaves(t *testing.T) {
 	a := testApp(t)
 	now := time.Now()
-	a.Pet.since, a.Pet.lastActive = now, now
-	if got, _ := a.petSetStateAt(petIdle, now); got != pets.Idle {
+	a.Pet.Since, a.Pet.LastActive = now, now
+	if got, _ := petme.StateAt(a, petme.Idle, now); got != pets.Idle {
 		t.Fatalf("at rest %v, want idle", got)
 	}
-	a.petPetted(now, petIdle)
-	if got, since := a.petSetStateAt(petIdle, now); got != pets.Wave || !since.Equal(now) {
+	petme.Petted(a, now, petme.Idle)
+	if got, since := petme.StateAt(a, petme.Idle, now); got != pets.Wave || !since.Equal(now) {
 		t.Errorf("a pat shows %v since %v, want the wave", got, since)
 	}
-	if got, _ := a.petSetStateAt(petWorking, now); got != pets.Wave {
+	if got, _ := petme.StateAt(a, petme.Working, now); got != pets.Wave {
 		t.Errorf("a pat while working shows %v, want the wave", got)
 	}
-	if got, _ := a.petSetStateAt(petIdle, now.Add(petPat)); got != pets.Idle {
+	if got, _ := petme.StateAt(a, petme.Idle, now.Add(petme.Pat)); got != pets.Idle {
 		t.Errorf("after the wave %v, want idle", got)
 	}
 }
@@ -98,13 +100,13 @@ func TestPetClickWaves(t *testing.T) {
 func TestPetDozes(t *testing.T) {
 	a := testApp(t)
 	now := time.Now()
-	a.Pet.lastActive = now.Add(-petDoze - time.Second)
-	if got, _ := a.petCurrent(now); got != petAsleep {
+	a.Pet.LastActive = now.Add(-petme.Doze - time.Second)
+	if got, _ := petme.MoodNow(a.St.Sessions, a.Pet.LastActive, now); got != petme.Asleep {
 		t.Fatalf("mood %v, want asleep", got)
 	}
 	a.St.Sessions[0].Status = proto.Working
-	a.petNote(now)
-	if got, _ := a.petCurrent(now); got != petWorking {
+	petme.Note(a, now)
+	if got, _ := petme.MoodNow(a.St.Sessions, a.Pet.LastActive, now); got != petme.Working {
 		t.Errorf("work woke it to %v", got)
 	}
 }
@@ -117,14 +119,14 @@ func TestPetSpot(t *testing.T) {
 	// The room a Codex pet takes above the edge at its default size: 1.5
 	// times the Codex app's 82 DIPs, and a little.
 	a.settingsIn.PetSize = settings.DefaultPetSize
-	setH := petSetBodyH(a)
+	setH := petme.BodyH(a)
 	if setH != 123+8 {
-		t.Fatalf("petSetBodyH = %v, want %d", setH, 131)
+		t.Fatalf("petme.BodyH = %v, want %d", setH, 131)
 	}
 	for _, size := range []float32{0.5, 1, 1.5, 2, 3} {
 		a.settingsIn.PetSize = size
-		if h := petSetBodyH(a); h != float32(math.Round(float64(82*size)))+8 {
-			t.Errorf("size %v: petSetBodyH = %v", size, h)
+		if h := petme.BodyH(a); h != float32(math.Round(float64(82*size)))+8 {
+			t.Errorf("size %v: petme.BodyH = %v", size, h)
 		}
 	}
 	work := mygo.Rectangle{X: 0, Y: 25, Width: 1440, Height: 875}
@@ -194,12 +196,12 @@ func TestPetSpot(t *testing.T) {
 // A press on the frog pets it, even when it has nothing to jump to.
 func TestPetClickWinks(t *testing.T) {
 	a := testApp(t)
-	a.Pet.since, a.Pet.lastActive = time.Now(), time.Now()
-	tt := ui.NewTester(a.petView, petspot.W, petspot.H)
+	a.Pet.Since, a.Pet.LastActive = time.Now(), time.Now()
+	tt := ui.NewTester(petme.Window(a), petspot.W, petspot.H)
 	tt.Frame()
 	tt.ClickAt(petspot.W/2, petspot.H-30)
 	tt.Frame()
-	if a.Pet.wink.IsZero() {
+	if a.Pet.Wink.IsZero() {
 		t.Fatal("a click on the frog did not pet it")
 	}
 }
@@ -209,8 +211,8 @@ func TestPetClickWinks(t *testing.T) {
 func TestPetShortWindow(t *testing.T) {
 	a := testApp(t)
 	a.St.Sessions[0].Status, a.St.Sessions[0].Unread = proto.Waiting, true
-	a.Pet.since, a.Pet.lastActive = time.Now(), time.Now()
-	tt := ui.NewTester(a.petView, petspot.W, petspot.H-20)
+	a.Pet.Since, a.Pet.LastActive = time.Now(), time.Now()
+	tt := ui.NewTester(petme.Window(a), petspot.W, petspot.H-20)
 	tt.Advance(400 * time.Millisecond)
 	tt.Frame()
 	shot(t, tt, "pet-perched-short")
@@ -223,30 +225,30 @@ func TestPetShortWindow(t *testing.T) {
 func TestPetLooks(t *testing.T) {
 	for _, c := range []struct {
 		name   string
-		mood   petMood
+		mood   petme.Mood
 		status proto.Status
 		unread bool
 		since  time.Duration
 	}{
-		{"idle", petIdle, proto.Idle, false, 900 * time.Millisecond},
-		{"working", petWorking, proto.Working, false, 900 * time.Millisecond},
-		{"waiting", petWaiting, proto.Waiting, true, 900 * time.Millisecond},
-		{"done", petDone, proto.Idle, true, 500 * time.Millisecond},
-		{"failed", petFailed, proto.Failed, true, 250 * time.Millisecond},
-		{"asleep", petAsleep, proto.Idle, false, 0},
+		{"idle", petme.Idle, proto.Idle, false, 900 * time.Millisecond},
+		{"working", petme.Working, proto.Working, false, 900 * time.Millisecond},
+		{"waiting", petme.Waiting, proto.Waiting, true, 900 * time.Millisecond},
+		{"done", petme.Done, proto.Idle, true, 500 * time.Millisecond},
+		{"failed", petme.Failed, proto.Failed, true, 250 * time.Millisecond},
+		{"asleep", petme.Asleep, proto.Idle, false, 0},
 	} {
 		a := testApp(t)
 		a.St.Sessions[0].Status, a.St.Sessions[0].Unread = c.status, c.unread
-		a.Pet.lastActive = time.Now().Add(-c.since - time.Second)
-		if c.mood == petAsleep {
-			a.Pet.lastActive = time.Now().Add(-petDoze - 2*time.Second)
+		a.Pet.LastActive = time.Now().Add(-c.since - time.Second)
+		if c.mood == petme.Asleep {
+			a.Pet.LastActive = time.Now().Add(-petme.Doze - 2*time.Second)
 		}
-		a.Pet.since = time.Now().Add(-c.since)
-		tt := ui.NewTester(a.petView, petspot.W, petspot.H)
+		a.Pet.Since = time.Now().Add(-c.since)
+		tt := ui.NewTester(petme.Window(a), petspot.W, petspot.H)
 		tt.Advance(c.since + 100*time.Millisecond)
 		tt.Frame()
 		shot(t, tt, "pet-"+c.name)
-		if got, _ := a.petCurrent(tt.Now()); c.mood != petAsleep && got != c.mood {
+		if got, _ := petme.MoodNow(a.St.Sessions, a.Pet.LastActive, tt.Now()); c.mood != petme.Asleep && got != c.mood {
 			t.Errorf("%s: mood %v", c.name, got)
 		}
 	}

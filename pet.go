@@ -1,533 +1,71 @@
 package main
 
 import (
-	"hyla/internal/app/petspot"
-	"math"
-	"strconv"
 	"time"
 
 	"github.com/egoist/mygo"
-	"github.com/egoist/mygo/ui"
 
-	"hyla/internal/pets"
 	"hyla/internal/proto"
-	"hyla/internal/ui/theme"
-	"hyla/locales"
+	"hyla/internal/ui/petme"
 )
 
 // The pet lives in a small, transparent window of its own, perched on the
-// main window's top edge, and follows the sessions. By default it is Hyla
-// the frog: it peeks over the edge, its hands on the title bar, hops when
-// a session needs the user, scans left and right while an agent works,
-// cheers a finish, shakes at a failure, and dozes when everything is
-// calm. Settings › Appearance shows a Codex pet there instead, as a
-// spritesheet of frames (pet_set.go). A click pets it, and takes the user
+// main window's top edge, and follows the sessions (internal/ui/petme).
+// By default it is Hyla the frog: it peeks over the edge, its hands on the
+// title bar, hops when a session needs the user, scans left and right
+// while an agent works, cheers a finish, shakes at a failure, and dozes
+// when everything is calm. Settings › Appearance shows a Codex pet there
+// instead, as a spritesheet of frames. A click pets it, and takes the user
 // to the session that needs them.
 
-const (
-	// The pet window: wide enough for a sentence, tall enough for its
-	// speech above the pet.
-	petScale   = 0.8 // the frog is drawn at 108, and stands this tall
-	petBubbleH = 26
-	petFrame   = 33 * time.Millisecond // 30 frames a second
-	petCalm    = 100 * time.Millisecond
-	petDoze    = 45 * time.Second // all calm this long, and it sleeps
-	petWink    = 700 * time.Millisecond
-	petPat     = 1200 * time.Millisecond // a pat shows its wave this long
-	petBubble  = 5 * time.Second         // a working or finished word stays this long
-	petLinger  = 9 * time.Second         // a failure or a finish says so this long
-)
+// The app, as the pet asks it.
+var _ petme.App = (*App)(nil)
 
-// petMood is what the pet shows: the most urgent thing among the sessions.
-type petMood int
+// The pet's files, as the app's: syncPet and its events, and the settings
+// pages' calls, go to internal/ui/petme, whose App this is.
 
-const (
-	petIdle petMood = iota
-	petWorking
-	petWaiting
-	petDone
-	petFailed
-	petAsleep
-)
+func (a *App) syncPet() { petme.Sync(a) }
 
-// petState is the pet's window and what it last felt.
-type petState struct {
-	win     *mygo.Window
-	offs    []func() // the main window's events, until the pet goes
-	appOffs []func() // the app's events, until the pet goes
-	// mood, since say what the pet felt and when it began, which its
-	// reactions count from; lastActive is when a session last did
-	// something, which a doze follows.
-	mood       petMood
-	since      time.Time
-	lastActive time.Time
-	wink       time.Time
-	wave       time.Time // the pat a Codex pet waves back to
-	calm       bool      // the desktop asks for less motion
-	// dragging says the pointer is moving the pet along its edge: grab is
-	// where it took the body, and startX the pointer's screen x then, so
-	// that a press without a move stays a click.
-	dragging bool
-	moved    bool
-	grab     float32
-	startX   float32
-	// setAgain tells that the pet set the settings name was not found,
-	// and was told of, while the window has shown.
-	setAgain bool
-}
+func (a *App) petShow() { petme.Show(a) }
 
-// syncPet shows or hides the pet, as the settings and the window say.
-func (a *App) syncPet() {
-	if a.Win == nil || a.Win.IsDestroyed() {
-		return
-	}
-	switch {
-	case a.settingsIn.Pet && a.Pet.win == nil:
-		a.petShow()
-	case !a.settingsIn.Pet && a.Pet.win != nil:
-		a.petClose()
-	}
-}
+func (a *App) petClose() { petme.Close(a) }
 
-// petShow opens the pet's window over the main one, and keeps it there.
-func (a *App) petShow() {
-	p := &a.Pet
-	now := time.Now()
-	p.since, p.lastActive, p.wink = now, now, time.Time{}
-	p.calm = mygo.Theme.Preferences().ReduceMotion
-	p.mood, _ = a.petCurrent(now)
-	p.setAgain = false
-	a.petSetReload()
-	p.win = mygo.NewWindow(mygo.WindowOptions{
-		Title:             locales.PetName(),
-		Width:             petspot.W,
-		Height:            petspot.H,
-		Frameless:         true,
-		Transparent:       true,
-		DisableShadow:     true,
-		DisableResize:     true,
-		DisableMove:       true,
-		DisableMinimize:   true,
-		DisableMaximize:   true,
-		DisableClose:      true,
-		DisableFullScreen: true,
-		SkipTaskbar:       true,
-		AlwaysOnTop:       true,
-		Hidden:            true,
-		Parent:            a.Win,
-		Content:           ui.View(a.petView),
-	})
-	win := p.win
-	p.offs = []func(){
-		// Closed with the app, and never in the way of quitting.
-		win.OnClosed(func() {
-			if a.Pet.win == win {
-				a.Pet.win = nil
-			}
-			a.PetSet = nil
-		}),
-		a.Win.OnMove(a.petPlace),
-		a.Win.OnResize(a.petPlace),
-		// A window ordered in, as the app comes to the front, goes over
-		// its children: the pet comes above it again.
-		a.Win.OnFocus(a.petRaise),
-		a.Win.OnShow(a.petPlace),
-		a.Win.OnHide(win.Hide),
-		a.Win.OnMinimize(win.Hide),
-		a.Win.OnRestore(a.petPlace),
-		a.Win.OnEnterFullScreen(win.Hide),
-		a.Win.OnLeaveFullScreen(a.petPlace),
-		mygo.Screen.OnDisplaysChanged(a.petPlace),
-	}
-	// The pet shows while this app is in front, above the window's kind
-	// of window, and goes as another app comes forward, as the window's
-	// edge does: a child window's ordering left it behind the window.
-	p.appOffs = []func(){
-		mygo.App.OnActivate(func(bool) { a.petRaise() }),
-		mygo.App.OnDidResignActive(func() {
-			if a.Pet.win != nil {
-				a.Pet.win.Hide()
-			}
-		}),
-	}
-	a.petPlace()
-}
+func (a *App) petPlace() { petme.Place(a) }
 
-// petClose takes the pet's window away.
-func (a *App) petClose() {
-	p := &a.Pet
-	p.dragging, p.moved = false, false
-	for _, off := range p.offs {
-		off()
-	}
-	p.offs = nil
-	for _, off := range p.appOffs {
-		off()
-	}
-	p.appOffs = nil
-	if p.win != nil {
-		w := p.win
-		p.win = nil
-		w.Destroy()
-	}
-}
+func (a *App) petRaise() { petme.Raise(a) }
 
-// petPlace puts the pet's window on the main window's edge: above its top
-// edge where the screen leaves room, else standing inside at its bottom
-// edge, as ELY does. It hides the pet while the window is away.
-func (a *App) petPlace() {
-	p := &a.Pet
-	if p.win == nil || a.Win == nil || a.Win.IsDestroyed() {
-		return
-	}
-	if !a.Win.IsVisible() || a.Win.IsMinimized() || a.Win.IsFullScreen() {
-		p.win.Hide()
-		return
-	}
-	b := a.Win.Bounds()
-	d := mygo.Screen.DisplayNearestPoint(mygo.Point{X: b.X + b.Width, Y: b.Y})
-	r, _ := petspot.Spot(b, d.WorkArea, a.settingsIn.PetOffset, petSetBodyH(a), petSetHead(a))
-	was := p.win.Bounds()
-	if was != r {
-		p.win.SetBounds(r)
-		if was.Width != r.Width || was.Height != r.Height {
-			// The build tells how much room there is for its speech.
-			p.win.Invalidate()
-		}
-	}
-	// Shown, or shown again: a drag of the main window, or its ordering,
-	// leaves the pet behind it, where its bottom part goes under the
-	// window; ShowInactive orders it above its parent as it places it.
-	p.win.ShowInactive()
-}
+func (a *App) petGrow() { petme.GrowRead(a) }
 
-// petRaise puts the pet above the main window again, whose ordering takes
-// it over its children: as the window takes the keyboard, and as the app
-// comes to the front.
-func (a *App) petRaise() {
-	p := &a.Pet
-	if p.win == nil || a.Win == nil || a.Win.IsDestroyed() {
-		return
-	}
-	if !a.Win.IsVisible() || a.Win.IsMinimized() || a.Win.IsFullScreen() {
-		return
-	}
-	p.win.ShowInactive()
-}
+func (a *App) petNote(at time.Time) { petme.Note(a, at) }
 
-// petGrow puts the pet at its size, and where it stands now, on the next
-// frame: a slider dragged asks for this, rather than the settings
-// applied, and saved, on each frame of the drag.
-func (a *App) petGrow() {
-	if a.PetSet != nil {
-		a.petSetGrow()
-	}
-	a.petPlace()
-}
+// petSetReload reads the pet again, as settings changed, or a pack
+// installed, and so the pets the settings may show.
+func (a *App) petSetReload() { petme.Reload(a) }
 
-// petCurrent tells what the pet should feel now: the most urgent thing
-// among the sessions, and how many sessions are that. A host the app lost
-// says nothing, as for the sidebar's counts.
-func (a *App) petCurrent(at time.Time) (petMood, int) {
-	waiting, failed, done, working := 0, 0, 0, 0
-	for i := range a.St.Sessions {
-		s := &a.St.Sessions[i]
-		switch {
-		case s.Status == proto.Waiting:
-			waiting++
-		case s.Status == proto.Failed:
-			failed++
-		case s.Unread && (s.Status == proto.Idle || s.Status == proto.Exited):
-			done++
-		case s.Status == proto.Working:
-			working++
-		}
-	}
-	switch {
-	case waiting > 0:
-		return petWaiting, waiting
-	case failed > 0:
-		return petFailed, failed
-	case done > 0:
-		return petDone, done
-	case working > 0:
-		return petWorking, working
-	}
-	if !a.Pet.lastActive.IsZero() && at.Sub(a.Pet.lastActive) > petDoze {
-		return petAsleep, 0
-	}
-	return petIdle, 0
-}
+// The app, as the pet asks it.
+func (a *App) MainWindow() *mygo.Window { return a.Win }
 
-// petNote takes the sessions as they just changed: a mood that changes
-// starts its reaction, and work moving keeps the pet awake. The daemon
-// sends a whole state, so this is where the pet hears of it.
-func (a *App) petNote(at time.Time) {
-	p := &a.Pet
-	if p.win == nil {
-		return
-	}
-	m, _ := a.petCurrent(at)
-	if m != petIdle && m != petAsleep {
-		p.lastActive = at
-	}
-	if m != p.mood {
-		p.mood, p.since = m, at
-	}
-	p.win.Invalidate()
-}
+func (a *App) Sessions() []proto.Session { return a.St.Sessions }
 
-// petView is the pet's window: its speech, when it has something to say,
-// over the pet.
-func (a *App) petView(c *ui.Context) {
-	c.Root().Background(ui.Transparent)
-	pal := theme.For(c)
-	now := c.Now()
-	mood, n := a.petCurrent(now)
-	label, fill, fg := a.petSpeech(pal, mood, n)
-	// The window is shorter than the pet and its speech when the screen
-	// leaves little room above the main window: the speech gives way, so
-	// that no half a bubble shows, and the pet shows whole.
-	_, h := c.Size()
-	set := a.petShows()
-	bodyH := float32(petspot.BodyH)
-	if set != nil {
-		bodyH = petSetBodyH(a)
-	}
-	roomy := h >= bodyH+(petspot.H-petspot.BodyH)-1
-	showing := roomy && a.petSays(now, mood)
-	var body ui.Element
-	clicked := false
-	ui.Column(c).Fill().Justify(ui.End).AlignItems(ui.Center).Children(func() {
-		if roomy {
-			speech := ui.Column(c.Key("speech")).AlignItems(ui.Center)
-			speech.Opacity(speech.Animate("shown", b2f(showing), 180*time.Millisecond))
-			speech.Children(func() {
-				bubble := ui.Row(c.Key("bubble")).Height(petBubbleH).Padding(0, 11).Radius(petBubbleH / 2).Gap(6).
-					AlignItems(ui.Center).Background(fill).MaxWidth(petspot.W - 6).Shrink(1)
-				if mood == petWorking {
-					bubble.Shadow(0, 2, 10, 0, pal.FloatShadow).Border(0.5, pal.CardBorder)
-				}
-				bubble.Children(func() {
-					if mood == petWorking && showing {
-						ui.Spinner(c).Size(11, 11).TextColor(fg)
-					}
-					ui.Text(c, label).FontSize(12).FontWeight(600).TextColor(fg).SingleLine().Ellipsis("…")
-				})
-				ui.Box(c.Key("tail")).Width(12).Height(5).Draw(func(p *ui.Painter, r ui.Rect) {
-					tail := (&ui.Path{}).MoveTo(r.X, r.Y).LineTo(r.X+r.W, r.Y).LineTo(r.X+r.W/2, r.Y+r.H).Close()
-					p.FillPath(tail, fill)
-				})
-				clicked = clicked || (showing && bubble.Clicked())
-			})
-		}
+func (a *App) Focused() bool { return a.focused }
 
-		name := locales.PetName()
-		if set != nil {
-			name = set.pet.Name
-		}
-		// Its width keeps its frame's proportions, at any size.
-		wide := float32(petspot.W)
-		if set != nil {
-			wide = petSetWide(a)
-		}
-		body = ui.Box(c.Key("hyla")).Size(wide, bodyH).Shrink(0).Cursor(ui.CursorGrab).
-			Description(petDescription(name, label))
-		hovered := body.Hovered()
-		state, since := pets.Idle, a.Pet.since
-		if set != nil {
-			state, since = a.petSetStateAt(mood, now)
-		}
-		body.Draw(func(p *ui.Painter, r ui.Rect) {
-			if set != nil {
-				a.petSetDraw(p, r, set, state, a.petSetFrameAt(state, since, p.Now()))
-			} else {
-				a.petDraw(p, r, mood, hovered)
-			}
-			p.After(a.petTick())
-		})
-		a.petDrag(body)
-		clicked = clicked || body.Clicked()
-		if a.Pet.moved {
-			// A drag is not a pat: it only let go.
-			clicked = false
-			if !a.Pet.dragging {
-				a.Pet.moved = false
-			}
-		}
-	})
-	if clicked {
-		a.petPetted(now, mood)
-	}
+func (a *App) PetSet() *petme.View { return a.PetSetView }
 
-	// Rebuild when what the pet says, or how awake it is, turns over;
-	// its motion repaints without a build, in petDraw.
-	if mood == petIdle {
-		if at := a.Pet.lastActive.Add(petDoze); at.After(now) {
-			c.After(at.Sub(now) + 16*time.Millisecond)
-		}
-	}
-	if showing && (mood == petWorking || mood == petDone || mood == petFailed) {
-		if d := a.petSaysFor(mood) - now.Sub(a.Pet.since); d > 0 {
-			c.After(d + 16*time.Millisecond)
-		}
-	}
-	if d := petWink - now.Sub(a.Pet.wink); d > 0 {
-		c.After(d + 16*time.Millisecond)
-	}
-}
+func (a *App) SetPetSet(v *petme.View) { a.PetSetView = v }
 
-// petDescription is what assistive technology hears of the pet: its
-// name, and what it says, if anything.
-func petDescription(name, label string) string {
-	if label == "" {
-		return name
-	}
-	return name + ": " + label
-}
+func (a *App) PetState() *petme.State { return &a.Pet }
 
-// petSpeech says what the pet's bubble says, and how it looks.
-func (a *App) petSpeech(pal *theme.Palette, mood petMood, n int) (label string, fill, fg ui.Color) {
-	switch mood {
-	case petWaiting:
-		return locales.FooterNeedsYou(n), pal.Attention, ui.Hex("#241a08")
-	case petFailed:
-		label = locales.StatusFailed()
-		if n > 1 {
-			label += " · " + strconv.Itoa(n)
-		}
-		return label, pal.Danger, ui.Hex("#ffffff")
-	case petDone:
-		return locales.FooterDone(n), pal.Done, pal.OnDone
-	case petWorking:
-		return locales.FooterWorking(n), pal.Popover, pal.TextMuted
-	}
-	return "", ui.Transparent, ui.Transparent
-}
+func (a *App) PetListOf() *petme.List { return &a.PetList }
 
-// petSays tells whether the pet's bubble shows now.
-func (a *App) petSays(now time.Time, mood petMood) bool {
-	switch mood {
-	case petWaiting:
-		return true
-	case petWorking, petDone, petFailed:
-		return now.Sub(a.Pet.since) < a.petSaysFor(mood)
-	}
-	return false
-}
+func (a *App) Generation() int { return a.petsGen }
 
-// petSaysFor is how long a bubbled mood says so; waiting stays until it
-// is answered.
-func (a *App) petSaysFor(mood petMood) time.Duration {
-	switch mood {
-	case petDone, petFailed:
-		return petLinger
-	default:
-		return petBubble
-	}
-}
+func (a *App) BumpGeneration() { a.petsGen++ }
 
-// petTick is how often the pet draws its next frame: slowly when the
-// desktop asks for less motion, and when the user is elsewhere.
-func (a *App) petTick() time.Duration {
-	switch {
-	case a.Pet.calm:
-		return 250 * time.Millisecond
-	case !a.Focused:
-		return petCalm
-	}
-	return petFrame
-}
+func (a *App) JumpToAttention() { a.jumpToAttention() }
 
-// petPetted is a click on the pet: it wakes, winks, or waves as a Codex
-// pet, and takes the user to a session that waits on them, if another one
-// does.
-func (a *App) petPetted(now time.Time, mood petMood) {
-	a.Pet.lastActive, a.Pet.since, a.Pet.mood = now, now, mood
-	a.Pet.wink, a.Pet.wave = now, now
-	if mood == petWaiting {
-		if s := a.session(a.Selected); s == nil || s.Status != proto.Waiting {
-			a.jumpToAttention()
-		}
-	}
-	if a.Pet.win != nil {
-		a.Pet.win.Invalidate()
-	}
-	if a.Win != nil {
-		a.Win.Focus()
-		a.focusTerminal()
-	}
-}
+// setFocused tells that the app is in front, or leaves.
+func (a *App) setFocused(v bool) { a.focused = v }
 
-// petDrag moves the pet along its edge while the pointer drags its body.
-// The pointer's screen x, not its x in the window, sets where it goes:
-// the window follows it, so the local x would stand still.
-func (a *App) petDrag(body ui.Element) {
-	_, _, pressed := body.Dragged()
-	if pressed {
-		if !a.Pet.dragging {
-			x, _, over := body.PointerPosition()
-			if !over {
-				return
-			}
-			a.Pet.dragging, a.Pet.moved, a.Pet.grab = true, false, x
-			a.Pet.lastActive = time.Now()
-			if cx, ok := a.petCursorX(); ok {
-				a.Pet.startX = cx
-			} else {
-				a.Pet.startX = 0
-			}
-		}
-		if cx, ok := a.petCursorX(); ok {
-			if abs(cx-a.Pet.startX) > 2 {
-				a.Pet.moved = true
-			}
-			if a.Pet.moved {
-				a.petDragTo(cx - a.Pet.grab)
-			}
-		}
-		return
-	}
-	if a.Pet.dragging {
-		a.Pet.dragging = false
-		if a.Pet.moved {
-			a.petDrop()
-		}
-	}
-}
-
-// petCursorX is the pointer's x on screen, where the pet's window moves.
-func (a *App) petCursorX() (float32, bool) {
-	if a.Pet.win == nil || a.Win == nil {
-		return 0, false
-	}
-	return float32(mygo.Screen.CursorScreenPoint().X), true
-}
-
-// petDragTo puts the pet's window at left, as a custom position across
-// the main window, and moves it there.
-func (a *App) petDragTo(left float32) {
-	if a.Pet.win == nil || a.Win == nil {
-		return
-	}
-	off := petspot.OffsetAt(a.Win.Bounds(), left)
-	off = float32(math.Round(float64(off)*1000)) / 1000
-	a.settingsIn.PetOffset = off
-	a.petPlace()
-}
-
-// petDrop keeps where a drag left the pet.
-func (a *App) petDrop() {
-	if a.Pet.win == nil {
-		return
-	}
-	a.applySettings(a.settingsIn)
-}
-
-// abs is a float's magnitude.
-func abs(v float32) float32 {
-	if v < 0 {
-		return -v
-	}
-	return v
-}
+// SavePetSettings applies the settings, as a drag of the pet's edge
+// leaves them.
+func (a *App) SavePetSettings() { a.applySettings(a.settingsIn) }

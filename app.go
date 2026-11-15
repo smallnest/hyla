@@ -31,7 +31,6 @@ import (
 	"hyla/internal/app/filepane"
 	configsync "hyla/internal/app/sync"
 	"hyla/internal/client"
-	"hyla/internal/pets"
 	"hyla/internal/proto"
 	"hyla/internal/remote"
 	"hyla/internal/settings"
@@ -39,6 +38,7 @@ import (
 	"hyla/internal/ui/k8sdialog"
 	"hyla/internal/ui/palette"
 	"hyla/internal/ui/panes"
+	"hyla/internal/ui/petme"
 	"hyla/internal/ui/picker"
 	uisettings "hyla/internal/ui/settings"
 	"hyla/internal/ui/side"
@@ -155,16 +155,13 @@ type App struct {
 		ratio          float64 // where the pointer puts it, past its bounds
 	}
 
-	Active   bool
-	Focused  bool
-	Statuses map[string]proto.Status // as last seen, for notifications
-	Pet      petState                // Hyla the frog, on the window's top edge
-	PetSet   *petSet                 // the Codex pet it shows where it is no frog
-	// petList is the pets the settings may show, read for the pet chosen
-	// in petListFor, as petsGen counted installations.
-	PetList    []pets.Builtin
-	PetListFor string
-	PetListGen int
+	Active     bool
+	focused    bool                    // whether the app is in front, as Focused answers
+	Statuses   map[string]proto.Status // as last seen, for notifications
+	Pet        petme.State             // Hyla the frog, on the window's top edge
+	PetSetView *petme.View             // the Codex pet it shows where it is no frog
+	PetList    petme.List              // the pets the settings may show, as last read
+	petsGen    int                     // the pets installed or removed, which a list reads again
 	// idleTime tells how long the user has not used the machine's keyboard
 	// or mouse (mygo.Power.IdleTime), 0 when the system does not tell; nil
 	// in tests.
@@ -266,7 +263,7 @@ type App struct {
 // confirmation is a question the app asks before something it cannot undo.
 
 func newApp() *App {
-	a := &App{Terms: map[string]*termEntry{}, Webs: map[string]*webEntry{}, Statuses: map[string]proto.Status{}, Active: true, Focused: true,
+	a := &App{Terms: map[string]*termEntry{}, Webs: map[string]*webEntry{}, Statuses: map[string]proto.Status{}, Active: true, focused: true,
 		Refs: map[string]*ui.Handle{}, Focus: map[string]string{}, ArrivedPanes: map[string]bool{}}
 	a.loadPrefs()
 	a.settingsIn = settings.Load()
@@ -965,7 +962,7 @@ func (a *App) selectSession(id string) {
 // stops being the active one, so the window's focus has to tell
 // elsewhere.
 func (a *App) watching(id string) bool {
-	return id != "" && id == a.Selected && a.Active && a.Focused
+	return id != "" && id == a.Selected && a.Active && a.focused
 }
 
 // reportView tells each host's hylad which of its sessions the user looks
@@ -1107,7 +1104,7 @@ const (
 // session it showed closed: the idle time the system tells says they
 // left. A system that tells none leaves it to the window's focus.
 func (a *App) here() bool {
-	if !a.Focused {
+	if !a.focused {
 		return false
 	}
 	return a.IdleTime == nil || a.IdleTime() < hereIdle
@@ -1481,10 +1478,10 @@ func (a *App) apply(s settings.Settings, save bool) {
 		// goes, once this frame is done.
 		a.update(a.syncPet)
 	}
-	if (old.PetOffset != s.PetOffset || old.PetSize != s.PetSize) && a.Pet.win != nil {
+	if (old.PetOffset != s.PetOffset || old.PetSize != s.PetSize) && a.Pet.Win != nil {
 		a.update(a.petPlace)
 	}
-	if old.PetSet != s.PetSet && a.Pet.win != nil {
+	if old.PetSet != s.PetSet && a.Pet.Win != nil {
 		a.update(a.petSetReload)
 	}
 	if old.AppIcon != s.AppIcon && a.Win != nil {
@@ -1504,8 +1501,8 @@ func (a *App) apply(s settings.Settings, save bool) {
 	if a.Win != nil {
 		a.Win.Invalidate()
 	}
-	if a.Pet.win != nil {
-		a.Pet.win.Invalidate()
+	if a.Pet.Win != nil {
+		a.Pet.Win.Invalidate()
 	}
 	if a.SetWin != nil {
 		a.SetWin.Invalidate()

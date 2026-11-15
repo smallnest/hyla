@@ -141,6 +141,13 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     between the panes — are `internal/ui/panes`, which the actions, the
     panes' controls, a browser and the Info view call; the root keeps
     `panes_adapters.go`, and the session a replaced one arrives in.
+  - Also: the pet is `internal/ui/petme` — its mood and the words it
+    says, the frog it draws, the Codex pets' spritesheets, the pets it
+    lists and the window that follows the main one. Its state is the
+    app's field, and `pet.go` is its adapters. The app's focused flag is
+    its own field, which `Focused` answers, as `focused` had to leave.
+    `petspot` moved from the engine layer to the ui layer, which the
+    pet's window reads it from.
   - Also: the panes' drawing is `internal/ui/panes`, beside their
     actions: the card, the layout's nodes and its divider, the header and
     its controls, the terminal's body, the drop preview and the moves a

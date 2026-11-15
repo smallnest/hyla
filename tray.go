@@ -126,7 +126,8 @@ func (a *App) showWindow() {
 // windowClosed lets go of what the main window showed: its panes'
 // terminals and pages, which a window made anew attaches again.
 func (a *App) windowClosed() {
-	a.WinOpen, a.Focused = false, false
+	a.WinOpen = false
+	a.setFocused(false)
 	for id := range a.Terms {
 		a.dropTerm(id)
 	}

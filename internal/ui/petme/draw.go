@@ -1,19 +1,39 @@
-package main
+package petme
 
 import (
 	"math"
 	"time"
 
+	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
-
-	"hyla/internal/proto"
 )
 
-// --- the frog ---
+// State is the pet's window and what it last felt.
+type State struct {
+	Win     *mygo.Window
+	Offs    []func() // the main window's events, until the pet goes
+	AppOffs []func() // the app's events, until the pet goes
+	// Mood and Since say what the pet felt and when it began, which its
+	// reactions count from; LastActive is when a session last did
+	// something, which a doze follows.
+	Mood       Mood
+	Since      time.Time
+	LastActive time.Time
+	Wink       time.Time
+	Wave       time.Time // the pat a Codex pet waves back to
+	Calm       bool      // the desktop asks for less motion
+	// Dragging says the pointer is moving the pet along its edge: Grab is
+	// where it took the body, and StartX the pointer's screen x then, so
+	// that a press without a move stays a click.
+	Dragging bool
+	Moved    bool
+	Grab     float32
+	StartX   float32
+	// SetAgain tells that the pet set the settings name was not found,
+	// and was told of, while the window has shown.
+	SetAgain bool
+}
 
-// The frog's colors, which stay the same in either appearance: a frog on
-// a desktop, not a UI. Body, belly and line are the icon's frog
-// (resources/icon.png), so the frog on the edge is the Hyla in the Dock.
 var (
 	petBody  = ui.Hex("#fb6f02")
 	petBelly = ui.Hex("#fede8e")
@@ -29,45 +49,45 @@ var (
 	petTear          = ui.Hex("#7bb8ea")
 )
 
-// petLook is where the frog is in its motion: offsets and expression.
-type petLook struct {
+// look is where the frog is in its motion: offsets and expression.
+type look struct {
 	bob, sway, scan, blink, hop, shake, wave, sparkle, doze float32
 	happy, sad, wink, wide, tap                             bool
 }
 
-// petLookAt works out the frog's pose for a mood, from the mood's start
+// LookAt works out the frog's pose for a mood, from the mood's start
 // and the clock.
-func (a *App) petLookAt(mood petMood, now time.Time) petLook {
-	var l petLook
-	l.wink = now.Sub(a.Pet.wink) >= 0 && now.Sub(a.Pet.wink) < petWink
+func LookAt(st *State, focused, waiting bool, mood Mood, now time.Time) look {
+	var l look
+	l.wink = now.Sub(st.Wink) >= 0 && now.Sub(st.Wink) < Wink
 	l.blink = petBlink(now, 0.9, 4.4)
 	if l.wink {
 		l.happy = true
 	}
-	if a.Pet.calm {
+	if st.Calm {
 		l.blink = petBlink(now, 1.3, 6)
-		if mood == petAsleep {
+		if mood == Asleep {
 			l.blink = 1
 			l.doze = 1
 		}
-		l.wide = mood == petWaiting
-		l.happy = l.happy || mood == petDone
-		l.sad = mood == petFailed
+		l.wide = mood == Waiting
+		l.happy = l.happy || mood == Done
+		l.sad = mood == Failed
 		return l
 	}
-	t := float32(max(now.Sub(a.Pet.since), 0).Seconds())
+	t := float32(max(now.Sub(st.Since), 0).Seconds())
 	switch mood {
-	case petAsleep:
-		d := float32(max(now.Sub(a.Pet.lastActive.Add(petDoze)), 0).Seconds())
+	case Asleep:
+		d := float32(max(now.Sub(st.LastActive.Add(Doze)), 0).Seconds())
 		l.doze = min(d/0.5, 1)
 		l.bob = petWave(t, 5.2) * 1.2
 		l.blink = 1
-	case petWorking:
+	case Working:
 		l.bob = petWave(t, 1.5) * 2.2
 		l.scan = petWave(t, 2.6) * 3.4
 		l.blink = petBlink(now, 2.2, 3.2)
 		l.tap = true
-	case petWaiting:
+	case Waiting:
 		// A hop at the start of every 1.2 seconds.
 		ph := float32(math.Mod(float64(t), 1.2) / 1.2)
 		if ph < 0.5 {
@@ -77,13 +97,11 @@ func (a *App) petLookAt(mood petMood, now time.Time) petLook {
 		l.wide = true
 		l.blink = petBlink(now, 3.3, 5.5) * 0.35
 		// Already answering it: it still waits, but stops insisting.
-		if a.Focused {
-			if s := a.session(a.Selected); s != nil && s.Status == proto.Waiting {
-				l.hop *= 0.3
-				l.wave *= 0.5
-			}
+		if focused && waiting {
+			l.hop *= 0.3
+			l.wave *= 0.5
 		}
-	case petDone:
+	case Done:
 		d := min(t, 1.4)
 		l.hop = float32(math.Abs(float64(petWave(d/0.7, 1)))) * 12 * (1 - d/1.4)
 		l.sparkle = min(t/0.25, 1)
@@ -92,7 +110,7 @@ func (a *App) petLookAt(mood petMood, now time.Time) petLook {
 		}
 		l.happy = true
 		l.blink = 1
-	case petFailed:
+	case Failed:
 		l.shake = float32(math.Sin(float64(t)*36)) * 3.6 * float32(math.Exp(float64(-t*2.2)))
 		l.sad = true
 		l.blink = 0
@@ -103,10 +121,13 @@ func (a *App) petLookAt(mood petMood, now time.Time) petLook {
 	return l
 }
 
-// petDraw draws the frog into its box, hands on the window's edge.
-func (a *App) petDraw(p *ui.Painter, r ui.Rect, mood petMood, hovered bool) {
-	l := a.petLookAt(mood, p.Now())
-	if hovered && mood == petAsleep && !a.Pet.calm {
+// Draw draws the frog into its box, hands on the window's edge.
+// scale is how the frog's art shows: drawn at 108, it stands this tall.
+const scale = 0.8
+
+func Draw(p *ui.Painter, r ui.Rect, st *State, focused, waiting bool, mood Mood, hovered bool) {
+	l := LookAt(st, focused, waiting, mood, p.Now())
+	if hovered && mood == Asleep && !st.Calm {
 		l.blink = 0.35
 		l.doze = 0.4
 	}
@@ -114,7 +135,7 @@ func (a *App) petDraw(p *ui.Painter, r ui.Rect, mood petMood, hovered bool) {
 	bottom := r.Y + r.H
 	headY := bottom - 56 + l.bob - l.hop
 	draw := func(fn func()) {
-		p.Transform(ui.Scaling(petScale, petScale), cx, bottom, func() {
+		p.Transform(ui.Scaling(scale, scale), cx, bottom, func() {
 			if l.sway != 0 {
 				p.Transform(ui.Rotation(l.sway), cx, bottom, fn)
 				return
@@ -124,20 +145,20 @@ func (a *App) petDraw(p *ui.Painter, r ui.Rect, mood petMood, hovered bool) {
 	}
 	draw(func() {
 		// A soft shadow on the edge, and the arms behind the body.
-		p.FillPath(petEllipse(cx, bottom-1.5, 42, 5), ui.RGBA(15, 25, 20, 0.13))
+		p.FillPath(ellipse(cx, bottom-1.5, 42, 5), ui.RGBA(15, 25, 20, 0.13))
 		lhx, lhy := cx-31, bottom-10.5
 		rhx, rhy := cx+31, bottom-10.5
 		rhand := float32(-14)
 		switch {
-		case mood == petWaiting:
+		case mood == Waiting:
 			rhx = cx + 45
 			rhy = bottom - 36 - 4*l.wave
 			rhand = -24 - 18*l.wave
-		case mood == petDone && p.Now().Sub(a.Pet.since) < 1400*time.Millisecond:
+		case mood == Done && p.Now().Sub(st.Since) < 1400*time.Millisecond:
 			lhx, lhy = cx-43, bottom-31
 			rhx, rhy = cx+43, bottom-31
-		case mood == petWorking && l.tap:
-			lhy = bottom - 10.5 - 3*float32(math.Abs(float64(petWave(float32(p.Now().Sub(a.Pet.since).Seconds()), 0.5))))
+		case mood == Working && l.tap:
+			lhy = bottom - 10.5 - 3*float32(math.Abs(float64(petWave(float32(p.Now().Sub(st.Since).Seconds()), 0.5))))
 		}
 		p.Line(cx-30, headY+23, lhx, lhy-4, 9.5, petLine)
 		p.Line(cx-30, headY+23, lhx, lhy-4, 9.5-petRim*2, petBody)
@@ -147,7 +168,7 @@ func (a *App) petDraw(p *ui.Painter, r ui.Rect, mood petMood, hovered bool) {
 		// the icon's, goes round the head and hands alone: the head drawn
 		// a line wide larger in the line's color, then in the body's over
 		// the bumps, so that the body's own edge and tops show.
-		eyeL, eyeR := petEllipse(cx-22, headY-30, 15, 15), petEllipse(cx+22, headY-30, 15, 15)
+		eyeL, eyeR := ellipse(cx-22, headY-30, 15, 15), ellipse(cx+22, headY-30, 15, 15)
 		big, small := petHead(cx, headY, 88+petRim*2, 64+petRim*2), petHead(cx, headY, 88, 64)
 		p.FillPath(big, petLine)
 		for _, c := range []ui.Color{petLine, petBody} {
@@ -159,17 +180,17 @@ func (a *App) petDraw(p *ui.Painter, r ui.Rect, mood petMood, hovered bool) {
 		p.FillPath(small, petBody)
 		// A breath of light on the crown.
 		p.Transform(ui.Rotation(-22), cx-19, headY-17, func() {
-			p.FillPath(petEllipse(cx-19, headY-17, 13, 7.5), ui.RGBA(255, 255, 255, 0.16))
+			p.FillPath(ellipse(cx-19, headY-17, 13, 7.5), ui.RGBA(255, 255, 255, 0.16))
 		})
 		// The belly, cream and close to the edge.
-		p.FillPath(petEllipse(cx, bottom-14, 24, 12.5), petBelly)
+		p.FillPath(ellipse(cx, bottom-14, 24, 12.5), petBelly)
 
 		petHand(p, lhx, lhy, 9.5, 0)
 		petHand(p, rhx, rhy, 9.5, rhand)
 
 		// The sprout: a stem and two leaves, which the frog's mood sways.
 		sprout := -2 + 3*petWave(float32(p.Now().UnixMilli())/1000, 4.5)
-		if mood == petWorking {
+		if mood == Working {
 			sprout += 4 * petWave(float32(p.Now().UnixMilli())/1000, 1.6)
 		}
 		p.Line(cx, headY-31, cx+sprout, headY-44, 2.6, petLeaf)
@@ -194,15 +215,15 @@ func (a *App) petDraw(p *ui.Painter, r ui.Rect, mood petMood, hovered bool) {
 		}
 		if l.wink {
 			// The wink keeps the left eye open, and says so with a heart.
-			p.FillPath(petEllipse(ex-22, eyeY, 7.2, 8.8), petInk)
-			p.FillPath(petEllipse(ex-24.2, eyeY-2.6, 2.2, 2.6), ui.RGBA(255, 255, 255, 0.9))
-			petHeart(p, cx+38, headY-40, 7*min(float32(p.Now().Sub(a.Pet.wink).Seconds())/0.18, 1))
+			p.FillPath(ellipse(ex-22, eyeY, 7.2, 8.8), petInk)
+			p.FillPath(ellipse(ex-24.2, eyeY-2.6, 2.2, 2.6), ui.RGBA(255, 255, 255, 0.9))
+			petHeart(p, cx+38, headY-40, 7*min(float32(p.Now().Sub(st.Wink).Seconds())/0.18, 1))
 		}
-		p.FillPath(petEllipse(cx-32, headY+9, 6.5, 3.2), petCheek.Alpha(0.55))
-		p.FillPath(petEllipse(cx+32, headY+9, 6.5, 3.2), petCheek.Alpha(0.55))
+		p.FillPath(ellipse(cx-32, headY+9, 6.5, 3.2), petCheek.Alpha(0.55))
+		p.FillPath(ellipse(cx+32, headY+9, 6.5, 3.2), petCheek.Alpha(0.55))
 		// Two nostrils, which make the face a frog's.
-		p.FillPath(petEllipse(cx-4.5, headY+9, 1.1, 1.3), petInk.Alpha(0.45))
-		p.FillPath(petEllipse(cx+4.5, headY+9, 1.1, 1.3), petInk.Alpha(0.45))
+		p.FillPath(ellipse(cx-4.5, headY+9, 1.1, 1.3), petInk.Alpha(0.45))
+		p.FillPath(ellipse(cx+4.5, headY+9, 1.1, 1.3), petInk.Alpha(0.45))
 		petMouth(p, cx, headY+17, l)
 
 		if l.sad {
@@ -215,7 +236,7 @@ func (a *App) petDraw(p *ui.Painter, r ui.Rect, mood petMood, hovered bool) {
 			petStar(p, cx+40, headY-46, 3.6*(0.5+0.5*ph), petSpark.Alpha(0.5+0.4*ph))
 		}
 		if l.doze > 0.2 {
-			a.petZ(p, cx+38, headY-44, float32(p.Now().UnixMilli())/1000, l.doze)
+			petZ(p, cx+38, headY-44, float32(p.Now().UnixMilli())/1000, l.doze)
 		}
 	})
 }
@@ -233,8 +254,8 @@ func petHead(cx, cy, w, h float32) *ui.Path {
 	return p.Close()
 }
 
-// petEllipse is an ellipse as a path.
-func petEllipse(cx, cy, rx, ry float32) *ui.Path {
+// ellipse is an ellipse as a path.
+func ellipse(cx, cy, rx, ry float32) *ui.Path {
 	const k = 0.5522847498
 	p := &ui.Path{}
 	p.MoveTo(cx+rx, cy)
@@ -253,9 +274,9 @@ func petEyeOpen(p *ui.Painter, x, y, blink float32, wide bool) {
 	if wide {
 		rx, ry = rx+0.8, ry+0.9
 	}
-	p.FillPath(petEllipse(x, y, rx, ry), petIris)
-	p.FillPath(petEllipse(x, y, rx*0.32, ry*0.8), petInk)
-	p.FillPath(petEllipse(x-2.4, y-3, 2.0, 2.4), ui.RGBA(255, 255, 255, 0.92))
+	p.FillPath(ellipse(x, y, rx, ry), petIris)
+	p.FillPath(ellipse(x, y, rx*0.32, ry*0.8), petInk)
+	p.FillPath(ellipse(x-2.4, y-3, 2.0, 2.4), ui.RGBA(255, 255, 255, 0.92))
 }
 
 // petEyeHappy is a closed, smiling eye.
@@ -275,18 +296,18 @@ func petEyeSad(p *ui.Painter, x, y float32) {
 // petHand is a little mitten with two fingers, turned by angle.
 func petHand(p *ui.Painter, x, y, r, angle float32) {
 	p.Transform(ui.Rotation(angle), x, y+r, func() {
-		p.StrokePath(petEllipse(x, y, r, r*0.88), petRim, petLine)
-		p.FillPath(petEllipse(x, y, r, r*0.88), petBody)
+		p.StrokePath(ellipse(x, y, r, r*0.88), petRim, petLine)
+		p.FillPath(ellipse(x, y, r, r*0.88), petBody)
 		p.Line(x-r*0.36, y+1, x-r*0.36, y+r*0.54, 1.1, petInk.Alpha(0.16))
 		p.Line(x+r*0.08, y+1, x+r*0.08, y+r*0.6, 1.1, petInk.Alpha(0.16))
 	})
 }
 
 // petMouth is the frog's mouth, which its mood shapes.
-func petMouth(p *ui.Painter, cx, y float32, l petLook) {
+func petMouth(p *ui.Painter, cx, y float32, l look) {
 	switch {
 	case l.wide:
-		p.FillPath(petEllipse(cx, y+2, 4.2, 5.2), petInk)
+		p.FillPath(ellipse(cx, y+2, 4.2, 5.2), petInk)
 	case l.sad:
 		m := (&ui.Path{}).MoveTo(cx-6, y+3).QuadTo(cx, y-3, cx+6, y+3)
 		p.StrokePath(m, 2, petInk)
@@ -343,7 +364,7 @@ func petStar(p *ui.Painter, x, y, s float32, c ui.Color) {
 }
 
 // petZ is a z, drifting up from a dozing frog.
-func (a *App) petZ(p *ui.Painter, x, y, t, doze float32) {
+func petZ(p *ui.Painter, x, y, t, doze float32) {
 	for i := 0; i < 3; i++ {
 		ph := float32(math.Mod(float64(t*0.35+float32(i)/3), 1))
 		size := 10 + 8*ph

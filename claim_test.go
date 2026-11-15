@@ -73,12 +73,12 @@ func TestClaimShownWhileHere(t *testing.T) {
 	idle := time.Duration(0)
 	a.IdleTime = func() time.Duration { return idle }
 
-	a.Focused = false
+	a.setFocused(false)
 	a.claimShown()
 	if n := claims(fa) + claims(fb); n != 0 {
 		t.Errorf("window not focused: %d claims", n)
 	}
-	a.Focused = true
+	a.setFocused(true)
 	a.claimShown()
 	if claims(fa) != 1 || claims(fb) != 1 {
 		t.Error("the user here: not every pane shown claimed")
@@ -96,7 +96,7 @@ func TestClaimShownWhileHere(t *testing.T) {
 func TestClaimShownZoomed(t *testing.T) {
 	a := testApp(t)
 	fa, fb := attachTerm(t, a, "a"), attachTerm(t, a, "b")
-	a.Focused = true
+	a.setFocused(true)
 	a.session("s1").Zoomed = "b"
 	a.claimShown()
 	if claims(fa) != 0 || claims(fb) != 1 {
@@ -126,14 +126,15 @@ func TestShownPanes(t *testing.T) {
 func TestWatchingNeedsFocus(t *testing.T) {
 	a := testApp(t)
 	a.Selected = "s1"
-	a.Active, a.Focused = true, true
+	a.Active = true
+	a.setFocused(true)
 	if !a.watching("s1") {
 		t.Error("the selected session, window focused: not watched")
 	}
 	if a.watching("s2") {
 		t.Error("another session: watched")
 	}
-	a.Focused = false
+	a.setFocused(false)
 	if a.watching("s1") {
 		t.Error("window not focused: watched")
 	}

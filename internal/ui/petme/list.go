@@ -1,4 +1,4 @@
-package main
+package petme
 
 import (
 	"slices"
@@ -8,9 +8,9 @@ import (
 
 	"hyla/internal/pets"
 	"hyla/internal/settings"
+	"hyla/internal/ui/controls"
 	"hyla/internal/ui/theme"
 
-	"hyla/internal/ui/controls"
 	"hyla/locales"
 )
 
@@ -18,21 +18,18 @@ import (
 // them: Hyla the frog, the Codex app's active pet, and each pet the Codex
 // app has, then those hyla installed. It reads them once, and again when
 // a pet is installed, or another chosen.
-func (a *App) listPets() []pets.Builtin {
-	if a.PetList != nil && a.PetListFor == a.settingsIn.PetSet && a.PetListGen == petsGen {
-		return a.PetList
+func listPets(a App) []pets.Builtin {
+	l := a.PetListOf()
+	if l.Pets != nil && l.For == a.Settings().PetSet && l.Gen == a.Generation() {
+		return l.Pets
 	}
-	a.PetList, a.PetListFor, a.PetListGen = a.readPets(), a.settingsIn.PetSet, petsGen
-	return a.PetList
+	l.Pets, l.For, l.Gen = readPets(), a.Settings().PetSet, a.Generation()
+	return l.Pets
 }
-
-// petsGen counts the pets installed or removed, so that a list reads
-// again.
-var petsGen int
 
 // readPets reads the pets listPets lists, their names from their
 // pet.json, not their spritesheets.
-func (a *App) readPets() []pets.Builtin {
+func readPets() []pets.Builtin {
 	ps := []pets.Builtin{{Name: settings.PetSetHyla, Title: locales.PetName()}}
 	codex := pets.CodexIDs()
 	if active := pets.CodexActive(); active != "" {
@@ -61,45 +58,47 @@ func (a *App) readPets() []pets.Builtin {
 	return ps
 }
 
-// petChooser is the pop-up that chooses the pet on the edge.
-func (a *App) petChooser(c *ui.Context, pal *theme.Palette) {
-	ps := a.listPets()
+// Chooser is the pop-up that chooses the pet on the edge.
+func Chooser(a App, c *ui.Context, pal *theme.Palette) {
+	ps := listPets(a)
+	s := a.Settings()
 	names := make([]string, 1, len(ps)+1)
-	names[0] = a.settingsIn.PetSet
+	names[0] = s.PetSet
 	titles := make(map[string]string, len(ps))
 	for _, p := range ps {
 		titles[p.Name] = p.Title
-		if p.Name != a.settingsIn.PetSet {
+		if p.Name != s.PetSet {
 			names = append(names, p.Name)
 		}
 	}
-	t := a.settingsIn.PetSet
+	t := s.PetSet
 	controls.Popup(c, "pet-set", &t, names, func(n string) string {
-		if s, ok := titles[n]; ok {
-			return s
+		if title, ok := titles[n]; ok {
+			return title
 		}
 		return n
 	}, 240, pal)
-	if t != a.settingsIn.PetSet {
-		setPet(&a.settingsIn, t)
+	if t != s.PetSet {
+		Set(s, t)
 	}
 }
 
-// setPet changes the pet shown, and shows it.
-func setPet(s *settings.Settings, name string) {
+// Set changes the pet shown, and shows it.
+func Set(s *settings.Settings, name string) {
 	s.PetSet = name
 	s.Pet = true
 }
 
-// petGallery is the pet's setting's detail: what its description says,
-// or what went wrong with it.
-func (a *App) petGallery() string {
-	if a.settingsIn.PetSet == settings.PetSetHyla {
+// Gallery is the pet's setting's detail: what its description says, or
+// what went wrong with it.
+func Gallery(a App) string {
+	name := a.Settings().PetSet
+	if name == settings.PetSetHyla {
 		return ""
 	}
-	p, err := pets.NameID(a.settingsIn.PetSet)
+	p, err := pets.NameID(name)
 	if err != nil {
-		return locales.SetPetMissing(a.settingsIn.PetSet, err.Error())
+		return locales.SetPetMissing(name, err.Error())
 	}
 	desc := strings.TrimSpace(p.Description)
 	// A pet of the same name in both directories: say which one shows.

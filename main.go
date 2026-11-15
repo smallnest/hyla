@@ -110,8 +110,8 @@ func runApp() {
 			if a.SetWin != nil {
 				a.SetWin.SetTitle(locales.SettingsTitle())
 			}
-			if a.Pet.win != nil {
-				a.Pet.win.SetTitle(locales.PetName())
+			if a.Pet.Win != nil {
+				a.Pet.Win.SetTitle(locales.PetName())
 			}
 			if a.Tray != nil {
 				a.Tray.SetMenu(a.trayMenu())
@@ -182,8 +182,8 @@ func (a *App) openWindow() {
 	}, topBar, barMid))
 	a.WinOpen = true
 	a.updateTitle()
-	a.Win.OnFocus(func() { a.update(func() { a.Focused = true; a.claimShown(); a.reportView() }) })
-	a.Win.OnBlur(func() { a.update(func() { a.Focused = false; a.reportView() }) })
+	a.Win.OnFocus(func() { a.update(func() { a.setFocused(true); a.claimShown(); a.reportView() }) })
+	a.Win.OnBlur(func() { a.update(func() { a.setFocused(false); a.reportView() }) })
 	a.Win.OnClosed(a.windowClosed)
 }
 

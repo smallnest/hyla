@@ -10,6 +10,7 @@ import (
 	"hyla/internal/actions"
 	"hyla/internal/platform"
 	"hyla/internal/settings"
+	"hyla/internal/ui/petme"
 	uisettings "hyla/internal/ui/settings"
 	"hyla/internal/ui/theme"
 
@@ -75,9 +76,9 @@ func (a *App) ApplyGlobalShortcuts()                        { a.applyGlobalShort
 func (a *App) OpenConfig()                                  { openConfig(a) }
 func (a *App) PickSidebarImage()                            { a.pickSidebarImage() }
 func (a *App) PickPaneImage()                               { a.pickPaneImage() }
-func (a *App) PetGallery() string                           { return a.petGallery() }
-func (a *App) PetChooser(c *ui.Context, pal *theme.Palette) { a.petChooser(c, pal) }
-func (a *App) PetGrow()                                     { a.petGrow() }
+func (a *App) PetGallery() string                           { return petme.Gallery(a) }
+func (a *App) PetChooser(c *ui.Context, pal *theme.Palette) { petme.Chooser(a, c, pal) }
+func (a *App) PetGrow()                                     { petme.GrowRead(a) }
 func (a *App) PetKnob()                                     { a.Ss.PetKnob = true }
 
 // TermThemes are the terminal's colors, light and dark.
