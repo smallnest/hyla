@@ -6,6 +6,7 @@ import (
 
 	"hyla/internal/app/host"
 	"hyla/internal/proto"
+	"hyla/internal/ui/layout"
 	"hyla/internal/ui/panes"
 	"hyla/internal/ui/quick"
 	"hyla/internal/ui/side"
@@ -42,7 +43,7 @@ func (a *App) PaneMessageOfQuick(c *ui.Context, pal *theme.Palette, title, detai
 }
 
 func (a *App) Chrome() panes.Chrome {
-	return panes.Chrome{SideW: a.ChromeState.sideW, MainPad: a.ChromeState.mainPad, HeaderPad: a.ChromeState.headerPad, Lead: lead(a.Bar)}
+	return panes.Chrome{SideW: a.ChromeState.SideW, MainPad: a.ChromeState.MainPad, HeaderPad: a.ChromeState.HeaderPad, Lead: layout.Lead(a.Bar)}
 }
 
 func (a *App) RightShown() bool { return a.rightShown() }

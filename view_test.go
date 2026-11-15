@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"hyla/internal/app/host"
+	"hyla/internal/ui/layout"
 	"image"
 	"image/color"
 	"image/draw"
@@ -240,12 +241,12 @@ func TestSidebarAnimationMonotonic(t *testing.T) {
 		prevX := float32(-1)
 		prevEdge := float32(-1)
 		for i := 0; i <= 20000; i++ {
-			ch := chromeFor(float32(i)/20000, width, bar)
-			x := ch.sideW + ch.mainPad + ch.headerPad // the title's left, in the window
-			edge := ch.sideW + ch.mainPad             // the card's left edge
-			for _, v := range []float32{ch.sideW, ch.mainPad, ch.headerPad} {
+			ch := layout.For(float32(i)/20000, width, bar)
+			x := ch.SideW + ch.MainPad + ch.HeaderPad // the title's left, in the window
+			edge := ch.SideW + ch.MainPad             // the card's left edge
+			for _, v := range []float32{ch.SideW, ch.MainPad, ch.HeaderPad} {
 				if v != float32(int(v)) {
-					t.Fatalf("width %v, progress %v: %v is not a whole pixel", width, ch.shown, v)
+					t.Fatalf("width %v, progress %v: %v is not a whole pixel", width, ch.Shown, v)
 				}
 			}
 			if x < prevX {
@@ -256,10 +257,10 @@ func TestSidebarAnimationMonotonic(t *testing.T) {
 			}
 			prevX, prevEdge = x, edge
 		}
-		if ch := chromeFor(1, width, bar); ch.headerPad != 16 || ch.mainPad != 0 || ch.sideW != width {
+		if ch := layout.For(1, width, bar); ch.HeaderPad != 16 || ch.MainPad != 0 || ch.SideW != width {
 			t.Errorf("width %v shown: %+v", width, ch)
 		}
-		if ch := chromeFor(0, width, bar); ch.sideW != 0 || ch.mainPad != cardGap {
+		if ch := layout.For(0, width, bar); ch.SideW != 0 || ch.MainPad != layout.CardGap {
 			t.Errorf("width %v hidden: %+v", width, ch)
 		}
 	}
@@ -268,11 +269,11 @@ func TestSidebarAnimationMonotonic(t *testing.T) {
 // The sidebar's animation never holds still before it lands: a frame
 // that does not move, then one that does, reads as a stutter.
 func TestSidebarAnimationNoHolds(t *testing.T) {
-	ease := sidebarMotion.Ease
-	frames := int(sidebarMotion.Duration / (time.Second / 60))
+	ease := layout.SidebarMotion.Ease
+	frames := int(layout.SidebarMotion.Duration / (time.Second / 60))
 	prev := float32(-1)
 	for i := 0; i <= frames; i++ {
-		w := chromeFor(ease(float32(i)/float32(frames)), 268, ui.TitleBar{}).sideW
+		w := layout.For(ease(float32(i)/float32(frames)), 268, ui.TitleBar{}).SideW
 		if w == prev && w != 268 {
 			t.Errorf("frame %d: the sidebar held at %v before landing", i, w)
 		}
@@ -1103,7 +1104,7 @@ func dragRow(t *testing.T, tt *ui.Tester, from, to string, below bool) {
 	if !ok {
 		t.Fatalf("no %q row; texts %q", to, tt.Texts())
 	}
-	// A detailed row is rowH2 high, its name on the first line: a point 2
+	// A detailed row is RowH2 high, its name on the first line: a point 2
 	// DIPs past the name's top is above its middle, 30 past it below.
 	y := dst.Y + 2
 	if below {
@@ -1287,10 +1288,10 @@ func TestCollapseSelectedProject(t *testing.T) {
 		t.Fatalf("no project name; texts %q", tt.Texts())
 	}
 	// The dot sits over the badge's lower right corner.
-	badgeX := p.X - projectBadgeGap - projectBadge
-	badgeY := p.Y + p.H/2 - projectBadge/2
+	badgeX := p.X - layout.ProjectBadgeGap - layout.ProjectBadge
+	badgeY := p.Y + p.H/2 - layout.ProjectBadge/2
 	dot := func() color.RGBA {
-		return tt.Image().RGBAAt(int(badgeX+projectBadge-1), int(badgeY+projectBadge-1))
+		return tt.Image().RGBAAt(int(badgeX+layout.ProjectBadge-1), int(badgeY+layout.ProjectBadge-1))
 	}
 	red := func(c color.RGBA) bool { return c.R > 180 && c.G < 140 && c.B < 140 }
 	if red(dot()) {

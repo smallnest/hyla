@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"hyla/internal/app/host"
 	"hyla/internal/platform"
+	"hyla/internal/ui/layout"
 	"log"
 	"os"
 	"os/exec"
@@ -180,7 +181,7 @@ func (a *App) openWindow() {
 		StateKey:  "main",
 		Vibrancy:  vibrancyFor(a.settingsIn),
 		Content:   ui.View(a.view),
-	}, topBar, barMid))
+	}, layout.TopBar, layout.BarMid))
 	a.WinOpen = true
 	a.updateTitle()
 	a.Win.OnFocus(func() { a.update(func() { a.setFocused(true); a.claimShown(); a.reportView() }) })

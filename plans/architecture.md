@@ -266,6 +266,11 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     draws `internal/app/sync`'s `State`; the root keeps its page's
     `SyncState`, `SyncSaved` and `SyncRun` as the callbacks, while
     `App.Sync` stays the Settings window's page.
+  - Also: where the window's parts go is `internal/ui/layout` — the
+    title bar's middle and the sidebar's top, a card's gap, the rows'
+    heights, and `Chrome`, what the sidebar's slide leaves the cards'
+    column and the header, with `For` and `SidebarMotion`. The views
+    read them as they drew them.
   - The guard now fails on a package of `internal/` that no layer's
     names hold. It found `buildinfo`, `fileicons` and `profiling` never
     listed.

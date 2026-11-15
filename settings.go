@@ -10,6 +10,7 @@ import (
 	"hyla/internal/actions"
 	"hyla/internal/platform"
 	"hyla/internal/settings"
+	"hyla/internal/ui/layout"
 	"hyla/internal/ui/petme"
 	uisettings "hyla/internal/ui/settings"
 	"hyla/internal/ui/theme"
@@ -23,7 +24,7 @@ var _ uisettings.App = (*App)(nil)
 func (a *App) HostCount() int { return len(a.Machines) }
 
 // HeaderHeight is the height of the Settings pages' titles.
-func (a *App) HeaderHeight() float32 { return 2 * (barMid - cardGap) }
+func (a *App) HeaderHeight() float32 { return 2 * (layout.BarMid - layout.CardGap) }
 
 // openSettings shows the Settings window, on a page.
 func (a *App) openSettings(page string) {
@@ -33,7 +34,7 @@ func (a *App) openSettings(page string) {
 			StateKey: "settings",
 			Vibrancy: vibrancyFor(a.settingsIn),
 			Content:  ui.View(content.(func(c *ui.Context))),
-		}, topBar, barMid))
+		}, layout.TopBar, layout.BarMid))
 	})
 }
 
@@ -45,9 +46,9 @@ func (a *App) Main(fn func())                             { a.main(fn) }
 func (a *App) SettingsWindow() *mygo.Window               { return a.SetWin }
 func (a *App) SetSettingsWindow(w *mygo.Window)           { a.SetWin = w }
 func (a *App) RootWindow() *mygo.Window                   { return a.Win }
-func (a *App) TopInset() float32                          { return topBar }
-func (a *App) BarMid() float32                            { return barMid }
-func (a *App) CardGap() float32                           { return cardGap }
+func (a *App) TopInset() float32                          { return layout.TopBar }
+func (a *App) BarMid() float32                            { return layout.BarMid }
+func (a *App) CardGap() float32                           { return layout.CardGap }
 func (a *App) Vibrancy(s settings.Settings) mygo.Vibrancy { return vibrancyFor(s) }
 
 func (a *App) CallOnLocal(method string, params any, done func(err error)) {

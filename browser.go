@@ -4,6 +4,7 @@ import (
 	"github.com/egoist/mygo"
 
 	"hyla/internal/app/favicon"
+	"hyla/internal/ui/layout"
 	"hyla/internal/ui/panes"
 	"hyla/internal/ui/webpane"
 
@@ -19,12 +20,12 @@ import (
 type webEntry = webpane.Entry
 
 // Icons is the cache the browser panes' icons are kept in.
-func (a *App) B2F(v bool) float32 { return b2f(v) }
+func (a *App) B2F(v bool) float32 { return layout.B2F(v) }
 
 // ChromeStateOf is where the sidebar's animation puts things, as a
 // browser's header reads it.
 func (a *App) ChromeStateOf() panes.Chrome {
-	return panes.Chrome{SideW: a.ChromeState.sideW, MainPad: a.ChromeState.mainPad, HeaderPad: a.ChromeState.headerPad}
+	return panes.Chrome{SideW: a.ChromeState.SideW, MainPad: a.ChromeState.MainPad, HeaderPad: a.ChromeState.HeaderPad}
 }
 
 func (a *App) FindQuery() string { return a.Find.Query }

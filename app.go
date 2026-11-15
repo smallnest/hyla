@@ -9,6 +9,7 @@ import (
 	"hyla/internal/app/host"
 	"hyla/internal/app/paneinfo"
 	"hyla/internal/platform"
+	"hyla/internal/ui/layout"
 	"maps"
 	"os"
 	"path/filepath"
@@ -175,8 +176,8 @@ type App struct {
 	configsync.State // this machine's configuration, kept with the others'
 
 	RenameFrames int
-	ChromeState  chrome      // where the sidebar's animation puts things
-	Bar          ui.TitleBar // the window's title bar, as the frame drew it
+	ChromeState  layout.Chrome // where the sidebar's animation puts things
+	Bar          ui.TitleBar   // the window's title bar, as the frame drew it
 
 	Pal     palette.State
 	Find    findState

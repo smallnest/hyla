@@ -5,7 +5,6 @@ import (
 	"hyla/internal/app/gitinfo"
 	"hyla/internal/app/host"
 	"hyla/internal/platform"
-	"math"
 	"runtime"
 	"slices"
 	"strings"
@@ -16,6 +15,7 @@ import (
 	"hyla/internal/actions"
 	"hyla/internal/proto"
 	"hyla/internal/ui/confirm"
+	"hyla/internal/ui/layout"
 	"hyla/internal/ui/sidebar"
 	"hyla/internal/ui/theme"
 
@@ -29,80 +29,6 @@ import (
 
 	"hyla/internal/ui/glyph"
 )
-
-const (
-	// barMid is the line the title bar's contents center on: the traffic
-	// lights, the sidebar's buttons, the panes' headers. topBar is the
-	// sidebar's title bar, centered on it, and headerH a header of a card,
-	// which starts cardGap down, centered on it too.
-	barMid  = 30
-	topBar  = 2 * barMid
-	headerH = 2 * (barMid - cardGap)
-	cardGap = 8 // around the card
-	rowH    = 34
-	rowH2   = 48 // a detailed row, of two lines
-	// rowInset is where a sidebar row's text starts: a project's name and
-	// its sessions', the badge telling the project from its children.
-	rowInset = 12
-	// projectBadge is the square before a project's name, with its first
-	// letter; projectBadgeGap is the room after it.
-	projectBadge    = 20
-	projectBadgeGap = 6
-	// rowGap is what a row leaves between its parts: the mark, the name,
-	// the time.
-	rowGap = 10
-)
-
-// chrome is where the sidebar's animation puts things, in whole pixels so
-// that edges stay crisp. Each is rounded once, from one progress quantized
-// to the sidebar's pixels, so that they move together: rounded apart,
-// they would step at different frames, and a title, their sum, would
-// shake by a pixel as the spring settles.
-type chrome struct {
-	shown     float32 // the sidebar's progress, 0 hidden to 1 shown
-	sideW     float32 // the sidebar's width as shown
-	mainPad   float32 // the left padding of the cards' column
-	headerPad float32 // the left padding of the header at the left edge
-}
-
-// buttonsLeft places the sidebar's buttons that the header holds while
-// the sidebar hides, in the header's coordinates, so that they stay where
-// they are in the window, after the traffic lights, as the card slides.
-func (ch chrome) buttonsLeft(bar ui.TitleBar) float32 {
-	return lead(bar) - (ch.sideW + ch.mainPad)
-}
-
-// lead is where the sidebar's buttons start in the window, with the sidebar
-// shown or not: after the traffic lights on macOS; elsewhere inside the
-// card's edge, which they come over as the sidebar hides.
-func lead(bar ui.TitleBar) float32 {
-	if platform.OwnControls {
-		return bar.Left + 2*cardGap
-	}
-	return bar.Left + cardGap
-}
-
-var sidebarMotion = ui.Animation{Duration: 260 * time.Millisecond, Ease: ui.CubicBezier(0.25, 1, 0.5, 1)}
-
-func chromeFor(progress, width float32, bar ui.TitleBar) chrome {
-	round := func(v float32) float32 { return float32(math.Round(float64(v))) }
-	w := round(width * min(max(progress, 0), 1))
-	s := w / width
-	pad := round(cardGap * (1 - s))
-	// Where the header's title starts in the window, rounded once: after
-	// the traffic lights and the sidebar's buttons with the sidebar
-	// hidden, 16 into the card with it shown.
-	hidden, shown := lead(bar)+16+60, width+16
-	x := round(hidden + (shown-hidden)*s)
-	return chrome{shown: s, sideW: w, mainPad: pad, headerPad: x - w - pad}
-}
-
-func b2f(b bool) float32 {
-	if b {
-		return 1
-	}
-	return 0
-}
 
 func (a *App) view(c *ui.Context) {
 	pal := theme.For(c)
@@ -126,7 +52,7 @@ func (a *App) view(c *ui.Context) {
 	// frame, which whole pixels turn into hops and holds, a shake as it
 	// settles. This one lands in about 13 frames, moving in every one.
 	var progress float32
-	shown := a.ChromeState.shown
+	shown := a.ChromeState.Shown
 	// The panel is not crowded by a window too narrow for it beside the
 	// panes, which it then leaves to them while it is open, unless the
 	// user opens it anyway (sideState.forced). The row's width is this
@@ -140,9 +66,9 @@ func (a *App) view(c *ui.Context) {
 		a.Side.Forced = false
 	}
 	row.Children(func() {
-		progress = ui.Column(c.Key("sidebar")).AnimateTo("shown", b2f(!a.Prefs.SidebarHidden), sidebarMotion)
-		a.ChromeState = chromeFor(progress, a.Prefs.SidebarWidth, bar)
-		w := a.ChromeState.sideW
+		progress = ui.Column(c.Key("sidebar")).AnimateTo("shown", layout.B2F(!a.Prefs.SidebarHidden), layout.SidebarMotion)
+		a.ChromeState = layout.For(progress, a.Prefs.SidebarWidth, bar)
+		w := a.ChromeState.SideW
 		side := ui.Row(c).Width(w).Shrink(0).AlignItems(ui.Stretch).ClipX()
 		if h := a.local(); h.Conn == host.StateReady && h.Client != nil && !a.Prefs.SidebarHidden && !a.Pal.Open && !a.Picker.Open && a.SshAsk == nil && a.K8sAsk == nil && (a.Confirm == nil || !a.Confirm.Open) {
 			if files := side.DroppedFiles(); len(files) > 0 {
@@ -162,7 +88,7 @@ func (a *App) view(c *ui.Context) {
 			})
 		})
 		// The gaps around the cards move the window too.
-		main := ui.Column(c).Grow(1).MinWidth(0).Padding(cardGap, cardGap, cardGap, a.ChromeState.mainPad).DragWindow()
+		main := ui.Column(c).Grow(1).MinWidth(0).Padding(layout.CardGap, layout.CardGap, layout.CardGap, a.ChromeState.MainPad).DragWindow()
 		main.Children(func() {
 			if shown > 0.01 {
 				a.resizeHandle(c, pal)
@@ -224,10 +150,10 @@ func (a *App) resizeHandle(c *ui.Context, pal *theme.Palette) {
 // --- the sidebar ---
 
 func (a *App) sidebar(c *ui.Context, pal *theme.Palette, bar ui.TitleBar) {
-	ui.Row(c).Height(topBar).Shrink(0).AlignItems(ui.Center).Padding(0, 12, 0, lead(bar)).Gap(2).DragWindow().Children(func() {
+	ui.Row(c).Height(layout.TopBar).Shrink(0).AlignItems(ui.Center).Padding(0, 12, 0, layout.Lead(bar)).Gap(2).DragWindow().Children(func() {
 		// After the traffic lights on macOS, at the right; elsewhere the
 		// window controls are at the right, and the buttons at the left,
-		// where they stay as the sidebar hides (chrome.buttonsLeft).
+		// where they stay as the sidebar hides (layout.Chrome.buttonsLeft).
 		if runtime.GOOS == "darwin" {
 			ui.Spacer(c)
 		}
@@ -390,7 +316,7 @@ func (a *App) sessionSidebar(c *ui.Context, pal *theme.Palette, group string, n 
 				gi++
 				for _, id := range dg.Sessions {
 					if s := a.session(id); s != nil {
-						a.sessionRow(c, pal, s, n, rowInset, "")
+						a.sessionRow(c, pal, s, n, layout.RowInset, "")
 					}
 				}
 			}
@@ -399,7 +325,7 @@ func (a *App) sessionSidebar(c *ui.Context, pal *theme.Palette, group string, n 
 			empty = len(ss) == 0
 			for _, id := range ss {
 				if s := a.session(id); s != nil {
-					a.sessionRow(c, pal, s, n, rowInset, "")
+					a.sessionRow(c, pal, s, n, layout.RowInset, "")
 				}
 			}
 		}
@@ -411,7 +337,7 @@ func (a *App) sessionSidebar(c *ui.Context, pal *theme.Palette, group string, n 
 
 // dateHeader is a day in the sidebar's By Date.
 func (a *App) dateHeader(c *ui.Context, pal *theme.Palette, key, label string, count int, top float32) {
-	inset := float32(rowInset)
+	inset := float32(layout.RowInset)
 	if pal.Dark {
 		inset++
 	}
@@ -447,7 +373,7 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g sidebar.Group, gi i
 	}
 	// Its name starts past its badge (sessionRow), where its sessions'
 	// names start too; the badge tells the project from its children.
-	inset := float32(rowInset)
+	inset := float32(layout.RowInset)
 	if pal.Dark {
 		inset++
 	}
@@ -542,7 +468,7 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g sidebar.Group, gi i
 		if urgent {
 			badgeColor = pal.Attention
 		}
-		badge := ui.Box(c.Key("project-icon-"+key)).Size(projectBadge, projectBadge).Shrink(0)
+		badge := ui.Box(c.Key("project-icon-"+key)).Size(layout.ProjectBadge, layout.ProjectBadge).Shrink(0)
 		if ssh || k8s {
 			// The SSH and K8s projects are machines rather than folders:
 			// their mark stands before their name as an agent's stands
@@ -588,8 +514,8 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g sidebar.Group, gi i
 		ui.Text(c, g.Project.Name).FontSize(13).FontWeight(500).TextColor(pal.Group).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 		ui.Textf(c, "%d", len(g.Sessions)).FontSize(12.5).TextColor(pal.TextFaint).FontFeatures("tnum")
 		chev := ui.Icon(c, glyph.Chevron).Size(11, 11).TextColor(pal.TextFaint)
-		turn := chev.AnimateTo("turn", 90*(1-b2f(collapsed)), ui.Snappy)
-		chev.Rotate(turn).Opacity(chev.Animate("shown", b2f(hovered || collapsed), 120*time.Millisecond))
+		turn := chev.AnimateTo("turn", 90*(1-layout.B2F(collapsed)), ui.Snappy)
+		chev.Rotate(turn).Opacity(chev.Animate("shown", layout.B2F(hovered || collapsed), 120*time.Millisecond))
 		ui.Spacer(c)
 		// This machine's hylad says how the app stands with it here, when
 		// it reconnects, or wants restarting: the first group's header.
@@ -620,7 +546,7 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g sidebar.Group, gi i
 		if s == nil || ssh && a.sshHostOfSession(s.ID) != nil || k8s && a.k8sPodOfSession(s.ID) != nil {
 			continue
 		}
-		a.sessionRow(c, pal, s, n, float32(rowInset), g.DragKey())
+		a.sessionRow(c, pal, s, n, float32(layout.RowInset), g.DragKey())
 	}
 	if ssh {
 		sshdialog.Rows(a, c, pal)
@@ -691,11 +617,11 @@ func (a *App) sessionRow(c *ui.Context, pal *theme.Palette, s *proto.Session, n 
 	// A detailed row gives the session's status message, else its branch
 	// and changes, a line of its own under the name.
 	detailed := a.settingsIn.SidebarRows != "compact"
-	h := float32(rowH)
+	h := float32(layout.RowH)
 	if detailed {
-		h = rowH2
+		h = layout.RowH2
 	}
-	row := ui.Row(c.Key(s.ID)).Height(h).Padding(0, 10, 0, inset).Gap(rowGap).AlignItems(ui.Center).Radius(8).Margin(0, 0, 1, 0)
+	row := ui.Row(c.Key(s.ID)).Height(h).Padding(0, 10, 0, inset).Gap(layout.RowGap).AlignItems(ui.Center).Radius(8).Margin(0, 0, 1, 0)
 	hovered := row.Hovered()
 	if pal.Dark {
 		// Room for the chosen row's edge in every row, so that choosing
@@ -861,11 +787,11 @@ func (a *App) sessionRow(c *ui.Context, pal *theme.Palette, s *proto.Session, n 
 				// Under the name, past the mark's slot: the second line
 				// stays its session's, not the mark's.
 				ui.Text(c, line).FontSize(12).TextColor(fg).SingleLine().Ellipsis("…").MinWidth(0).
-					Padding(0, 0, 0, projectBadge+projectBadgeGap)
+					Padding(0, 0, 0, layout.ProjectBadge+layout.ProjectBadgeGap)
 			})
 			return
 		}
-		mark(rowGap)
+		mark(layout.RowGap)
 		name()
 		// An SSH or K8s terminal names what it reaches, by its name.
 		if detail := sshAddr; detail != "" {
@@ -893,7 +819,7 @@ func (a *App) sessionRow(c *ui.Context, pal *theme.Palette, s *proto.Session, n 
 // badge and the gap after it, less the gap the row itself leaves, so that a
 // session's name starts where its project's does, and every row's lines up.
 func markSlot(c *ui.Context, gap float32) ui.Element {
-	return ui.Box(c).Size(projectBadge+projectBadgeGap-gap, marks.Size).Center().Shrink(0)
+	return ui.Box(c).Size(layout.ProjectBadge+layout.ProjectBadgeGap-gap, marks.Size).Center().Shrink(0)
 }
 
 // statusSlot ends a row that stands for a terminal: its status, or, while
@@ -1220,10 +1146,10 @@ func (a *App) cardFor(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown 
 	// No session: one card, for what the app has to say.
 	card := style.Raised(ui.Column(c).Grow(1).MinHeight(0).Radius(14).Background(theme.TranslucentGlass(pal.Card, pal, a.settingsIn)), pal).Clip()
 	card.Children(func() {
-		left := a.ChromeState.headerPad
-		ui.Row(c).Height(headerH).Shrink(0).AlignItems(ui.Center).Padding(0, 10, 0, left).DragWindow().Children(func() {
+		left := a.ChromeState.HeaderPad
+		ui.Row(c).Height(layout.HeaderH).Shrink(0).AlignItems(ui.Center).Padding(0, 10, 0, left).DragWindow().Children(func() {
 			if shown < 0.5 {
-				ui.Row(c).Absolute().Left(a.ChromeState.buttonsLeft(bar)).Top(0).Bottom(0).AlignItems(ui.Center).Gap(2).Opacity(1 - 2*shown).Children(func() {
+				ui.Row(c).Absolute().Left(a.ChromeState.ButtonsLeft(bar)).Top(0).Bottom(0).AlignItems(ui.Center).Gap(2).Opacity(1 - 2*shown).Children(func() {
 					paints.IconButton(c, "show-sidebar", glyph.Sidebar, a.tip(locales.SidebarShow(), "sidebar.toggle"), pal, a.toggleSidebar)
 					paints.IconButton(c, "new-session-2", glyph.Plus, a.tip(locales.ActionNewSession(), "session.new"), pal, func() { a.newSession("") })
 				})

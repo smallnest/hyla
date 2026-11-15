@@ -6,6 +6,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/settings"
 	"hyla/internal/ui/files"
+	"hyla/internal/ui/layout"
 	"hyla/internal/ui/side"
 	"hyla/internal/ui/theme"
 )
@@ -43,11 +44,11 @@ func (a *App) FileViewer(c *ui.Context, pal *theme.Palette, s *proto.Session, v 
 	a.fileViewer(c, pal, s, v)
 }
 
-func (a *App) Motion() ui.Animation { return sidebarMotion }
+func (a *App) Motion() ui.Animation { return layout.SidebarMotion }
 
-func (a *App) CardGapIn() float32 { return cardGap }
+func (a *App) CardGapIn() float32 { return layout.CardGap }
 
-func (a *App) HeaderHeightIn() float32 { return headerH }
+func (a *App) HeaderHeightIn() float32 { return layout.HeaderH }
 
 func (a *App) Gap() float32 { return sideGap }
 
@@ -77,4 +78,6 @@ func (a *App) sidePanel(c *ui.Context, pal *theme.Palette, s *proto.Session, wid
 	side.Panel(a, c, pal, s, width, right)
 }
 
-func sideRowW(winW float32, ch chrome) float32 { return side.RowW(winW, ch.sideW, ch.mainPad, cardGap) }
+func sideRowW(winW float32, ch layout.Chrome) float32 {
+	return side.RowW(winW, ch.SideW, ch.MainPad, layout.CardGap)
+}

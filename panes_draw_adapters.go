@@ -7,6 +7,7 @@ import (
 	ui "github.com/egoist/mygo/ui"
 
 	"hyla/internal/proto"
+	"hyla/internal/ui/layout"
 	"hyla/internal/ui/panes"
 	"hyla/internal/ui/theme"
 )
@@ -16,7 +17,7 @@ func (a *App) SwitchIn() bool { return a.SwitchInState }
 func (a *App) SwitchFrom() ui.Motion { return a.SwitchFromMotion }
 
 func (a *App) ChromeForPanel() panes.Chrome {
-	return panes.Chrome{SideW: a.ChromeState.sideW, MainPad: a.ChromeState.mainPad, HeaderPad: a.ChromeState.headerPad, Lead: lead(a.Bar)}
+	return panes.Chrome{SideW: a.ChromeState.SideW, MainPad: a.ChromeState.MainPad, HeaderPad: a.ChromeState.HeaderPad, Lead: layout.Lead(a.Bar)}
 }
 
 func (a *App) FeishuOn() bool { return panes.FeishuOn(a.settingsIn) }

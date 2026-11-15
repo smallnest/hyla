@@ -17,6 +17,7 @@ import (
 	"hyla/internal/actions"
 	"hyla/internal/adblock"
 	"hyla/internal/settings"
+	"hyla/internal/ui/layout"
 	"hyla/internal/ui/settings/kit"
 	"hyla/internal/ui/theme"
 
@@ -291,11 +292,11 @@ func TestScrollEdgeShots(t *testing.T) {
 		// The bar's bottom edge, over the card: no hairline at the top of
 		// the page, one once scrolled.
 		edgeRow := func() [3]uint8 {
-			c := tt.Image().RGBAAt(600, cardGap+headerH-1)
+			c := tt.Image().RGBAAt(600, layout.CardGap+layout.HeaderH-1)
 			return [3]uint8{c.R, c.G, c.B}
 		}
 		top := edgeRow()
-		card := tt.Image().RGBAAt(600, cardGap+headerH+2)
+		card := tt.Image().RGBAAt(600, layout.CardGap+layout.HeaderH+2)
 		if top != [3]uint8{card.R, card.G, card.B} {
 			t.Errorf("dark %v: a hairline at the top of the page: %v over a card of %v", dark, top, card)
 		}
