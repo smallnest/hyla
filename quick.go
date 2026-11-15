@@ -68,9 +68,9 @@ func (a *App) attachQuick() { quick.Attach(a) }
 
 func (a *App) quickTermFor(id string) *terminal.Terminal { return quick.TermFor(a, id) }
 
-// termFor returns the terminal of a pane, the window's or the quick
+// TermFor returns the terminal of a pane, the window's or the quick
 // terminal's, else nil.
-func (a *App) termFor(id string) *terminal.Terminal {
+func (a *App) TermFor(id string) *terminal.Terminal {
 	if e := a.Terms[id]; e != nil && e.term != nil {
 		return e.term
 	}

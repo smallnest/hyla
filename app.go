@@ -1253,7 +1253,7 @@ func (a *App) termOptions(id string, conn *gated) terminal.Options {
 			if !ok {
 				return false
 			}
-			t := a.termFor(id)
+			t := a.TermFor(id)
 			if t == nil {
 				return false
 			}

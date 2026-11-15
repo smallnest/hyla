@@ -186,6 +186,11 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     environment the bot's agents run in is the package's `AppEnv`, which
     the app reads as it applies its settings. The page asks the app for
     this machine, and for a call on it, as `Local` and `CallOnLocal`.
+  - Also: a paste of the clipboard's images and files, which a pane's
+    terminal cannot carry, is `internal/app/paste` — the images it saves
+    for a program, the paths it pastes and how it quotes them — and
+    `paste_adapters.go` is its adapter. The app's `termFor` is `TermFor`,
+    as the package reads it.
   - Also: the panes' drawing is `internal/ui/panes`, beside their
     actions: the card, the layout's nodes and its divider, the header and
     its controls, the terminal's body, the drop preview and the moves a

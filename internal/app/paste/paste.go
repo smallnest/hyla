@@ -1,4 +1,7 @@
-package main
+// Package paste takes the clipboard's images, and its files, as the
+// paths of files a program takes, for a pane whose terminal cannot carry
+// them: a pasted image is saved as a file, and its path pasted instead.
+package paste
 
 import (
 	"errors"
@@ -16,38 +19,24 @@ import (
 	"hyla/locales"
 )
 
-// shellEscape writes a path as one word of a POSIX shell, as dropped
-// files' are: a backslash before what the shell would read otherwise.
-func shellEscape(p string) string {
-	var b strings.Builder
-	for _, r := range p {
-		safe := r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || strings.ContainsRune("/._-+@%:,=", r) || r > 0x7f
-		if !safe {
-			b.WriteByte('\\')
-		}
-		b.WriteRune(r)
-	}
-	return b.String()
-}
-
-// pasteDir is where the images pasted into panes are kept, as files a
+// Dir is where the images pasted into panes are kept, as files a
 // program takes by their paths. A var for tests.
-var pasteDir = func() string { return filepath.Join(os.TempDir(), "hyla-paste") }
+var Dir = func() string { return filepath.Join(os.TempDir(), "hyla-paste") }
 
-// pasteKeep is how long a pasted image's file stays: an agent may come
+// Keep is how long a pasted image's file stays: an agent may come
 // back to the path long after the paste.
-const pasteKeep = 7 * 24 * time.Hour
+const Keep = 7 * 24 * time.Hour
 
-// pasteImageTypes are the images a paste saves for a program, by the
+// imageTypes are the images a paste saves for a program, by the
 // extension of their file: those coding agents take.
-var pasteImageTypes = map[transfer.Format]string{
+var imageTypes = map[transfer.Format]string{
 	transfer.PNG: ".png",
 	"image/jpeg": ".jpg",
 	"image/gif":  ".gif",
 	"image/webp": ".webp",
 }
 
-// pasteImage takes a paste of the clipboard that holds an image and no
+// Image takes a paste of the clipboard that holds an image and no
 // text, as a screenshot copied to the clipboard does, and pastes the path
 // of a file with the image instead, as dropping the file on the pane
 // would: coding agents take the path as an image they attach.
@@ -64,8 +53,8 @@ var pasteImageTypes = map[transfer.Format]string{
 // clipboard holds, and reports whether it took the paste: it takes none
 // that has text, which pastes as it is, or neither files nor an image.
 // Files with no text paste as their paths.
-func (a *App) pasteImage(id string, d transfer.Data) bool {
-	t := a.termFor(id)
+func Image(a App, id string, d transfer.Data) bool {
+	t := a.TermFor(id)
 	if t == nil {
 		return false
 	}
@@ -73,7 +62,7 @@ func (a *App) pasteImage(id string, d transfer.Data) bool {
 	// nothing here is a clipboard that could not be read, as when it
 	// changed meanwhile or an image is too big to convert.
 	if len(d.Formats()) == 0 {
-		a.toast(locales.ToastPasteClipboardUnreadable())
+		a.Toast(locales.ToastPasteClipboardUnreadable())
 		return true
 	}
 	if text, _ := d.Read(transfer.Text); len(text) > 0 {
@@ -85,18 +74,18 @@ func (a *App) pasteImage(id string, d transfer.Data) bool {
 		// nothing, so their paths go, as a drop of them sends.
 		quoted := make([]string, len(files))
 		for i, f := range files {
-			quoted[i] = quotePath(runtime.GOOS, a.paneShell(id), f)
+			quoted[i] = Quote(runtime.GOOS, PaneShell(a, id), f)
 		}
 		t.Paste(strings.Join(quoted, " "))
 		return true
 	}
-	f, ok := imageToPaste(d)
+	f, ok := imageToSave(d)
 	if !ok {
 		return false
 	}
-	ext, ok := pasteImageTypes[f]
+	ext, ok := imageTypes[f]
 	if !ok {
-		a.toast(locales.ToastPasteImageUnsupported(strings.ToUpper(strings.TrimPrefix(string(f), "image/"))))
+		a.Toast(locales.ToastPasteImageUnsupported(strings.ToUpper(strings.TrimPrefix(string(f), "image/"))))
 		return true
 	}
 	img, err := d.Read(f)
@@ -105,19 +94,19 @@ func (a *App) pasteImage(id string, d transfer.Data) bool {
 	}
 	var path string
 	if err == nil {
-		path, err = savePastedImage(img, ext)
+		path, err = saveImage(img, ext)
 	}
 	if err != nil {
-		a.toast(pasteImageError(err, pasteDir()))
+		a.Toast(ImageErrorText(err, Dir()))
 		return true
 	}
-	t.Paste(quotePath(runtime.GOOS, a.paneShell(id), path))
+	t.Paste(Quote(runtime.GOOS, PaneShell(a, id), path))
 	return true
 }
 
-// imageToPaste returns the image format of d to paste: PNG if it has it,
+// imageToSave returns the image format of d to paste: PNG if it has it,
 // else the first of its image formats.
-func imageToPaste(d transfer.Data) (transfer.Format, bool) {
+func imageToSave(d transfer.Data) (transfer.Format, bool) {
 	formats := d.Formats()
 	if slices.Contains(formats, transfer.PNG) {
 		return transfer.PNG, true
@@ -130,10 +119,11 @@ func imageToPaste(d transfer.Data) (transfer.Format, bool) {
 	return "", false
 }
 
-// pasteImageError says why an image could not be saved for a paste, and
+// imageError says why an image could not be saved for a paste, and
 // what the user can do: the toast is all they see, so the system's error
 // is told alone only for what is not one of the causes they can mend.
-func pasteImageError(err error, dir string) string {
+// ImageErrorText says why an image could not be saved for a paste.
+func ImageErrorText(err error, dir string) string {
 	switch {
 	case errors.Is(err, fs.ErrPermission):
 		return locales.ToastPasteImageDenied(dir)
@@ -145,13 +135,13 @@ func pasteImageError(err error, dir string) string {
 
 // paneShell returns the name of the shell of a pane, or of the pane in
 // front of a session, by id.
-func (a *App) paneShell(id string) string {
-	for i := range a.St.Sessions {
-		if p := a.St.Sessions[i].PaneByID(id); p != nil {
+func PaneShell(a App, id string) string {
+	for i := range a.Sessions() {
+		if p := a.Sessions()[i].PaneByID(id); p != nil {
 			return p.Shell
 		}
 	}
-	if s := a.session(id); s != nil {
+	if s := a.Session(id); s != nil {
 		if p := s.FocusPane(); p != nil {
 			return p.Shell
 		}
@@ -159,15 +149,15 @@ func (a *App) paneShell(id string) string {
 	return ""
 }
 
-// savePastedImage writes an image to a file of its own, with the extension,
+// saveImage writes an image to a file of its own, with the extension,
 // in pasteDir, which only the user can enter, and returns its path. Images kept longer than
-// pasteKeep go.
-func savePastedImage(img []byte, ext string) (string, error) {
-	dir := pasteDir()
+// Keep go.
+func saveImage(img []byte, ext string) (string, error) {
+	dir := Dir()
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return "", err
 	}
-	prunePasted(dir, time.Now().Add(-pasteKeep))
+	PruneDir(dir, time.Now().Add(-Keep))
 	f, err := os.CreateTemp(dir, "paste-*"+ext)
 	if err != nil {
 		return "", err
@@ -183,16 +173,16 @@ func savePastedImage(img []byte, ext string) (string, error) {
 	return f.Name(), nil
 }
 
-// prunePasted removes the images of earlier pastes last written before
+// prune removes the images of earlier pastes last written before
 // the time, and nothing else.
-func prunePasted(dir string, before time.Time) {
+func PruneDir(dir string, before time.Time) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return
 	}
 	for _, e := range entries {
 		name := e.Name()
-		if e.IsDir() || !strings.HasPrefix(name, "paste-") || !isPasteExt(filepath.Ext(name)) {
+		if e.IsDir() || !strings.HasPrefix(name, "paste-") || !isExt(filepath.Ext(name)) {
 			continue
 		}
 		if info, err := e.Info(); err == nil && info.ModTime().Before(before) {
@@ -201,9 +191,9 @@ func prunePasted(dir string, before time.Time) {
 	}
 }
 
-// isPasteExt reports whether ext is the extension of a pasted image's file.
-func isPasteExt(ext string) bool {
-	for _, e := range pasteImageTypes {
+// isExt reports whether ext is the extension of a pasted image's file.
+func isExt(ext string) bool {
+	for _, e := range imageTypes {
 		if e == ext {
 			return true
 		}
@@ -211,12 +201,12 @@ func isPasteExt(ext string) bool {
 	return false
 }
 
-// quotePath quotes a path for the shell a pane runs, so that the shell
+// Quote quotes a path for the shell a pane runs, so that the shell
 // takes it as one argument whatever it holds: as it is when it holds
 // nothing a shell reads otherwise, else in single quotes, in which POSIX
 // shells and PowerShell expand nothing. cmd.exe has double quotes only.
 // shell is the shell's name or path, "" for the platform's default.
-func quotePath(goos, shell, path string) string {
+func Quote(goos, shell, path string) string {
 	safe := "._-/"
 	if goos == "windows" {
 		safe += `:\`

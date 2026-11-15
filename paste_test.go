@@ -16,6 +16,8 @@ import (
 	"testing"
 	"time"
 
+	"hyla/internal/app/paste"
+
 	"github.com/egoist/mygo/plugins/terminal"
 	"github.com/egoist/mygo/transfer"
 	"github.com/egoist/mygo/ui"
@@ -97,9 +99,9 @@ func pasteApp(t *testing.T) (*App, *sinkConn, string) {
 	}
 	a := testApp(t)
 	dir := filepath.Join(t.TempDir(), "pasted")
-	old := pasteDir
-	pasteDir = func() string { return dir }
-	t.Cleanup(func() { pasteDir = old })
+	old := paste.Dir
+	paste.Dir = func() string { return dir }
+	t.Cleanup(func() { paste.Dir = old })
 	sink := newSink()
 	term, err := terminal.New(terminal.Options{Conn: sink})
 	if err != nil {
@@ -219,10 +221,10 @@ func TestPasteFilesAsPaths(t *testing.T) {
 		d    transfer.Data
 		want string
 	}{
-		{"a file", files, quotePath(runtime.GOOS, "", one)},
-		{"files and an image", withImage, quotePath(runtime.GOOS, "", one)},
-		{"a file url and an image", uriImage, quotePath(runtime.GOOS, "", one)},
-		{"two files", both, quotePath(runtime.GOOS, "", one) + " " + quotePath(runtime.GOOS, "", two)},
+		{"a file", files, paste.Quote(runtime.GOOS, "", one)},
+		{"files and an image", withImage, paste.Quote(runtime.GOOS, "", one)},
+		{"a file url and an image", uriImage, paste.Quote(runtime.GOOS, "", one)},
+		{"two files", both, paste.Quote(runtime.GOOS, "", one) + " " + paste.Quote(runtime.GOOS, "", two)},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			a, sink, dir := pasteApp(t)
@@ -289,16 +291,16 @@ func TestPastedImagesExpire(t *testing.T) {
 		}
 		return p
 	}
-	oldJPG := write("paste-old.jpg", pasteKeep+time.Hour)
-	old := write("paste-old.png", pasteKeep+time.Hour)
-	recent := write("paste-recent.png", pasteKeep-time.Hour)
-	other := write("notes.txt", 10*pasteKeep)
-	otherPNG := write("shot.png", 10*pasteKeep)
+	oldJPG := write("paste-old.jpg", paste.Keep+time.Hour)
+	old := write("paste-old.png", paste.Keep+time.Hour)
+	recent := write("paste-recent.png", paste.Keep-time.Hour)
+	other := write("notes.txt", 10*paste.Keep)
+	otherPNG := write("shot.png", 10*paste.Keep)
 	subdir := filepath.Join(dir, "paste-dir.png")
 	if err := os.Mkdir(subdir, 0o700); err != nil {
 		t.Fatal(err)
 	}
-	prunePasted(dir, time.Now().Add(-pasteKeep))
+	paste.PruneDir(dir, time.Now().Add(-paste.Keep))
 	for p, want := range map[string]bool{oldJPG: false, old: false, recent: true, other: true, otherPNG: true, subdir: true} {
 		if _, err := os.Stat(p); (err == nil) != want {
 			t.Errorf("%s exists: %v, want %v", filepath.Base(p), err == nil, want)
@@ -396,8 +398,8 @@ func TestQuotePath(t *testing.T) {
 		{"windows", `C:\Program Files\Git\bin\bash.exe`, `C:/Users/me/paste.png`, `C:/Users/me/paste.png`},
 	}
 	for _, c := range cases {
-		if got := quotePath(c.goos, c.shell, c.path); got != c.want {
-			t.Errorf("quotePath(%s, %q, %q) = %s, want %s", c.goos, c.shell, c.path, got, c.want)
+		if got := paste.Quote(c.goos, c.shell, c.path); got != c.want {
+			t.Errorf("paste.Quote(%s, %q, %q) = %s, want %s", c.goos, c.shell, c.path, got, c.want)
 		}
 	}
 	// A shell reads the POSIX quoting back as the path.
@@ -422,7 +424,7 @@ func TestQuotePath(t *testing.T) {
 func TestPaneShell(t *testing.T) {
 	a := testApp(t)
 	for id, want := range map[string]string{"a": "fish", "b": "zsh", "s1": "fish", "nope": ""} {
-		if got := a.paneShell(id); got != want {
+		if got := paste.PaneShell(a, id); got != want {
 			t.Errorf("paneShell(%q) = %q, want %q", id, got, want)
 		}
 	}
@@ -443,7 +445,7 @@ func TestPasteImageError(t *testing.T) {
 		{"other", &fs.PathError{Op: "mkdir", Path: dir, Err: syscall.ENOTDIR}, []string{"not a directory", "drop the image file"}},
 	}
 	for _, c := range cases {
-		got := pasteImageError(c.err, dir)
+		got := paste.ImageErrorText(c.err, dir)
 		for _, w := range c.want {
 			if !strings.Contains(got, w) {
 				t.Errorf("%s: toast %q lacks %q", c.name, got, w)
@@ -454,7 +456,7 @@ func TestPasteImageError(t *testing.T) {
 		}
 	}
 	// The disk-full and permission toasts leave the system's wording out.
-	if got := pasteImageError(syscall.ENOSPC, dir); strings.Contains(got, "no space left") {
+	if got := paste.ImageErrorText(syscall.ENOSPC, dir); strings.Contains(got, "no space left") {
 		t.Errorf("toast %q repeats the system's error", got)
 	}
 }
