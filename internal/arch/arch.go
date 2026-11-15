@@ -157,6 +157,7 @@ var Layers = []Layer{
 		Name: "ui",
 		Package: []string{
 			"hyla/internal/actions",
+			"hyla/internal/app/history",
 			"hyla/internal/app/host",
 			"hyla/internal/adblock",
 			"hyla/internal/app/filepane",
@@ -249,6 +250,7 @@ var layerNames = map[string]string{
 	"hyla/internal/adblock":            "base",
 	"hyla/internal/app/filepane":       "daemon",
 	"hyla/internal/app/gitinfo":        "engine",
+	"hyla/internal/app/history":        "ui",
 	"hyla/internal/app/host":           "daemon",
 	"hyla/internal/app/magpie":         "engine",
 	"hyla/internal/app/paneinfo":       "daemon",

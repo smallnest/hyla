@@ -431,7 +431,7 @@ func (a *App) setState(h *host.Host, st proto.State) {
 	}
 	a.Files.Forget(func(id string) bool { return live[id] })
 	if a.settingsIn.SessionHistory {
-		a.syncEnded()
+		a.SyncEnded()
 	} else {
 		for _, h := range a.Hosts {
 			h.Convs, h.ConvKnown, h.ConvAsked = nil, false, false

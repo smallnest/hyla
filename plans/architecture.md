@@ -100,6 +100,12 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     listing of a host's folders (`fs.list`), the items and the view —
     over the same `App` shape; the root keeps `openProjectOn`,
     `pickerGo` and `pickerView` as its adapters.
+  - Also: the sidebar's ended and archived conversations are
+    `internal/app/history` — the hosts' asking, the sections and their
+    menus — in the ui layer, which reads `internal/cli`'s skill states as
+    its own `SkillState`, so the layer map need not name `cli`. The
+    icon button and the pointer tooltip it draws with moved there too,
+    and the root keeps thin adapters.
   - Also: `host` is `internal/app/host`.Host — one hylad's address, its
     connection's state and error, what it holds, and the dialers — which
     the views read directly, as the root's field was. Its fields are
