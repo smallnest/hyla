@@ -4,7 +4,7 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
-## Unreleased
+## 3.11.0
 
 - The Tailcat pair code in Settings › Hosts, and `hyla tailcat code`,
   carried `tailcat://` twice: a phone scanned `tailcat://tailcat://tc…` and
