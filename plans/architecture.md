@@ -152,6 +152,11 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     machine's pair code, its rotation and what a phone scans — joined
     `internal/ui/hosts`, which changes the settings through
     `App.SettingsNow`.
+  - Also: the quick terminal — its panel, the session it shows, its
+    slide and its shortcut — is `internal/ui/quick`, over an `App` of the
+    app's window and the side panel's state. `quick.go` is its adapters,
+    and `quickTerm` its state; the `gated` stream it attaches with is
+    `quick.Gated`.
   - Also: the pet is `internal/ui/petme` — its mood and the words it
     says, the frog it draws, the Codex pets' spritesheets, the pets it
     lists and the window that follows the main one. Its state is the

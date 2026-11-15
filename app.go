@@ -41,6 +41,7 @@ import (
 	"hyla/internal/ui/panes"
 	"hyla/internal/ui/petme"
 	"hyla/internal/ui/picker"
+	"hyla/internal/ui/quick"
 	uisettings "hyla/internal/ui/settings"
 	"hyla/internal/ui/side"
 	"hyla/internal/ui/theme"
@@ -976,7 +977,7 @@ func (a *App) reportView() {
 		}
 		id := ""
 		switch {
-		case a.quick.shown && h == a.local():
+		case a.quick.Shown && h == a.local():
 			id = a.Prefs.QuickSession
 		case a.watching(a.Selected) && h == shown:
 			id = a.Selected
@@ -1024,15 +1025,7 @@ func (a *App) dropTerm(id string) {
 
 // gated holds back the stream's frames until the terminal takes the size
 // of the first, which then shows the session as it is.
-type gated struct {
-	*client.Stream
-	ready chan struct{}
-}
-
-func (g *gated) Read(p []byte) (int, error) {
-	<-g.ready
-	return g.Stream.Read(p)
-}
+type gated = quick.Gated
 
 // ensureTerm attaches a terminal to a session, unless one is.
 func (a *App) ensureTerm(id string) {
@@ -1053,7 +1046,7 @@ func (a *App) ensureTerm(id string) {
 			})
 			return
 		}
-		g := &gated{Stream: stream, ready: make(chan struct{})}
+		g := &gated{Stream: stream, Ready: make(chan struct{})}
 		o := a.termOptions(id, g)
 		// The terminal shows hylad's frames: hylad's terminal is the
 		// session's, ours shows what it shows, cell for cell, and lays out
@@ -1072,7 +1065,7 @@ func (a *App) ensureTerm(id string) {
 		}
 		term.Resize(stream.Welcome.Cols, stream.Welcome.Rows)
 		stream.OnResized = term.Resize
-		close(g.ready)
+		close(g.Ready)
 		a.update(func() {
 			if a.Terms[id] != e {
 				term.Close()
@@ -1440,10 +1433,10 @@ func (a *App) apply(s settings.Settings, save bool) {
 		}
 		retune(e.term)
 	}
-	if t := a.quickTermFor(a.quick.pane); t != nil {
+	if t := a.quickTermFor(a.quick.Pane); t != nil {
 		if anew {
 			a.dropQuick()
-			if a.quick.shown {
+			if a.quick.Shown {
 				a.attachQuick()
 			}
 		} else {
@@ -1508,8 +1501,8 @@ func (a *App) apply(s settings.Settings, save bool) {
 	if a.SetWin != nil {
 		a.SetWin.Invalidate()
 	}
-	if a.quick.win != nil {
-		a.quick.win.Invalidate()
+	if a.quick.Win != nil {
+		a.quick.Win.Invalidate()
 	}
 }
 

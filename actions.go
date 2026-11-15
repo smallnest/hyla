@@ -111,7 +111,7 @@ func (a *App) run(id string, args map[string]string) {
 		a.zoom(-1, false)
 	case "text.reset":
 		a.zoom(0, true)
-	case quickAction:
+	case QuickAction:
 		a.toggleQuick()
 	}
 	if a.Win != nil {
@@ -178,7 +178,7 @@ var actionTitles = map[string]func() string{
 	"text.smaller":        locales.ActionSmaller,
 	"text.reset":          locales.ActionActualSize,
 	"pet.toggle":          locales.ActionTogglePet,
-	quickAction:           locales.ActionQuickTerminal,
+	QuickAction:           locales.ActionQuickTerminal,
 }
 
 // actionTitle is an action's title as the menus, the palette and
@@ -229,7 +229,7 @@ func (a *App) menu() *mygo.Menu {
 			{Label: locales.MenuQuit(), Accelerator: quitKeys, ToolTip: locales.MenuQuitTip(), Click: func(*mygo.MenuItem, *mygo.Window) { mygo.App.Quit() }},
 			a.item("app.quitAll")}}
 	}
-	view := append(a.items("View", []string{"sidebar.toggle", "side.toggle", "changes.toggle", "files.toggle", "info.toggle", "pet.toggle"}, []string{"text.bigger", "text.smaller", "text.reset"}, []string{quickAction}),
+	view := append(a.items("View", []string{"sidebar.toggle", "side.toggle", "changes.toggle", "files.toggle", "info.toggle", "pet.toggle"}, []string{"text.bigger", "text.smaller", "text.reset"}, []string{QuickAction}),
 		mygo.Separator(), &mygo.MenuItem{Role: mygo.RoleToggleFullScreen})
 	// The inspector is a development build's: a production build leaves it
 	// out, and its window's DevTools off, where the item would do nothing.

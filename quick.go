@@ -1,413 +1,72 @@
 package main
 
 import (
-	"hyla/internal/app/host"
-	"log"
-	"math"
-	"sync/atomic"
-	"time"
-
-	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/plugins/terminal"
 	"github.com/egoist/mygo/ui"
 
-	"hyla/internal/actions"
-	"hyla/internal/client"
+	"hyla/internal/app/host"
 	"hyla/internal/proto"
+	"hyla/internal/ui/panes"
+	"hyla/internal/ui/quick"
 	"hyla/internal/ui/side"
 	"hyla/internal/ui/theme"
-
-	"hyla/locales"
 )
 
-// The quick terminal drops down from the top of the screen as its global
-// shortcut is pressed, over every app, full-screen ones included, and goes
-// back up as it is pressed again or as the user goes elsewhere, as
-// Ghostty's quick terminal and Quake's console do. It shows a session of
-// this machine's hylad, as the window does, so that it keeps running as it
-// hides, as Hyla quits and as it updates; the sidebar lists it with the
-// others.
+// The quick terminal's state, and its panel, are internal/ui/quick's,
+// which this file answers. QuickAction is the settings page's name of
+// its action.
+const QuickAction = quick.Action
 
-const (
-	quickAction = "quickTerminal.toggle"
-	quickHeight = 0.4 // of the work area of the display with the pointer
-	quickSlide  = 180 * time.Millisecond
+type quickTerm = quick.State
 
-	// quickErrDelay is how long the panel shows a spinner before an
-	// error, so that its window comes up first.
-	quickErrDelay = 150 * time.Millisecond
-)
+func (a *App) Quick() *quick.State { return &a.quick }
 
-// quickTerm is the quick terminal's state, on the main thread.
-type quickTerm struct {
-	win      *mygo.Window // the panel, made as it first shows
-	shown    bool         // shown, or sliding down
-	pane     string       // the pane its terminal shows
-	e        *termEntry   // that terminal, attached
-	ref      ui.Handle
-	creating bool // its session is being made
-	err      string
-	// errAt is when the error shows: a moment after the view that first
-	// has it, whose frame the panel's window does not show at once.
-	errAt time.Time
-	// keys is the global shortcut registered, and asked what the settings
-	// asked for last, which failed when it is not keys.
-	keys, asked string
-	slides      atomic.Int64 // counts slides: the last one moves the panel
+func (a *App) Recording() string { return a.Ss.Recording }
+
+func (a *App) Quitting() bool { return a.quittingApp }
+
+func (a *App) LocalHost() *host.Host { return a.local() }
+
+func (a *App) SessionOf(id string) *proto.Session { return a.session(id) }
+
+func (a *App) QuickSession() string { return a.Prefs.QuickSession }
+
+func (a *App) SetQuickSession(id string) { a.Prefs.QuickSession = id }
+
+func (a *App) TermOptions(id string, conn *quick.Gated) terminal.Options {
+	return a.termOptions(id, conn)
 }
 
-// applyGlobalShortcuts registers the quick terminal's shortcut as the
-// settings say: none while the user types a shortcut in Settings, which
-// would else toggle the terminal rather than record.
-func (a *App) applyGlobalShortcuts() {
-	q := &a.quick
-	want := ""
-	if a.Ss.Recording == "" {
-		act, _ := actions.Find(quickAction)
-		want = actions.Keys(act, a.settingsIn.Shortcuts)
-	}
-	if want == q.asked {
-		return
-	}
-	q.asked = want
-	if q.keys != "" {
-		mygo.GlobalShortcut.Unregister(q.keys)
-		q.keys = ""
-	}
-	if want == "" {
-		return
-	}
-	if err := mygo.GlobalShortcut.Register(want, a.toggleQuick); err != nil {
-		log.Println("hyla: quick terminal:", err)
-		a.toast(locales.ToastGlobalShortcutFailed(actions.Glyphs(want), err.Error()))
-		return
-	}
-	q.keys = want
+func (a *App) PaneMessageOfQuick(c *ui.Context, pal *theme.Palette, title, detail, action string, fn func()) {
+	a.message(c, pal, title, detail, action, fn)
 }
 
-func (a *App) toggleQuick() {
-	if a.quick.shown {
-		a.hideQuick()
-	} else {
-		a.showQuick()
-	}
+func (a *App) Chrome() panes.Chrome {
+	return panes.Chrome{SideW: a.ChromeState.sideW, MainPad: a.ChromeState.mainPad, HeaderPad: a.ChromeState.headerPad, Lead: lead(a.Bar)}
 }
 
-// quickSession returns the session the quick terminal shows, nil while it
-// has none: hylad lost it, or the user closed it.
-func (a *App) quickSession() *proto.Session {
-	s := a.session(a.Prefs.QuickSession)
-	if s == nil || a.hostOf(s.ID) != a.local() {
-		return nil
-	}
-	return s
-}
+func (a *App) RightShown() bool { return a.rightShown() }
 
-// showQuick drops the quick terminal down on the display with the pointer,
-// starting its session first if it has none.
-func (a *App) showQuick() {
-	q := &a.quick
-	if q.win == nil {
-		a.makeQuick()
-	}
-	q.err, q.errAt = "", time.Time{}
-	a.attachQuick()
-	r := a.quickFrame()
-	q.shown = true
-	q.ref.Focus()
-	a.slideQuick(r, r.Y-r.Height, r.Y, nil)
-	q.win.Show()
-	q.win.Focus()
-	a.reportView()
-}
+func (a *App) SideWidth(rowW float32) float32 { return a.sideWidth(rowW) }
 
-// quickFrame is where the quick terminal shows: over the panes of the
-// main window, as wide as they are and half its height, at their top
-// left, so that it reads as the panes' own. With no window in sight, it
-// drops from the top of the display with the pointer, as Ghostty's does.
-func (a *App) quickFrame() mygo.Rectangle {
-	if a.Win != nil && !a.Win.IsDestroyed() && a.Win.IsVisible() && !a.Win.IsMinimized() && !a.Win.IsFullScreen() {
-		b := a.Win.Bounds()
-		sideW, pad := int(a.ChromeState.sideW), int(a.ChromeState.mainPad)
-		w := b.Width - sideW - pad - cardGap
-		if a.rightShown() {
-			w -= int(a.sideWidth(a.Side.RowW)) + sideGap
-		}
-		if w >= side.MinPanes {
-			return mygo.Rectangle{X: b.X + sideW + pad, Y: b.Y + cardGap, Width: w, Height: b.Height / 2}
-		}
-	}
-	d := mygo.Screen.DisplayNearestPoint(mygo.Screen.CursorScreenPoint())
-	wa := d.WorkArea
-	return mygo.Rectangle{X: wa.X, Y: wa.Y, Width: wa.Width, Height: int(float64(wa.Height) * quickHeight)}
-}
+func (a *App) SideState() *side.State { return &a.Side }
 
-// hideQuick slides the quick terminal back up, which gives the keyboard
-// back to the app the user was in.
-func (a *App) hideQuick() {
-	q := &a.quick
-	if !q.shown {
-		return
-	}
-	q.shown = false
-	r := q.win.Bounds()
-	a.slideQuick(r, r.Y, r.Y-r.Height, q.win.Hide)
-	a.reportView()
-}
+func (a *App) ReportView() { a.reportView() }
 
-// slideQuick moves the panel, as big as r, from the top edge from to to,
-// then runs done: at once where the desktop asks for less motion.
-func (a *App) slideQuick(r mygo.Rectangle, from, to int, done func()) {
-	q := &a.quick
-	n := q.slides.Add(1)
-	if mygo.Theme.Preferences().ReduceMotion {
-		r.Y = to
-		q.win.SetBounds(r)
-		if done != nil {
-			done()
-		}
-		return
-	}
-	r.Y = from
-	q.win.SetBounds(r)
-	start := time.Now()
-	go func() {
-		tick := time.NewTicker(time.Second / 120)
-		defer tick.Stop()
-		for range tick.C {
-			if q.slides.Load() != n {
-				return // another slide took over
-			}
-			p := min(float64(time.Since(start))/float64(quickSlide), 1)
-			ease := 1 - math.Pow(1-p, 3)
-			q.win.SetPosition(r.X, from+int(math.Round(float64(to-from)*ease)))
-			if p == 1 {
-				if done != nil {
-					q.win.Update(func() {
-						if q.slides.Load() == n {
-							done()
-						}
-					})
-				}
-				return
-			}
-		}
-	}()
-}
+// applyGlobalShortcuts registers the quick terminal's shortcut.
+func (a *App) applyGlobalShortcuts() { quick.ApplyGlobalShortcuts(a) }
 
-// makeQuick makes the quick terminal's panel, hidden.
-func (a *App) makeQuick() {
-	q := &a.quick
-	q.win = mygo.NewWindow(mygo.WindowOptions{
-		Title:         locales.ActionQuickTerminal(),
-		Panel:         true,
-		Hidden:        true,
-		Frameless:     true,
-		DisableResize: true,
-		Width:         960,
-		Height:        400,
-		Content:       ui.View(a.quickView),
-	})
-	// Closing it, as with ⌘W, hides it; a quit closes it with the app.
-	q.win.OnClose(func(e *mygo.CloseEvent) {
-		if a.quittingApp {
-			return
-		}
-		e.PreventDefault()
-		a.hideQuick()
-	})
-	// It goes as the user goes elsewhere, as Ghostty's does.
-	q.win.OnBlur(a.hideQuick)
-}
+func (a *App) toggleQuick() { quick.Toggle(a) }
 
-// attachQuick attaches the quick terminal to its session's pane, the one
-// the user was in, making the session first if there is none.
-func (a *App) attachQuick() {
-	q := &a.quick
-	h := a.local()
-	s := a.quickSession()
-	if s == nil {
-		a.dropQuick()
-		// Until hylad tells its sessions, the one of the last run may be
-		// among them: the panel waits, and attaches as they come.
-		if q.creating {
-			return
-		}
-		if h.Client == nil || h.Conn == host.StateFailed || h.Conn == host.StateVersion {
-			// It shows that, with Try Again, instead of a spinner that
-			// never ends. Connecting goes on to a terminal, or this.
-			q.err = h.Err
-			if h.Conn != host.StateFailed {
-				q.err = locales.HostNotConnected(h.Label())
-			}
-			return
-		}
-		q.creating = true
-		cl := h.Client
-		go func() {
-			var s proto.Session
-			err := cl.Call("create", proto.CreateParams{Dir: proto.Home(), Name: locales.ActionQuickTerminal()}, &s)
-			q.win.Update(func() {
-				q.creating = false
-				if err != nil {
-					q.err = err.Error()
-					return
-				}
-				a.addPending(h, s)
-				a.Prefs.QuickSession = s.ID
-				a.savePrefs()
-				a.attachQuick()
-				a.update(func() {}) // the sidebar shows it
-			})
-		}()
-		return
-	}
-	p := s.FocusPane()
-	if p == nil || p.Browser() {
-		return
-	}
-	if q.e != nil && q.pane == p.ID && q.e.err == "" {
-		return
-	}
-	a.dropQuick()
-	e := &termEntry{started: time.Now()}
-	q.e, q.pane = e, p.ID
-	id := p.ID
-	dialer := h.Dialer()
-	go func() {
-		stream, err := client.AttachVia(dialer, id)
-		if err != nil {
-			q.win.Update(func() {
-				if q.e == e {
-					e.err = err.Error()
-				}
-			})
-			return
-		}
-		g := &gated{Stream: stream, ready: make(chan struct{})}
-		o := a.termOptions(id, g)
-		o.ResizeByConn = true
-		// No card under it: the terminal paints its background.
-		o.Transparent = false
-		o.Padding = terminal.Padding{X: 16, Y: 10}
-		o.OnCopy = nil // the window's toast is not in sight
-		term, err := terminal.New(o)
-		if err != nil {
-			stream.Close()
-			q.win.Update(func() {
-				if q.e == e {
-					e.err = err.Error()
-				}
-			})
-			return
-		}
-		term.Resize(stream.Welcome.Cols, stream.Welcome.Rows)
-		stream.OnResized = term.Resize
-		close(g.ready)
-		q.win.Update(func() {
-			if q.e != e {
-				term.Close()
-				stream.Close()
-				return
-			}
-			e.term, e.stream = term, stream
-			// It takes the panel's size, which another window may have
-			// given another.
-			go stream.Claim()
-			q.ref.Focus()
-		})
-		// The pane ended, as its shell exited: the next show starts
-		// another, or shows the session's next pane.
-		<-term.Done()
-		q.win.Update(func() {
-			if q.e == e {
-				a.dropQuick()
-				a.hideQuick()
-			}
-		})
-	}()
-}
+func (a *App) showQuick() { quick.Show(a) }
 
-// dropQuick lets go of the quick terminal's terminal.
-func (a *App) dropQuick() {
-	q := &a.quick
-	if q.e == nil {
-		return
-	}
-	if q.e.term != nil {
-		q.e.term.Close()
-	}
-	if q.e.stream != nil {
-		q.e.stream.Close()
-	}
-	q.e, q.pane = nil, ""
-}
+func (a *App) hideQuick() { quick.Hide(a) }
 
-// quickChanged follows a state of hylad: the quick terminal attaches
-// again when its pane is gone, as to the session's next one.
-func (a *App) quickChanged() {
-	q := &a.quick
-	if q.e == nil {
-		if q.shown && q.err == "" {
-			a.attachQuick()
-		}
-		return
-	}
-	s := a.quickSession()
-	if s == nil || s.PaneByID(q.pane) == nil {
-		a.dropQuick()
-		if q.shown {
-			a.attachQuick()
-		}
-	}
-}
+func (a *App) quickChanged() { quick.Changed(a) }
 
-// quickView is the panel's content: the terminal, or what keeps it.
-func (a *App) quickView(c *ui.Context) {
-	q := &a.quick
-	pal := theme.For(c)
-	light, dark := a.termThemes()
-	bg := light.Background
-	if c.Theme().Dark {
-		bg = dark.Background
-	}
-	c.Root().Background(bg)
-	switch {
-	case q.e != nil && q.e.term != nil:
-		terminal.View(c.Key("term"), q.e.term).Fill().Bind(&q.ref)
-	case q.err != "" || q.e != nil && q.e.err != "":
-		if q.errAt.IsZero() {
-			// The view came up with it: the error waits, so that the
-			// panel comes up before it.
-			q.errAt = time.Now().Add(quickErrDelay)
-			c.After(quickErrDelay)
-		}
-		if time.Now().Before(q.errAt) {
-			ui.Column(c).Fill().Center().Children(func() { ui.Spinner(c) })
-			return
-		}
-		detail := q.err
-		if q.e != nil {
-			detail = q.e.err
-		}
-		a.message(c, pal, locales.PaneCantShow(), detail, locales.CommonTryAgain(), func() {
-			q.err, q.errAt = "", time.Time{}
-			a.dropQuick()
-			a.attachQuick()
-		})
-	default:
-		ui.Column(c).Fill().Center().Children(func() { ui.Spinner(c) })
-	}
-}
+func (a *App) attachQuick() { quick.Attach(a) }
 
-// quickTermFor returns the quick terminal's terminal when it shows a pane,
-// else nil.
-func (a *App) quickTermFor(id string) *terminal.Terminal {
-	if q := &a.quick; q.pane == id && q.e != nil {
-		return q.e.term
-	}
-	return nil
-}
+func (a *App) quickTermFor(id string) *terminal.Terminal { return quick.TermFor(a, id) }
 
 // termFor returns the terminal of a pane, the window's or the quick
 // terminal's, else nil.
@@ -417,3 +76,5 @@ func (a *App) termFor(id string) *terminal.Terminal {
 	}
 	return a.quickTermFor(id)
 }
+
+func (a *App) dropQuick() { quick.Drop(a) }
