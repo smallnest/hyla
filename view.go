@@ -10,12 +10,9 @@ import (
 	"hyla/internal/ui/layout"
 	"hyla/internal/ui/theme"
 
-	"hyla/internal/ui/paints"
 	"hyla/internal/ui/side"
 	"hyla/internal/ui/style"
 	"hyla/locales"
-
-	"hyla/internal/ui/glyph"
 )
 
 func (a *App) view(c *ui.Context) {
@@ -81,7 +78,7 @@ func (a *App) view(c *ui.Context) {
 			if shown > 0.01 {
 				a.resizeHandle(c, pal)
 			}
-			a.card(c, pal, bar, shown)
+			layout.Card(a, c, pal, bar, shown, a.Selected)
 		})
 	})
 	// A page staged for a screenshot takes the window's size, under its
@@ -225,84 +222,6 @@ func (sw sessionSwitch) pose(from ui.Motion, in bool) ui.Pose {
 	return p
 }
 
-func (a *App) card(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown float32) {
-	a.cardFor(c, pal, bar, shown, a.Selected)
-}
-
-// cardFor shows the card of the session id: its panes, and the side panel,
-// when the window is wide enough for both.
-func (a *App) cardFor(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown float32, selected string) {
-	c = c.Key("session-" + selected)
-	s := a.session(selected)
-	h := a.local()
-	if s != nil {
-		h = a.hostOf(s.ID)
-	}
-	if s != nil && h.Conn != host.StateVersion && a.Loaded {
-		// Files dropped on the content go to the session's panes, on them,
-		// between them or on the panel beside them (drop_files.go).
-		box := ui.Column(c.Key("card")).Grow(1).Basis(0).MinWidth(0).MinHeight(0)
-		if files := box.DroppedFiles(); len(files) > 0 {
-			a.cardDrop(s, files)
-		}
-		box.Children(func() {
-			if !a.rightShown() {
-				a.panes(c, pal, bar, shown, s, true)
-				return
-			}
-			// The panes, then the side panel, which takes the window's
-			// right edge.
-			row := ui.Row(c.Key("with-side")).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Bind(a.paneRef("with-side"))
-			w := a.Side.RowW
-			if a.Side.RowW == 0 {
-				w = a.paneRef("with-side").Bounds(c).W
-			}
-			row.Children(func() {
-				// The gap between the panes and the side panel is this
-				// column's end margin, which the panel's edge drags (side.go).
-				ui.Column(c.Key("panes")).Grow(1).Basis(0).MinWidth(0).AlignItems(ui.Stretch).Padding(0, sideGap, 0, 0).Children(func() {
-					a.panes(c, pal, bar, shown, s, false)
-				})
-				a.sideEdge(c, pal, w)
-				if a.rightShown() {
-					a.sidePanel(c, pal, s, a.sideWidth(w), true)
-				}
-			})
-		})
-		return
-	}
-	// No session: one card, for what the app has to say.
-	card := style.Raised(ui.Column(c).Grow(1).MinHeight(0).Radius(14).Background(theme.TranslucentGlass(pal.Card, pal, a.settingsIn)), pal).Clip()
-	card.Children(func() {
-		left := a.ChromeState.HeaderPad
-		ui.Row(c).Height(layout.HeaderH).Shrink(0).AlignItems(ui.Center).Padding(0, 10, 0, left).DragWindow().Children(func() {
-			if shown < 0.5 {
-				ui.Row(c).Absolute().Left(a.ChromeState.ButtonsLeft(bar)).Top(0).Bottom(0).AlignItems(ui.Center).Gap(2).Opacity(1 - 2*shown).Children(func() {
-					paints.IconButton(c, "show-sidebar", glyph.Sidebar, a.tip(locales.SidebarShow(), "sidebar.toggle"), pal, a.toggleSidebar)
-					paints.IconButton(c, "new-session-2", glyph.Plus, a.tip(locales.ActionNewSession(), "session.new"), pal, func() { a.newSession("") })
-				})
-			}
-			ui.Text(c, "Hyla").FontSize(14).FontWeight(600).TextColor(pal.Text)
-			ui.Spacer(c)
-			windowControls(c, pal, a.Win)
-		})
-		ui.Column(c).Grow(1).MinHeight(0).Children(func() {
-			switch {
-			case h.Conn == host.StateVersion:
-				a.message(c, pal, locales.UpdatedTitle(), locales.UpdatedDetail(), locales.CommonRestartService(), a.restartDaemon)
-			case h.Conn == host.StateFailed && h.Client == nil:
-				a.message(c, pal, locales.ConnCantReach(), h.Err, locales.CommonTryAgain(), func() { h.Retries = 0; h.Conn = host.StateConnecting; a.connect() })
-			case !a.Loaded:
-				ui.Column(c).Fill().Center().Children(func() {
-					ui.Spinner(c).Label(locales.StatusConnectingLabel())
-				})
-			default:
-				a.emptyState(c, pal)
-			}
-		})
-	})
-}
-
 func (a *App) message(c *ui.Context, pal *theme.Palette, title, detail, action string, fn func()) {
 	ui.Column(c).Fill().Center().Gap(10).Padding(24).Children(func() {
 		ui.Text(c, title).FontSize(17).FontWeight(600).TextColor(pal.Text)
@@ -313,37 +232,5 @@ func (a *App) message(c *ui.Context, pal *theme.Palette, title, detail, action s
 				fn()
 			}
 		}
-	})
-}
-
-func (a *App) emptyState(c *ui.Context, pal *theme.Palette) {
-	ui.Column(c).Fill().Center().Gap(0).Padding(24).Children(func() {
-		ui.Box(c).Size(52, 52).Radius(14).Center().Background(pal.Chip).TextColor(pal.TextMuted).Margin(0, 0, 18, 0).Children(func() {
-			ui.Icon(c, glyph.Terminal).Size(26, 26)
-		})
-		ui.Text(c, locales.EmptyTitle()).FontSize(19).FontWeight(650).TextColor(pal.Text)
-		ui.Text(c, locales.EmptyDetail()).
-			FontSize(13.5).TextColor(pal.TextMuted).MaxWidth(380).TextAlign(ui.Center).LineHeight(1.45).Margin(8, 0, 22, 0)
-		ui.Column(c).Gap(12).Children(func() {
-			ui.Row(c).Gap(10).Children(func() {
-				if style.Button(c, "empty-new", locales.ActionNewSession(), a.keys("session.new"), true, pal) {
-					a.newSession("")
-				}
-				if style.Button(c, "empty-open", locales.ActionOpenProject(), a.keys("project.open"), false, pal) {
-					a.openProject()
-				}
-			})
-			// Another machine's, as the footer adds: an SSH host, a pod, or
-			// one that runs Hyla, whose sessions show here. A quiet button,
-			// a link under the two of this machine.
-			if style.QuietButton(c, "empty-connect", locales.EmptyConnect(), locales.EmptyConnectDetail(), pal) {
-				a.askSSHHost()
-			}
-		})
-		ui.Column(c).Margin(40, 0, 0, 0).Padding(14, 16).Gap(6).Radius(10).Background(pal.Chip).MaxWidth(420).Children(func() {
-			ui.Text(c, locales.EmptyForAgents()).FontSize(11.5).FontWeight(600).TextColor(pal.TextMuted)
-			ui.Text(c, "hyla new -n review -- claude\nhyla prompt review \"run the tests and fix them\"\nhyla wait review && hyla read review").
-				Font("monospace").FontSize(12).TextColor(pal.Text).LineHeight(1.5).Selectable()
-		})
 	})
 }

@@ -278,6 +278,10 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     `CloseSession`); `App.Root` is the app as the order asks it. A
     project's square and its first letter, and a drag's line, are
     `sidebar.BadgeColor`, `sidebar.ProjectInitial` and `sidebar.DragLine`.
+  - Also: the card of the session shown is `layout.Card`, which asks a
+    `layout.Carder`: its panes, the side panel beside them, the card of
+    no session with its messages and the empty state, and the app's
+    settings through `Glass`. The root keeps `card_adapters.go`.
   - The guard now fails on a package of `internal/` that no layer's
     names hold. It found `buildinfo`, `fileicons` and `profiling` never
     listed.
