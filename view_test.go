@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -584,7 +585,7 @@ func TestFindBar(t *testing.T) {
 		if i%50 == 7 {
 			b.WriteString("error: build failed\r\n")
 		} else {
-			b.WriteString("ok " + itoa(i) + "\r\n")
+			b.WriteString("ok " + strconv.Itoa(i) + "\r\n")
 		}
 	}
 	term.Feed([]byte(b.String()))
@@ -1369,8 +1370,8 @@ func TestSessionSwitchAnimates(t *testing.T) {
 	tt := ui.NewTester(a.view, 1100, 640)
 	tt.Frame()
 	tt.Frame()
-	if a.ShownSession != "s1" {
-		t.Fatalf("shown %q", a.ShownSession)
+	if a.ShownSessionID != "s1" {
+		t.Fatalf("shown %q", a.ShownSessionID)
 	}
 	// What the first shows, right of the second's only card: the session
 	// left stays there while it goes.
@@ -1378,8 +1379,8 @@ func TestSessionSwitchAnimates(t *testing.T) {
 	before := at(tt.Image())
 	a.selectSession("s2")
 	tt.Frame()
-	if a.ShownSession != "s2" {
-		t.Fatalf("switched: shown %q", a.ShownSession)
+	if a.ShownSessionID != "s2" {
+		t.Fatalf("switched: shown %q", a.ShownSessionID)
 	}
 	if on := at(tt.Image()); on == before {
 		t.Errorf("the session left goes at once: %v, as before", on)

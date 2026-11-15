@@ -206,11 +206,11 @@ func TestChatView(t *testing.T) {
 	a, f := chatApp(t)
 	// It is set as a click on the header's chat button, which the window
 	// draws, does.
-	a.showPaneChat(a.session("s1"), "a")
+	a.ShowPaneChatIn(a.session("s1"), "a")
 	tt := ui.NewTester(a.view, 1600, 800)
 	tt.Frame()
 	chatSettle(tt, func() bool { return tt.HasText("Fix the build") })
-	if !a.PaneChat["a"] {
+	if !a.PaneChatMap["a"] {
 		t.Fatal("the pane shows no chat")
 	}
 	// The agent's Markdown reads as it is written: no ** or ` about.
@@ -234,7 +234,7 @@ func TestChatView(t *testing.T) {
 // it, as a chat app's does.
 func TestChatNarrow(t *testing.T) {
 	a, _ := chatApp(t)
-	a.showPaneChat(a.session("s1"), "a")
+	a.ShowPaneChatIn(a.session("s1"), "a")
 	tt := ui.NewTester(a.view, 1600, 800)
 	tt.Frame()
 	chatSettle(tt, func() bool { return tt.HasText("Fix the build") })

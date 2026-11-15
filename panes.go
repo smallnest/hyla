@@ -1,22 +1,15 @@
 package main
 
 import (
-	"hyla/internal/app/host"
-	"math"
 	"time"
 
-	"github.com/egoist/mygo/plugins/terminal"
+	"hyla/internal/app/host"
+
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/proto"
+	"hyla/internal/ui/panes"
 	"hyla/internal/ui/theme"
-
-	"hyla/internal/ui/paints"
-
-	"hyla/internal/ui/style"
-	"hyla/locales"
-
-	"hyla/internal/ui/glyph"
 )
 
 const paneGap = 8 // between panes, where the divider is
@@ -105,58 +98,56 @@ func (a *App) focusTerminal() {
 // panel takes while it shows.
 func (a *App) panes(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown float32, s *proto.Session, right bool) {
 	// A session shown over another, as when the user moves from one to the
-	// next, comes in as sessionSwitch says, and its panes move to their
-	// place in the frames that come after: it shows at their place as soon
-	// as it built, on the frame after the one that brings it in.
+	// next, comes in as panes says, and its panes move to their place in
+	// the frames that come after.
 	switched := false
-	if a.ShownSession != "" && a.ShownSession != s.ID {
+	if a.ShownSessionID != "" && a.ShownSessionID != s.ID {
 		a.switchTo(c)
 		switched = true
 	}
 	a.settle()
-	a.ShownSession = s.ID
-	sw := a.sessionSwitch()
+	a.ShownSessionID = s.ID
+	sw := panes.Switch(a.settingsIn.SessionSwitch)
 	slot := ui.Box(c.Key("slot-" + s.ID)).Absolute().Left(0).Top(0).Right(0).Bottom(0)
 	// The frames that move a session of the view build it, as those of a
 	// Transition: frames that only paint would show the panes back at
 	// their place, with a copy of their Transition.
-	if a.SwitchIn {
+	if a.SwitchInState {
 		c.AnimationFrame()
 	}
-	slot.AnimatePose(sw.pose(a.SwitchFrom, a.SwitchIn), switchSpring)
+	slot.AnimatePose(panes.Pose(sw, a.SwitchFromMotion, a.SwitchInState), switchSpring)
 	// A session that a switch brings in shows as a new element, where it
 	// comes, as one built for the first time does, and moves from there as
 	// poses do: one that the frames build before has the place its poses
 	// had, and would jump there.
 	from := ui.Motion{}
 	if switched {
-		from = a.SwitchFrom
+		from = a.SwitchFromMotion
 	}
 	slot.Children(func() {
 		show := ui.Box(c.Key("show-" + s.ID)).Absolute().Left(0).Top(0).Right(0).Bottom(0)
-		show.AnimatePose(sw.pose(from, true), switchSpring)
+		show.AnimatePose(panes.Pose(sw, from, true), switchSpring)
 		show.Children(func() {
 			// The frames' wrapper, which the session that leaves goes away
 			// with, in the dissolve: shown in full.
 			view := ui.Box(c.Key("session-view")).Absolute().Left(0).Top(0).Right(0).Bottom(0)
-			view.Transition(sw.transition())
+			view.Transition(panes.Transition(sw))
 			view.Children(func() { a.sessionPanes(c, pal, bar, shown, s, right) })
 		})
 	})
 }
 
 // switchTo tells that the frame about to build shows a session in place
-// of the one before (shownSession): the session comes in as sessionSwitch
-// says, at once, from switchFrom, and shows at its place in the next
-// build.
+// of the one before (shownSession): the session comes in as panes says,
+// at once, from switchFrom, and shows at its place in the next build.
 func (a *App) switchTo(c *ui.Context) {
-	sw := a.sessionSwitch()
-	a.SwitchIn = false
-	if sw == switchNone {
+	sw := panes.Switch(a.settingsIn.SessionSwitch)
+	a.SwitchInState = false
+	if sw == panes.SwitchNone {
 		return
 	}
-	a.SwitchFrom, a.SwitchIn = sw.motion(), true
-	a.SwitchAt = c.Now()
+	a.SwitchFromMotion, a.SwitchInState = panes.Motion(sw), true
+	a.SwitchAtTime = c.Now()
 	c.After(switchLand)
 }
 
@@ -173,19 +164,20 @@ const switchLand = 400 * time.Millisecond
 // what the user asks, as a key, shows the panes at their place, and not
 // back where they came from.
 func (a *App) settle() {
-	if !a.SwitchIn || time.Since(a.SwitchAt) < switchLand {
+	if !a.SwitchInState || time.Since(a.SwitchAtTime) < switchLand {
 		return
 	}
-	a.SwitchIn, a.SwitchFrom = false, ui.Motion{}
+	a.SwitchInState, a.SwitchFromMotion = false, ui.Motion{}
 }
 
-// sessionPanes lays out a session's panes.
+// sessionPanes lays out a session's panes: the zoomed one alone, else
+// their layout.
 func (a *App) sessionPanes(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown float32, s *proto.Session, right bool) {
 	// One pane shows its chat in place of its terminal, alone, so that
 	// the chat has the room side by side would leave it.
 	if len(s.Zoomed) == 0 || s.Zoomed == a.focusOf(s) {
-		if p0 := s.PaneByID(a.focusOf(s)); p0 != nil && a.PaneChat[p0.ID] && a.feishuOn() {
-			a.paneCard(c, pal, bar, shown, s, p0, true, true, right, false)
+		if p0 := s.PaneByID(a.focusOf(s)); p0 != nil && a.PaneChatMap[p0.ID] && a.FeishuOn() {
+			panes.PaneCard(a, c, pal, bar, shown, s, p0, true, true, right, false)
 			return
 		}
 	}
@@ -196,653 +188,11 @@ func (a *App) sessionPanes(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, s
 			p = s.FocusPane()
 		}
 		if p != nil {
-			a.paneCard(c, pal, bar, shown, s, p, true, true, right, multi)
+			panes.PaneCard(a, c, pal, bar, shown, s, p, true, true, right, multi)
 		}
 		return
 	}
-	a.layoutNode(c, pal, bar, shown, s, s.Layout, "", true, true, right)
-}
-
-func (a *App) layoutNode(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown float32, s *proto.Session, l *proto.Layout, path string, top, left, right bool) {
-	if l.Leaf() {
-		if p := s.PaneByID(l.Pane); p != nil {
-			a.paneCard(c, pal, bar, shown, s, p, top, left, right, true)
-		}
-		return
-	}
-	ratio := float32(l.Ratio)
-	if ratio <= 0 || ratio >= 1 {
-		ratio = 0.5
-	}
-	// Row and Column each build an element, so make only the one used: a
-	// Row made and replaced would stay, an empty sibling under the key.
-	key := "split-" + s.ID + path
-	var box ui.Element
-	if l.Row {
-		box = ui.Row(c.Key(key))
-	} else {
-		box = ui.Column(c.Key(key))
-	}
-	box.Grow(1).Basis(0).MinWidth(0).MinHeight(0).AlignItems(ui.Stretch).Bind(a.paneRef(key))
-	box.Children(func() {
-		ui.Column(c.Key("a")).Grow(ratio).Basis(0).MinWidth(0).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
-			a.layoutNode(c, pal, bar, shown, s, l.A, path+"a", top, left, right && !l.Row)
-		})
-		a.divider(c, pal, s, l, key)
-		ui.Column(c.Key("b")).Grow(1 - ratio).Basis(0).MinWidth(0).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
-			a.layoutNode(c, pal, bar, shown, s, l.B, path+"b", top && l.Row, left && !l.Row, right)
-		})
-	})
-}
-
-// divider is the gap between two panes, which a drag moves.
-func (a *App) divider(c *ui.Context, pal *theme.Palette, s *proto.Session, l *proto.Layout, key string) {
-	// A drag leaves the keyboard in the pane the user is in.
-	d := ui.Box(c.Key("div")).Shrink(0).KeepFocus()
-	if l.Row {
-		d.Width(paneGap).Cursor(ui.CursorResizeColumn)
-	} else {
-		d.Height(paneGap).Cursor(ui.CursorResizeRow)
-	}
-	if d.Hovered() || d.Pressed() {
-		// A short grip, so the gap shows it moves.
-		d.Draw(func(p *ui.Painter, r ui.Rect) {
-			if l.Row {
-				p.Fill(ui.Rect{X: r.X + r.W/2 - 1.5, Y: r.Y + r.H/2 - 18, W: 3, H: 36}, pal.TextFaint.Alpha(0.7), 1.5)
-			} else {
-				p.Fill(ui.Rect{X: r.X + r.W/2 - 18, Y: r.Y + r.H/2 - 1.5, W: 36, H: 3}, pal.TextFaint.Alpha(0.7), 1.5)
-			}
-		})
-	}
-	if dx, dy, ok := d.Dragged(); ok {
-		// The ratio shares out the room the panes take, the split's less
-		// the divider's.
-		b := a.paneRef(key).Bounds(c)
-		size, delta := b.W-paneGap, dx
-		if !l.Row {
-			size, delta = b.H-paneGap, dy
-		}
-		if size > 0 {
-			// The ratio goes on past its bounds, unclamped, so the divider
-			// comes back as the pointer comes back to it.
-			if a.layoutDrag.split != key {
-				r := l.Ratio
-				if r <= 0 || r >= 1 {
-					r = 0.5
-				}
-				a.layoutDrag.session, a.layoutDrag.split, a.layoutDrag.ratio = s.ID, key, r
-			}
-			a.layoutDrag.ratio += float64(delta / size)
-			l.Ratio = math.Min(math.Max(a.layoutDrag.ratio, 0.12), 0.88)
-		}
-	} else if a.layoutDrag.split == key && !d.Pressed() {
-		// Only the divider dragged saves the layout: another of the same
-		// session would save it every frame of the drag.
-		a.layoutDrag.session, a.layoutDrag.split = "", ""
-		a.call(s.ID, "layout", proto.LayoutParams{Session: s.ID, Layout: s.Layout.Clone()}, nil)
-	}
-	if d.DoubleClicked() {
-		l.Ratio = 0.5
-		a.call(s.ID, "layout", proto.LayoutParams{Session: s.ID, Layout: s.Layout.Clone()}, nil)
-	}
-}
-
-// paneCard is a pane: a card with a header and the terminal. top, left and
-// right tell that it touches the window's edges, where the header drags
-// the window, keeps clear of the traffic lights on macOS, and holds the
-// window controls elsewhere (windowControls).
-func (a *App) paneCard(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown float32, s *proto.Session, p *proto.Pane, top, left, right, multi bool) {
-	focused := p.ID == a.focusOf(s)
-	// A pane the user opened its session's chat in, alone or the zoomed
-	// one, shows the chat in its terminal's place, which panes lays out
-	// the one card for. Feishu being on alone says nothing: without the
-	// pane's own choice, its session keeps its terminal.
-	chat := focused && a.feishuOn() && a.PaneChat[p.ID] && (len(s.Zoomed) == 0 || s.Zoomed == p.ID)
-	bg := pal.Card
-	// A browser's page stays opaque, so its toolbar does too, and neither
-	// fades: a page is read, not typed into, from beside it.
-	if multi && !focused && !p.Shown() && a.settingsIn.DimUnfocused {
-		bg = pal.CardDim
-	}
-	card := ui.Column(c.Key("pane-" + p.ID)).Grow(1).Basis(0).MinWidth(0).MinHeight(0).Radius(14).Clip().Bind(a.paneRef("card-" + p.ID))
-	// A terminal's card is translucent with the window: the others, a
-	// browser's and a file's, are opaque.
-	bgNow := card.AnimateColor("bg", bg, ui.Animation{Duration: 140 * time.Millisecond})
-	if w := a.paneBackground(pal, bg, p); w != nil {
-		card.Material(w)
-		if pal.Dark {
-			style.DarkShadow(style.LitEdge(card, pal))
-		} else {
-			card.Shadow(0, 1, 2, 0, pal.CardShadow).Shadow(0, 1, 6, 0, pal.CardShadow2)
-		}
-	} else {
-		style.Raised(card.Background(bgNow), pal)
-	}
-	hovered := card.Hovered()
-	if chat {
-		hovered = true
-	}
-	// The chat's card is opaque, as a browser's page is.
-	if chat {
-		card.Background(bgNow)
-	}
-	if a.settingsIn.FocusFollowsMouse && multi {
-		a.followMouse(c, s, p, card, hovered, focused)
-	}
-	// The card takes presses: one on its padding, beside the terminal,
-	// focuses the pane, rather than going on to what drags the window.
-	if card.Pressed() && !focused {
-		a.setFocus(s, p.ID)
-		a.paneRef(p.ID).Focus()
-	}
-
-	// Another pane dragged over this one: where it would go.
-	zone := zoneNone
-	if multi {
-		if d, over := ui.DragOver[paneDrag](card); over && d.session == s.ID && d.pane != p.ID {
-			if x, y, in := card.PointerPosition(); in {
-				b := a.paneRef("card-" + p.ID).Bounds(c)
-				zone = zoneAt(x/max(b.W, 1), y/max(b.H, 1))
-			}
-		}
-		if d, ok := ui.Drop[paneDrag](card); ok && d.session == s.ID && d.pane != p.ID {
-			sid, target := s.ID, p.ID
-			drop := a.LastZone
-			a.defer_(func() { a.movePane(sid, d.pane, target, drop) })
-		}
-	}
-	if zone != zoneNone {
-		a.LastZone = zone
-	}
-
-	dragging := false
-	// dropping tells that files are dropping on the body of the pane, from
-	// this machine or another Hyla, which it takes: a remote one puts them
-	// where its program runs (drop_upload.go).
-	dropping := false
-	card.Children(func() {
-		if p.FilePane() {
-			dragging = a.paneHeader(c, pal, bar, shown, s, p, top, left, right, multi, focused, hovered)
-			a.filePane(c, pal, s, p)
-		} else if p.Browser() {
-			// A browser's address bar is its header.
-			dragging = a.paneBrowser(c, pal, bar, shown, s, p, top, left, right, multi, focused, hovered)
-			dropping = a.dropFiles(c, pal, s, p)
-		} else {
-			dragging = a.paneHeader(c, pal, bar, shown, s, p, top, left, right, multi, focused, hovered)
-			if chat {
-				// The session's conversation, as a chat, in the terminal's
-				// place (chat.go).
-				dropping = a.dropFiles(c, pal, s, p)
-				a.chatBody(c, pal, s)
-			} else {
-				dropping = a.dropFiles(c, pal, s, p)
-				a.paneTerminal(c, pal, s, p)
-			}
-		}
-		if multi && !p.Shown() && a.settingsIn.DimUnfocused {
-			// The terminals the user is not in fade, text and all.
-			v := ui.Box(c.Key("veil")).Absolute().Top(0).Left(0).Right(0).Bottom(0).PassThrough().Background(pal.Veil)
-			v.Opacity(v.Animate("on", b2f(!focused), 160*time.Millisecond))
-		}
-		if zone != zoneNone {
-			a.dropPreview(c, pal, p.ID, zone)
-		}
-	})
-
-	// The pane dragged sinks back where it was; one just moved springs in
-	// at its new place.
-	pose := ui.Pose{}
-	switch {
-	case dragging:
-		pose = ui.Pose{Scale: 0.985, Fade: 0.45}
-	case a.Arrived[p.ID]:
-		pose = ui.Pose{Scale: 0.94, Fade: 0.7}
-		delete(a.Arrived, p.ID)
-		c.Invalidate()
-	}
-	card.AnimatePose(pose, ui.Animation{Spring: ui.SpringOptions{Duration: 420 * time.Millisecond, Bounce: 0.18}})
-	if dropping {
-		// Files go in where its program runs.
-		card.Draw(func(pr *ui.Painter, r ui.Rect) {
-			pr.Stroke(ui.Rect{X: r.X + 1.5, Y: r.Y + 1.5, W: r.W - 3, H: r.H - 3}, pal.Accent.Alpha(0.65), 12, 2)
-		})
-	}
-}
-
-// paneBackground is what a terminal's card shows in place of its
-// background, bg being the card's color: the terminal's picture, when the
-// user chose one, else the translucent glass while there is one. A
-// browser's page and a file's pane keep their own.
-func (a *App) paneBackground(pal *theme.Palette, bg ui.Color, p *proto.Pane) ui.Material {
-	if p.Browser() || p.FilePane() {
-		return nil
-	}
-	if a.settingsIn.PaneImage != "" {
-		if a.PaneArt.path != a.settingsIn.PaneImage {
-			a.loadPaneArt(a.settingsIn.PaneImage)
-		}
-		return theme.PaneGlass(pal, a.settingsIn, a.PaneArt.bm, &bg)
-	}
-	return theme.PaneGlass(pal, a.settingsIn, nil, nil)
-}
-
-// followMouse focuses the pane the pointer moves into. Only the pointer
-// moving does: a pane that comes under a pointer standing still, as another
-// session shows or the layout changes, leaves the focus where the keyboard
-// put it. And only going in does, so the keyboard can take the focus from
-// the pane the pointer rests in.
-func (a *App) followMouse(c *ui.Context, s *proto.Session, p *proto.Pane, card ui.Element, hovered, focused bool) {
-	x, y, over := card.PointerPosition()
-	if !over {
-		if a.HoverPane == p.ID {
-			a.HoverPane = ""
-		}
-		return
-	}
-	b := a.paneRef("card-" + p.ID).Bounds(c)
-	at := [2]float32{b.X + x, b.Y + y}
-	moved := at != a.HoverAt
-	a.HoverAt = at
-	// A press begun in another pane, as a selection dragged on past its
-	// edge, does not hover this one.
-	if !hovered || a.HoverPane == p.ID {
-		return
-	}
-	a.HoverPane = p.ID
-	if moved && !focused {
-		a.setFocus(s, p.ID)
-		a.paneRef(p.ID).Focus()
-	}
-}
-
-// paneDrag is a pane dragged by its title to another place.
-type paneDrag struct{ session, pane string }
-
-// dropZone is where a pane dropped on another goes: beside it, on a side,
-// or in its place, which the other takes (swap).
-type dropZone int
-
-const (
-	zoneNone dropZone = iota
-	zoneLeft
-	zoneRight
-	zoneUp
-	zoneDown
-	zoneSwap
-)
-
-// zoneAt returns the zone under the pointer, at u, v of a pane (0 to 1):
-// its middle swaps, else the nearest edge.
-func zoneAt(u, v float32) dropZone {
-	if u > 0.3 && u < 0.7 && v > 0.3 && v < 0.7 {
-		return zoneSwap
-	}
-	best, zone := u, zoneLeft
-	for _, e := range []struct {
-		d float32
-		z dropZone
-	}{{1 - u, zoneRight}, {v, zoneUp}, {1 - v, zoneDown}} {
-		if e.d < best {
-			best, zone = e.d, e.z
-		}
-	}
-	return zone
-}
-
-func (z dropZone) side() string {
-	return [...]string{"", "left", "right", "up", "down", ""}[z]
-}
-
-// dropFiles takes the files dropped on the body of the pane p, from this
-// machine: one of another machine's puts them where its program runs, and
-// pastes their paths there; one of this machine's pastes their paths, as
-// they are (drop_upload.go). It reports whether the pane shows a drop.
-func (a *App) dropFiles(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane) bool {
-	body := ui.Box(c.Key("drop")).Absolute().Fill().PassThrough()
-	files := body.DroppedFiles()
-	over := body.FileDragOver()
-	if len(files) > 0 {
-		a.defer_(func() { a.pasteDrop(p.ID, files) })
-	}
-	return over
-}
-
-// dropPreview shows, over the pane under the pointer, the room the
-// dragged pane would take, gliding from zone to zone, with what dropping
-// does.
-func (a *App) dropPreview(c *ui.Context, pal *theme.Palette, target string, zone dropZone) {
-	key := target
-	a.PreviewShown = true
-	if a.PreviewKey != key {
-		a.PreviewKey, a.PreviewSince = key, c.Now()
-	}
-	// left, top, width, height in percent of the pane
-	r := [...][4]float32{
-		zoneLeft:  {0, 0, 50, 100},
-		zoneRight: {50, 0, 50, 100},
-		zoneUp:    {0, 0, 100, 50},
-		zoneDown:  {0, 50, 100, 50},
-		zoneSwap:  {0, 0, 100, 100},
-	}[zone]
-	label := map[dropZone]string{
-		zoneLeft: locales.PaneSplitLeft(), zoneRight: locales.ActionSplitRight(), zoneUp: locales.PaneSplitUp(), zoneDown: locales.ActionSplitDown(), zoneSwap: locales.PaneSwap(),
-	}[zone]
-	dropIcon := glyph.SplitRight
-	if zone == zoneUp || zone == zoneDown {
-		dropIcon = glyph.SplitDown
-	}
-	if zone == zoneSwap {
-		dropIcon = glyph.Swap
-	}
-	fadeIn := min(float32(c.Now().Sub(a.PreviewSince))/float32(140*time.Millisecond), 1)
-	if fadeIn < 1 {
-		c.AnimationFrame()
-	}
-	spring := ui.Animation{Spring: ui.SpringOptions{Duration: 300 * time.Millisecond, Bounce: 0.12}}
-	o := ui.Column(c).Key("drop-preview").Absolute().PassThrough().Padding(8).Opacity(fadeIn)
-	o.LeftPercent(o.AnimateTo("l", r[0], spring)).TopPercent(o.AnimateTo("t", r[1], spring)).
-		WidthPercent(o.AnimateTo("w", r[2], spring)).HeightPercent(o.AnimateTo("h", r[3], spring))
-	o.Children(func() {
-		room := ui.Column(c).Grow(1).Radius(10).AlignItems(ui.Center).
-			Background(pal.Accent.Alpha(0.10)).InsetShadow(0, 0, 28, 0, pal.Accent.Alpha(0.22))
-		room.Children(func() {
-			// The label sits high in the room, clear of the title the
-			// pointer carries through its middle.
-			ui.Box(c).HeightPercent(22).Shrink(0)
-			pill := ui.Row(c).Height(30).Padding(0, 12).Gap(7).Radius(15).AlignItems(ui.Center).
-				Background(pal.Accent).TextColor(ui.Hex("#ffffff"))
-			style.Floating(pill, pal).Children(func() {
-				ui.Icon(c, dropIcon).Size(14, 14)
-				ui.Text(c, label).FontSize(12.5).FontWeight(600).SingleLine()
-			})
-			pill.AnimatePose(ui.Pose{Scale: 0.9 + 0.1*fadeIn}, ui.Snappy)
-		})
-	})
-}
-
-// movePane puts a pane dropped on another beside it, or in its place.
-func (a *App) movePane(sid, pane, target string, zone dropZone) {
-	s := a.session(sid)
-	if s == nil || s.Layout == nil || zone == zoneNone {
-		return
-	}
-	if zone == zoneSwap {
-		s.Layout = s.Layout.Swap(pane, target)
-		a.Arrived[target] = true
-	} else {
-		s.Layout = s.Layout.Move(pane, target, zone.side())
-	}
-	a.Arrived[pane] = true
-	s.Zoomed = ""
-	a.setFocus(s, pane)
-	a.paneRef(pane).Focus()
-	a.call(sid, "layout", proto.LayoutParams{Session: sid, Layout: s.Layout.Clone()}, nil)
-}
-
-// paneHeader builds a pane's header, and reports whether its title is
-// being dragged.
-func (a *App) paneHeader(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown float32, s *proto.Session, p *proto.Pane, top, left, right, multi, focused, hovered bool) (dragging bool) {
-	pad := float32(16)
-	if top && left {
-		// With the sidebar hidden, the header at the window's top left
-		// starts after the traffic lights and the sidebar's buttons,
-		// which come here.
-		pad = a.Chrome.headerPad
-	}
-	h := ui.Row(c.Key("hdr")).Height(headerH).Shrink(0).AlignItems(ui.Center).Padding(0, 10, 0, pad).Gap(8)
-	if h.Pressed() && !focused {
-		a.setFocus(s, p.ID)
-		a.paneRef(p.ID).Focus()
-	}
-	h.Children(func() {
-		if top && left {
-			a.sidebarButtons(c, pal, bar, shown)
-		}
-		// The title is the pane's handle: dragged, it takes the pane to
-		// another place in the session.
-		grip := ui.Row(c.Key("grip")).Gap(8).AlignItems(ui.Center).Shrink(1).MinWidth(0).Height(28).Padding(0, 8).Margin(0, 0, 0, -8).Radius(8)
-		if multi {
-			grip.Drag(paneDrag{s.ID, p.ID}).Tooltip(locales.PaneDragTip())
-			dragging = grip.Dragging()
-			switch {
-			case dragging:
-				// What follows the pointer is a copy of the grip: a chip.
-				style.Floating(grip.Background(pal.Popover), pal)
-			case grip.Hovered():
-				grip.Background(pal.RowHover).Cursor(ui.CursorGrab)
-			}
-		}
-		grip.Children(func() {
-			if multi {
-				if p.Status != proto.Idle || p.Unread {
-					paints.StatusP(c, pal, p.Status, p.Unread, p.Progress, 13)
-				} else {
-					ui.Icon(c, glyph.ProgramIcon(p)).Size(14, 14).TextColor(pal.TextFaint)
-				}
-			}
-			title, size := p.PaneName(), float32(13.5)
-			if !multi {
-				title, size = s.DisplayName(a.settingsIn.SessionName), 14
-			}
-			name := ui.Text(c, title).FontSize(size).FontWeight(600).TextColor(pal.Text).SingleLine().Ellipsis("…").Shrink(1).MinWidth(30)
-			if multi && !focused && !dragging {
-				name.TextColor(pal.TextMuted)
-			}
-			if !multi && name.DoubleClicked() {
-				a.startRename(s.ID)
-			}
-			// The home directory names itself "~", which the title may
-			// already say.
-			if dir := a.hostOf(p.ID).ShortDir(p.WorkDir()); dir != title {
-				ui.Text(c, dir).FontSize(13).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").Shrink(2).MinWidth(0)
-			}
-		})
-		if p.Git != nil {
-			a.gitChip(c, pal, s, p)
-		}
-		// The header's empty stretch moves the window, as a title bar
-		// does, and zooms it on a double click: the header around it
-		// takes clicks, which focus the pane.
-		gap := ui.Box(c.Key("drag")).Grow(1).AlignSelf(ui.Stretch)
-		if top {
-			gap.DragWindow()
-		}
-		a.paneChips(c, pal, p, !multi)
-		a.paneControls(c, pal, s, p, (hovered || focused && multi) && !dragging, multi)
-		if top && right {
-			windowControls(c, pal, a.Win)
-		}
-	})
-	return dragging
-}
-
-// sidebarButtons are the sidebar's buttons, which the header at the
-// window's top left holds while the sidebar hides.
-func (a *App) sidebarButtons(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown float32) {
-	if shown >= 0.5 {
-		return
-	}
-	ui.Row(c).Absolute().Left(a.Chrome.buttonsLeft(bar)).Top(0).Bottom(0).AlignItems(ui.Center).Gap(2).Opacity(1 - 2*shown).Children(func() {
-		paints.IconButton(c, "show-sidebar", glyph.Sidebar, a.tip(locales.SidebarShow(), "sidebar.toggle"), pal, a.toggleSidebar)
-		paints.IconButton(c, "new-session-2", glyph.Plus, a.tip(locales.ActionNewSession(), "session.new"), pal, func() { a.newSession("") })
-	})
-}
-
-// paneControls are a header's buttons acting on its pane, which show while
-// the pointer is over it.
-func (a *App) paneControls(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane, show, multi bool) {
-	ctl := ui.Row(c.Key("controls")).Gap(0).AlignItems(ui.Center)
-	ctl.Opacity(ctl.Animate("shown", b2f(show), 120*time.Millisecond)).Children(func() {
-		if !show {
-			return
-		}
-		if a.feishuOn() {
-			if a.PaneChat[p.ID] {
-				paints.IconButton(c, "chat-toggle", glyph.Terminal, a.tip(locales.ActionShowTerminal(), "pane.chat"), pal, func() { a.hidePaneChat(s, p.ID) })
-			} else {
-				paints.IconButton(c, "chat-toggle", glyph.Chat, a.tip(locales.SideChat(), "pane.chat"), pal, func() { a.showPaneChat(s, p.ID) })
-			}
-		}
-		paints.IconButton(c, "split-r", glyph.SplitRight, a.tip(locales.ActionSplitRight(), "pane.split.right"), pal, func() { a.splitPane(s, p.ID, "right") })
-		paints.IconButton(c, "split-d", glyph.SplitDown, a.tip(locales.ActionSplitDown(), "pane.split.down"), pal, func() { a.splitPane(s, p.ID, "down") })
-		if multi {
-			sid, pid := s.ID, p.ID
-			zoom := func() { a.defer_(func() { a.zoomPane(a.session(sid), pid) }) }
-			if s.Zoomed == p.ID {
-				paints.IconButton(c, "zoom", glyph.Unzoom, a.tip(locales.PaneShowAll(), "pane.zoom"), pal, zoom)
-			} else {
-				paints.IconButton(c, "zoom", glyph.Zoom, a.tip(locales.ActionZoomPane(), "pane.zoom"), pal, zoom)
-			}
-			paints.IconButton(c, "close", glyph.Close, a.tip(locales.PaneClose(), "pane.close"), pal, func() { a.defer_(func() { a.closePane(a.session(sid), pid, true) }) })
-		}
-	})
-}
-
-// feishuOn tells that an app of Feishu is configured, whose chats the
-// panes show (chat.go).
-func (a *App) feishuOn() bool { return a.settingsIn.Feishu != nil && a.settingsIn.Feishu.App != "" }
-
-// showPaneChat shows the focused pane's chat in its terminal's place:
-// the window shows the pane alone, so that the chat has its place.
-func (a *App) showPaneChat(s *proto.Session, id string) {
-	if a.PaneChat == nil {
-		a.PaneChat = map[string]bool{}
-	}
-	a.PaneChat[id] = true
-	// Zoomed is its own zoom, so the call is the pane's place, not a
-	// toggle of it.
-	if s.Zoomed == "" && (len(s.Panes) > 1 || s.Layout != nil) {
-		s.Zoomed = id
-		a.setFocus(s, id)
-		a.call(s.ID, "zoom", proto.FocusParams{Session: s.ID, Pane: id}, nil)
-	}
-}
-
-// hidePaneChat shows the focused pane's terminal again, and the panes
-// side by side, zoomed only for the chat.
-func (a *App) hidePaneChat(s *proto.Session, id string) {
-	delete(a.PaneChat, id)
-	if s.Zoomed == id {
-		a.zoomPane(s, id)
-	}
-}
-
-// paneChips says what the pane is doing. With several panes the title
-// already leads with the status icon, so the chips go without (icon false).
-func (a *App) paneChips(c *ui.Context, pal *theme.Palette, p *proto.Pane, icon bool) {
-	switch p.Status {
-	case proto.Waiting:
-		msg := p.Message
-		if msg == "" {
-			msg = map[string]string{"permission": locales.PaneNeedsPermission(), "question": locales.PaneHasQuestion(), "auth": locales.PaneNeedsSignIn()}[p.Kind]
-		}
-		if msg == "" {
-			msg = locales.StatusNeedsYou()
-		}
-		chip(c, pal, pal.AttnSoft, pal.Attention, func() {
-			if icon {
-				paints.Status(c, pal, p.Status, p.Unread, 11)
-			}
-			ui.Text(c, msg).FontSize(12).FontWeight(500).SingleLine().Ellipsis("…").MaxWidth(320)
-		})
-	case proto.Working:
-		chip(c, pal, pal.Chip, pal.TextMuted, func() {
-			if icon {
-				paints.StatusP(c, pal, p.Status, false, p.Progress, 11)
-			}
-			label := paints.Ago(p.Since, c.Now())
-			if p.Progress >= 0 {
-				label = itoa(p.Progress) + "%"
-			}
-			if p.Message != "" {
-				label = p.Message + " · " + label
-			}
-			ui.Text(c, label).FontSize(12).FontFeatures("tnum").SingleLine().Ellipsis("…").MaxWidth(320)
-		})
-	case proto.Failed:
-		chip(c, pal, pal.Danger.Alpha(0.1), pal.Danger, func() {
-			if icon {
-				paints.Status(c, pal, p.Status, true, 11)
-			}
-			msg := p.Message
-			if msg == "" {
-				msg = locales.StatusFailed()
-			}
-			ui.Text(c, msg).FontSize(12).FontWeight(500).SingleLine().Ellipsis("…").MaxWidth(320)
-		})
-	case proto.Exited:
-		chip(c, pal, pal.Danger.Alpha(0.1), pal.Danger, func() {
-			ui.Text(c, locales.PaneExited(itoa(p.ExitCode))).FontSize(12).FontWeight(500).SingleLine()
-		})
-		if style.Button(c, "restart-"+p.ID, locales.CommonRestart(), "", false, pal) {
-			a.restartSession(p.ID)
-		}
-	case proto.Idle:
-		if p.Message != "" {
-			chip(c, pal, pal.Chip, pal.TextMuted, func() {
-				if icon {
-					paints.Status(c, pal, p.Status, p.Unread, 11)
-				}
-				ui.Text(c, p.Message).FontSize(12).SingleLine().Ellipsis("…").MaxWidth(320)
-			})
-		}
-	}
-	if p.Process != "" && p.Status != proto.Exited {
-		chip(c, pal, pal.Chip, pal.TextMuted, func() {
-			ui.Text(c, p.Process).FontSize(12).SingleLine()
-		}).Tooltip(locales.PaneForegroundTip())
-	}
-}
-
-func (a *App) paneTerminal(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane) {
-	e := a.Terms[p.ID]
-	if e == nil {
-		a.ensureTerm(p.ID)
-		e = a.Terms[p.ID]
-	}
-	// The terminal fills the card under the header: its own padding
-	// takes the colors of the cells beside it, so that a full-screen
-	// program's background reaches the card's edges.
-	ui.Box(c.Key("body")).Grow(1).MinHeight(0).Children(func() {
-		switch {
-		case e != nil && e.term != nil:
-			ref := a.paneRef(p.ID)
-			terminal.View(c.Key("term"), e.term).Fill().Bind(ref)
-			if link, isPath, at := e.term.HoveredLink(); isPath {
-				a.imagePeek(p.ID, link, at, ref.Bounds(c))
-			}
-			if ref.Focused(c) && a.focusOf(s) != p.ID {
-				a.setFocus(s, p.ID)
-			}
-			if a.Find.pane == p.ID {
-				a.findBar(c, pal, p, e.term)
-			}
-		case e != nil && e.err != "":
-			a.message(c, pal, locales.PaneCantShow(), e.err, locales.CommonTryAgain(), func() {
-				a.dropTerm(p.ID)
-				a.ensureTerm(p.ID)
-			})
-		default:
-			// Attaching takes a moment for a long scrollback: a spinner
-			// only once it is a noticeable one.
-			if e != nil && time.Since(e.started) > 250*time.Millisecond {
-				ui.Column(c).Fill().Center().Children(func() { ui.Spinner(c).Label(locales.PaneAttaching()) })
-			} else {
-				c.After(260 * time.Millisecond)
-			}
-		}
-	})
-}
-
-func itoa(n int) string {
-	if n < 0 {
-		return "-" + itoa(-n)
-	}
-	if n < 10 {
-		return string(rune('0' + n))
-	}
-	return itoa(n/10) + string(rune('0'+n%10))
+	panes.LayoutNode(a, c, pal, bar, shown, s, s.Layout, "", true, true, right)
 }
 
 // replaceSession puts a session as hylad answered into the state, before
@@ -860,10 +210,6 @@ func (a *App) replaceSession(h *host.Host, ns proto.Session) {
 // defer_ runs fn once the view is built: for actions that change the
 // panes or sessions being built.
 func (a *App) defer_(fn func()) { a.Later = append(a.Later, fn) }
-
-func chip(c *ui.Context, pal *theme.Palette, bg, fg ui.Color, fn func()) ui.Element {
-	return ui.Row(c).Height(22).Padding(0, 9).Gap(6).Radius(11).AlignItems(ui.Center).Background(bg).TextColor(fg).Children(fn)
-}
 
 // closeFocused closes the pane the user is in, or the session with its
 // last pane.

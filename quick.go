@@ -128,7 +128,7 @@ func (a *App) showQuick() {
 func (a *App) quickFrame() mygo.Rectangle {
 	if a.Win != nil && !a.Win.IsDestroyed() && a.Win.IsVisible() && !a.Win.IsMinimized() && !a.Win.IsFullScreen() {
 		b := a.Win.Bounds()
-		sideW, pad := int(a.Chrome.sideW), int(a.Chrome.mainPad)
+		sideW, pad := int(a.ChromeState.sideW), int(a.ChromeState.mainPad)
 		w := b.Width - sideW - pad - cardGap
 		if a.rightShown() {
 			w -= int(a.sideWidth(a.Side.RowW)) + sideGap

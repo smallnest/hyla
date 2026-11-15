@@ -1,6 +1,7 @@
 package main
 
 import (
+	"hyla/internal/ui/panes"
 	"math"
 	"os"
 	"path/filepath"
@@ -172,7 +173,7 @@ func (a *App) peekView(c *ui.Context) {
 		ui.Image(c, bm).Size(w, h).Fit(ui.Contain).Radius(5)
 		ui.Row(c).Height(peekCaption).AlignSelf(ui.Stretch).Gap(8).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, a.Peek.name).FontSize(11.5).TextColor(pal.TextMuted).SingleLine().Grow(1).MinWidth(0)
-			ui.Text(c, itoa(pw)+" × "+itoa(ph)).FontSize(11.5).FontFeatures("tnum").TextColor(pal.TextFaint).SingleLine().Shrink(0)
+			ui.Text(c, panes.Itoa(pw)+" × "+panes.Itoa(ph)).FontSize(11.5).FontFeatures("tnum").TextColor(pal.TextFaint).SingleLine().Shrink(0)
 		})
 	})
 }

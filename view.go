@@ -123,22 +123,23 @@ func (a *App) view(c *ui.Context) {
 	// frame, which whole pixels turn into hops and holds, a shake as it
 	// settles. This one lands in about 13 frames, moving in every one.
 	var progress float32
-	shown := a.Chrome.shown
+	shown := a.ChromeState.shown
 	// The panel is not crowded by a window too narrow for it beside the
 	// panes, which it then leaves to them while it is open, unless the
 	// user opens it anyway (sideState.forced). The row's width is this
 	// frame's, as its bounds have it: the last frame's would lag a frame
 	// as the window resizes.
 	winW, _ := c.Size()
-	a.Side.Crowded = winW > 0 && sideRowW(winW, a.Chrome) < side.MinCards
-	a.Side.RowW = sideRowW(winW, a.Chrome)
+	a.Bar = bar
+	a.Side.Crowded = winW > 0 && sideRowW(winW, a.ChromeState) < side.MinCards
+	a.Side.RowW = sideRowW(winW, a.ChromeState)
 	if !a.Side.Crowded {
 		a.Side.Forced = false
 	}
 	row.Children(func() {
 		progress = ui.Column(c.Key("sidebar")).AnimateTo("shown", b2f(!a.Prefs.SidebarHidden), sidebarMotion)
-		a.Chrome = chromeFor(progress, a.Prefs.SidebarWidth, bar)
-		w := a.Chrome.sideW
+		a.ChromeState = chromeFor(progress, a.Prefs.SidebarWidth, bar)
+		w := a.ChromeState.sideW
 		side := ui.Row(c).Width(w).Shrink(0).AlignItems(ui.Stretch).ClipX()
 		if h := a.local(); h.Conn == host.StateReady && h.Client != nil && !a.Prefs.SidebarHidden && !a.Pal.Open && !a.Picker.Open && a.SshAsk == nil && a.K8sAsk == nil && (a.Confirm == nil || !a.Confirm.Open) {
 			if files := side.DroppedFiles(); len(files) > 0 {
@@ -158,7 +159,7 @@ func (a *App) view(c *ui.Context) {
 			})
 		})
 		// The gaps around the cards move the window too.
-		main := ui.Column(c).Grow(1).MinWidth(0).Padding(cardGap, cardGap, cardGap, a.Chrome.mainPad).DragWindow()
+		main := ui.Column(c).Grow(1).MinWidth(0).Padding(cardGap, cardGap, cardGap, a.ChromeState.mainPad).DragWindow()
 		main.Children(func() {
 			if shown > 0.01 {
 				a.resizeHandle(c, pal)
@@ -182,10 +183,10 @@ func (a *App) view(c *ui.Context) {
 	a.sshView(c, pal)
 	a.k8sView(c, pal)
 	// A preview that showed no more fades in anew next time.
-	if !a.PreviewShown {
-		a.PreviewKey = ""
+	if !a.PreviewDrawn {
+		a.PreviewPane = ""
 	}
-	a.PreviewShown = false
+	a.PreviewDrawn = false
 	// An image previewed no more closes, and lets go of its bitmap.
 	if !a.Peek.shown {
 		a.closePeek()
@@ -985,7 +986,7 @@ func (a *App) sessionMenu(m *ui.Menu, s *proto.Session) {
 			pid := a.focusOf(s)
 			a.defer_(func() {
 				if cur := a.session(id); cur != nil && pid != "" {
-					a.showPaneChat(cur, pid)
+					a.ShowPaneChatIn(cur, pid)
 				}
 			})
 		}
@@ -1231,10 +1232,10 @@ func (a *App) cardFor(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown 
 	// No session: one card, for what the app has to say.
 	card := style.Raised(ui.Column(c).Grow(1).MinHeight(0).Radius(14).Background(theme.TranslucentGlass(pal.Card, pal, a.settingsIn)), pal).Clip()
 	card.Children(func() {
-		left := a.Chrome.headerPad
+		left := a.ChromeState.headerPad
 		ui.Row(c).Height(headerH).Shrink(0).AlignItems(ui.Center).Padding(0, 10, 0, left).DragWindow().Children(func() {
 			if shown < 0.5 {
-				ui.Row(c).Absolute().Left(a.Chrome.buttonsLeft(bar)).Top(0).Bottom(0).AlignItems(ui.Center).Gap(2).Opacity(1 - 2*shown).Children(func() {
+				ui.Row(c).Absolute().Left(a.ChromeState.buttonsLeft(bar)).Top(0).Bottom(0).AlignItems(ui.Center).Gap(2).Opacity(1 - 2*shown).Children(func() {
 					paints.IconButton(c, "show-sidebar", glyph.Sidebar, a.tip(locales.SidebarShow(), "sidebar.toggle"), pal, a.toggleSidebar)
 					paints.IconButton(c, "new-session-2", glyph.Plus, a.tip(locales.ActionNewSession(), "session.new"), pal, func() { a.newSession("") })
 				})

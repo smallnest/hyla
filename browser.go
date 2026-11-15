@@ -11,6 +11,7 @@ import (
 
 	"hyla/internal/proto"
 	"hyla/internal/ui/paints"
+	"hyla/internal/ui/panes"
 	"hyla/internal/ui/theme"
 
 	"hyla/internal/ui/style"
@@ -311,7 +312,7 @@ func (a *App) paneBrowser(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, sh
 func (a *App) browserBar(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown float32, s *proto.Session, p *proto.Pane, e *webEntry, top, left, right, multi, focused, hovered bool) (ui.Element, bool) {
 	pad := float32(16)
 	if top && left {
-		pad = a.Chrome.headerPad
+		pad = a.ChromeState.headerPad
 	}
 	// The first button's icon starts where a header's title does.
 	h := ui.Row(c.Key("hdr")).Height(headerH).Shrink(0).AlignItems(ui.Center).Padding(0, 10, 0, pad-6).Gap(2)
@@ -322,7 +323,7 @@ func (a *App) browserBar(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, sho
 	dragging := false
 	h.Children(func() {
 		if top && left {
-			a.sidebarButtons(c, pal, bar, shown)
+			panes.SidebarButtons(a, c, pal, bar, shown)
 		}
 		navButton(c, "back", glyph.ChevronLeft, locales.BrowserBack(), e.back, pal, func() { e.view.Page().GoBack() })
 		navButton(c, "forward", glyph.Chevron, locales.BrowserForward(), e.fwd, pal, func() { e.view.Page().GoForward() })
@@ -348,7 +349,7 @@ func (a *App) browserBar(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, sho
 			rest.DragWindow()
 		}
 		// The room past the address bar takes the buttons as they show.
-		a.paneControls(c, pal, s, p, (hovered || focused && multi) && !dragging, multi)
+		panes.PaneControls(a, c, pal, s, p, (hovered || focused && multi) && !dragging, multi)
 		if top && right {
 			windowControls(c, pal, a.Win)
 		}
@@ -386,7 +387,7 @@ func (a *App) addressBar(c *ui.Context, pal *theme.Palette, s *proto.Session, p 
 	frame.Children(func() {
 		grip := ui.Row(c.Key("grip")).Size(22, 22).Radius(6).Center().Shrink(0).TextColor(pal.TextFaint)
 		if multi {
-			grip.Drag(paneDrag{s.ID, p.ID}).Tooltip(locales.PaneDragTip())
+			grip.Drag(panes.PaneDrag{Session: s.ID, Pane: p.ID}).Tooltip(locales.PaneDragTip())
 			dragging = grip.Dragging()
 			switch {
 			case dragging:
@@ -486,7 +487,7 @@ func (a *App) browserFind(c *ui.Context, pal *theme.Palette, e *webEntry) {
 		case e.found.Matches == 0:
 			count = locales.FindNoMatches()
 		default:
-			count = locales.FindCount(itoa(e.found.Active), itoa(e.found.Matches))
+			count = locales.FindCount(panes.Itoa(e.found.Active), panes.Itoa(e.found.Matches))
 		}
 		ui.Text(c, count).FontSize(12).FontFeatures("tnum").TextColor(pal.TextFaint).SingleLine().MinWidth(56).TextAlign(ui.End).Margin(0, 4, 0, 0)
 		paints.IconButton(c, "previous", glyph.ChevronUp, a.tip(locales.ActionFindPrevious(), "find.previous"), pal, func() { a.findInPage(e, true, true) })

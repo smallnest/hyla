@@ -125,7 +125,7 @@ func TestPanePicture(t *testing.T) {
 		t.Fatalf("a picture while it comes: %#v", m)
 	}
 	pic := image.NewRGBA(image.Rect(0, 0, 40, 80))
-	withBM := &sidebarArt{path: s.PaneImage, bm: ui.NewBitmap(pic)}
+	withBM := struct{ bm *ui.Bitmap }{bm: ui.NewBitmap(pic)}
 	if ready := theme.PaneGlass(pal, s, withBM.bm, nil).(*wash.PanePicture); ready.Bitmap == nil || ready.Opacity != 0.6 {
 		t.Errorf("a picture ready: %#v", ready)
 	}
@@ -139,13 +139,13 @@ func TestPanePicture(t *testing.T) {
 	// ready, and none when it comes or the user chose none.
 	a := testApp(t)
 	a.settingsIn.PaneImage, a.settingsIn.PaneImageOpacity = s.PaneImage, 1
-	a.PaneArt = sidebarArt{path: a.settingsIn.PaneImage, bm: ui.NewBitmap(pic)}
-	if p := a.paneBackground(pal, pal.Card, &a.St.Sessions[0].Panes[0]).(*wash.PanePicture); p.Bitmap == nil || p.Base != pal.Card {
+	a.PaneArtimage = sidebarArt{path: a.settingsIn.PaneImage, bm: ui.NewBitmap(pic)}
+	if p := a.paneBackgroundOf(pal, pal.Card, &a.St.Sessions[0].Panes[0]).(*wash.PanePicture); p.Bitmap == nil || p.Base != pal.Card {
 		t.Errorf("the pane's card: %#v", p)
 	}
 	// A window that is not translucent: the card's color alone.
 	a.settingsIn.PaneImage, a.settingsIn.Vibrancy = "", false
-	if m := a.paneBackground(pal, pal.Card, &a.St.Sessions[0].Panes[0]); m != nil {
+	if m := a.paneBackgroundOf(pal, pal.Card, &a.St.Sessions[0].Panes[0]); m != nil {
 		t.Errorf("no picture, and an opaque window: %T", m)
 	}
 }

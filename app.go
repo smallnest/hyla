@@ -38,6 +38,7 @@ import (
 	"hyla/internal/ui/confirm"
 	"hyla/internal/ui/k8sdialog"
 	"hyla/internal/ui/palette"
+	"hyla/internal/ui/panes"
 	"hyla/internal/ui/picker"
 	uisettings "hyla/internal/ui/settings"
 	"hyla/internal/ui/side"
@@ -134,22 +135,22 @@ type App struct {
 	St       proto.State
 	Loaded   bool // a state came
 
-	Prefs      prefs
-	settingsIn settings.Settings // the user's settings: Settings' controls edit it
-	Applied    settings.Settings // set, as last applied and saved
-	SetWin     *mygo.Window      // the Settings window, while open
-	Ss         uisettings.State
-	Selected   string
-	Terms      map[string]*termEntry
-	Webs       map[string]*webEntry // browser panes' pages, by pane
-	Files      filepane.Panes       // file panes' files, by pane
-	Ads        adblock.State        // what their pages block
-	IconsCache favicon.Cache        // and the icons they show
-	Lru        []string
-	Refs       map[string]*ui.Handle // panes' terminals, and splits, by id
-	Focus      map[string]string     // the pane the user is in, by session
-	PaneChat   map[string]bool       // the panes that show their session's chat, not its terminal
-	layoutDrag struct {              // the split whose divider is dragged
+	Prefs       prefs
+	settingsIn  settings.Settings // the user's settings: Settings' controls edit it
+	Applied     settings.Settings // set, as last applied and saved
+	SetWin      *mygo.Window      // the Settings window, while open
+	Ss          uisettings.State
+	Selected    string
+	Terms       map[string]*termEntry
+	Webs        map[string]*webEntry // browser panes' pages, by pane
+	Files       filepane.Panes       // file panes' files, by pane
+	Ads         adblock.State        // what their pages block
+	IconsCache  favicon.Cache        // and the icons they show
+	Lru         []string
+	Refs        map[string]*ui.Handle // panes' terminals, and splits, by id
+	Focus       map[string]string     // the pane the user is in, by session
+	PaneChatMap map[string]bool       // the panes that show their session's chat, not its terminal
+	SplitDrag   struct {              // the split whose divider is dragged
 		session, split string
 		ratio          float64 // where the pointer puts it, past its bounds
 	}
@@ -175,7 +176,8 @@ type App struct {
 	configsync.State // this machine's configuration, kept with the others'
 
 	RenameFrames int
-	Chrome       chrome // where the sidebar's animation puts things
+	ChromeState  chrome      // where the sidebar's animation puts things
+	Bar          ui.TitleBar // the window's title bar, as the frame drew it
 
 	Pal     palette.State
 	Find    findState
@@ -203,8 +205,8 @@ type App struct {
 
 	// Focus follows the mouse: the pane the pointer went into, and where
 	// the pointer was last over a pane, in the window.
-	HoverPane string
-	HoverAt   [2]float32
+	HoverPaneID  string
+	HoverAtPoint [2]float32
 	// claims are the wheel's rests in each pane, of which the last tells
 	// its host the user is there (claimWhenRest). claimMu guards them: the
 	// wheel's callback and the frame that drops a pane both reach them, on
@@ -215,28 +217,30 @@ type App struct {
 	// Panes dragged: the zone last under the pointer, the pane whose
 	// drop preview shows and since when, and the panes just moved, which
 	// spring in.
-	LastZone   dropZone
-	PreviewKey string
+	LastDropZone panes.Zone
+	PreviewPane  string
 	// dragAt is the row a drag last hovered, and dragAfter the side of it
 	// a drop lands on: a project's, a session's, a machine's or a pod's.
-	DragAt       string
-	DragAfter    bool
-	PreviewSince time.Time
-	PreviewShown bool
-	Arrived      map[string]bool
+	DragAt    string
+	DragAfter bool
+	PreviewAt time.Time
+	// previewDrawn tells that the frame built a drop preview, which a
+	// frame that builds none clears.
+	PreviewDrawn bool
+	ArrivedPanes map[string]bool
 	CopyText     string
 	Peek         peek       // the image a path Command hovers shows
-	Art          sidebarArt // the picture behind the sidebar
-	PaneArt      sidebarArt // the picture in the terminals
+	SidebarArt   sidebarArt // the picture behind the sidebar
+	PaneArtimage sidebarArt // the picture in the terminals
 	// shownSession is the session whose panes the last frame showed: one
 	// shown in place of another comes in as sessionSwitch says.
-	ShownSession string
+	ShownSessionID string
 	// switchIn tells that the frame about to build shows a session that
 	// switchFrom posed, on its way in: the one after, posing its place.
-	SwitchIn   bool
-	SwitchFrom ui.Motion
+	SwitchInState    bool
+	SwitchFromMotion ui.Motion
 	// switchAt is when a switch came in, which lands switchLand after.
-	SwitchAt time.Time
+	SwitchAtTime time.Time
 	// from is the host whose program asked for the action being run (hyla
 	// do), nil for the user's.
 	From   *host.Host
@@ -263,7 +267,7 @@ type App struct {
 
 func newApp() *App {
 	a := &App{Terms: map[string]*termEntry{}, Webs: map[string]*webEntry{}, Statuses: map[string]proto.Status{}, Active: true, Focused: true,
-		Refs: map[string]*ui.Handle{}, Focus: map[string]string{}, Arrived: map[string]bool{}}
+		Refs: map[string]*ui.Handle{}, Focus: map[string]string{}, ArrivedPanes: map[string]bool{}}
 	a.loadPrefs()
 	a.settingsIn = settings.Load()
 	remote.SetRelay(a.settingsIn.TailcatRelay)
@@ -395,12 +399,12 @@ func (a *App) setState(h *host.Host, st proto.State) {
 	// A divider dragged keeps the ratios it set, which the daemon hears of
 	// only once it is let go.
 	var dragged *proto.Layout
-	if s := a.session(a.layoutDrag.session); s != nil {
+	if s := a.session(a.SplitDrag.session); s != nil {
 		dragged = s.Layout
 	}
 	a.mergeState(h, st)
 	a.Loaded = true
-	if s := a.session(a.layoutDrag.session); s != nil && s.Layout.SameShape(dragged) {
+	if s := a.session(a.SplitDrag.session); s != nil && s.Layout.SameShape(dragged) {
 		s.Layout = dragged
 	}
 	// Terminals of panes gone go too.

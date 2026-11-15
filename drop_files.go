@@ -32,7 +32,7 @@ func (a *App) cardDrop(s *proto.Session, files []string) {
 // dropPane returns the pane of the session s that files dropped on its
 // card go to: the one the pointer is in, else the session's.
 func (a *App) dropPane(s *proto.Session) *proto.Pane {
-	if p := s.PaneByID(a.HoverPane); p != nil {
+	if p := s.PaneByID(a.HoverPaneID); p != nil {
 		return p
 	}
 	return s.FocusPane()

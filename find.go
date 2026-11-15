@@ -9,6 +9,7 @@ import (
 
 	"hyla/internal/proto"
 	"hyla/internal/ui/paints"
+	"hyla/internal/ui/panes"
 	"hyla/internal/ui/theme"
 
 	"hyla/internal/ui/style"
@@ -128,7 +129,7 @@ func (a *App) findBar(c *ui.Context, pal *theme.Palette, p *proto.Pane, t *termi
 		case st.Total == 0 && !st.Searching:
 			count = locales.FindNoMatches()
 		case st.Total > 0:
-			count = locales.FindCount(itoa(st.Selected), itoa(st.Total))
+			count = locales.FindCount(panes.Itoa(st.Selected), panes.Itoa(st.Total))
 		}
 		ui.Text(c, count).FontSize(12).FontFeatures("tnum").TextColor(pal.TextFaint).SingleLine().MinWidth(56).TextAlign(ui.End).Margin(0, 4, 0, 0)
 		// Up goes back through the output, as Enter does, as in Ghostty.

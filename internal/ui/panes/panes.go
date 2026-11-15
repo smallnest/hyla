@@ -3,12 +3,16 @@
 package panes
 
 import (
+	"time"
+
+	"github.com/egoist/mygo/plugins/terminal"
 	ui "github.com/egoist/mygo/ui"
 
 	"hyla/internal/app/host"
 	"hyla/internal/proto"
 	"hyla/internal/settings"
 	"hyla/internal/ui/confirm"
+	"hyla/internal/ui/theme"
 	"hyla/locales"
 )
 
@@ -49,9 +53,123 @@ type App interface {
 	Shows(pane string) bool
 	// CallPane asks hylad, on the host a session or a pane is of.
 	CallPane(id, method string, params any, done func(err error))
-	// Update runs fn on the main thread, and Toast tells a failure.
+	// Update runs fn on the main thread, RunLater runs fn after the
+	// frame, and Toast tells a failure.
 	Update(fn func())
+	RunLater(fn func())
 	Toast(msg string)
+
+	// SwitchIn and SwitchFrom are whether a session comes in place of
+	// another this frame, and where it comes from.
+	SwitchIn() bool
+	SwitchFrom() ui.Motion
+
+	// Chrome is where the sidebar's animation puts things, and
+	// HeaderHeight is the height of a card's header.
+	ChromeForPanel() Chrome
+	HeaderHeightIn() float32
+
+	// PaneChat are the panes whose chat shows in their terminal's place.
+	FeishuOn() bool
+	PaneChat() map[string]bool
+	ShowPaneChat(id string)
+	HidePaneChat(id string)
+
+	// FilePane, PaneBrowser and ChatBody are the card's body, by kind.
+	FilePane(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane)
+	PaneBrowser(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown float32, s *proto.Session, p *proto.Pane, top, left, right, multi, focused, hovered bool) (dragging bool)
+	ChatBody(c *ui.Context, pal *theme.Palette, s *proto.Session)
+
+	// Term is a pane's terminal, as it attaches; ImagePeek peeks at a
+	// path under the pointer, and FindBar shows its find.
+	Term(pane string) *TermEntry
+	ImagePeek(pane, link string, at, term ui.Rect)
+	FindPane() string
+	FindBar(c *ui.Context, pal *theme.Palette, p *proto.Pane, t *terminal.Terminal)
+	// PaneMessage says what a pane cannot show.
+	PaneMessage(c *ui.Context, pal *theme.Palette, title, detail, action string, fn func())
+
+	// LoadPaneArt, PaneArt and Settings' PaneImage give a terminal's
+	// picture.
+	LoadPaneArt(path string)
+	PaneArt() Art
+	// StartRename and RestartSession act on a session, and PasteDrop
+	// takes files dropped on a pane.
+	StartRename(id string)
+	RestartSession(id string)
+	PasteDrop(pane string, files []string)
+	// GitChip draws a pane's branch and its changes, after its title.
+	GitChip(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane)
+	// WindowControls draws the window's buttons on the right of its title.
+	WindowCtl(c *ui.Context, pal *theme.Palette)
+	// ToggleSidebar and NewSession are the sidebar's buttons.
+	ToggleSidebar()
+	NewSessionIn(projectID string)
+
+	// HoverPane, HoverAt, Arrived and LastZone follow a pane dragged.
+	HoverPane() string
+	SetHoverPane(id string)
+	HoverAt() [2]float32
+	SetHoverAt(at [2]float32)
+	Arrived(pane string) bool
+	TakeArrived(pane string)
+	SetArrived(pane string)
+	LastZone() Zone
+	SetLastZone(z Zone)
+	// Preview is the room the dragged pane would take, and the pane it
+	// was of, which DrawnPreview notes as drawn.
+	Preview() Preview
+	SetPreview(pane string, since time.Time)
+	DrawnPreview()
+
+	// LayoutDrag, SetLayoutDrag and ClearLayoutDrag keep a divider's
+	// drag, and ClearLayoutDrag' key tells the split it is of.
+	LayoutDrag(split string) (held bool, ratio float64)
+	LayoutDragKey() string
+	SetLayoutDrag(session, split string, ratio float64)
+	ClearLayoutDrag()
+
+	// Tip adds an action's shortcut, in words, to a title.
+	Tip(title, id string) string
+}
+
+// Chrome is where the sidebar's animation puts things.
+type Chrome struct {
+	SideW     float32 // the sidebar's width as shown
+	MainPad   float32 // the left padding of the cards' column
+	HeaderPad float32 // the left padding of the header at the left edge
+	// Lead is where the sidebar's buttons start in the window, after the
+	// traffic lights on macOS; elsewhere inside the card's edge.
+	Lead float32
+}
+
+// ButtonsLeft places the sidebar's buttons that the header holds while
+// the sidebar hides, in the header's coordinates.
+func (ch Chrome) ButtonsLeft() float32 { return ch.Lead - (ch.SideW + ch.MainPad) }
+
+// FeishuOn tells that an app of Feishu is configured, whose chats the
+// panes show (chat.go).
+func FeishuOn(s settings.Settings) bool { return s.Feishu != nil && s.Feishu.App != "" }
+
+// TermEntry is a pane's terminal as it attaches: the terminal, or why it
+// did not.
+type TermEntry struct {
+	Term    *terminal.Terminal
+	Err     string
+	Started time.Time
+}
+
+// Art is a picture behind the terminals.
+type Art struct {
+	Path string
+	BM   *ui.Bitmap
+	Card *ui.Color
+}
+
+// Preview is the pane a drop preview is of, and since when it shows.
+type Preview struct {
+	Key   string
+	Since time.Time
 }
 
 // SplitPane splits the pane the user is in, or at, along direction.

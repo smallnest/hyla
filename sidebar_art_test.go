@@ -46,7 +46,7 @@ func TestSidebarArtShows(t *testing.T) {
 	}
 	a.settingsIn.SidebarImage = "/tmp/picture.png"
 	a.settingsIn.SidebarImageOpacity = 1
-	a.Art = sidebarArt{path: a.settingsIn.SidebarImage, bm: ui.NewBitmap(pic)}
+	a.SidebarArt = sidebarArt{path: a.settingsIn.SidebarImage, bm: ui.NewBitmap(pic)}
 	tt.Frame()
 	after := tt.Image()
 

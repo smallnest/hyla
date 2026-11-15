@@ -1,10 +1,13 @@
 package main
 
 import (
+	ui "github.com/egoist/mygo/ui"
+
 	"hyla/internal/app/host"
 	"hyla/internal/proto"
 	"hyla/internal/ui/confirm"
 	"hyla/internal/ui/panes"
+	"hyla/internal/ui/theme"
 )
 
 // The app, as the pane actions ask it.
@@ -50,3 +53,7 @@ func (a *App) zoomPane(s *proto.Session, pane string) { panes.ZoomPane(a, s, pan
 func (a *App) focusDirection(dir string) { panes.FocusDirection(a, dir) }
 
 func (a *App) cyclePane(d int) { panes.CyclePane(a, d) }
+
+func (a *App) PaneMessage(c *ui.Context, pal *theme.Palette, title, detail, action string, fn func()) {
+	a.message(c, pal, title, detail, action, fn)
+}

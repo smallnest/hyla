@@ -141,6 +141,13 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     between the panes — are `internal/ui/panes`, which the actions, the
     panes' controls, a browser and the Info view call; the root keeps
     `panes_adapters.go`, and the session a replaced one arrives in.
+  - Also: the panes' drawing is `internal/ui/panes`, beside their
+    actions: the card, the layout's nodes and its divider, the header and
+    its controls, the terminal's body, the drop preview and the moves a
+    drop makes. `PaneCard` reads the session as the app has it when it
+    builds, as the header's `ensureTerm` can take the keyboard from a
+    pane the app has lost. The switch that brings a session in stays in
+    the root's `panes.go`: it reads and writes the app's own state.
   - Also: the Chat view is `internal/ui/chat` — a session's windows,
     their reads (`feishu.feed`) and the lines. The root keeps the state
     in the side panel's struct, and `chat.go` as its adapters.

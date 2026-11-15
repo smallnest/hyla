@@ -77,10 +77,10 @@ func (a *App) pickImage(set *string, title, detail string) {
 // as wide as its shape makes it, and cropped by the sidebar where that
 // is wider than the sidebar.
 func (a *App) sidebarArtView(c *ui.Context) {
-	if a.Art.path != a.settingsIn.SidebarImage {
+	if a.SidebarArt.path != a.settingsIn.SidebarImage {
 		a.loadSidebarArt(a.settingsIn.SidebarImage)
 	}
-	bm := a.Art.bm
+	bm := a.SidebarArt.bm
 	if bm == nil {
 		return
 	}
@@ -110,7 +110,7 @@ func sidebarArtPlacement(winH, nw, nh float32) (x, y, w, h float32) {
 // loadSidebarArt reads and decodes the picture of a path off the main
 // thread, keeping the bitmap when it comes.
 func (a *App) loadSidebarArt(path string) {
-	s := &a.Art
+	s := &a.SidebarArt
 	s.path, s.bm = path, nil
 	if path == "" {
 		return
@@ -123,10 +123,10 @@ func (a *App) loadSidebarArt(path string) {
 	go func() {
 		bm := decodeSidebarArt(path)
 		a.update(func() {
-			if a.Art.path != path {
+			if a.SidebarArt.path != path {
 				return // another picture chosen while this was read
 			}
-			a.Art.bm = bm
+			a.SidebarArt.bm = bm
 		})
 	}()
 }
@@ -134,7 +134,7 @@ func (a *App) loadSidebarArt(path string) {
 // loadPaneArt reads and decodes a terminal's picture, as loadSidebarArt
 // does the sidebar's.
 func (a *App) loadPaneArt(path string) {
-	s := &a.PaneArt
+	s := &a.PaneArtimage
 	s.path, s.bm = path, nil
 	if path == "" {
 		return
@@ -146,10 +146,10 @@ func (a *App) loadPaneArt(path string) {
 	go func() {
 		bm := decodeSidebarArt(path)
 		a.update(func() {
-			if a.PaneArt.path != path {
+			if a.PaneArtimage.path != path {
 				return // another picture chosen while this was read
 			}
-			a.PaneArt.bm = bm
+			a.PaneArtimage.bm = bm
 		})
 	}()
 }
