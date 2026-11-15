@@ -14,6 +14,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/ui/theme"
 
+	"hyla/internal/ui/marks"
 	"hyla/locales"
 )
 
@@ -459,7 +460,7 @@ func (a *App) k8sPodRow(c *ui.Context, pal *theme.Palette, i int) {
 		// under the name, past the mark.
 		mark := func(gap float32) {
 			markSlot(c, gap).Children(func() {
-				ui.Icon(c, terminalIcon).Size(agentMarkSize, agentMarkSize).TextColor(pal.TextMuted)
+				ui.Icon(c, terminalIcon).Size(marks.Size, marks.Size).TextColor(pal.TextMuted)
 			})
 		}
 		top := func() {

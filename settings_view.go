@@ -30,6 +30,7 @@ import (
 	"hyla/internal/ui/theme"
 	"hyla/internal/ui/wash"
 
+	"hyla/internal/ui/glyph"
 	"hyla/locales"
 )
 
@@ -42,18 +43,18 @@ type settingsPage struct {
 }
 
 var settingsPages = []settingsPage{
-	{"general", locales.PageGeneral, glyph("f7-gear-alt"), false},
-	{"appearance", locales.PageAppearance, glyph("f7-paintbrush"), false},
+	{"general", locales.PageGeneral, glyph.Of("f7-gear-alt"), false},
+	{"appearance", locales.PageAppearance, glyph.Of("f7-paintbrush"), false},
 	{"terminal", locales.PageTerminal, terminalIcon, false},
-	{"shell", locales.PageShell, glyph("f7-chevron-left-slash-chevron-right"), false},
+	{"shell", locales.PageShell, glyph.Of("f7-chevron-left-slash-chevron-right"), false},
 	{"browser", locales.PageBrowser, globeIcon, false},
-	{"notifications", locales.PageNotifications, glyph("f7-bell"), false},
-	{"keyboard", locales.PageKeyboard, glyph("f7-keyboard"), false},
-	{"feishu", locales.PageFeishu, glyph("f7-chat-bubble-2"), false},
-	{"agents", locales.PageAgents, glyph("f7-sparkles"), false},
+	{"notifications", locales.PageNotifications, glyph.Of("f7-bell"), false},
+	{"keyboard", locales.PageKeyboard, glyph.Of("f7-keyboard"), false},
+	{"feishu", locales.PageFeishu, glyph.Of("f7-chat-bubble-2"), false},
+	{"agents", locales.PageAgents, glyph.Of("f7-sparkles"), false},
 	{"sync", locales.PageSync, syncIcon, false},
 	{"hosts", locales.PageHosts, hostIcon, true},
-	{"advanced", locales.PageAdvanced, glyph("f7-slider-horizontal-3"), false},
+	{"advanced", locales.PageAdvanced, glyph.Of("f7-slider-horizontal-3"), false},
 }
 
 // settingsState is what the Settings window keeps besides the settings.
@@ -234,7 +235,7 @@ func (a *App) settingsView(c *ui.Context) {
 				link.Background(pal.RowHover)
 			}
 			link.TextColor(fg).Tooltip(proto.ShortDir(settings.Path())).Children(func() {
-				ui.Icon(c, glyph("f7-chevron-left-slash-chevron-right")).Size(13, 13)
+				ui.Icon(c, glyph.Of("f7-chevron-left-slash-chevron-right")).Size(13, 13)
 				ui.Text(c, locales.SettingsOpenConfig()).FontSize(12.5).SingleLine()
 			})
 			if link.Clicked() {

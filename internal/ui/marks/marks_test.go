@@ -1,4 +1,4 @@
-package main
+package marks
 
 import (
 	"image/color"
@@ -16,7 +16,7 @@ func TestAgentMarks(t *testing.T) {
 		"claude", "codex", "opencode", "pi", "dsh", "gemini", "qwen",
 		"copilot", "cursor-agent", "cline", "amp", "kimi", "windsurf", "zed",
 	} {
-		logo, _, ok := agentMark(agent)
+		logo, _, ok := Agent(agent)
 		if !ok || logo == nil {
 			t.Errorf("%s: no mark", agent)
 			continue
@@ -27,12 +27,12 @@ func TestAgentMarks(t *testing.T) {
 	}
 	// Aider, Goose, Crush, Kiro and the rest never drew one.
 	for _, agent := range []string{"", "aider", "goose", "crush", "kiro-cli", "droid", "auggie", "nonesuch"} {
-		if _, _, ok := agentMark(agent); ok {
+		if _, _, ok := Agent(agent); ok {
 			t.Errorf("%q: want no mark", agent)
 		}
 	}
 	// Every file of the set parses, and every mark the map names is one.
-	entries, err := agentMarkFS.ReadDir("resources/icons/agents")
+	entries, err := agentFS.ReadDir("agents")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +59,7 @@ func TestAgentMarks(t *testing.T) {
 func TestMarkDrawsInTheTextColour(t *testing.T) {
 	red := color.RGBA{R: 255, A: 255}
 	for _, agent := range []string{"claude", "codex", "dsh", "gemini", "kimi"} {
-		logo, _, ok := agentMark(agent)
+		logo, _, ok := Agent(agent)
 		if !ok {
 			t.Fatalf("%s: no mark", agent)
 		}
@@ -83,16 +83,16 @@ func TestMarkDrawsInTheTextColour(t *testing.T) {
 func TestMarkTint(t *testing.T) {
 	white, black := ui.Hex("#ffffff"), ui.Hex("#000000")
 	same := func(a, b ui.Color) bool { return a.R == b.R && a.G == b.G && a.B == b.B }
-	if got := markTint(black, true, white); !same(got, white) {
+	if got := Tint(black, true, white); !same(got, white) {
 		t.Errorf("a black mark on a dark window = %v, want the text's colour", got)
 	}
-	if got := markTint(ui.Hex("#18181b"), false, black); !same(got, black) {
+	if got := Tint(ui.Hex("#18181b"), false, black); !same(got, black) {
 		t.Errorf("a black mark on a light window = %v, want the text's colour", got)
 	}
-	if got := markTint(ui.Hex("#d97757"), false, black); !same(got, ui.Hex("#d97757")) {
+	if got := Tint(ui.Hex("#d97757"), false, black); !same(got, ui.Hex("#d97757")) {
 		t.Errorf("Claude's orange = %v, want its brand's colour", got)
 	}
-	if got := markTint(ui.Hex("#ffd21e"), false, black); got.R > 210 || got.G > 210 {
+	if got := Tint(ui.Hex("#ffd21e"), false, black); got.R > 210 || got.G > 210 {
 		t.Errorf("Hugging Face's yellow = %v, want it darker on a white window", got)
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 
+	"hyla/internal/ui/glyph"
 	"hyla/internal/ui/theme"
 	"hyla/locales"
 )
@@ -73,9 +74,9 @@ func framed(o mygo.WindowOptions) mygo.WindowOptions {
 }
 
 var (
-	minimizeIcon = icon(`<path d="M3.5 8h9"/>`)
-	maximizeIcon = icon(`<rect x="3.5" y="3.5" width="9" height="9" rx="1.5"/>`)
-	restoreIcon  = icon(`<rect x="3.5" y="5.5" width="7" height="7" rx="1.2"/><path d="M5.5 3.5h5.5a1.5 1.5 0 0 1 1.5 1.5v5.5"/>`)
+	minimizeIcon = glyph.Drawn(`<path d="M3.5 8h9"/>`)
+	maximizeIcon = glyph.Drawn(`<rect x="3.5" y="3.5" width="9" height="9" rx="1.5"/>`)
+	restoreIcon  = glyph.Drawn(`<rect x="3.5" y="5.5" width="7" height="7" rx="1.2"/><path d="M5.5 3.5h5.5a1.5 1.5 0 0 1 1.5 1.5v5.5"/>`)
 )
 
 // windowControls are a window's minimize, maximize and close buttons, as

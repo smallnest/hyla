@@ -14,6 +14,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/ui/theme"
 
+	"hyla/internal/ui/marks"
 	"hyla/locales"
 )
 
@@ -612,7 +613,7 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g group, gi int, n *i
 				icon = k8sIcon
 			}
 			badge.Center().Children(func() {
-				ui.Icon(c, icon).Size(14, 14).TextColor(markTint(badgeColor, pal.Dark, pal.Text))
+				ui.Icon(c, icon).Size(14, 14).TextColor(marks.Tint(badgeColor, pal.Dark, pal.Text))
 			})
 		} else {
 			badge.Radius(5).Center().Background(badgeColor).Children(func() {
@@ -841,7 +842,7 @@ func (a *App) sessionRow(c *ui.Context, pal *theme.Palette, s *proto.Session, n 
 	// agent's own colour: the row says which agent it is at a glance. A
 	// session with no agent, or one whose agent Hyla has no mark for,
 	// shows none rather than another agent's.
-	agentLogo, agentBrand, agentKnown := agentMark(s.Agent)
+	agentLogo, agentBrand, agentKnown := marks.Agent(s.Agent)
 	// The mark's slot is every row's, whether or not this session has an
 	// agent, and as wide as the badge a project's name follows: a project's
 	// names and its sessions' start at one place. gap is the row's own.
@@ -851,7 +852,7 @@ func (a *App) sessionRow(c *ui.Context, pal *theme.Palette, s *proto.Session, n 
 			return
 		}
 		slot.Children(func() {
-			ui.Icon(c, agentLogo).Size(agentMarkSize, agentMarkSize).TextColor(markTint(agentBrand, pal.Dark, pal.Text))
+			ui.Icon(c, agentLogo).Size(marks.Size, marks.Size).TextColor(marks.Tint(agentBrand, pal.Dark, pal.Text))
 		})
 	}
 	row.ContextMenu(func(m *ui.Menu) { a.sessionMenu(m, s) })
@@ -962,7 +963,7 @@ func (a *App) sessionRow(c *ui.Context, pal *theme.Palette, s *proto.Session, n 
 // badge and the gap after it, less the gap the row itself leaves, so that a
 // session's name starts where its project's does, and every row's lines up.
 func markSlot(c *ui.Context, gap float32) ui.Element {
-	return ui.Box(c).Size(projectBadge+projectBadgeGap-gap, agentMarkSize).Center().Shrink(0)
+	return ui.Box(c).Size(projectBadge+projectBadgeGap-gap, marks.Size).Center().Shrink(0)
 }
 
 // statusSlot ends a row that stands for a terminal: its status, or, while

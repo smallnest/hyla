@@ -7,6 +7,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
+	"hyla/internal/ui/glyph"
 	"hyla/internal/ui/theme"
 	"hyla/locales"
 )
@@ -20,8 +21,8 @@ import (
 // the focus.
 
 var (
-	updownIcon = glyph("lucide-chevrons-up-down")
-	checkIcon  = glyph("lucide-check")
+	updownIcon = glyph.Of("lucide-chevrons-up-down")
+	checkIcon  = glyph.Of("lucide-check")
 )
 
 const (

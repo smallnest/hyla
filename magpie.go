@@ -18,6 +18,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/ui/theme"
 
+	"hyla/internal/ui/glyph"
 	"hyla/locales"
 )
 
@@ -384,7 +385,7 @@ func magpieTokens(n int) string {
 // --- the Info view's card ---
 
 // magpieGlyph is a paper plane, the call it sends for the agent.
-var magpieGlyph = icon(`<path d="M3 4.5 13 8 9.5 9.5 8 13 3 4.5Z"/><path d="M5.8 6.2c1.9.4 3.3.3 4.6-.6"/>`)
+var magpieGlyph = glyph.Drawn(`<path d="M3 4.5 13 8 9.5 9.5 8 13 3 4.5Z"/><path d="M5.8 6.2c1.9.4 3.3.3 4.6-.6"/>`)
 
 // infoMagpie draws Magpie's card last: while it answers, what it spent
 // today and this conversation spent through it, the plan windows closest

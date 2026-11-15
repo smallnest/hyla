@@ -150,6 +150,8 @@ var Layers = []Layer{
 			"hyla/internal/settings",
 			"hyla/internal/shell",
 			"hyla/internal/sync",
+			"hyla/internal/ui/glyph",
+			"hyla/internal/ui/marks",
 			"hyla/internal/ui/theme",
 			"hyla/internal/ui/wash",
 			"hyla/internal/update",
@@ -216,6 +218,8 @@ var layerNames = map[string]string{
 	"hyla/internal/daemon":   "daemon",
 	"hyla/internal/pocket":   "daemon",
 	"hyla/internal/cli":      "cli",
+	"hyla/internal/ui/glyph": "ui",
+	"hyla/internal/ui/marks": "ui",
 	"hyla/internal/ui/theme": "ui",
 	"hyla/internal/ui/wash":  "ui",
 }
