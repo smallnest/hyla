@@ -331,14 +331,15 @@ func (a *App) main(fn func()) {
 	a.update(fn)
 }
 
-func (a *App) event(h *host.Host, cl *client.Client, m proto.Message) {
+// EventOf takes a message from a host's hylad.
+func (a *App) EventOf(h *host.Host, cl *client.Client, m proto.Message) {
 	if h.Client != cl {
 		return
 	}
 	switch m.Event {
 	case "state":
 		if m.State != nil {
-			a.setState(h, *m.State)
+			a.TakeStateOf(h, *m.State)
 			// The chat windows read their turns as the host's state
 			// changes: a chat's turn ends as the session goes idle.
 			a.chatChanged(h)
@@ -394,8 +395,8 @@ func (a *App) event(h *host.Host, cl *client.Client, m proto.Message) {
 	}
 }
 
-// setState takes a host's state.
-func (a *App) setState(h *host.Host, st proto.State) {
+// TakeStateOf takes a host's state.
+func (a *App) TakeStateOf(h *host.Host, st proto.State) {
 	first, hostFirst := !a.Loaded, !h.Loaded
 	h.Loaded = true
 	// A divider dragged keeps the ratios it set, which the daemon hears of
@@ -423,7 +424,7 @@ func (a *App) setState(h *host.Host, st proto.State) {
 	}
 	for id := range a.Webs {
 		if !live[id] {
-			a.dropWeb(id)
+			a.DropWeb(id)
 		}
 	}
 	a.Files.Forget(func(id string) bool { return live[id] })
@@ -587,13 +588,13 @@ func (a *App) selectSession(id string) {
 		delete(a.Prefs.Collapsed, s.Project)
 	}
 	for _, p := range s.Panes {
-		a.ensureTerm(p.ID)
+		a.EnsureTerm(p.ID)
 	}
 	if pane := a.focusOf(s); pane != "" {
-		a.touch(pane)
+		a.Touch(pane)
 	}
 	a.focusTerminal()
-	a.reportView()
+	a.ReportViewNow()
 	a.updateTitle()
 	if changed {
 		a.savePrefs()
@@ -608,9 +609,9 @@ func (a *App) watching(id string) bool {
 	return id != "" && id == a.Selected && a.Active && a.focused
 }
 
-// reportView tells each host's hylad which of its sessions the user looks
+// ReportViewNow tells each host's hylad which of its sessions the user looks
 // at, which it then never marks unread.
-func (a *App) reportView() {
+func (a *App) ReportViewNow() {
 	shown := a.selectedHost()
 	for _, h := range a.Machines {
 		if h.Client == nil {
@@ -631,9 +632,9 @@ func (a *App) reportView() {
 	}
 }
 
-// touch moves a terminal to the front of those kept attached, dropping
+// Touch moves a terminal to the front of those kept attached, dropping
 // the one shown longest ago past the limit.
-func (a *App) touch(id string) {
+func (a *App) Touch(id string) {
 	a.Lru = slices.DeleteFunc(a.Lru, func(x string) bool { return x == id })
 	a.Lru = append(a.Lru, id)
 	for len(a.Lru) > maxTerms {
@@ -668,8 +669,8 @@ func (a *App) dropTerm(id string) {
 // of the first, which then shows the session as it is.
 type gated = quick.Gated
 
-// ensureTerm attaches a terminal to a session, unless one is.
-func (a *App) ensureTerm(id string) {
+// EnsureTerm attaches a terminal to a session, unless one is.
+func (a *App) EnsureTerm(id string) {
 	h := a.hostOf(id)
 	if a.Terms[id] != nil || h.Conn != host.StateReady || a.shows(id) {
 		return
@@ -1295,10 +1296,16 @@ func (a *App) workDir(id string) string {
 
 // --- actions ---
 
-// call calls a method of the hylad that has id: a session's, a pane's or
-// a project's, toasting a failure unless done takes it.
-func (a *App) call(id, method string, params any, done func(err error)) {
+// CallPane calls a method of the hylad that has id: a session's, a pane's
+// or a project's, toasting a failure unless done takes it.
+func (a *App) CallPane(id, method string, params any, done func(err error)) {
 	a.callOn(a.hostOf(id), method, params, done)
+}
+
+// Call calls a method of the hylad that has id, toasting a failure unless
+// done takes it.
+func (a *App) Call(id, method string, params any, done func(error)) {
+	a.CallPane(id, method, params, done)
 }
 
 // callOn calls a method of a host's hylad.
@@ -1328,7 +1335,7 @@ func (a *App) callOn(h *host.Host, method string, params any, done func(err erro
 
 func (a *App) toast(msg string) { a.PendingToast = msg }
 
-// undoSays says what a removal took away, and offers undo, which puts it
+// UndoSays says what a removal took away, and offers undo, which puts it
 // back.
 func (a *App) UndoSays(msg string, undo func()) {
 	a.UndoMessage, a.UndoAction = msg, undo
@@ -1350,11 +1357,11 @@ func (a *App) SessionIn(projectID string) {
 	if projectID == "" && h == a.local() {
 		if cur := a.session(a.Selected); cur != nil && cur.Project != "" {
 			if cur.Project == a.Prefs.SSHProject {
-				a.askSSHHost()
+				a.AskSSHHost()
 				return
 			}
 			if cur.Project == a.Prefs.K8sProject {
-				a.askK8sPod()
+				a.AskK8sPod()
 				return
 			}
 		}
@@ -1371,11 +1378,11 @@ func (a *App) newSessionOn(h *host.Host, projectID string) {
 	// The SSH and K8s projects' New Session adds a machine or a pod,
 	// which opens its terminal.
 	if projectID != "" && projectID == a.Prefs.SSHProject {
-		a.askSSHHost()
+		a.AskSSHHost()
 		return
 	}
 	if projectID != "" && projectID == a.Prefs.K8sProject {
-		a.askK8sPod()
+		a.AskK8sPod()
 		return
 	}
 	p := proto.CreateParams{Project: projectID}
@@ -1438,7 +1445,7 @@ func (a *App) addPending(h *host.Host, s proto.Session) {
 // openProject asks for a folder, and starts a session there, in its
 // project: of this machine, with the system's dialog, else, with hosts,
 // of any machine, with the app's picker, from the shown session's.
-func (a *App) openProject() {
+func (a *App) OpenProjectDialog() {
 	h := a.local()
 	if h.Client == nil {
 		return
@@ -1516,7 +1523,7 @@ func busy(s *proto.Session) bool {
 	return s.Status != proto.Exited && s.Process != ""
 }
 
-func (a *App) closeSession(id string, ask bool) {
+func (a *App) CloseSession(id string, ask bool) {
 	s := a.session(id)
 	if s == nil {
 		return
@@ -1533,15 +1540,15 @@ func (a *App) closeSession(id string, ask bool) {
 			Detail:  locales.ConfirmCloseSessionDetail(s.Process),
 			Action:  locales.ActionCloseSession(),
 			Destroy: true,
-			Run:     func() { a.closeSession(id, false) },
+			Run:     func() { a.CloseSession(id, false) },
 		}
 		return
 	}
-	a.endSession(id, proto.CloseParams{ID: id})
+	a.EndSession(id, proto.CloseParams{ID: id})
 }
 
-// endSession closes a session, as p says, without asking.
-func (a *App) endSession(id string, p proto.CloseParams) {
+// EndSession closes a session, as p says, without asking.
+func (a *App) EndSession(id string, p proto.CloseParams) {
 	s := a.session(id)
 	if s == nil {
 		return
@@ -1569,21 +1576,21 @@ func (a *App) endSession(id string, p proto.CloseParams) {
 	a.callOn(h, "close", p, nil)
 }
 
-// closeAllSessions closes every session of a group, leaving its
+// CloseAllSessions closes every session of a group, leaving its
 // project, once the user confirmed it: what runs in them ends with
 // them. The ids are gathered first: closing moves the state the
 // group's sessions point into.
-func (a *App) closeAllSessions(g sidebar.Group) {
+func (a *App) CloseAllSessions(g sidebar.Group) {
 	for _, id := range slices.Clone(g.Sessions) {
-		a.closeSession(id, false)
+		a.CloseSession(id, false)
 	}
 }
 
-func (a *App) restartSession(id string) {
-	a.call(id, "restart", proto.IDParams{ID: id}, nil)
+func (a *App) RestartSession(id string) {
+	a.Call(id, "restart", proto.IDParams{ID: id}, nil)
 }
 
-func (a *App) startRename(id string) {
+func (a *App) StartRename(id string) {
 	s := a.session(id)
 	if s == nil {
 		return
@@ -1592,7 +1599,7 @@ func (a *App) startRename(id string) {
 	a.RenameFramesF = 0
 }
 
-func (a *App) commitRename() {
+func (a *App) CommitRename() {
 	id, name := a.Renaming, strings.TrimSpace(a.RenameBuf)
 	a.Renaming = ""
 	s := a.session(id)
@@ -1601,12 +1608,12 @@ func (a *App) commitRename() {
 		return
 	}
 	s.Name = name // at once; the daemon's state follows
-	a.call(id, "rename", proto.RenameParams{ID: id, Name: name}, nil)
+	a.Call(id, "rename", proto.RenameParams{ID: id, Name: name}, nil)
 	a.focusTerminal()
 	a.updateTitle()
 }
 
-func (a *App) startProjectRename(id string) {
+func (a *App) StartProjectRename(id string) {
 	for _, p := range a.St.Projects {
 		if p.ID == id {
 			a.Renaming, a.RenamingProject, a.RenameBuf = "", id, p.Name
@@ -1615,13 +1622,13 @@ func (a *App) startProjectRename(id string) {
 	}
 }
 
-func (a *App) commitProjectRename() {
+func (a *App) CommitProjectRename() {
 	id, name := a.RenamingProject, strings.TrimSpace(a.RenameBuf)
 	a.RenamingProject = ""
 	for i := range a.St.Projects {
 		if p := &a.St.Projects[i]; p.ID == id && name != "" && name != p.Name {
 			p.Name = name // at once; the daemon's state follows
-			a.call(id, "project.rename", proto.ProjectParams{ID: id, Name: name}, nil)
+			a.Call(id, "project.rename", proto.ProjectParams{ID: id, Name: name}, nil)
 		}
 	}
 	a.focusTerminal()
@@ -1631,7 +1638,7 @@ func (a *App) moveSession(id, project string) {
 	if s := a.session(id); s != nil {
 		s.Project = project
 	}
-	a.call(id, "move", proto.MoveParams{ID: id, Project: project, Index: -1}, nil)
+	a.Call(id, "move", proto.MoveParams{ID: id, Project: project, Index: -1}, nil)
 }
 
 func (a *App) selectOffset(d int) {
@@ -1678,7 +1685,7 @@ func (a *App) jumpToAttention() {
 	a.toast(locales.ToastNothingNeedsYou())
 }
 
-func (a *App) toggleSidebar() {
+func (a *App) ToggleSidebar() {
 	a.Prefs.SidebarHidden = !a.Prefs.SidebarHidden
 	a.savePrefs()
 }
@@ -1706,10 +1713,10 @@ func (a *App) allProjectsCollapsed() bool {
 	return true
 }
 
-// toggleAllProjects folds every group the sidebar lists by project, or
+// ToggleAllProjects folds every group the sidebar lists by project, or
 // unfolds them all unless all are folded, so that one press always shows
 // a change.
-func (a *App) toggleAllProjects() {
+func (a *App) ToggleAllProjects() {
 	collapse := !a.allProjectsCollapsed()
 	for _, g := range sidebar.Groups(a.order()) {
 		if collapse {
@@ -1728,17 +1735,17 @@ func (a *App) toggleAllProjects() {
 // while a program runs, and closes nothing until the answer says so.
 func (a *App) quitRequested() bool { return quit.Requested(a) }
 
-// armQuitTimer leaves the app after quit.Grace, whatever holds the quit.
-func (a *App) armQuitTimer() {
+// ArmQuitTimer leaves the app after quit.Grace, whatever holds the quit.
+func (a *App) ArmQuitTimer() {
 	if a.Win == nil || a.quitTimer != nil {
 		return
 	}
 	a.quitTimer = time.AfterFunc(quit.Grace, func() { os.Exit(0) })
 }
 
-// bringToFront shows the window, and brings it forward, so that the user
+// BringToFront shows the window, and brings it forward, so that the user
 // sees what the app asks, or ends.
-func (a *App) bringToFront() {
+func (a *App) BringToFront() {
 	if a.Win == nil {
 		return
 	}
@@ -1763,8 +1770,8 @@ func (a *App) hostsLoaded() bool {
 // of before until it restarts.
 func (a *App) daemonStale() bool { return a.local().Stale() }
 
-// offerRestart restarts hylad into this version of Hyla.
-func (a *App) offerRestart() { quit.Offer(a) }
+// OfferRestart restarts hylad into this version of Hyla.
+func (a *App) OfferRestart() { quit.Offer(a) }
 
 // busyCount counts a host's sessions whose programs a restart of its
 // hylad would end.
@@ -1800,20 +1807,20 @@ func (a *App) quitAndEnd() {
 		Action:  locales.ConfirmQuitAllAction(),
 		Destroy: true,
 		Ends:    true,
-		Run:     a.endSessionsAndQuit,
+		Run:     a.EndSessionsAndQuit,
 	}
 }
 
-// endSessionsAndQuit ends every session of this machine, and its hylad,
+// EndSessionsAndQuit ends every session of this machine, and its hylad,
 // then quits: other machines' keep running. A shutdown that takes a
 // while is the daemon's to finish, as it is for Quit and End All
 // Sessions: the app does not wait on it.
-func (a *App) endSessionsAndQuit() {
+func (a *App) EndSessionsAndQuit() {
 	h := a.local()
 	cl := h.Client
 	// The daemon may take its time ending the sessions: the app leaves
 	// within quit.Grace whatever it answers.
-	a.armQuitTimer()
+	a.ArmQuitTimer()
 	go func() {
 		if cl == nil {
 			quit.EndsSession(a)

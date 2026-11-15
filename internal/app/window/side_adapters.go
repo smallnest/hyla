@@ -5,7 +5,6 @@ import (
 
 	"hyla/internal/proto"
 	"hyla/internal/settings"
-	"hyla/internal/ui/files"
 	"hyla/internal/ui/layout"
 	"hyla/internal/ui/side"
 	"hyla/internal/ui/theme"
@@ -37,29 +36,13 @@ func (a *App) SideWidthPref() *float32 { return &a.Prefs.SideWidth }
 func (a *App) SettingsOf() *settings.Settings { return &a.settingsIn }
 
 func (a *App) PaneRef(id string) *ui.Handle { return a.paneRef(id) }
-
-func (a *App) RunLater(fn func()) { a.defer_(fn) }
-
-func (a *App) FileViewer(c *ui.Context, pal *theme.Palette, s *proto.Session, v *files.View) {
-	a.fileViewer(c, pal, s, v)
-}
-
-func (a *App) Motion() ui.Animation { return layout.SidebarMotion }
+func (a *App) Motion() ui.Animation         { return layout.SidebarMotion }
 
 func (a *App) CardGapIn() float32 { return layout.CardGap }
 
 func (a *App) HeaderHeightIn() float32 { return layout.HeaderH }
 
-func (a *App) Gap() float32 { return sideGap }
-
-func (a *App) ChangesSide(c *ui.Context, pal *theme.Palette, s *proto.Session, width float32) {
-	a.ChangesView(c, pal, s, width)
-}
-
-func (a *App) FilesSide(c *ui.Context, pal *theme.Palette, s *proto.Session) { a.filesSide(c, pal, s) }
-
-func (a *App) InfoSide(c *ui.Context, pal *theme.Palette, s *proto.Session) { a.infoView(c, pal, s) }
-
+func (a *App) Gap() float32    { return sideGap }
 func (a *App) sideTab() string { return side.Tab(a) }
 
 func (a *App) toggleSide(view string) { side.Toggle(a, view) }
@@ -72,7 +55,7 @@ func (a *App) showSide(view string) { side.Show(a, view) }
 
 func (a *App) sideWidth(w float32) float32 { return side.Width(a.Prefs.SideWidth, sideGap, w) }
 
-func (a *App) sideEdge(c *ui.Context, pal *theme.Palette, row float32) { side.Edge(a, c, pal, row) }
+func (a *App) SideEdge(c *ui.Context, pal *theme.Palette, row float32) { side.Edge(a, c, pal, row) }
 
 func (a *App) sidePanel(c *ui.Context, pal *theme.Palette, s *proto.Session, width float32, right bool) {
 	side.Panel(a, c, pal, s, width, right)

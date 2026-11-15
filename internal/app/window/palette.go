@@ -112,15 +112,15 @@ func (a *App) RestartDaemon() { a.restartDaemon() }
 
 func (a *App) FocusTerminal() { a.focusTerminal() }
 
-// openPalette opens the command palette.
-func (a *App) openPalette() { palette.Open(&a.Pal, a) }
+// OpenPalette opens the command palette.
+func (a *App) OpenPalette() { palette.Open(&a.Pal, a) }
 
 // openConversations opens the palette on the conversations alone.
 func (a *App) openConversations() { palette.OpenConversations(&a.Pal, a) }
 
 func (a *App) paletteItems() []string { return palette.Titles(&a.Pal, a) }
 
-func (a *App) paletteView(c *ui.Context, pal *theme.Palette) { palette.View(c, &a.Pal, a, pal) }
+func (a *App) Palette(c *ui.Context, pal *theme.Palette) { palette.View(c, &a.Pal, a, pal) }
 
 func (a *App) confirmView(c *ui.Context, pal *theme.Palette) {
 	if a.Confirm != nil && confirm.Dialog(c, pal, &a.Confirm) {
@@ -128,8 +128,8 @@ func (a *App) confirmView(c *ui.Context, pal *theme.Palette) {
 	}
 }
 
-// shortcuts are the window's keys that no menu item has.
-func (a *App) shortcuts(c *ui.Context) {
+// Shortcuts are the window's keys that no menu item has.
+func (a *App) Shortcuts(c *ui.Context) {
 	if a.Pal.Open || a.Picker.Open || a.Confirm != nil || a.WtAsk != nil || a.SshAsk != nil || a.K8sAsk != nil {
 		return
 	}

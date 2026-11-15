@@ -63,9 +63,9 @@ func (a *App) run(id string, args map[string]string) {
 	case "session.newWorktree":
 		worktree.NewSession(a)
 	case "project.open":
-		a.openProject()
+		a.OpenProjectDialog()
 	case "palette.open":
-		a.openPalette()
+		a.OpenPalette()
 	case "session.attention":
 		a.jumpToAttention()
 	case "session.next":
@@ -73,15 +73,15 @@ func (a *App) run(id string, args map[string]string) {
 	case "session.previous":
 		a.selectOffset(-1)
 	case "session.rename":
-		a.startRename(a.Selected)
+		a.StartRename(a.Selected)
 	case "pane.restart":
 		if s != nil {
-			a.restartSession(a.focusOf(s))
+			a.RestartSession(a.focusOf(s))
 		}
 	case "pane.close":
 		a.closeFocused()
 	case "session.close":
-		a.closeSession(a.Selected, true)
+		a.CloseSession(a.Selected, true)
 	case "find.open":
 		// In the changes panel, its diff's find bar.
 		if f := a.Side.Changes.Focus; a.Side.Focused && f != nil && f.D != nil {
@@ -114,7 +114,7 @@ func (a *App) run(id string, args map[string]string) {
 	case "pane.left", "pane.right", "pane.up", "pane.down":
 		a.focusDirection(id[len("pane."):])
 	case "sidebar.toggle":
-		a.toggleSidebar()
+		a.ToggleSidebar()
 	case "side.toggle":
 		a.toggleSide("")
 	case "changes.toggle":

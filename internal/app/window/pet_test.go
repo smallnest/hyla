@@ -291,7 +291,7 @@ func TestPetToggleAction(t *testing.T) {
 func TestPetToggleInPalette(t *testing.T) {
 	a := testApp(t)
 	tt := ui.NewTester(a.view, 1100, 640)
-	a.openPalette()
+	a.OpenPalette()
 	tt.Frame()
 	tt.Type("frog")
 	tt.Frame()

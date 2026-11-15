@@ -78,9 +78,9 @@ func (a *App) setFocus(s *proto.Session, pane string) {
 	if s.Zoomed != "" {
 		s.Zoomed = pane
 	}
-	a.ensureTerm(pane)
-	a.touch(pane)
-	a.call(s.ID, "focus", proto.FocusParams{Session: s.ID, Pane: pane}, nil)
+	a.EnsureTerm(pane)
+	a.Touch(pane)
+	a.Call(s.ID, "focus", proto.FocusParams{Session: s.ID, Pane: pane}, nil)
 }
 
 // focusTerminal gives the keyboard to the pane the user is in.
@@ -96,7 +96,7 @@ func (a *App) focusTerminal() {
 // panes shows a session's panes in their layout: the zoomed one alone.
 // right tells that they reach the window's right edge, which the side
 // panel takes while it shows.
-func (a *App) panes(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown float32, s *proto.Session, right bool) {
+func (a *App) PanesIn(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown float32, s *proto.Session, right bool) {
 	// A session shown over another, as when the user moves from one to the
 	// next, comes in as panes says, and its panes move to their place in
 	// the frames that come after.
@@ -195,9 +195,9 @@ func (a *App) sessionPanes(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, s
 	panes.LayoutNode(a, c, pal, bar, shown, s, s.Layout, "", true, true, right)
 }
 
-// replaceSession puts a session as hylad answered into the state, before
+// ReplaceSession puts a session as hylad answered into the state, before
 // the state that has it comes.
-func (a *App) replaceSession(h *host.Host, ns proto.Session) {
+func (a *App) ReplaceSession(h *host.Host, ns proto.Session) {
 	for i := range a.St.Sessions {
 		if a.St.Sessions[i].ID == ns.ID {
 			a.St.Sessions[i] = ns
@@ -207,9 +207,9 @@ func (a *App) replaceSession(h *host.Host, ns proto.Session) {
 	a.addPending(h, ns)
 }
 
-// defer_ runs fn once the view is built: for actions that change the
+// RunLater runs fn once the view is built: for actions that change the
 // panes or sessions being built.
-func (a *App) defer_(fn func()) { a.Later = append(a.Later, fn) }
+func (a *App) RunLater(fn func()) { a.Later = append(a.Later, fn) }
 
 // closeFocused closes the pane the user is in, or the session with its
 // last pane.

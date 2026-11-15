@@ -24,15 +24,6 @@ func (a *App) SessionOr(id string) *proto.Session { return a.session(id) }
 func (a *App) Glass(c ui.Color, pal *theme.Palette) ui.Color {
 	return theme.TranslucentGlass(c, pal, a.settingsIn)
 }
-
-func (a *App) PanesIn(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown float32, s *proto.Session, right bool) {
-	a.panes(c, pal, bar, shown, s, right)
-}
-
-func (a *App) CardDrop(s *proto.Session, files []string) { a.cardDrop(s, files) }
-
-func (a *App) SideEdge(c *ui.Context, pal *theme.Palette, row float32) { a.sideEdge(c, pal, row) }
-
 func (a *App) SidePanel(c *ui.Context, pal *theme.Palette, s *proto.Session, width float32, right bool) {
 	a.sidePanel(c, pal, s, width, right)
 }

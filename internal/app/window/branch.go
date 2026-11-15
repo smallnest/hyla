@@ -12,10 +12,10 @@ import (
 	"hyla/internal/ui/glyph"
 )
 
-// gitChip is a pane's branch and its changes since HEAD, after its title:
+// GitChip is a pane's branch and its changes since HEAD, after its title:
 // a click shows the changes panel. In a narrow pane, whose header the
 // title and its controls fill, it shows its counts alone, or nothing.
-func (a *App) gitChip(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane) {
+func (a *App) GitChip(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane) {
 	g := p.Git
 	room := a.paneRef("card-" + p.ID).Bounds(c).W
 	if room > 0 && room < 320 {
@@ -43,6 +43,6 @@ func (a *App) gitChip(c *ui.Context, pal *theme.Palette, s *proto.Session, p *pr
 		a.lineCounts(c, pal, g.Added, g.Removed, 12)
 	})
 	if b.Clicked() {
-		a.defer_(func() { a.toggleSide(sideChanges) })
+		a.RunLater(func() { a.toggleSide(sideChanges) })
 	}
 }

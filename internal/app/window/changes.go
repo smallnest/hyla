@@ -14,7 +14,7 @@ var _ changesview.App = (*App)(nil)
 
 func (a *App) ChangesState() *changesview.State { return &a.Side.Changes }
 
-func (a *App) ChangesView(c *ui.Context, pal *theme.Palette, s *proto.Session, width float32) {
+func (a *App) ChangesSide(c *ui.Context, pal *theme.Palette, s *proto.Session, width float32) {
 	changesview.View(a, c, pal, s, width)
 }
 

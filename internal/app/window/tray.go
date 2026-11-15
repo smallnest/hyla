@@ -56,9 +56,9 @@ func (a *App) windowClosed() {
 		a.dropTerm(id)
 	}
 	for id := range a.Webs {
-		a.dropWeb(id)
+		a.DropWeb(id)
 	}
-	a.reportView()
+	a.ReportViewNow()
 }
 
 // lastWindowClosed quits, unless the app's icon shows in the menu bar or
@@ -70,5 +70,5 @@ func (a *App) lastWindowClosed() {
 	}
 }
 
-// Title is an action's title, for the icon's menu.
+// Title is an action's Title, for the icon's menu.
 func (a *App) Title(id string) string { return a.ActionTitle(id) }

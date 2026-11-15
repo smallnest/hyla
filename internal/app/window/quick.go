@@ -39,7 +39,7 @@ func (a *App) TermOptions(id string, conn *quick.Gated) terminal.Options {
 }
 
 func (a *App) PaneMessageOfQuick(c *ui.Context, pal *theme.Palette, title, detail, action string, fn func()) {
-	a.message(c, pal, title, detail, action, fn)
+	a.PaneMessage(c, pal, title, detail, action, fn)
 }
 
 func (a *App) Chrome() panes.Chrome {
@@ -52,7 +52,7 @@ func (a *App) SideWidth(rowW float32) float32 { return a.sideWidth(rowW) }
 
 func (a *App) SideState() *side.State { return &a.Side }
 
-func (a *App) ReportView() { a.reportView() }
+func (a *App) ReportView() { a.ReportViewNow() }
 
 // applyGlobalShortcuts registers the quick terminal's shortcut.
 func (a *App) applyGlobalShortcuts() { quick.ApplyGlobalShortcuts(a) }

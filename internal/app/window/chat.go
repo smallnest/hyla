@@ -50,8 +50,8 @@ func (a *App) readChat(s *proto.Session) {
 // chat windows read their turns again, as a chat's turn ends.
 func (a *App) chatChanged(h *host.Host) { chat.Changed(a, h) }
 
-// chatBody is the view, in a session's pane.
-func (a *App) chatBody(c *ui.Context, pal *theme.Palette, s *proto.Session) {
+// ChatBody is the view, in a session's pane.
+func (a *App) ChatBody(c *ui.Context, pal *theme.Palette, s *proto.Session) {
 	chat.Body(a, c, pal, s)
 }
 

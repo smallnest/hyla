@@ -791,7 +791,7 @@ func TestBrowserPane(t *testing.T) {
 func TestPaletteOpensAddress(t *testing.T) {
 	a := testApp(t)
 	tt := ui.NewTester(a.view, 1100, 640)
-	a.openPalette()
+	a.OpenPalette()
 	tt.Frame()
 	tt.Type("localhost:5173")
 	tt.Frame()

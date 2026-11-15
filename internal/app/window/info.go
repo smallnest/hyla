@@ -27,7 +27,7 @@ func (a *App) Folded() map[string]bool {
 	return a.Prefs.InfoFolded
 }
 
-func (a *App) AfterFrame(fn func()) { a.defer_(fn) }
+func (a *App) AfterFrame(fn func()) { a.RunLater(fn) }
 
 func (a *App) SetFocus(s *proto.Session, pane string) { a.setFocus(s, pane) }
 
@@ -38,4 +38,4 @@ func (a *App) InfoMagpie(c *ui.Context, pal *theme.Palette) { a.infoMagpie(c, pa
 func (a *App) InfoFeishu(c *ui.Context, pal *theme.Palette, p *proto.Pane) { a.infoFeishu(c, pal, p) }
 
 // infoView is the side panel's Info view: of the pane the user is in.
-func (a *App) infoView(c *ui.Context, pal *theme.Palette, s *proto.Session) { info.View(c, a, pal, s) }
+func (a *App) InfoSide(c *ui.Context, pal *theme.Palette, s *proto.Session) { info.View(c, a, pal, s) }

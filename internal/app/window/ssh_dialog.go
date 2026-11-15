@@ -53,15 +53,15 @@ func (a *App) K8sPrompt() *k8sdialog.Ask { return a.K8sAsk }
 
 func (a *App) SetK8sPrompt(d *k8sdialog.Ask) { a.K8sAsk = d }
 
-// askSSHHost opens the dialog.
-func (a *App) askSSHHost() {
+// AskSSHHost opens the dialog.
+func (a *App) AskSSHHost() {
 	if a.SshAsk == nil {
 		a.SshAsk = &sshdialog.Ask{Open: true}
 	}
 }
 
 // sshView draws the dialog while it is open.
-func (a *App) sshView(c *ui.Context, pal *theme.Palette) { sshdialog.Show(a, c, pal) }
+func (a *App) SSH(c *ui.Context, pal *theme.Palette) { sshdialog.Show(a, c, pal) }
 
 // sshHostRow draws a machine in the SSH project.
 func (a *App) sshHostRow(c *ui.Context, pal *theme.Palette, i int) { sshdialog.Row(a, c, pal, i) }
@@ -76,8 +76,8 @@ func (a *App) moveSSHHost(from, to string, after bool) { sshdialog.Move(a, from,
 // removeSSHHost removes a machine from the SSH project.
 func (a *App) removeSSHHost(addr string) { sshdialog.Remove(a, addr) }
 
-// clearSSHProject forgets the SSH project.
-func (a *App) clearSSHProject() { sshdialog.Clear(a) }
+// ClearSSHProject forgets the SSH project.
+func (a *App) ClearSSHProject() { sshdialog.Clear(a) }
 
 // sshArgs is ssh's command line for an address.
 func sshArgs(addr remote.Addr) []string { return sshdialog.Args(addr) }

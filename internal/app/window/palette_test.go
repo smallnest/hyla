@@ -19,7 +19,7 @@ func TestPaletteKeywords(t *testing.T) {
 	tt := ui.NewTester(a.view, 1100, 640)
 	i18n.SetLocaleFunc(func() string { return "zh-Hans" })
 	t.Cleanup(func() { i18n.SetLocaleFunc(nil) })
-	a.openPalette()
+	a.OpenPalette()
 	tt.Frame()
 	for query, want := range map[string]string{
 		"browser":  locales.In("zh-Hans").ActionNewBrowser(),
@@ -44,7 +44,7 @@ func TestPaletteKeywords(t *testing.T) {
 func TestPaletteScrolls(t *testing.T) {
 	a := testApp(t)
 	tt := ui.NewTester(a.view, 1100, 900)
-	a.openPalette()
+	a.OpenPalette()
 	tt.Frame()
 	r, ok := tt.Find(a.paletteItems()[3])
 	if !ok {

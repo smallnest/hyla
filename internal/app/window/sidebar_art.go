@@ -52,7 +52,7 @@ func (a *App) DialogWindow() *mygo.Window {
 // as 80% of the sidebar, vertically centred, and against its left edge,
 // as wide as its shape makes it, and cropped by the sidebar where that
 // is wider than the sidebar.
-func (a *App) sidebarArtView(c *ui.Context) {
+func (a *App) DrawSidebarArt(c *ui.Context) {
 	if a.SidebarArt.Path != a.settingsIn.SidebarImage {
 		a.loadSidebarArt(a.settingsIn.SidebarImage)
 	}
@@ -77,8 +77,8 @@ func (a *App) loadSidebarArt(path string) {
 	art.Load(a, &a.SidebarArt, path)
 }
 
-// loadPaneArt reads and decodes a terminal's picture, as loadSidebarArt
+// LoadPaneArt reads and decodes a terminal's picture, as loadSidebarArt
 // does the sidebar's.
-func (a *App) loadPaneArt(path string) {
+func (a *App) LoadPaneArt(path string) {
 	art.Load(a, &a.PaneArtimage, path)
 }

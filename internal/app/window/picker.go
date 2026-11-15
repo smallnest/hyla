@@ -20,7 +20,7 @@ func (a *App) openProjectOn(h *host.Host) { picker.Open(&a.Picker, a, h) }
 // pickerGo lists a folder of the picker's host.
 func (a *App) pickerGo(dir string) { picker.GoTo(&a.Picker, a, dir) }
 
-func (a *App) pickerView(c *ui.Context, pal *theme.Palette) { picker.View(c, &a.Picker, a, pal) }
+func (a *App) PickerView(c *ui.Context, pal *theme.Palette) { picker.View(c, &a.Picker, a, pal) }
 
 // pickerHosts is the picker's switch of machines: the one it lists, and
 // each other, which a click lists instead.

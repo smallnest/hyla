@@ -24,8 +24,8 @@ func (a *App) SetPrefsK8sPods(ps []k8sdialog.Pod) { a.Prefs.K8sPods = ps }
 
 func (a *App) AddPendingK8s(s proto.Session) { a.addPending(a.Machines[0], s) }
 
-// askK8sPod opens the dialog.
-func (a *App) askK8sPod() {
+// AskK8sPod opens the dialog.
+func (a *App) AskK8sPod() {
 	if a.K8sAsk == nil {
 		a.K8sAsk = &k8sdialog.Ask{Open: true}
 	}
@@ -37,8 +37,8 @@ func (a *App) k8sView(c *ui.Context, pal *theme.Palette) { k8sdialog.Show(a, c, 
 // k8sPodOfSession is the pod a session is the terminal of, nil for none.
 func (a *App) k8sPodOfSession(id string) *k8sPod { return k8sdialog.OfSession(a, id) }
 
-// clearK8sProject forgets the K8s project.
-func (a *App) clearK8sProject() { k8sdialog.Clear(a) }
+// ClearK8sProject forgets the K8s project.
+func (a *App) ClearK8sProject() { k8sdialog.Clear(a) }
 
 // k8sCommand reads a kubectl exec command.
 func k8sCommand(cmd string) ([]string, string, error) { return k8sdialog.Command(cmd) }

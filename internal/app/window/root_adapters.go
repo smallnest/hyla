@@ -25,10 +25,7 @@ var _ root.App = (*App)(nil)
 func (a *App) AppSettings() *settings.Settings { return &a.settingsIn }
 
 func (a *App) BorderlessTheme(c *ui.Context, pal *theme.Palette) *ui.Theme { return borderless(c, pal) }
-
-func (a *App) Shortcuts(c *ui.Context) { a.shortcuts(c) }
-
-func (a *App) Tick() { a.State.Tick(a) }
+func (a *App) Tick()                                                       { a.State.Tick(a) }
 
 func (a *App) TitleBar(bar ui.TitleBar) { a.Bar = bar }
 
@@ -65,13 +62,6 @@ func (a *App) SidebarDropped(files []string) {
 	h := a.local()
 	go a.openProjectDirs(h, h.Client, slices.Clone(files), true)
 }
-
-func (a *App) DrawSidebarArt(c *ui.Context) { a.sidebarArtView(c) }
-
-func (a *App) ResizeHandle(c *ui.Context, pal *theme.Palette) { a.resizeHandle(c, pal) }
-
-func (a *App) Sidebar(c *ui.Context, pal *theme.Palette, bar ui.TitleBar) { a.sidebarView(c, pal, bar) }
-
 func (a *App) CardFor(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown float32, id string) {
 	layout.Card(a, c, pal, bar, shown, id)
 }
@@ -85,9 +75,6 @@ func (a *App) StagedPages(c *ui.Context) {
 		}
 	}
 }
-
-func (a *App) Palette(c *ui.Context, pal *theme.Palette)    { a.paletteView(c, pal) }
-func (a *App) PickerView(c *ui.Context, pal *theme.Palette) { a.pickerView(c, pal) }
 func (a *App) ConfirmDialog(c *ui.Context, pal *theme.Palette) {
 	a.confirmView(c, pal)
 }
@@ -100,11 +87,8 @@ func (a *App) AskNew(w *worktree.Ask) { a.WtAsk = w }
 
 func (a *App) AskClose(cf *confirm.Ask) { a.Confirm = cf }
 
-func (a *App) SelectedHost() *host.Host { return a.selectedHost() }
-
-func (a *App) EndSession(id string, p proto.CloseParams) { a.endSession(id, p) }
-func (a *App) SSH(c *ui.Context, pal *theme.Palette)     { a.sshView(c, pal) }
-func (a *App) K8s(c *ui.Context, pal *theme.Palette)     { a.k8sView(c, pal) }
+func (a *App) SelectedHost() *host.Host              { return a.selectedHost() }
+func (a *App) K8s(c *ui.Context, pal *theme.Palette) { a.k8sView(c, pal) }
 
 // Undo is a removal's words and what puts back what it took away.
 func (a *App) Undo() (msg, undo string, act func(), ok bool) {
@@ -159,16 +143,8 @@ func (a *App) Seen(h *host.Host) bool { return h.Loaded }
 
 func (a *App) Busy(h *host.Host) int { return a.busyCount(h) }
 
-func (a *App) Hosts() []*host.Host { return a.Machines }
-
-func (a *App) BringToFront() { a.bringToFront() }
-
-func (a *App) Leaving() { a.quittingApp = true }
-
-func (a *App) ArmQuitTimer() { a.armQuitTimer() }
-
-func (a *App) EndSessionsAndQuit() { a.endSessionsAndQuit() }
-
+func (a *App) Hosts() []*host.Host                     { return a.Machines }
+func (a *App) Leaving()                                { a.quittingApp = true }
 func (a *App) SessionsOn(h *host.Host) []proto.Session { return a.sessionsOn(h) }
 
 // The restart's steps, as a quit's restart asks them.

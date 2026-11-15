@@ -14,9 +14,9 @@ import (
 // fades a file dragged over a page where a terminal is drawn, the page
 // being over the content and the files under it.
 
-// cardDrop takes the files dropped on the card of the session s, on its
+// CardDrop takes the files dropped on the card of the session s, on its
 // panes or the panel beside them.
-func (a *App) cardDrop(s *proto.Session, files []string) {
+func (a *App) CardDrop(s *proto.Session, files []string) {
 	if s == nil || len(files) == 0 {
 		return
 	}
@@ -26,7 +26,7 @@ func (a *App) cardDrop(s *proto.Session, files []string) {
 	}
 	// The file stays where it is, of this machine, and its path goes into
 	// the program there, as it is.
-	a.pasteDrop(p.ID, files)
+	a.PasteDrop(p.ID, files)
 }
 
 // dropPane returns the pane of the session s that files dropped on its

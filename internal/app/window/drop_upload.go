@@ -18,10 +18,10 @@ const (
 	maxDropLevel = 8
 )
 
-// pasteDrop pastes the paths of what was dropped into the program of the
+// PasteDrop pastes the paths of what was dropped into the program of the
 // pane, as its shell takes them: they are of this machine, where the
 // program runs too.
-func (a *App) pasteDrop(id string, dropped []string) {
+func (a *App) PasteDrop(id string, dropped []string) {
 	h := a.hostOf(id)
 	cl := h.Client
 	if cl == nil {

@@ -45,10 +45,10 @@ func (a *App) LanguageChanged() {
 // went: each tells the hosts which session the user looks at.
 func (a *App) BecomesActive() {
 	mygo.ClearNotifications()
-	a.update(func() { a.Active = true; a.reportView() })
+	a.update(func() { a.Active = true; a.ReportViewNow() })
 }
 
-func (a *App) Resigns() { a.update(func() { a.Active = false; a.reportView() }) }
+func (a *App) Resigns() { a.update(func() { a.Active = false; a.ReportViewNow() }) }
 
 // Activated shows the window when nothing of the app shows.
 func (a *App) Activated(hasVisible bool) {
@@ -109,7 +109,7 @@ func (a *App) openWindow() {
 	}, layout.TopBar, layout.BarMid))
 	a.WinOpen = true
 	a.updateTitle()
-	a.Win.OnFocus(func() { a.update(func() { a.setFocused(true); a.claimShown(); a.reportView() }) })
-	a.Win.OnBlur(func() { a.update(func() { a.setFocused(false); a.reportView() }) })
+	a.Win.OnFocus(func() { a.update(func() { a.setFocused(true); a.claimShown(); a.ReportViewNow() }) })
+	a.Win.OnBlur(func() { a.update(func() { a.setFocused(false); a.ReportViewNow() }) })
 	a.Win.OnClosed(a.windowClosed)
 }

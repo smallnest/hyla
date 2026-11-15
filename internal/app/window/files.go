@@ -41,13 +41,13 @@ func (a *App) FontSize() float32 { return a.settingsIn.FontSize }
 // filesRoot is the folder the Files tab shows, and the pane it is of.
 func (a *App) filesRoot(s *proto.Session) (*proto.Pane, string) { return files.Root(a, s) }
 
-// filesSide is the Files tab.
-func (a *App) filesSide(c *ui.Context, pal *theme.Palette, s *proto.Session) {
+// FilesSide is the Files tab.
+func (a *App) FilesSide(c *ui.Context, pal *theme.Palette, s *proto.Session) {
 	files.Side(c, a, pal, s)
 }
 
-// fileViewer is the viewer of a file of Files.
-func (a *App) fileViewer(c *ui.Context, pal *theme.Palette, s *proto.Session, fv *files.View) {
+// FileViewer is the viewer of a file of Files.
+func (a *App) FileViewer(c *ui.Context, pal *theme.Palette, s *proto.Session, fv *files.View) {
 	files.Viewer(c, a, pal, s, fv)
 }
 

@@ -183,7 +183,7 @@ func TestChangesShortcutSearch(t *testing.T) {
 func TestChangesInPalette(t *testing.T) {
 	for _, q := range []string{"", "toggle changes", "git", "diff"} {
 		a := testApp(t)
-		a.openPalette()
+		a.OpenPalette()
 		a.Pal.Query = q
 		tt := ui.NewTester(a.view, 1100, 2000)
 		tt.Frame()
@@ -192,7 +192,7 @@ func TestChangesInPalette(t *testing.T) {
 		}
 	}
 	a := testApp(t)
-	a.openPalette()
+	a.OpenPalette()
 	a.Pal.Query = "git"
 	tt := ui.NewTester(a.view, 1100, 720)
 	tt.Frame()

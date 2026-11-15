@@ -35,6 +35,6 @@ func (a *App) findTerm() *terminal.Terminal { return a.TermOf(a.Find.Pane) }
 
 func (a *App) FindInPage(e *webpane.Entry, next, back bool) { webpane.FindInPage(a, e, next, back) }
 
-func (a *App) findBar(c *ui.Context, pal *theme.Palette, p *proto.Pane, t *terminal.Terminal) {
+func (a *App) FindBar(c *ui.Context, pal *theme.Palette, p *proto.Pane, t *terminal.Terminal) {
 	findbar.Bar(a, c, pal, p, t)
 }

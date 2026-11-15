@@ -56,7 +56,7 @@ func (r orderRoot) SelectedID() string               { return r.App.Selected }
 // HostList are the hosts the app holds, this machine's first.
 func (a *App) HostList() []*host.Host { return a.Machines }
 
-// Shortcut is an action's shortcut, as the menus show it.
+// Shortcut is an action's key, as the menus show it.
 func (a *App) Shortcut(id string) string { return a.keys(id) }
 
 // ShortcutTip is a button's tooltip, with its action's shortcut.
@@ -65,30 +65,16 @@ func (a *App) ShortcutTip(title, id string) string { return a.tip(title, id) }
 // ShortcutItem shows an action's shortcut by a context menu's item.
 func (a *App) ShortcutItem(it *ui.MenuItem, id string) *ui.MenuItem { return a.menuShortcut(it, id) }
 
-func (a *App) OpenProjectDialog()                         { a.openProject() }
-func (a *App) AskSSHHost()                                { a.askSSHHost() }
-func (a *App) AskK8sPod()                                 { a.askK8sPod() }
-func (a *App) ClearSSHProject()                           { a.clearSSHProject() }
-func (a *App) ClearK8sProject()                           { a.clearK8sProject() }
-func (a *App) OpenPalette()                               { a.openPalette() }
-func (a *App) OfferRestart()                              { a.offerRestart() }
 func (a *App) DaemonStale() bool                          { return a.daemonStale() }
 func (a *App) AllProjectsCollapsed() bool                 { return a.allProjectsCollapsed() }
-func (a *App) ToggleAllProjects()                         { a.toggleAllProjects() }
 func (a *App) JumpTo(want func(*proto.Session) bool) bool { return a.jumpTo(want) }
-
-func (a *App) CloseAllSessions(g sidebar.Group) { a.closeAllSessions(g) }
-func (a *App) CommitProjectRename()             { a.commitProjectRename() }
-func (a *App) StartProjectRename(id string)     { a.startProjectRename(id) }
-func (a *App) CommitRename()                    { a.commitRename() }
-func (a *App) MoveSession(id, project string)   { a.moveSession(id, project) }
+func (a *App) MoveSession(id, project string)             { a.moveSession(id, project) }
 
 // OpenLink opens what a path names.
 func (a *App) OpenLink(id, link string) bool { return a.openLink(id, link) }
-func (a *App) Later_(fn func())              { a.defer_(fn) }
 
-// Call asks a session's hylad something, as the sidebar does its rows'.
-func (a *App) Call(id, method string, params any, done func(error)) { a.call(id, method, params, done) }
+// Later_ runs fn after the frame.
+func (a *App) Later_(fn func()) { a.RunLater(fn) }
 
 func (a *App) ToggleProject(id string) { a.toggleProject(id) }
 
@@ -124,6 +110,6 @@ func (a *App) K8sPodOfSession(id string) *k8sdialog.Pod   { return a.k8sPodOfSes
 func (a *App) SSHRows(c *ui.Context, pal *theme.Palette)  { sshdialog.Rows(a, c, pal) }
 func (a *App) K8sRows(c *ui.Context, pal *theme.Palette)  { k8sdialog.Rows(a, c, pal) }
 
-func (a *App) sidebarView(c *ui.Context, pal *theme.Palette, bar ui.TitleBar) {
+func (a *App) Sidebar(c *ui.Context, pal *theme.Palette, bar ui.TitleBar) {
 	sidebarview.Sidebar(a, c, pal, bar)
 }

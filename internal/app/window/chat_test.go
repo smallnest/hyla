@@ -83,7 +83,7 @@ func (f *fakeHylad) answer(req proto.Request) proto.Message {
 		// A state event's, as the app merges it.
 		a := f.a
 		if a != nil {
-			go a.main(func() { a.setState(a.local(), st) })
+			go a.main(func() { a.TakeStateOf(a.local(), st) })
 		}
 		return proto.Message{ID: req.ID}
 	case "host.info", "view":

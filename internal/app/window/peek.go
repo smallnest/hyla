@@ -13,7 +13,7 @@ var _ panes.Peeker = (*App)(nil)
 // peek is what the Info view shows of an image a path names.
 type peek = panes.Peek
 
-func (a *App) imagePeek(paneID, link string, at, term ui.Rect) {
+func (a *App) ImagePeek(paneID, link string, at, term ui.Rect) {
 	panes.Image(a, a.peekView, &a.Peek, paneID, link, at, term)
 }
 

@@ -317,6 +317,16 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
   - Also: `session.newWorktree` runs `worktree.NewSession`: it was
     missing from the app's actions and its menu, though the shortcut
     sheet named it.
+  - Also: with `App` in `internal/app/window`, an adapter that only
+    renamed a method of the same receiver went: the method took the
+    name the views ask, and its callers follow it. The app's methods
+    that views ask now read as the views' names — `CallPane`,
+    `CloseSession`, `ReportViewNow`, `TakeStateOf`, `EventOf`,
+    `PanesIn`, `Later_` and the rest. An adapter stays where a name
+    meets another (`Call` for the sidebar and the worktree's `Sess`,
+    beside `CallPane` for the panes and the shell), where it wraps
+    another (`CacheShown`, `PanesIn`, `ChromeNow`) or where it holds
+    a smaller interface (`order`, `Root`, `AskNew`).
   - The guard now fails on a package of `internal/` that no layer's
     names hold. It found `buildinfo`, `fileicons` and `profiling` never
     listed.

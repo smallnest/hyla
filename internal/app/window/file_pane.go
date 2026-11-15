@@ -21,19 +21,19 @@ func (a *App) filePaneFor(p *proto.Pane) *filepane.State {
 	return a.Files.Of(p.ID, p.File)
 }
 
-// filePane shows the file of a file pane, and reads it as it first shows
+// FilePane shows the file of a file pane, and reads it as it first shows
 // or changes on disk.
-func (a *App) filePane(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane) {
+func (a *App) FilePane(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane) {
 	f := a.filePaneFor(p)
 	filepane.Read(f, a.hostOf(p.ID).Client, a.update, files.RemoteError)
 	ui.Box(c.Key("body")).Grow(1).MinHeight(0).Children(func() {
 		switch {
 		case f.Err != "":
-			a.message(c, pal, locales.FilesCantRead(), f.Err, "", nil)
+			a.PaneMessage(c, pal, locales.FilesCantRead(), f.Err, "", nil)
 		case f.Binary:
-			a.message(c, pal, locales.FilesBinary(), f.Path, "", nil)
+			a.PaneMessage(c, pal, locales.FilesBinary(), f.Path, "", nil)
 		case f.Large:
-			a.message(c, pal, locales.FilesLarge(), f.Path, "", nil)
+			a.PaneMessage(c, pal, locales.FilesLarge(), f.Path, "", nil)
 		case f.Busy || f.St == nil && f.BM == nil:
 			ui.Column(c).Fill().Center().Children(func() { ui.Spinner(c) })
 		case f.BM != nil:

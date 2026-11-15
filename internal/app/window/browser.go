@@ -81,7 +81,7 @@ func (a *App) focusAddress() {
 
 func (a *App) ensureWeb(p *proto.Pane) *webpane.Entry { return webpane.Ensure(a, p) }
 
-func (a *App) dropWeb(id string) { webpane.DropWeb(a, id) }
+func (a *App) DropWeb(id string) { webpane.DropWeb(a, id) }
 
 func (a *App) paneBrowser(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown float32, s *proto.Session, p *proto.Pane, top, left, right, multi, focused, hovered bool) bool {
 	return webpane.Pane(a, c, pal, bar, shown, s, p, top, left, right, multi, focused, hovered)

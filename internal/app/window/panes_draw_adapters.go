@@ -3,7 +3,6 @@ package window
 import (
 	"time"
 
-	"github.com/egoist/mygo/plugins/terminal"
 	ui "github.com/egoist/mygo/ui"
 
 	"hyla/internal/proto"
@@ -32,17 +31,9 @@ func (a *App) ShowPaneChat(id string) {
 }
 
 func (a *App) HidePaneChat(id string) { delete(a.PaneChatMap, id) }
-
-func (a *App) FilePane(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane) {
-	a.filePane(c, pal, s, p)
-}
-
 func (a *App) PaneBrowser(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown float32, s *proto.Session, p *proto.Pane, top, left, right, multi, focused, hovered bool) bool {
 	return a.paneBrowser(c, pal, bar, shown, s, p, top, left, right, multi, focused, hovered)
 }
-
-func (a *App) ChatBody(c *ui.Context, pal *theme.Palette, s *proto.Session) { a.chatBody(c, pal, s) }
-
 func (a *App) Term(pane string) *panes.TermEntry {
 	e := a.Terms[pane]
 	if e == nil {
@@ -50,34 +41,10 @@ func (a *App) Term(pane string) *panes.TermEntry {
 	}
 	return &panes.TermEntry{Term: e.term, Err: e.err, Started: e.started}
 }
-
-func (a *App) ImagePeek(pane, link string, at, term ui.Rect) { a.imagePeek(pane, link, at, term) }
-
-func (a *App) FindPane() string { return a.Find.Pane }
-
-func (a *App) FindBar(c *ui.Context, pal *theme.Palette, p *proto.Pane, t *terminal.Terminal) {
-	a.findBar(c, pal, p, t)
-}
-
-func (a *App) LoadPaneArt(path string) { a.loadPaneArt(path) }
-
-func (a *App) PaneArt() panes.Art { return panes.Art{Path: a.PaneArtimage.Path, BM: a.PaneArtimage.BM} }
-
-func (a *App) StartRename(id string) { a.startRename(id) }
-
-func (a *App) RestartSession(id string) { a.restartSession(id) }
-
-func (a *App) PasteDrop(pane string, files []string) { a.pasteDrop(pane, files) }
-
-func (a *App) GitChip(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane) {
-	a.gitChip(c, pal, s, p)
-}
-
+func (a *App) FindPane() string                            { return a.Find.Pane }
+func (a *App) PaneArt() panes.Art                          { return panes.Art{Path: a.PaneArtimage.Path, BM: a.PaneArtimage.BM} }
 func (a *App) WindowCtl(c *ui.Context, pal *theme.Palette) { windowControls(c, pal, a.Win) }
-
-func (a *App) ToggleSidebar() { a.toggleSidebar() }
-
-func (a *App) HoverPane() string { return a.HoverPaneID }
+func (a *App) HoverPane() string                           { return a.HoverPaneID }
 
 func (a *App) SetHoverPane(id string) { a.HoverPaneID = id }
 
