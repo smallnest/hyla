@@ -73,9 +73,16 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
 - **Step 1: `App`'s fields exported** — the fields named as JSON and
   used by other files need to leave the root. `app.go` is 2,300 lines
   of methods; its parts go as the table above names them.
-- **Step 2: the packages with no view** — done so far: `profiling`,
-  `buildinfo`, `fileicons`, `adblock`. Next: `platform`, once its view
-  helpers (`windowControls`, `framed`) move to `internal/ui/window`.
+- **Step 2: the packages with no view** — done: `profiling`,
+  `buildinfo`, `fileicons`, `adblock`.
+- **Step 2b: the views' foundations, which needed no `App`** — done:
+  `internal/ui/wash` (the window's and the cards' color),
+  `internal/ui/theme` (the palette, the terminal's colors, the backdrop
+  and the card materials), `internal/ui/glyph` (the icons),
+  `internal/ui/marks` (the agents'), `internal/ui/style` (surfaces and
+  buttons), `internal/ui/controls` (pop-ups, menus, fields, sliders).
+  Next: `platform`'s pure parts (`fileManager`, `openPath`, `framed`),
+  once `windowControls` finds a home.
 - **Step 3: the app's behaviour** — `automate.go`, `browser.go`,
   `hosts*.go`, `files*.go`, `sync.go`, `branch.go`, `worktree.go` into
   `internal/app/`.
