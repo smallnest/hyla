@@ -1,0 +1,72 @@
+package window
+
+import (
+	"strings"
+	"testing"
+	"time"
+
+	"hyla/internal/app/browse"
+	"hyla/internal/proto"
+)
+
+// hyla browser's calls are answered, always: with what the page did, or
+// why the app can't, which hylad hands the caller.
+func TestBrowseRefuses(t *testing.T) {
+	a := testApp(t)
+	s := &a.St.Sessions[0]
+	s.Panes[1] = proto.Pane{ID: "b", URL: "http://localhost:3000", Status: proto.Idle, Progress: -1}
+	ask := func(r proto.BrowserRequest) error {
+		t.Helper()
+		var got error
+		answered := false
+		a.browse(a.local(), &r, func(res *proto.BrowserResult, err error) { answered, got = true, err })
+		if !answered {
+			t.Fatalf("%+v: no answer", r)
+		}
+		return got
+	}
+	for _, tc := range []struct {
+		r    proto.BrowserRequest
+		want string
+	}{
+		{proto.BrowserRequest{Pane: "gone", BrowserParams: proto.BrowserParams{Op: "text"}}, "no pane gone"},
+		{proto.BrowserRequest{Pane: "a", BrowserParams: proto.BrowserParams{Op: "text"}}, "not a browser"},
+		// No window here, so no page; a pane never shown gets its own
+		// entry as it is asked for, which would be its page.
+		{proto.BrowserRequest{Pane: "b", BrowserParams: proto.BrowserParams{Op: "text"}}, "shows no pages"},
+	} {
+		if err := ask(tc.r); err == nil || !strings.Contains(err.Error(), tc.want) {
+			t.Errorf("%+v: %v, want %q", tc.r, err, tc.want)
+		}
+	}
+	if a.Webs["b"] == nil {
+		t.Error("no page made for a pane never shown")
+	}
+	// Remote Control off, nothing the page does is let.
+	a.settingsIn.RemoteControl = false
+	if err := ask(proto.BrowserRequest{Pane: "b", BrowserParams: proto.BrowserParams{Op: "text"}}); err == nil || !strings.Contains(err.Error(), "Remote Control") {
+		t.Errorf("with Remote Control off: %v", err)
+	}
+}
+
+// The page's load ends for every call waiting on it; the script those
+// that wait on the page run carries what it does as JSON.
+func TestLoadEnds(t *testing.T) {
+	e := &webEntry{}
+	one, two := e.NextLoad(), e.NextLoad()
+	e.LoadEnded(nil)
+	if err := <-one; err != nil {
+		t.Error(err)
+	}
+	if err := <-two; err != nil {
+		t.Error(err)
+	}
+	if len(e.Loads) != 0 {
+		t.Error("waiters left")
+	}
+	// A selector's quotes can't break out of it.
+	js := browse.PageScript(proto.BrowserParams{Op: "click", Selector: `a[href="x"]`}, 2*time.Second)
+	if !strings.HasSuffix(js, `)({"enter":false,"op":"click","ref":"","selector":"a[href=\"x\"]","text":"","timeout":2000})`) {
+		t.Errorf("script ends %q", js[strings.LastIndex(js, ")("):])
+	}
+}

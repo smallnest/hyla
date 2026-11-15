@@ -1,0 +1,1024 @@
+package window
+
+import (
+	"fmt"
+	uisettings "hyla/internal/ui/settings"
+	"runtime"
+	"slices"
+	"strings"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	"github.com/egoist/mygo"
+	"github.com/egoist/mygo/i18n"
+	"github.com/egoist/mygo/ui"
+
+	"hyla/internal/actions"
+	"hyla/internal/adblock"
+	"hyla/internal/settings"
+	"hyla/internal/ui/layout"
+	"hyla/internal/ui/settings/kit"
+	"hyla/internal/ui/theme"
+
+	"hyla/internal/ui/controls"
+	"hyla/locales"
+)
+
+// Every page builds, and shows its settings.
+func TestSettingsPages(t *testing.T) {
+	a := testApp(t)
+	a.Ss.Draft = map[string]string{}
+	tt := ui.NewTester(uisettings.View(a), 820, 900)
+	want := map[string]string{
+		"general": "Restore sessions after a restart", "appearance": "Translucent window", "terminal": "Line height",
+		"shell": "Scrollback", "notifications": "A session needs me", "keyboard": "Split Right",
+		"agents": "Let commands drive this window", "hosts": "Experimental", "advanced": "Background service",
+	}
+	for _, p := range uisettings.Pages() {
+		if p.ID == "notifications" {
+			continue // asks the system whether it can notify: needs the app
+		}
+		a.Ss.Page = p.ID
+		tt.Frame()
+		if !tt.HasText(want[p.ID]) {
+			t.Errorf("page %s: no %q; texts %q", p.ID, want[p.ID], tt.Texts())
+		}
+		if p.ID != "hosts" && tt.HasText("Experimental") {
+			t.Errorf("page %s is tagged experimental", p.ID)
+		}
+		shot(t, tt, "settings-"+p.ID)
+	}
+}
+
+// A shortcut is typed into its chip, saved, and takes the keys from the
+// action that had them.
+func TestRecordShortcut(t *testing.T) {
+	a := testApp(t)
+	a.Ss.Draft = map[string]string{}
+	a.Ss.Page = "keyboard"
+	tt := ui.NewTester(uisettings.View(a), 820, 1100)
+	tt.Frame()
+	if err := tt.Click("Shortcut for Split Right"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	// Split Down's keys.
+	mods, key, accel := ui.Super|ui.Shift, ui.KeyD, "CmdOrCtrl+Shift+D"
+	if runtime.GOOS != "darwin" {
+		mods, key, accel = ui.Alt|ui.Shift, ui.KeyMinus, "Alt+Shift+-"
+	}
+	tt.Key(mods, key)
+	tt.Frame()
+	tt.Frame()
+	if got := a.settingsIn.Shortcuts["pane.split.right"]; got != accel {
+		t.Fatalf("Split Right's shortcut %q", got)
+	}
+	if got, ok := a.settingsIn.Shortcuts["pane.split.down"]; !ok || got != "" {
+		t.Errorf("Split Down kept its keys: %q", got)
+	}
+	if !tt.HasText(actions.Glyphs(accel) + " was Split Down’s: it has none now.") {
+		t.Errorf("no word of the conflict; texts %q", tt.Texts())
+	}
+	if saved := settings.Load(); saved.Shortcuts["pane.split.right"] != accel {
+		t.Errorf("not saved: %v", saved.Shortcuts)
+	}
+	shot(t, tt, "settings-keyboard-recorded")
+}
+
+// A choice made in a segmented control stays, and is saved.
+func TestSegmentedChoiceSticks(t *testing.T) {
+	a := testApp(t)
+	a.Ss.Page = "appearance"
+	tt := ui.NewTester(uisettings.View(a), 820, 640)
+	tt.Frame()
+	if err := tt.Click("Light"); err != nil {
+		t.Fatal(err)
+	}
+	for range 3 {
+		tt.Frame()
+	}
+	if a.settingsIn.Appearance != "light" {
+		t.Fatalf("appearance %q after choosing Light", a.settingsIn.Appearance)
+	}
+	if got := settings.Load().Appearance; got != "light" {
+		t.Fatalf("saved appearance %q", got)
+	}
+	if err := tt.Click("System"); err != nil {
+		t.Fatal(err)
+	}
+	for range 3 {
+		tt.Frame()
+	}
+	if a.settingsIn.Appearance != "system" || settings.Load().Appearance != "system" {
+		t.Fatalf("appearance %q, saved %q, after choosing System", a.settingsIn.Appearance, settings.Load().Appearance)
+	}
+}
+
+// Settings › Feishu's way a prompt runs is a setting of its own: a choice
+// sticks, and saves, as the pages' other segments do.
+func TestFeishuRunChoiceSticks(t *testing.T) {
+	a := testApp(t)
+	a.Ss.Draft = map[string]string{}
+	a.settingsIn.Feishu = &settings.Feishu{App: "cli_a", Allow: []string{"*"}, Run: settings.FeishuRunSession}
+	a.Applied = a.settingsIn.Clone()
+	a.Ss.Page = "feishu"
+	tt := ui.NewTester(uisettings.View(a), 820, 900)
+	tt.Frame()
+	if !tt.HasText("In the background") {
+		t.Fatalf("the run's row is not there: %q", tt.Texts())
+	}
+	if err := tt.Click("In the background"); err != nil {
+		t.Fatal(err)
+	}
+	for range 3 {
+		tt.Frame()
+	}
+	if got := a.settingsIn.Feishu.Run; got != settings.FeishuRunCommand {
+		t.Fatalf("the run is %q after choosing the background", got)
+	}
+	if f := settings.Load().Feishu; f == nil || f.Run != settings.FeishuRunCommand {
+		t.Fatalf("the saved run is %+v", f)
+	}
+}
+
+// Dark pages, and the plain background, for a look ($HYLA_SHOTS).
+func TestDarkShots(t *testing.T) {
+	a := testApp(t)
+	tt := ui.NewTester(uisettings.View(a), 820, 640)
+	tt.SetDark(true)
+	for _, p := range []string{"advanced", "terminal", "appearance"} {
+		a.Ss.Page = p
+		tt.Frame()
+		shot(t, tt, "dark-"+p)
+	}
+	a.settingsIn.Background = "plain"
+	a.Applied = a.settingsIn.Clone()
+	main := ui.NewTester(a.view, 1000, 560)
+	main.SetDark(true)
+	main.Frame()
+	main.Advance(time.Second) // colors ease from the light frame's
+	main.Frame()
+	shot(t, main, "dark-plain-main")
+}
+
+// The segmented control, light and dark, for a look ($HYLA_SHOTS).
+func TestSegmentedShots(t *testing.T) {
+	for _, dark := range []bool{false, true} {
+		a := testApp(t)
+		a.Ss.Page = "appearance"
+		a.settingsIn.Appearance = "light"
+		a.Applied = a.settingsIn.Clone()
+		tt := ui.NewTester(uisettings.View(a), 820, 240)
+		tt.SetDark(dark)
+		tt.Frame()
+		tt.Advance(time.Second)
+		tt.Frame()
+		name := "segmented-light"
+		if dark {
+			name = "segmented-dark"
+		}
+		shot(t, tt, name)
+	}
+}
+
+// The pop-up button with its menu open, and a focused field, light and
+// dark ($HYLA_SHOTS).
+func TestControlShots(t *testing.T) {
+	for _, dark := range []bool{false, true} {
+		a := testApp(t)
+		a.Ss.Page = "shell"
+		tt := ui.NewTester(uisettings.View(a), 820, 520)
+		tt.SetDark(dark)
+		tt.Frame()
+		tt.Advance(time.Second)
+		if err := tt.Click("4 MB"); err != nil {
+			t.Fatal(err)
+		}
+		tt.Frame()
+		tt.Advance(time.Second)
+		tt.Frame()
+		if !tt.HasText("64 MB") {
+			t.Fatalf("the scrollback menu did not open; texts %q", tt.Texts())
+		}
+		name := map[bool]string{false: "light", true: "dark"}[dark]
+		shot(t, tt, "controls-menu-"+name)
+		tt.Key(0, ui.KeyDown)
+		tt.Key(0, ui.KeyEnter)
+		tt.Frame()
+		if a.settingsIn.Scrollback != 16 {
+			t.Errorf("chose scrollback %d, want 16", a.settingsIn.Scrollback)
+		}
+		if err := tt.Click("NAME=value"); err != nil {
+			t.Fatal(err)
+		}
+		tt.Frame()
+		tt.Advance(time.Second)
+		tt.Frame()
+		shot(t, tt, "controls-field-"+name)
+	}
+}
+
+// The line height slider: a click on its track sets it ($HYLA_SHOTS).
+func TestSlider(t *testing.T) {
+	for _, dark := range []bool{false, true} {
+		a := testApp(t)
+		a.Ss.Page = "terminal"
+		tt := ui.NewTester(uisettings.View(a), 820, 640)
+		tt.SetDark(dark)
+		tt.Frame()
+		tt.Advance(time.Second)
+		tt.Frame()
+		shot(t, tt, "slider-"+map[bool]string{false: "light", true: "dark"}[dark])
+		label, ok := tt.Find("1.22×")
+		if !ok {
+			t.Fatalf("no line height; texts %q", tt.Texts())
+		}
+		// The slider ends 8 DIPs left of its label: near its end, 2×.
+		tt.ClickAt(label.X-16, label.Y+label.H/2)
+		tt.Frame()
+		tt.Frame()
+		if a.settingsIn.LineHeight < 1.85 {
+			t.Errorf("line height %v after a click near the slider's end", a.settingsIn.LineHeight)
+		}
+		// Held, the knob is a lens of glass. (The taller lines moved
+		// the slider down.)
+		label, _ = tt.Find("2.00×")
+		tt.Press(label.X-16, label.Y+label.H/2)
+		tt.Frame()
+		tt.Advance(400 * time.Millisecond)
+		tt.Frame()
+		shot(t, tt, "slider-held-"+map[bool]string{false: "light", true: "dark"}[dark])
+		tt.Release(label.X-16, label.Y+label.H/2)
+		tt.Frame()
+	}
+}
+
+// hyla's font registers from the source tree, and the terminals take it
+// by default ($HYLA_SHOTS shows the preview in it).
+func TestBundledFont(t *testing.T) {
+	LoadFonts()
+	if !fontsLoaded {
+		t.Fatal("the bundled fonts did not register")
+	}
+	a := testApp(t)
+	if got := a.termFont().Family; got != bundledFont {
+		t.Errorf("default terminal font %q, want %q", got, bundledFont)
+	}
+	a.settingsIn.FontFamily = "monospace"
+	if got := a.termFont().Family; got != "monospace" {
+		t.Errorf("System picked, terminal font %q", got)
+	}
+	a.settingsIn.FontFamily = ""
+	a.Ss.Page = "terminal"
+	tt := ui.NewTester(uisettings.View(a), 820, 320)
+	tt.Frame()
+	if !tt.HasText("JetBrains Mono Nerd Font") {
+		t.Errorf("the picker does not show the bundled font; texts %q", tt.Texts())
+	}
+	shot(t, tt, "font-preview")
+}
+
+// A page scrolled under its header frosts there ($HYLA_SHOTS).
+func TestScrollEdgeShots(t *testing.T) {
+	for _, dark := range []bool{false, true} {
+		a := testApp(t)
+		a.Ss.Page = "keyboard"
+		tt := ui.NewTester(uisettings.View(a), 820, 520)
+		tt.SetDark(dark)
+		tt.Frame()
+		tt.Advance(time.Second)
+		tt.Frame()
+		// The bar's bottom edge, over the card: no hairline at the top of
+		// the page, one once scrolled.
+		edgeRow := func() [3]uint8 {
+			c := tt.Image().RGBAAt(600, layout.CardGap+layout.HeaderH-1)
+			return [3]uint8{c.R, c.G, c.B}
+		}
+		top := edgeRow()
+		card := tt.Image().RGBAAt(600, layout.CardGap+layout.HeaderH+2)
+		if top != [3]uint8{card.R, card.G, card.B} {
+			t.Errorf("dark %v: a hairline at the top of the page: %v over a card of %v", dark, top, card)
+		}
+		tt.Scroll(500, 300, 0, 130)
+		tt.Frame()
+		tt.Advance(time.Second)
+		tt.Frame()
+		if edgeRow() == top {
+			t.Errorf("dark %v: no edge once scrolled", dark)
+		}
+		shot(t, tt, "scroll-edge-"+map[bool]string{false: "light", true: "dark"}[dark])
+	}
+}
+
+// The sidebar's search finds settings by label, by their keys in the
+// configuration file, and by other words; it shows only the pages with
+// finds, the first of them when the page shown has none.
+func TestSettingsSearch(t *testing.T) {
+	a := testApp(t)
+	a.Ss.Draft = map[string]string{}
+	a.Ss.Page = "general"
+	tt := ui.NewTester(uisettings.View(a), 820, 640)
+	tt.Frame()
+	tt.Key(ui.Cmd, ui.KeyF)
+	tt.Frame()
+	tt.Type("font-size")
+	for range 3 {
+		tt.Frame()
+	}
+	if a.Ss.Query != "font-size" {
+		t.Fatalf("⌘F then typing: query %q", a.Ss.Query)
+	}
+	if a.Ss.Page != "terminal" || !kit.Hits["Size"] || kit.Hits["Font"] {
+		t.Errorf("font-size: page %s, hits %v", a.Ss.Page, kit.Hits)
+	}
+	if tt.HasText("General") || !tt.HasText("Terminal") {
+		t.Errorf("sidebar of pages without finds; texts %q", tt.Texts())
+	}
+	shot(t, tt, "settings-search-font-size")
+
+	// Not the notifications page: it asks the system, which needs the app.
+	for q, page := range map[string]string{"vibrancy": "appearance", "osc 52": "terminal", "split right": "keyboard", "hylad": "advanced", "remote-control": "agents", "fish": "shell"} {
+		a.Ss.Query = q
+		tt.Frame()
+		if a.Ss.Page != page {
+			t.Errorf("%q: page %s, want %s", q, a.Ss.Page, page)
+		}
+	}
+	a.Ss.Query = "split right"
+	tt.Frame()
+	if !tt.HasText("Split Right") || tt.HasText("Split Down") {
+		t.Errorf("keyboard page unfiltered; texts %q", tt.Texts())
+	}
+	shot(t, tt, "settings-search-keyboard")
+
+	a.Ss.Query = "zzzz"
+	tt.Frame()
+	if !tt.HasText("No Results") {
+		t.Errorf("no word of no results; texts %q", tt.Texts())
+	}
+	tt.Key(0, ui.KeyEscape)
+	tt.Frame()
+	if a.Ss.Query != "" || !tt.HasText("General") {
+		t.Errorf("Escape: query %q", a.Ss.Query)
+	}
+}
+
+// Pop-up buttons open their menu over themselves; the font and theme
+// pickers search theirs ($HYLA_SHOTS).
+func TestPopupButtons(t *testing.T) {
+	for _, dark := range []bool{false, true} {
+		name := map[bool]string{false: "light", true: "dark"}[dark]
+		a := testApp(t)
+		a.Ss.Page = "terminal"
+		tt := ui.NewTester(uisettings.View(a), 820, 900)
+		tt.SetDark(dark)
+		tt.Frame()
+		tt.Advance(time.Second)
+		shot(t, tt, "popup-rest-"+name)
+		r, ok := tt.Find("Regular")
+		if !ok {
+			t.Fatalf("no weight button; texts %q", tt.Texts())
+		}
+		tt.Move(r.X+r.W/2, r.Y+r.H/2)
+		tt.Advance(time.Second)
+		tt.Frame()
+		shot(t, tt, "popup-hover-"+name)
+		tt.ClickAt(r.X+r.W/2, r.Y+r.H/2)
+		tt.Frame()
+		tt.Advance(time.Second)
+		tt.Frame()
+		if !tt.HasText("Semibold") {
+			t.Fatalf("the weight menu did not open; texts %q", tt.Texts())
+		}
+		// The current item lies on the button.
+		if got, ok := tt.Find("Medium"); !ok || got.Y > r.Y+r.H+controls.MenuItemH || got.Y < r.Y-r.H {
+			t.Errorf("Medium at %v, the button at %v: the menu is not over it", got, r)
+		}
+		shot(t, tt, "popup-open-"+name)
+		tt.Key(0, ui.KeyDown)
+		tt.Key(0, ui.KeyEnter)
+		tt.Frame()
+		if a.settingsIn.FontWeight != 500 {
+			t.Errorf("chose weight %d, want 500", a.settingsIn.FontWeight)
+		}
+
+		// The theme picker: typing filters, Return chooses.
+		if err := tt.Click("hyla"); err != nil {
+			t.Fatal(err)
+		}
+		tt.Frame()
+		tt.Advance(time.Second)
+		tt.Frame()
+		tt.Type("catppuccin mocha")
+		tt.Frame()
+		shot(t, tt, "popup-search-"+name)
+		tt.Key(0, ui.KeyEnter)
+		tt.Frame()
+		if a.settingsIn.LightTheme != "Catppuccin Mocha" {
+			t.Errorf("light theme %q, want Catppuccin Mocha", a.settingsIn.LightTheme)
+		}
+		if a.Ss.Menus["light"].Open {
+			t.Error("the theme menu stayed open")
+		}
+
+		// The font picker takes a font it does not list.
+		if err := tt.Click("JetBrains Mono Nerd Font"); err != nil {
+			t.Fatal(err)
+		}
+		tt.Frame()
+		tt.Type("Iosevka Term, Symbols Nerd Font")
+		tt.Frame()
+		if !tt.HasText("Use “Iosevka Term, Symbols Nerd Font”") {
+			t.Errorf("no custom font offered; texts %q", tt.Texts())
+		}
+		tt.Key(0, ui.KeyEnter)
+		tt.Frame()
+		if a.settingsIn.FontFamily != "Iosevka Term, Symbols Nerd Font" {
+			t.Errorf("font %q", a.settingsIn.FontFamily)
+		}
+	}
+}
+
+// A pop-up button's menu opens over it, its current item on the button,
+// and stays in the window: near the window's bottom it moves up, where
+// it once went above the button, and further up, cut off by the top.
+func TestPopupMenuStaysInWindow(t *testing.T) {
+	// The page does not scroll, so a window too short for its rows shows
+	// the size's button no room to open its menu.
+	for _, h := range []int{900, 460} {
+		a := testApp(t)
+		a.Ss.Page = "terminal"
+		a.settingsIn.FontSize = 15
+		tt := ui.NewTester(uisettings.View(a), 820, h)
+		tt.Frame()
+		r, ok := tt.Find("15 pt")
+		if !ok {
+			t.Fatalf("h %d: no size button; texts %q", h, tt.Texts())
+		}
+		tt.ClickAt(r.X+r.W/2, r.Y+r.H/2)
+		tt.Frame()
+		tt.Advance(time.Second)
+		tt.Frame()
+		shot(t, tt, fmt.Sprintf("popup-size-%d", h))
+		for _, item := range []string{"10 pt", "28 pt"} {
+			got, ok := tt.Find(item)
+			if !ok || got.Y < 0 || got.Y+got.H > float32(h) {
+				t.Errorf("h %d: %s at %v, out of the window", h, item, got)
+			}
+		}
+		items := 0
+		for _, txt := range tt.Texts() {
+			if txt == "15 pt" {
+				items++
+			}
+		}
+		if items < 2 {
+			t.Fatalf("h %d: the menu did not open; texts %q", h, tt.Texts())
+		}
+		at, _ := tt.Find("12 pt")
+		if h == 900 {
+			// Room enough: 15 pt lies on the button, three items under 12 pt.
+			if d := r.Y - (at.Y + 3*controls.MenuItemH); d < -4 || d > 4 {
+				t.Errorf("h %d: 12 pt at %v, the button at %v: 15 pt is not on the button", h, at, r)
+			}
+		}
+		tt.Key(0, ui.KeyEscape)
+		tt.Frame()
+	}
+}
+
+// The font menu offers every monospaced family installed, so a font
+// installed with the system is there to pick.
+
+// The font menu offers every monospaced family installed, so a font
+// installed with the system is there to pick.
+func TestFontOptionsInstalled(t *testing.T) {
+	opts := uisettings.FontOptions()
+	for _, want := range []string{uisettings.FontChoices()[0], locales.SetFontSystem(), "Monaco"} {
+		if !slices.Contains(opts, want) {
+			t.Errorf("%q is not offered", want)
+		}
+	}
+	n := 0
+	for _, f := range ui.FontFamilies() {
+		if !f.Monospaced || f.Name == bundledFont {
+			continue
+		}
+		n++
+		if !slices.Contains(opts, f.Name) {
+			t.Errorf("the installed monospaced family %q is not offered", f.Name)
+		}
+	}
+	if n == 0 {
+		t.Log("no system monospaced fonts to check")
+	}
+}
+
+// The font menu names the system's font in the language the app shows
+// now, as the menu's choice is read back, after the language changes.
+func TestFontOptionsFollowLanguage(t *testing.T) {
+	en := uisettings.FontOptions()[1]
+	i18n.SetLocaleFunc(func() string { return "zh-Hans" })
+	t.Cleanup(func() { i18n.SetLocaleFunc(nil) })
+	if got, want := uisettings.FontOptions()[1], locales.SetFontSystem(); got != want || got == en {
+		t.Errorf("the system's font is offered as %q, want %q", got, want)
+	}
+}
+
+// The font menu stays in the window, however little room the window has
+// below its button.
+func TestSearchMenuStaysInWindow(t *testing.T) {
+	for _, h := range []int{900, 420} {
+		a := testApp(t)
+		a.Ss.Page = "terminal"
+		tt := ui.NewTester(uisettings.View(a), 820, h)
+		tt.Frame()
+		if err := tt.Click("JetBrains Mono Nerd Font"); err != nil {
+			t.Fatal(err)
+		}
+		tt.Frame()
+		tt.Advance(time.Second)
+		tt.Frame()
+		shot(t, tt, fmt.Sprintf("search-menu-%d", h))
+		for _, txt := range []string{"Search", "System"} {
+			r, ok := tt.Find(txt)
+			if !ok || r.Y < 0 || r.Y+r.H > float32(h) {
+				t.Errorf("h %d: %s at %v, out of the window", h, txt, r)
+			}
+		}
+		// The menu's bottom: the last item shown is inside the window.
+		var low float32
+		for _, f := range uisettings.FontChoices() {
+			if r, ok := tt.Find(f); ok && r.Y > low {
+				low = r.Y + r.H
+			}
+		}
+		if low > float32(h) {
+			t.Errorf("h %d: the menu runs to %g, past the window", h, low)
+		}
+	}
+}
+
+// Moving the pointer along a search menu highlights one item at a time,
+// on the line between two items too.
+func TestSearchMenuOneHighlight(t *testing.T) {
+	a := testApp(t)
+	a.Ss.Page = "terminal"
+	tt := ui.NewTester(uisettings.View(a), 820, 900)
+	tt.Frame()
+	if err := tt.Click("JetBrains Mono Nerd Font"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	tt.Advance(time.Second)
+	tt.Frame()
+	for _, f := range []string{"Monaco", "JetBrains Mono", "Fira Code", "Cascadia Code", "SF Mono"} {
+		r, ok := tt.Find(f)
+		if !ok {
+			t.Fatalf("no %s; texts %q", f, tt.Texts())
+		}
+		// On the line between f and the item above it, which both rows
+		// take for theirs.
+		tt.Move(r.X+r.W/2, r.Y-(controls.MenuItemH-r.H)/2)
+		for range 3 {
+			tt.Frame()
+		}
+		if tt.FramePending() {
+			t.Errorf("pointer by %s: the menu keeps building", f)
+		}
+		// One accent row: count the accent's pixels down the menu's left.
+		lit, in := 0, false
+		img := tt.Image()
+		x := int(r.X) - 8
+		for y := 0; y < img.Bounds().Dy(); y++ {
+			cr, cg, cb, _ := img.At(x, y).RGBA()
+			acc := cb>>8 > 200 && cr>>8 < 140 && cg>>8 < 160
+			if acc && !in {
+				lit++
+			}
+			in = acc
+		}
+		if lit != 1 {
+			t.Errorf("pointer on %s: %d rows lit", f, lit)
+		}
+	}
+}
+
+// A search menu holds the window as macOS's do: the page does not scroll
+// under it, and a press outside it closes it, going no further.
+func TestSearchMenuIsModal(t *testing.T) {
+	a := testApp(t)
+	a.Ss.Page = "terminal"
+	tt := ui.NewTester(uisettings.View(a), 820, 600)
+	tt.Frame()
+	open := func() {
+		t.Helper()
+		if err := tt.Click("JetBrains Mono Nerd Font"); err != nil {
+			t.Fatal(err)
+		}
+		tt.Frame()
+		tt.Advance(time.Second)
+		tt.Frame()
+		if !a.Ss.Menus["font"].Open {
+			t.Fatal("the font menu did not open")
+		}
+	}
+	open()
+	tt.Scroll(400, 500, 0, 120)
+	tt.Frame()
+	if y := a.Ss.Scrolls["terminal"].Y; y != 0 {
+		t.Errorf("the page scrolled %g under the menu", y)
+	}
+	if !a.Ss.Menus["font"].Open {
+		t.Error("the wheel closed the menu")
+	}
+	// The menu's own list still scrolls.
+	before, _ := tt.Find("System")
+	tt.Scroll(before.X+20, before.Y, 0, 120)
+	tt.Frame()
+	if after, ok := tt.Find("System"); ok && after.Y == before.Y {
+		t.Error("the menu's list does not scroll")
+	}
+	// A press on the sidebar's General: the menu closes, the page stays.
+	r, _ := tt.Find("General")
+	tt.ClickAt(r.X+r.W/2, r.Y+r.H/2)
+	tt.Frame()
+	if a.Ss.Menus["font"].Open {
+		t.Error("a press outside left the menu open")
+	}
+	if a.Ss.Page != "terminal" {
+		t.Errorf("the press outside the menu went on: page %s", a.Ss.Page)
+	}
+	// Closed, the page scrolls again.
+	tt.Scroll(400, 500, 0, 120)
+	tt.Frame()
+	if a.Ss.Scrolls["terminal"].Y == 0 {
+		t.Error("the page does not scroll once the menu closed")
+	}
+}
+
+func abs32(f float32) float32 {
+	if f < 0 {
+		return -f
+	}
+	return f
+}
+
+// The filter lists under Block ads add up and save, and hide with it.
+func TestAdListToggles(t *testing.T) {
+	a := testApp(t)
+	a.Ss.Page = "browser"
+	tt := ui.NewTester(uisettings.View(a), 820, 1500)
+	tt.Frame()
+	flip := func(label string) {
+		t.Helper()
+		r, ok := tt.Find(label)
+		if !ok {
+			t.Fatalf("no row %q", label)
+		}
+		tt.ClickAt(752, r.Y+r.H/2) // its switch, at the row's end
+		tt.Frame()
+		tt.Frame()
+	}
+	flip("Peter Lowe's Ad and tracking server list")
+	flip("EasyList")
+	if want := []string{"easyprivacy", "peter-lowe"}; !slices.Equal(a.settingsIn.AdLists, want) || !slices.Equal(settings.Load().AdLists, want) {
+		t.Fatalf("lists %q, saved %q, want %q", a.settingsIn.AdLists, settings.Load().AdLists, want)
+	}
+	flip("EasyPrivacy")
+	flip("Peter Lowe's Ad and tracking server list")
+	if got := settings.Load().AdLists; len(got) != 0 {
+		t.Fatalf("no lists saved as %q", got)
+	}
+	a.settingsIn.BlockAds = false
+	tt.Frame()
+	if tt.HasText("EasyPrivacy") {
+		t.Error("the lists show while Block ads is off")
+	}
+}
+
+// A material only shows when the window is translucent and blurred, and
+// it is the one the settings name, the sidebar's by default.
+func TestVibrancyFor(t *testing.T) {
+	for _, c := range []struct {
+		vibrancy, blur bool
+		material       string
+		want           mygo.Vibrancy
+	}{
+		{true, true, "", mygo.VibrancySidebar},
+		{true, true, "sidebar", mygo.VibrancySidebar},
+		{true, true, "window", mygo.VibrancyWindow},
+		{true, true, "popover", mygo.VibrancyPopover},
+		{true, true, "plastic", mygo.VibrancyContent},
+		{true, true, "glass", mygo.VibrancyGlass},
+		{true, true, "glass-clear", mygo.VibrancyGlassClear},
+		{true, true, "not-a-material", mygo.VibrancySidebar},
+		{true, false, "glass", mygo.VibrancyNone},
+		{false, true, "glass", mygo.VibrancyNone},
+		{false, false, "", mygo.VibrancyNone},
+	} {
+		s := settings.Default()
+		s.Vibrancy, s.WindowBlur, s.WindowMaterial = c.vibrancy, c.blur, c.material
+		if got := vibrancyFor(s); got != c.want {
+			t.Errorf("translucent %v, blurred %v, material %q: %q, want %q", c.vibrancy, c.blur, c.material, got, c.want)
+		}
+	}
+}
+
+// With blur off, the wash is plain transparency, not opaque.
+func TestBlurlessBackgroundIsTranslucent(t *testing.T) {
+	// The wash's alpha in the sidebar, below its nav and above its tip.
+	a := testApp(t)
+	a.settingsIn.Vibrancy, a.settingsIn.WindowBlur = true, false
+	tt := ui.NewTester(a.view, 1100, 640)
+	tt.Frame()
+	for _, p := range [][2]int{{8, 300}, {8, 600}} {
+		if c := tt.Image().RGBAAt(p[0], p[1]); c.A >= 255 {
+			t.Errorf("the wash at %v is %v", p, c)
+		}
+	}
+}
+
+// Surfaces on the wash let a little of what is behind them through while
+// translucent, a little more the more the wash lets through, and stay
+// solid without translucency.
+func TestTranslucentGlass(t *testing.T) {
+	pal := theme.Light
+	s := settings.Default()
+	s.WindowOpacity = 0.84
+	got := theme.TranslucentGlass(pal.Card, &pal, s)
+	if got.A > 230 {
+		t.Errorf("the card over the wash is %v", got)
+	}
+	// A thin wash leaves the card nearly solid.
+	s.WindowOpacity = 0.05
+	if thin := theme.TranslucentGlass(pal.Card, &pal, s); thin.A < 250 {
+		t.Errorf("the card over a thin wash is %v", thin)
+	}
+	s.Vibrancy = false
+	if off := theme.TranslucentGlass(pal.Card, &pal, s); off != pal.Card {
+		t.Errorf("the card without translucency is %v, not %v", off, pal.Card)
+	}
+}
+
+// The font features field keeps what it can read as it is submitted, and
+// leaves a tag it can't in the field, unapplied ($HYLA_SHOTS).
+func TestFontFeaturesField(t *testing.T) {
+	for _, dark := range []bool{false, true} {
+		a := testApp(t)
+		a.Ss.Page = "terminal"
+		tt := ui.NewTester(uisettings.View(a), 820, 760)
+		tt.SetDark(dark)
+		tt.Frame()
+		if err := tt.Click("ss01, cv05=2, -calt"); err != nil {
+			t.Fatalf("no font features field: %v; texts %q", err, tt.Texts())
+		}
+		tt.Frame()
+		tt.Type("ss01, cv05=2")
+		tt.Key(0, ui.KeyEnter)
+		tt.Frame()
+		if want := []string{"ss01", "cv05=2"}; !slices.Equal(a.settingsIn.FontFeatures, want) {
+			t.Fatalf("font-feature %q, want %q", a.settingsIn.FontFeatures, want)
+		}
+		tt.Advance(time.Second)
+		tt.Frame()
+		name := map[bool]string{false: "light", true: "dark"}[dark]
+		shot(t, tt, "font-features-"+name)
+		tt.Type(", ligatures")
+		tt.Key(0, ui.KeyEnter)
+		tt.Frame()
+		if want := []string{"ss01", "cv05=2"}; !slices.Equal(a.settingsIn.FontFeatures, want) {
+			t.Errorf("after a bad tag, font-feature %q, want %q", a.settingsIn.FontFeatures, want)
+		}
+		shot(t, tt, "font-features-bad-"+name)
+	}
+}
+
+// The fallback font picks the families the machine has, one after
+// another, and each goes by its x.
+func TestFallbackFont(t *testing.T) {
+	a := testApp(t)
+	a.Ss.Page = "terminal"
+	a.settingsIn.FontFallback = "PingFang SC, Menlo"
+	// Room for every row: a page too short for the picker's menu shows
+	// the font under the window's foot.
+	tt := ui.NewTester(uisettings.View(a), 820, 980)
+	tt.Frame()
+	// A font already there comes once.
+	if err := tt.Click("Add another font…"); err != nil {
+		t.Fatalf("no fallback picker: %v; texts %q", err, tt.Texts())
+	}
+	tt.Frame()
+	tt.Advance(time.Second)
+	tt.Frame()
+	tt.Type("pingfang sc")
+	for range 3 {
+		tt.Frame()
+	}
+	if item, ok := tt.Find("PingFang SC"); !ok {
+		t.Fatalf("no PingFang SC; texts %q", tt.Texts())
+	} else {
+		tt.ClickAt(item.X+6, item.Y+item.H/2)
+	}
+	tt.Frame()
+	if want := "PingFang SC, Menlo"; a.settingsIn.FontFallback != want {
+		t.Errorf("fallback %q, want %q", a.settingsIn.FontFallback, want)
+	}
+	// The terminals' font, then the fallbacks in order.
+	if got := a.termFamily(); !strings.HasSuffix(got, ", PingFang SC, Menlo") {
+		t.Errorf("families %q, want them to end in the fallbacks", got)
+	}
+	shot(t, tt, "fallback-font")
+	// Each x takes out its family.
+	remove(t, tt, "PingFang SC")
+	if want := "Menlo"; a.settingsIn.FontFallback != want {
+		t.Fatalf("after PingFang SC's x, fallback %q, want %q", a.settingsIn.FontFallback, want)
+	}
+	remove(t, tt, "Menlo")
+	tt.Frame()
+	if a.settingsIn.FontFallback != "" {
+		t.Errorf("after Menlo's x, fallback %q, want none", a.settingsIn.FontFallback)
+	}
+	// With none, the terminals draw with their font alone.
+	if got := a.termFamily(); strings.Contains(got, ",") {
+		t.Errorf("families %q, want the font alone", got)
+	}
+}
+
+// remove presses the x of family, at the right of its row.
+func remove(t *testing.T, tt *ui.Tester, family string) {
+	t.Helper()
+	if _, ok := tt.Find(family); !ok {
+		t.Fatalf("no %s; texts %q", family, tt.Texts())
+	}
+	if err := tt.Click("Remove"); err != nil {
+		t.Fatalf("no x of %s: %v", family, err)
+	}
+	tt.Frame()
+}
+
+// A family name says whether it draws Chinese, Japanese or Korean.
+func TestCJKFamily(t *testing.T) {
+	for name, want := range map[string]bool{
+		"PingFang SC": true, "Hiragino Sans GB": true, "Source Han Sans SC": true, "Microsoft YaHei": true,
+		"Noto Sans CJK SC": true, "Hiragino Mincho ProN": true, "Apple SD Gothic Neo": true,
+		"Menlo": false, "SF Mono": false, "Apple Color Emoji": false,
+	} {
+		if got := uisettings.CJKFamily(name); got != want {
+			t.Errorf("uisettings.CJKFamily(%q) %v, want %v", name, got, want)
+		}
+	}
+}
+
+// The weight menu has the lighter weights too, which Hyla's own font
+// draws: extra light, and thin.
+func TestWeightExtraLight(t *testing.T) {
+	a := testApp(t)
+	a.Ss.Page = "terminal"
+	tt := ui.NewTester(uisettings.View(a), 820, 900)
+	tt.Frame()
+	if err := tt.Click("Regular"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	tt.Advance(time.Second)
+	tt.Frame()
+	for _, want := range []string{"Extra Light", "Thin", "Light"} {
+		if !tt.HasText(want) {
+			t.Fatalf("no %q in the weight menu; texts %q", want, tt.Texts())
+		}
+	}
+	if err := tt.Click("Extra Light"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if a.settingsIn.FontWeight != 200 {
+		t.Errorf("chose weight %d, want 200", a.settingsIn.FontWeight)
+	}
+}
+
+// A value the file keeps in range is the app's after it applies it: a
+// loaded once is one the app would save as is.
+func TestApplyKeepsWhatTheFileKept(t *testing.T) {
+	a := testApp(t)
+	s := a.settingsIn
+	s.FontSize = 100
+	a.apply(s, true)
+	if got := a.settingsIn.FontSize; got != settings.Default().FontSize {
+		t.Errorf("the app holds font-size %v, the file %v", got, settings.Load().FontSize)
+	}
+	if again := settings.Load(); again.FontSize != a.settingsIn.FontSize {
+		t.Errorf("a save of the app's writes font-size %v, the app holds %v", again.FontSize, a.settingsIn.FontSize)
+	}
+}
+
+// A compile that failed is tried again by the next page: ad blocking
+// is on, and no list download failure keeps every page bare.
+func TestAdsCompileAgainAfterAFailure(t *testing.T) {
+	a := testApp(t)
+	a.settingsIn.BlockAds = true
+	a.settingsIn.AdLists = []string{"https://example.com/filters.txt"} // a list no cache holds, as a first run's
+	var calls atomic.Int32
+	fail := atomic.Bool{}
+	fail.Store(true)
+	// The app's window's loop takes each page's end, which this stands
+	// in for: a page's load answers once, after its compile, or with
+	// none started.
+	done := make(chan struct{}, 8)
+	// The wait after a failed compile ends at once: a test need not wait.
+	var now atomic.Int64
+	now.Store(time.Now().UnixNano())
+	// The hooks the app's pages compile through.
+	t.Cleanup(adblock.Hook(func(lists []string, dir string) ([]*mygo.ContentRules, error) {
+		calls.Add(1)
+		if fail.Load() {
+			return nil, fmt.Errorf("no network")
+		}
+		return nil, nil
+	}, func() { done <- struct{}{} }, func() time.Time { return time.Unix(0, now.Load()) }))
+	// page is a page's load, which starts a compile or finds the lists
+	// compiled, with its answer taken.
+	page := func() int32 {
+		a.main(func() { a.adRules() })
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			t.Fatal("a page's load gets no answer")
+		}
+		return calls.Load()
+	}
+	if n := page(); n != 1 {
+		t.Fatalf("a failed compile ran once: %d calls", n)
+	}
+	fail.Store(false)
+	now.Add(int64(adblock.Retry))
+	if n := page(); n != 2 {
+		t.Fatalf("the page after the wait compiles the lists again: %d calls", n)
+	}
+	// A failed compile left no rules: the lists count as compiled from
+	// its start, until its error clears them.
+	if n := page(); n != 2 {
+		t.Fatalf("the lists compiled are compiled again: %d calls", n)
+	}
+}
+
+// A list that keeps failing is not downloaded at every page: each failed
+// compile waits longer than the one before, and a compile that succeeds
+// ends the wait.
+func TestAdsWaitAfterAFailure(t *testing.T) {
+	a := testApp(t)
+	a.settingsIn.BlockAds = true
+	a.settingsIn.AdLists = []string{"https://example.com/filters.txt"}
+	var calls atomic.Int32
+	fail := atomic.Bool{}
+	fail.Store(true)
+	done := make(chan struct{}, 8)
+	var now atomic.Int64
+	now.Store(time.Now().UnixNano())
+	// The hooks the app's pages compile through.
+	t.Cleanup(adblock.Hook(func(lists []string, dir string) ([]*mygo.ContentRules, error) {
+		calls.Add(1)
+		if fail.Load() {
+			return nil, fmt.Errorf("no network")
+		}
+		return nil, nil
+	}, func() { done <- struct{}{} }, func() time.Time { return time.Unix(0, now.Load()) }))
+	page := func() int32 {
+		a.main(func() { a.adRules() })
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			t.Fatal("a page's load gets no answer")
+		}
+		return calls.Load()
+	}
+	if n := page(); n != 1 {
+		t.Fatalf("the first page ran %d compiles, want 1", n)
+	}
+	if n := page(); n != 1 {
+		t.Fatalf("the next page, inside the wait, ran %d compiles, want 1", n)
+	}
+	// The wait over, the lists go again, and fail again.
+	t0 := now.Load()
+	now.Store(t0 + int64(adblock.Retry))
+	if n := page(); n != 2 {
+		t.Fatalf("the page after the wait ran %d compiles, want 2", n)
+	}
+	// The second failure waits twice as long: a page inside the second
+	// wait does not go.
+	t1 := now.Load()
+	now.Store(t1 + int64(adblock.Retry+adblock.Retry/2))
+	if n := page(); n != 2 {
+		t.Fatalf("the page inside the second wait ran %d compiles, want 2", n)
+	}
+	now.Store(t1 + int64(2*adblock.Retry))
+	fail.Store(false)
+	if n := page(); n != 3 {
+		t.Fatalf("the page after the waits ran %d compiles, want 3", n)
+	}
+	// Succeeded, the lists are compiled: no page compiles them again.
+	if n := page(); n != 3 {
+		t.Fatalf("a page after a compile ran %d compiles, want 3", n)
+	}
+}
