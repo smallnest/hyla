@@ -1,8 +1,7 @@
-package main
+package favicon
 
 import (
 	"bytes"
-	"context"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/binary"
@@ -15,6 +14,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -23,26 +23,72 @@ import (
 	"hyla/internal/proto"
 )
 
-// favicons are the icons browser panes show in their address bars. An
-// icon shows from memory as soon as its site's page does, else from the
-// disk, where the last icon of each site is kept for the next launch;
-// the page then tells which icon it has, which is downloaded only when it
-// is another, or old.
-type favicons struct {
+// Cache are the icons browser panes show in their address bars. An icon
+// shows from memory as soon as its site's page does, else from the disk,
+// where the last icon of each site is kept for the next launch; the page
+// then tells which icon it has, which is downloaded only when it is
+// another, or old.
+type Cache struct {
 	// icons are the decoded icons, by their URL; sites are the URL of each
 	// site's last icon, by origin.
-	icons map[string]*favicon
+	icons map[string]ui.ImageSource
+	data  map[string][]byte
+	at    map[string]time.Time
 	sites map[string]string
 	// reading are the sites whose icon is being read from the disk, and
 	// fetching the icons being downloaded.
 	reading, fetching map[string]bool
 }
 
-type favicon struct {
-	img  ui.ImageSource
-	data []byte
-	at   time.Time
+func (c *Cache) make() {
+	if c.icons == nil {
+		c.icons, c.data, c.at, c.sites = map[string]ui.ImageSource{}, map[string][]byte{}, map[string]time.Time{}, map[string]string{}
+		c.reading, c.fetching = map[string]bool{}, map[string]bool{}
+	}
 }
+
+// Get is the icon kept for a URL, or nil.
+func (c *Cache) Get(u string) ui.ImageSource { return c.icons[u] }
+
+// Data are the bytes of an icon.
+func (c *Cache) Data(u string) []byte { return c.data[u] }
+
+// Fresh tells whether an icon is young enough to show, not downloaded
+// again.
+func (c *Cache) Fresh(u string) bool {
+	at, ok := c.at[u]
+	return ok && time.Since(at) < faviconMaxAge
+}
+
+// Add keeps an icon, as of now.
+func (c *Cache) Add(u string, img ui.ImageSource, data []byte) {
+	c.make()
+	c.icons[u], c.data[u], c.at[u] = img, data, time.Now()
+}
+
+// Site is the URL of a site's last icon, by its origin.
+func (c *Cache) Site(origin string) (string, bool) {
+	u, ok := c.sites[origin]
+	return u, ok
+}
+
+// SetSite keeps a site's icon.
+func (c *Cache) SetSite(origin, u string, img ui.ImageSource) {
+	c.make()
+	c.sites[origin] = u
+	if img != nil && c.icons[u] == nil {
+		c.icons[u] = img
+	}
+}
+
+// Reading tells whether a site's icon is being read from the disk, and
+// SetReading says it is, or is not.
+func (c *Cache) Reading(origin string) bool     { return c.reading[origin] }
+func (c *Cache) SetReading(origin string, on bool) { c.make(); c.reading[origin] = on }
+
+// Fetching tells whether icons are being downloaded, by their list.
+func (c *Cache) Fetching(key string) bool        { return c.fetching[key] }
+func (c *Cache) SetFetching(key string, on bool) { c.make(); c.fetching[key] = on }
 
 // faviconMaxAge is how long an icon is kept before it is downloaded again.
 const faviconMaxAge = 7 * 24 * time.Hour
@@ -58,9 +104,18 @@ func faviconDir() string {
 	return filepath.Join(proto.Dir(), "favicons")
 }
 
-// siteOrigin returns the scheme and host of a page's URL: what its icon
+// SiteOrigin returns the scheme and host of a page's URL: what its icon
 // is kept by.
-func siteOrigin(raw string) string {
+// browserUA is what the browser's user agent names besides the system:
+// Safari's version, which sites read to serve their icons.
+func browserUA() string {
+	if runtime.GOOS == "darwin" {
+		return "Version/18.0 Safari/605.1.15"
+	}
+	return ""
+}
+
+func SiteOrigin(raw string) string {
 	u, err := url.Parse(raw)
 	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
 		return ""
@@ -68,123 +123,13 @@ func siteOrigin(raw string) string {
 	return u.Scheme + "://" + u.Host
 }
 
-// favicon returns the icon of a browser pane's page: the one it told,
-// else its site's last, which it reads from the disk the first time.
-func (a *App) favicon(e *webEntry) ui.ImageSource {
-	f := &a.Icons
-	if f.icons == nil {
-		f.icons, f.sites = map[string]*favicon{}, map[string]string{}
-		f.reading, f.fetching = map[string]bool{}, map[string]bool{}
-	}
-	if i := f.icons[e.iconURL]; e.iconURL != "" && i != nil {
-		return i.img
-	}
-	origin := siteOrigin(e.url)
-	if origin == "" {
-		return nil
-	}
-	if u, ok := f.sites[origin]; ok {
-		if i := f.icons[u]; i != nil {
-			return i.img
-		}
-		return nil
-	}
-	if !f.reading[origin] {
-		f.reading[origin] = true
-		go func() {
-			u, data, img, at := readFavicon(origin)
-			a.update(func() {
-				delete(f.reading, origin)
-				if _, ok := f.sites[origin]; ok {
-					return // the page told its icon meanwhile
-				}
-				f.sites[origin] = u
-				if img != nil && f.icons[u] == nil {
-					f.icons[u] = &favicon{img, data, at}
-				}
-			})
-		}()
-	}
-	return nil
-}
-
-// findFavicon asks the page which icons it has, best first, and shows the
-// first that decodes, downloading it unless it is in memory and fresh.
-func (a *App) findFavicon(e *webEntry) {
-	if e.view == nil || e.view.IsDestroyed() || siteOrigin(e.url) == "" {
-		return
-	}
-	page, at := e.view.Page(), e.url
-	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		v, err := page.EvalContext(ctx, faviconScript)
-		if err != nil {
-			return
-		}
-		list, _ := v.([]any)
-		var urls []string
-		for _, u := range list {
-			if s, ok := u.(string); ok && s != "" {
-				urls = append(urls, s)
-			}
-		}
-		if len(urls) == 0 {
-			return
-		}
-		a.update(func() {
-			if e.url != at {
-				return // the page went elsewhere
-			}
-			a.useFavicon(e, urls)
-		})
-	}()
-}
-
-func (a *App) useFavicon(e *webEntry, urls []string) {
-	f := &a.Icons
-	a.favicon(e) // makes the maps
-	origin := siteOrigin(e.url)
-	for _, u := range urls {
-		if i := f.icons[u]; i != nil && time.Since(i.at) < faviconMaxAge {
-			e.iconURL = u
-			if f.sites[origin] != u {
-				f.sites[origin] = u
-				go writeFavicon(origin, u, i.data)
-			}
-			return
-		}
-	}
-	key := strings.Join(urls, "\n")
-	if f.fetching[key] {
-		return
-	}
-	f.fetching[key] = true
-	go func() {
-		u, data, img := fetchFavicon(urls)
-		if img != nil {
-			writeFavicon(origin, u, data)
-		}
-		a.update(func() {
-			// Icons that fail stay unasked for until the next launch.
-			if img == nil {
-				return
-			}
-			delete(f.fetching, key)
-			f.icons[u] = &favicon{img, data, time.Now()}
-			f.sites[origin] = u
-			if siteOrigin(e.url) == origin {
-				e.iconURL = u
-			}
-		})
-	}()
-}
-
 // faviconScript lists the page's icons, best first for a small one on a
 // Retina screen: an icon of 32 pixels or more, the smallest such, then
 // one of no size said, an SVG, a smaller one, Apple's touch icon, and
 // the site's /favicon.ico.
-const faviconScript = `
+// Script lists the page's icons, best first for a small one on a Retina
+// screen.
+const Script = `
 const out = [];
 const links = [...document.querySelectorAll('link[rel~="icon" i], link[rel~="apple-touch-icon" i], link[rel~="apple-touch-icon-precomposed" i]')]
 	.filter(l => l.href && !(l.media && !matchMedia(l.media).matches));
@@ -216,7 +161,7 @@ var faviconClient = &http.Client{Timeout: 10 * time.Second}
 
 // fetchFavicon downloads the first of urls that decodes, and returns its
 // URL, its bytes and its image.
-func fetchFavicon(urls []string) (string, []byte, ui.ImageSource) {
+func Fetch(urls []string) (string, []byte, ui.ImageSource) {
 	for _, u := range urls {
 		data, err := getFavicon(u)
 		if err != nil {
@@ -412,24 +357,27 @@ func faviconPath(origin string) string {
 	return filepath.Join(faviconDir(), hex.EncodeToString(h[:12]))
 }
 
-func readFavicon(origin string) (string, []byte, ui.ImageSource, time.Time) {
-	p := faviconPath(origin)
-	data, err := os.ReadFile(p)
+// ReadFromDisk is a site's icon, as kept on the disk: its URL, its bytes
+// and the icon decoded from them, if any.
+func ReadFromDisk(origin string) (string, ui.ImageSource) {
+	u, data := readFavicon(origin)
+	return u, decodeFavicon(data)
+}
+
+func readFavicon(origin string) (string, []byte) {
+	data, err := os.ReadFile(faviconPath(origin))
 	if err != nil {
-		return "", nil, nil, time.Time{}
+		return "", nil
 	}
 	u, body, ok := bytes.Cut(data, []byte("\n"))
 	if !ok {
-		return "", nil, nil, time.Time{}
+		return "", nil
 	}
-	var at time.Time
-	if st, err := os.Stat(p); err == nil {
-		at = st.ModTime()
-	}
-	return string(u), body, decodeFavicon(body), at
+	return string(u), body
 }
 
-func writeFavicon(origin, u string, data []byte) {
+// WriteToDisk keeps a site's icon for the next launch.
+func WriteToDisk(origin, u string, data []byte) {
 	if u == "" || strings.Contains(u, "\n") {
 		return
 	}

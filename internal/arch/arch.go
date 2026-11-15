@@ -157,6 +157,7 @@ var Layers = []Layer{
 		Name: "ui",
 		Package: []string{
 			"hyla/internal/actions",
+			"hyla/internal/app/favicon",
 			"hyla/internal/app/history",
 			"hyla/internal/app/host",
 			"hyla/internal/adblock",
@@ -202,6 +203,7 @@ var Layers = []Layer{
 			"hyla/internal/ui/style",
 			"hyla/internal/ui/theme",
 			"hyla/internal/ui/worktree",
+			"hyla/internal/ui/webicon",
 			"hyla/internal/ui/wash",
 			"hyla/internal/update",
 		},
@@ -267,6 +269,7 @@ var layerNames = map[string]string{
 	"hyla/internal/adblock":            "base",
 	"hyla/internal/app/filepane":       "daemon",
 	"hyla/internal/app/gitinfo":        "engine",
+	"hyla/internal/app/favicon":        "engine",
 	"hyla/internal/app/history":        "ui",
 	"hyla/internal/ui/settings":        "cli",
 	"hyla/internal/app/host":           "daemon",
@@ -314,6 +317,7 @@ var layerNames = map[string]string{
 	"hyla/internal/ui/style":           "ui",
 	"hyla/internal/ui/theme":           "ui",
 	"hyla/internal/ui/wash":            "ui",
+	"hyla/internal/ui/webicon":         "ui",
 	"hyla/internal/ui/worktree":        "ui",
 	"hyla/internal/update":             "base",
 }

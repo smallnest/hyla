@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hyla/internal/app/favicon"
 	"hyla/internal/app/host"
 	"hyla/internal/app/paneinfo"
 	"hyla/internal/platform"
@@ -142,7 +143,7 @@ type App struct {
 	Webs       map[string]*webEntry // browser panes' pages, by pane
 	Files      filepane.Panes       // file panes' files, by pane
 	Ads        adblock.State        // what their pages block
-	Icons      favicons             // and the icons they show
+	IconsCache favicon.Cache        // and the icons they show
 	Lru        []string
 	Refs       map[string]*ui.Handle // panes' terminals, and splits, by id
 	Focus      map[string]string     // the pane the user is in, by session

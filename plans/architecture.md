@@ -122,6 +122,10 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
   - Also: the Settings window's groups, rows, segmented control and the
     search's marks are `internal/ui/settings/kit`, which the pages, the
     Sync page and the hosts' forms draw with.
+  - Also: the browser panes' icons are `internal/app/favicon` — the
+    cache, the disk, the download and the decoders, in the engine layer —
+    and `internal/ui/webicon`, which asks a page for its icons and the
+    app's cache what it holds.
   - Also: the dialogs that add an SSH host and a kubectl pod are
     `internal/ui/sshdialog` and `internal/ui/k8sdialog`; the root keeps
     the hosts they add, and the name a machine takes while none is typed.

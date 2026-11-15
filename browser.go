@@ -16,7 +16,9 @@ import (
 	"hyla/internal/ui/style"
 	"hyla/locales"
 
+	"hyla/internal/app/favicon"
 	"hyla/internal/ui/glyph"
+	"hyla/internal/ui/webicon"
 )
 
 // webEntry is a browser pane's web view in the app: hylad keeps the pane's
@@ -48,12 +50,16 @@ type webEntry struct {
 	// loads are hyla browser's calls waiting for the page's load to end.
 	loads []chan error
 	// iconURL is the URL of the icon the page told: until it does, its
-	// site's last shows.
+	// site's last shows. icon is the page, as the icons ask it.
 	iconURL string
+	icon    webicon.Site
 	// staged lays the page out unseen, for hyla browser screenshot of a
 	// pane never shown, which has no size, and so no picture.
 	staged bool
 }
+
+// Icons is the cache the browser panes' icons are kept in.
+func (a *App) Icons() *favicon.Cache { return &a.IconsCache }
 
 // browserUA makes the page look like Safari's on macOS: sites serve a bare
 // WKWebView, whose user agent names no browser, older pages.
@@ -95,6 +101,9 @@ func (a *App) ensureWeb(p *proto.Pane) *webEntry {
 				return
 			}
 			e.url, e.err, e.iconURL = url, "", ""
+			if e.view != nil {
+				e.icon = webicon.Site{URL: url, Page: e.view.Page()}
+			}
 			if !e.editing {
 				e.address = url
 			}
@@ -111,7 +120,7 @@ func (a *App) ensureWeb(p *proto.Pane) *webEntry {
 			// A page of an app changes its URL without navigating, and its
 			// title with it.
 			if url := page.URL(); url != "" {
-				e.url = url
+				e.url, e.icon.URL = url, url
 				if !e.editing {
 					e.address = url
 				}
@@ -119,14 +128,14 @@ func (a *App) ensureWeb(p *proto.Pane) *webEntry {
 			e.syncNav()
 			a.tellPage(id, e)
 			// A page of an app changes its icon as it does its title.
-			a.findFavicon(e)
+			webicon.Found(a, &e.icon)
 		})
 	})
 	page.OnDidFinishLoad(func() {
 		a.update(func() {
 			e.syncNav()
 			e.loadEnded(nil)
-			a.findFavicon(e)
+			webicon.Found(a, &e.icon)
 		})
 	})
 	page.OnDidFailLoad(func(err *mygo.LoadError) {
@@ -386,7 +395,7 @@ func (a *App) addressBar(c *ui.Context, pal *theme.Palette, s *proto.Session, p 
 			}
 		}
 		grip.Children(func() {
-			if icon := a.favicon(e); icon != nil && !blank {
+			if icon := webicon.Icon(a, &e.icon); icon != nil && !blank {
 				ui.Image(c, icon).Size(14, 14).Radius(3)
 			} else {
 				ui.Icon(c, glyph.Globe).Size(13, 13)
