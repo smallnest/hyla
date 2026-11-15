@@ -63,7 +63,7 @@ func testApp(t *testing.T) *App {
 		}},
 	}
 	a.Loaded, a.Selected = true, "s1"
-	a.local().Loaded = true
+	a.Local().Loaded = true
 	return a
 }
 
@@ -95,9 +95,9 @@ func shot(t *testing.T, tt *ui.Tester, name string) {
 func testDropApp(t *testing.T) *App {
 	t.Helper()
 	a := testApp(t)
-	a.local().Conn = host.StateReady
+	a.Local().Conn = host.StateReady
 	a.Terms["a"], a.Terms["b"] = &termEntry{}, &termEntry{}
-	a.local().Client, _ = projectClient(t, func(method string, _ json.RawMessage) (any, error) {
+	a.Local().Client, _ = projectClient(t, func(method string, _ json.RawMessage) (any, error) {
 		return nil, fmt.Errorf("test daemon rejected %s", method)
 	})
 	return a
@@ -129,16 +129,16 @@ func TestSidebarRejectsUnavailableDrops(t *testing.T) {
 		set  func(*App)
 	}{
 		{"hidden", func(a *App) { a.Prefs.SidebarHidden = true }},
-		{"connecting", func(a *App) { a.local().Conn = host.StateConnecting }},
-		{"disconnected", func(a *App) { a.local().Conn = host.StateFailed }},
-		{"no client", func(a *App) { a.local().Client = nil }},
+		{"connecting", func(a *App) { a.Local().Conn = host.StateConnecting }},
+		{"disconnected", func(a *App) { a.Local().Conn = host.StateFailed }},
+		{"no client", func(a *App) { a.Local().Client = nil }},
 		{"palette", func(a *App) { a.Pal.Open = true }},
-		{"folder picker", func(a *App) { a.Picker = picker.State{Open: true, Host: a.local()} }},
+		{"folder picker", func(a *App) { a.Picker = picker.State{Open: true, Host: a.Local()} }},
 		{"only remote connected", func(a *App) {
-			h := &host.Host{Name: "remote", Conn: host.StateReady, Client: a.local().Client, Loaded: true}
+			h := &host.Host{Name: "remote", Conn: host.StateReady, Client: a.Local().Client, Loaded: true}
 			a.Machines = append(a.Machines, h)
 			a.Owner = map[string]*host.Host{"s1": h, "p1": h, "a": h, "b": h}
-			a.local().Conn, a.local().Client = host.StateFailed, nil
+			a.Local().Conn, a.Local().Client = host.StateFailed, nil
 		}},
 		{"confirmation", func(a *App) { a.Confirm = &confirm.Ask{Open: true, Title: "Confirm", Action: "Close"} }},
 	} {
@@ -353,7 +353,7 @@ func TestCopyOnSelectToast(t *testing.T) {
 // K8s pod to connect to, which the foot no longer holds as buttons.
 func TestSidebarNewSessionMenu(t *testing.T) {
 	a := testApp(t)
-	a.local().Conn = host.StateReady
+	a.Local().Conn = host.StateReady
 	tt := ui.NewTester(a.view, 1100, 700)
 	tt.Frame()
 	if err := tt.Click(locales.ActionNewSession()); err != nil {
@@ -373,7 +373,7 @@ func TestSidebarNewSessionMenu(t *testing.T) {
 // next session of it, and says nothing while nothing does ($HYLA_SHOTS).
 func TestSidebarFooter(t *testing.T) {
 	a := testApp(t)
-	a.local().Conn = host.StateReady
+	a.Local().Conn = host.StateReady
 	tt := ui.NewTester(a.view, 1100, 700)
 	tt.Frame()
 	for _, txt := range tt.Texts() {
@@ -530,7 +530,7 @@ func TestSessionTooltipAtPointer(t *testing.T) {
 // first while a program runs, as the restart ends it.
 func TestRestartStaleDaemon(t *testing.T) {
 	a := testApp(t)
-	a.local().Conn, a.local().DaemonApp = host.StateReady, "1.9.0"
+	a.Local().Conn, a.Local().DaemonApp = host.StateReady, "1.9.0"
 	a.St.Sessions[0].Process = "claude"
 	tt := ui.NewTester(a.view, 1100, 640)
 	tt.Frame()
@@ -542,7 +542,7 @@ func TestRestartStaleDaemon(t *testing.T) {
 		t.Fatalf("no question before the restart: %+v", a.Confirm)
 	}
 
-	a.Confirm, a.local().DaemonApp = nil, mygo.App.Version()
+	a.Confirm, a.Local().DaemonApp = nil, mygo.App.Version()
 	tt.Frame()
 	if tt.HasText("Restart Service") {
 		t.Error("a chip to restart a hylad of this version")
@@ -987,7 +987,7 @@ func TestProjectOrder(t *testing.T) {
 	a.Prefs.ProjectOrder = []string{"p3", "p1", "p2"}
 	ids := func() []string {
 		var out []string
-		for _, g := range sidebar.HostGroups(a.order(), a.local()) {
+		for _, g := range sidebar.HostGroups(a.order(), a.Local()) {
 			out = append(out, g.Project.ID)
 		}
 		return out
@@ -995,11 +995,11 @@ func TestProjectOrder(t *testing.T) {
 	if got := ids(); !slices.Equal(got, []string{"p3", "p1", "p2"}) {
 		t.Fatalf("ordered %v", got)
 	}
-	sidebar.MoveProject(a.order(), sidebar.ProjectDrag{Host: a.local(), ID: "p1"}, "p3", false)
+	sidebar.MoveProject(a.order(), sidebar.ProjectDrag{Host: a.Local(), ID: "p1"}, "p3", false)
 	if got := ids(); !slices.Equal(got, []string{"p1", "p3", "p2"}) {
 		t.Errorf("before p3: %v", got)
 	}
-	sidebar.MoveProject(a.order(), sidebar.ProjectDrag{Host: a.local(), ID: "p2"}, "p1", false)
+	sidebar.MoveProject(a.order(), sidebar.ProjectDrag{Host: a.Local(), ID: "p2"}, "p1", false)
 	if got := ids(); !slices.Equal(got, []string{"p2", "p1", "p3"}) {
 		t.Errorf("before p1: %v", got)
 	}
@@ -1134,7 +1134,7 @@ func TestSessionDrag(t *testing.T) {
 	tt := ui.NewTester(a.view, 1100, 640)
 	ids := func() []string {
 		var out []string
-		for _, g := range sidebar.HostGroups(a.order(), a.local()) {
+		for _, g := range sidebar.HostGroups(a.order(), a.Local()) {
 			out = append(out, g.Sessions...)
 		}
 		return out
@@ -1171,7 +1171,7 @@ func TestReorderSession(t *testing.T) {
 		proto.Session{ID: "s5", Project: "", Created: 500})
 	order := func() [][]string {
 		var out [][]string
-		for _, g := range sidebar.HostGroups(a.order(), a.local()) {
+		for _, g := range sidebar.HostGroups(a.order(), a.Local()) {
 			out = append(out, slices.Clone(g.Sessions))
 		}
 		return out
@@ -1188,7 +1188,7 @@ func TestReorderSession(t *testing.T) {
 		t.Errorf("p2 holds %v, want s3", got[1])
 	}
 	// This machine's sessions of no project drag under "other:<host>".
-	sidebar.ReorderSession(a.order(), sidebar.SessionDrag{Group: "other:" + a.local().Name, ID: "s5"}, "s4", false)
+	sidebar.ReorderSession(a.order(), sidebar.SessionDrag{Group: "other:" + a.Local().Name, ID: "s5"}, "s4", false)
 	if got := order(); !slices.Equal(got[2], []string{"s5", "s4"}) {
 		t.Errorf("the sessions of no project are %v, want s5 s4", got[2])
 	}
@@ -1203,7 +1203,7 @@ func TestSidebarOrder(t *testing.T) {
 		proto.Session{ID: "s3", Project: "p1", Created: 300, Activity: 400})
 	ids := func() []string {
 		var out []string
-		for _, g := range sidebar.HostGroups(a.order(), a.local()) {
+		for _, g := range sidebar.HostGroups(a.order(), a.Local()) {
 			out = append(out, g.Sessions...)
 		}
 		return out
@@ -1230,7 +1230,7 @@ func TestSidebarDateGroups(t *testing.T) {
 	a.St.Sessions[0].Created = now.UnixMilli()
 	a.St.Sessions = append(a.St.Sessions,
 		proto.Session{ID: "s2", Project: "p1", Created: now.Add(-24 * time.Hour).UnixMilli()})
-	dgs := sidebar.DateGroups(a.order(), a.local())
+	dgs := sidebar.DateGroups(a.order(), a.Local())
 	if len(dgs) != 2 {
 		t.Fatalf("%d date groups, want 2", len(dgs))
 	}
@@ -1322,7 +1322,7 @@ func TestCollapseSelectedProject(t *testing.T) {
 // else its branch and changes; a compact one keeps to one line.
 func TestSidebarRows(t *testing.T) {
 	a := testApp(t)
-	a.local().Conn = host.StateReady
+	a.Local().Conn = host.StateReady
 	a.St.Sessions[0].Dir = "/Users/someone/dev/demo"
 	base := a.St.Sessions[0]
 	add := func(id, name string, st proto.Status, msg string, g *proto.GitInfo) {

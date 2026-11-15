@@ -13,9 +13,9 @@ import (
 	"hyla/internal/ui/theme"
 )
 
-// The app, as the machines' pages and the sidebar ask it.
-// The names Local and SelectSession are the palette's already: PaletteLocal
-// and PaletteSelectSession.
+// The app, as the machines' pages and the sidebar ask it. The names
+// Local and SelectSession are the palette's already: PaletteLocal and
+// PaletteSelectSession.
 var _ hosts.App = (*App)(nil)
 
 // RemoteHosts are the other machines the app reaches.
@@ -27,7 +27,7 @@ func (a *App) SetMachines(ms []*host.Host) { a.Machines = ms }
 
 // PaletteLocal and PaletteSelectSession are the palette's names, which
 // this file does not take.
-func (a *App) PaletteLocal() *host.Host { return a.local() }
+func (a *App) PaletteLocal() *host.Host { return a.Local() }
 
 func (a *App) PaletteSelectSession(id string) { a.selectSession(id) }
 
@@ -43,16 +43,8 @@ func (a *App) MergeState(h *host.Host, st proto.State) {
 	a.St.Projects, a.St.Sessions, a.Owner = hostlink.Merge(a, h, st)
 }
 
-func (a *App) Reselect() { a.reselect() }
-
-func (a *App) UpdateTitle() { a.updateTitle() }
-
-func (a *App) NewSessionOn(h *host.Host, projectID string) { a.newSessionOn(h, projectID) }
-
 // StopDaemon stops this machine's hylad.
 func (a *App) StopDaemon() error { return cli.StopDaemon() }
-
-func (a *App) HostState(c *ui.Context, pal *theme.Palette, h *host.Host) { a.hostStateNow(c, pal, h) }
 
 func (a *App) HostDraft() *draft.HostDraft { return &a.Ss.Remote }
 

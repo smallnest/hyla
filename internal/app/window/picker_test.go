@@ -18,7 +18,7 @@ func TestPickerScrolls(t *testing.T) {
 	for i := range 60 {
 		l.Entries = append(l.Entries, proto.FSEntry{Name: fmt.Sprintf("folder%02d", i), Dir: true})
 	}
-	a.Picker = picker.State{Open: true, Host: a.local(), List: l}
+	a.Picker = picker.State{Open: true, Host: a.Local(), List: l}
 	tt.Frame()
 	r, ok := tt.Find("folder03")
 	if !ok {

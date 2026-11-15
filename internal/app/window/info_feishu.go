@@ -38,7 +38,7 @@ func (a *App) infoFeishu(c *ui.Context, pal *theme.Palette, p *proto.Pane) {
 	if !st.FeishuGot && (st.Feishu == nil || connected && time.Since(st.FeishuAt) > feishuStatusTick) {
 		st.FeishuGot = true
 		a.callOn(a.hostOf(p.ID), "feishu.status", nil, func(err error) {
-			a.update(func() {
+			a.UpdateNow(func() {
 				if a.InfoViews().Of(p) == st {
 					st.FeishuGot = false
 				}

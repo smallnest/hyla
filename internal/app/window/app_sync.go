@@ -10,8 +10,6 @@ import (
 
 func (a *App) StateCame() bool { return a.Loaded }
 
-func (a *App) Update(fn func()) { a.update(fn) }
-
 func (a *App) Toast(msg string) { a.toast(msg) }
 
 func (a *App) ToastSyncKept(path string) { a.toast(locales.ToastSyncKept(path)) }

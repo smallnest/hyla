@@ -51,7 +51,7 @@ func (a *App) installCLI() {
 				"-e", "end run",
 				exe, link).Run()
 		}
-		a.update(func() {
+		a.UpdateNow(func() {
 			if err != nil {
 				// Why it failed, not only that it did: a password put off,
 				// a directory of another owner, a dialog that never showed.

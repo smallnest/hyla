@@ -13,14 +13,14 @@ func TestNewSessionWorktreeAsks(t *testing.T) {
 	a := testApp(t)
 	cl, stop := projectClient(t, func(string, json.RawMessage) (any, error) { return nil, nil })
 	defer stop()
-	a.local().Conn, a.local().Client = host.StateReady, cl
+	a.Local().Conn, a.Local().Client = host.StateReady, cl
 	a.Selected = "s1"
 	a.run("session.newWorktree", nil)
 	w := a.WtAsk
 	if w == nil || !w.Open {
 		t.Fatalf("no ask: %+v", w)
 	}
-	if w.Host != a.local() {
+	if w.Host != a.Local() {
 		t.Fatalf("the ask is of %v", w.Host.Label())
 	}
 	// The project of the session the user is in, and its folder.

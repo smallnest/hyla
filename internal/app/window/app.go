@@ -314,12 +314,16 @@ func (a *App) savePrefs() {
 	}
 }
 
-// update runs fn on the main thread, and draws.
-func (a *App) update(fn func()) {
+// Update runs fn on the main thread, and draws.
+func (a *App) Update(fn func()) {
 	if a.Win != nil {
 		a.Win.Update(fn)
 	}
 }
+
+// UpdateNow runs fn on the main thread, and draws. It is Update, under
+// the name the host link asks: its App names a session's Update too.
+func (a *App) UpdateNow(fn func()) { a.Update(fn) }
 
 // main runs fn on the main thread, and draws: a test's app, which has no
 // window's loop, runs it as it comes.
@@ -328,7 +332,7 @@ func (a *App) main(fn func()) {
 		fn()
 		return
 	}
-	a.update(fn)
+	a.UpdateNow(fn)
 }
 
 // EventOf takes a message from a host's hylad.
@@ -442,12 +446,12 @@ func (a *App) TakeStateOf(h *host.Host, st proto.State) {
 		a.openDefaultProject()
 	}
 	if a.session(a.Selected) == nil {
-		a.reselect()
+		a.ReselectNow()
 	} else if first || hostFirst && a.hostOf(a.Selected) == h {
 		a.selectSession(a.Selected)
 	}
 	a.notify(first)
-	a.updateTitle()
+	a.UpdateTitle()
 }
 
 // openDefaultProject shows the default project's latest session, and starts
@@ -484,7 +488,7 @@ func (a *App) showNotification(id, title, body string) {
 	}
 	n := mygo.NewNotification(mygo.NotificationOptions{ID: "session/" + id, Group: id, Title: title, Body: body, Silent: !a.settingsIn.NotifySound})
 	n.OnClick(func() {
-		a.update(func() {
+		a.UpdateNow(func() {
 			a.selectSession(id)
 			a.ShowWindow()
 		})
@@ -543,7 +547,7 @@ func (a *App) notify(first bool) {
 	mygo.App.SetBadgeCount(waiting)
 }
 
-func (a *App) updateTitle() {
+func (a *App) UpdateTitle() {
 	if a.Win == nil {
 		return
 	}
@@ -595,7 +599,7 @@ func (a *App) selectSession(id string) {
 	}
 	a.focusTerminal()
 	a.ReportViewNow()
-	a.updateTitle()
+	a.UpdateTitle()
 	if changed {
 		a.savePrefs()
 	}
@@ -619,7 +623,7 @@ func (a *App) ReportViewNow() {
 		}
 		id := ""
 		switch {
-		case a.quick.Shown && h == a.local():
+		case a.quick.Shown && h == a.Local():
 			id = a.Prefs.QuickSession
 		case a.watching(a.Selected) && h == shown:
 			id = a.Selected
@@ -672,7 +676,7 @@ type gated = quick.Gated
 // EnsureTerm attaches a terminal to a session, unless one is.
 func (a *App) EnsureTerm(id string) {
 	h := a.hostOf(id)
-	if a.Terms[id] != nil || h.Conn != host.StateReady || a.shows(id) {
+	if a.Terms[id] != nil || h.Conn != host.StateReady || a.Shows(id) {
 		return
 	}
 	e := &termEntry{started: time.Now()}
@@ -681,7 +685,7 @@ func (a *App) EnsureTerm(id string) {
 	go func() {
 		stream, err := client.AttachVia(dialer, id)
 		if err != nil {
-			a.update(func() {
+			a.UpdateNow(func() {
 				if a.Terms[id] == e {
 					e.err = err.Error()
 				}
@@ -698,7 +702,7 @@ func (a *App) EnsureTerm(id string) {
 		term, err := terminal.New(o)
 		if err != nil {
 			stream.Close()
-			a.update(func() {
+			a.UpdateNow(func() {
 				if a.Terms[id] == e {
 					e.err = err.Error()
 				}
@@ -708,7 +712,7 @@ func (a *App) EnsureTerm(id string) {
 		term.Resize(stream.Welcome.Cols, stream.Welcome.Rows)
 		stream.OnResized = term.Resize
 		close(g.Ready)
-		a.update(func() {
+		a.UpdateNow(func() {
 			if a.Terms[id] != e {
 				term.Close()
 				stream.Close()
@@ -773,7 +777,7 @@ func (a *App) watchReturn() {
 			away = true
 		case away && idle < hereIdle:
 			away = false
-			a.update(a.claimShown)
+			a.UpdateNow(a.claimShown)
 		}
 	}
 }
@@ -1112,13 +1116,13 @@ func (a *App) apply(s settings.Settings, save bool) {
 	if old.Pet != s.Pet && a.Win != nil {
 		// Not from inside a view's build: the pet's window opens, or
 		// goes, once this frame is done.
-		a.update(a.syncPet)
+		a.UpdateNow(a.syncPet)
 	}
 	if (old.PetOffset != s.PetOffset || old.PetSize != s.PetSize) && a.Pet.Win != nil {
-		a.update(a.petPlace)
+		a.UpdateNow(a.petPlace)
 	}
 	if old.PetSet != s.PetSet && a.Pet.Win != nil {
-		a.update(a.petSetReload)
+		a.UpdateNow(a.petSetReload)
 	}
 	if old.AppIcon != s.AppIcon && a.Win != nil {
 		a.changeAppIcon()
@@ -1208,7 +1212,7 @@ func (a *App) watchLinkedConfig(ctx context.Context, dir string) {
 func (a *App) reloadConfig() {
 	cur := settings.Load()
 	problems := settings.Problems()
-	a.update(func() {
+	a.UpdateNow(func() {
 		changed := strings.Join(problems, "\n") != strings.Join(a.Ss.Problems, "\n")
 		a.Ss.Problems = problems
 		if !reflect.DeepEqual(cur, a.Applied) {
@@ -1322,7 +1326,7 @@ func (a *App) callOn(h *host.Host, method string, params any, done func(err erro
 	}
 	h.Client.Go(method, params, func(err error) {
 		if done != nil || err != nil {
-			a.update(func() {
+			a.UpdateNow(func() {
 				if done != nil {
 					done(err)
 				} else {
@@ -1354,7 +1358,7 @@ func (a *App) SessionIn(projectID string) {
 	// ⌘T in an SSH or K8s terminal adds a machine or a pod, which opens
 	// its terminal, as the project's own New Session does; a shell there
 	// is no machine's.
-	if projectID == "" && h == a.local() {
+	if projectID == "" && h == a.Local() {
 		if cur := a.session(a.Selected); cur != nil && cur.Project != "" {
 			if cur.Project == a.Prefs.SSHProject {
 				a.AskSSHHost()
@@ -1366,12 +1370,12 @@ func (a *App) SessionIn(projectID string) {
 			}
 		}
 	}
-	a.newSessionOn(h, projectID)
+	a.NewSessionOn(h, projectID)
 }
 
 // newSessionOn starts a session on a host, in a project of its, "" for
 // the one of the session shown there, else the first.
-func (a *App) newSessionOn(h *host.Host, projectID string) {
+func (a *App) NewSessionOn(h *host.Host, projectID string) {
 	if h.Client == nil {
 		return
 	}
@@ -1415,7 +1419,7 @@ func (a *App) create(h *host.Host, p proto.CreateParams, expand string) {
 	go func() {
 		var s proto.Session
 		err := cl.Call("create", p, &s)
-		a.update(func() {
+		a.UpdateNow(func() {
 			if err != nil {
 				a.toast(err.Error())
 				return
@@ -1446,7 +1450,7 @@ func (a *App) addPending(h *host.Host, s proto.Session) {
 // project: of this machine, with the system's dialog, else, with hosts,
 // of any machine, with the app's picker, from the shown session's.
 func (a *App) OpenProjectDialog() {
-	h := a.local()
+	h := a.Local()
 	if h.Client == nil {
 		return
 	}
@@ -1459,7 +1463,7 @@ func (a *App) OpenProjectDialog() {
 		if err != nil || len(paths) == 0 {
 			return
 		}
-		a.update(func() { a.openProjectAt(h, paths[0]) })
+		a.UpdateNow(func() { a.openProjectAt(h, paths[0]) })
 	}()
 }
 
@@ -1496,7 +1500,7 @@ func (a *App) openProjectDirs(h *host.Host, cl *client.Client, dirs []string, lo
 			errs = append(errs, fmt.Errorf("%s: %w", dir, err))
 			continue
 		}
-		a.update(func() {
+		a.UpdateNow(func() {
 			if h.Client != cl {
 				return
 			}
@@ -1509,7 +1513,7 @@ func (a *App) openProjectDirs(h *host.Host, cl *client.Client, dirs []string, lo
 		})
 	}
 	if err := errors.Join(errs...); err != nil {
-		a.update(func() {
+		a.UpdateNow(func() {
 			if h.Client == cl {
 				a.toast(err.Error())
 			}
@@ -1610,7 +1614,7 @@ func (a *App) CommitRename() {
 	s.Name = name // at once; the daemon's state follows
 	a.Call(id, "rename", proto.RenameParams{ID: id, Name: name}, nil)
 	a.focusTerminal()
-	a.updateTitle()
+	a.UpdateTitle()
 }
 
 func (a *App) StartProjectRename(id string) {
@@ -1768,7 +1772,7 @@ func (a *App) hostsLoaded() bool {
 // daemonStale reports whether hylad runs another version of Hyla than
 // this one, as after an update: it speaks the protocol, but runs the code
 // of before until it restarts.
-func (a *App) daemonStale() bool { return a.local().Stale() }
+func (a *App) daemonStale() bool { return a.Local().Stale() }
 
 // OfferRestart restarts hylad into this version of Hyla.
 func (a *App) OfferRestart() { quit.Offer(a) }
@@ -1790,7 +1794,7 @@ func (a *App) busyCount(h *host.Host) int {
 func (a *App) restartFeishu() {
 	p := proto.FeishuEnv{Env: uisettings.AppEnv()}
 	p.Host, _ = os.Hostname()
-	a.callOn(a.local(), "feishu.restart", p, nil)
+	a.callOn(a.Local(), "feishu.restart", p, nil)
 }
 
 // restartDaemon restarts this machine's hylad.
@@ -1799,7 +1803,7 @@ func (a *App) restartDaemon() { quit.Daemon(a) }
 // quitAndEnd ends every session of this machine, and its hylad, then
 // quits: other machines' keep running.
 func (a *App) quitAndEnd() {
-	n := len(a.SessionsOf(a.local()))
+	n := len(a.SessionsOf(a.Local()))
 	a.Confirm = &confirm.Ask{
 		Open:    true,
 		Title:   locales.ConfirmQuitAllTitle(),
@@ -1816,7 +1820,7 @@ func (a *App) quitAndEnd() {
 // while is the daemon's to finish, as it is for Quit and End All
 // Sessions: the app does not wait on it.
 func (a *App) EndSessionsAndQuit() {
-	h := a.local()
+	h := a.Local()
 	cl := h.Client
 	// The daemon may take its time ending the sessions: the app leaves
 	// within quit.Grace whatever it answers.

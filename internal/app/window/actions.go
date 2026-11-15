@@ -54,12 +54,12 @@ func (a *App) run(id string, args map[string]string) {
 		case dir != "":
 			a.NewSessionInDir(a.actionHost(), dir)
 		case a.From != nil:
-			a.newSessionOn(a.From, args["project"])
+			a.NewSessionOn(a.From, args["project"])
 		default:
 			a.SessionIn(args["project"])
 		}
 	case "session.newHome":
-		a.NewSessionInDir(a.local(), proto.Home())
+		a.NewSessionInDir(a.Local(), proto.Home())
 	case "session.newWorktree":
 		worktree.NewSession(a)
 	case "project.open":

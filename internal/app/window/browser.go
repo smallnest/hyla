@@ -89,6 +89,6 @@ func (a *App) paneBrowser(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, sh
 
 func (a *App) sessionOfPane(id string) *proto.Session { return webpane.SessionOfPane(a, id) }
 
-func (a *App) shows(id string) bool { return webpane.Shows(a, id) }
+func (a *App) Shows(id string) bool { return webpane.Shows(a, id) }
 
 func (a *App) findInPage(e *webpane.Entry, next, back bool) { webpane.FindInPage(a, e, next, back) }

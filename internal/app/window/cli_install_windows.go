@@ -32,7 +32,7 @@ func (a *App) installCLI() {
 		if err == nil {
 			err = addToUserPath(cliBin())
 		}
-		a.update(func() {
+		a.UpdateNow(func() {
 			if err != nil {
 				a.toast(locales.CliInstallFailed(err.Error()))
 				return

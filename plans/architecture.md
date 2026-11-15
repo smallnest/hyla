@@ -326,7 +326,13 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     meets another (`Call` for the sidebar and the worktree's `Sess`,
     beside `CallPane` for the panes and the shell), where it wraps
     another (`CacheShown`, `PanesIn`, `ChromeNow`) or where it holds
-    a smaller interface (`order`, `Root`, `AskNew`).
+    a smaller interface (`order`, `Root`, `AskNew`). The next pass took
+    the same for names that differ by a suffix or a prefix: `Local`,
+    `Shows`, `DropHostTerms`, `HostState`, `NewSessionOn`, `UpdateTitle`
+    and their like. Where an interface names one method that another
+    also needs, the app keeps one and calls the other by its name —
+    `Update` for the views, `UpdateNow` for the host link, which names
+    a session's `Update` as well.
   - The guard now fails on a package of `internal/` that no layer's
     names hold. It found `buildinfo`, `fileicons` and `profiling` never
     listed.

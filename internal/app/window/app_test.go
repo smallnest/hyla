@@ -23,7 +23,7 @@ import (
 func TestSplitRightWithoutSessionStartsOne(t *testing.T) {
 	a := testApp(t)
 	a.St.Sessions, a.Selected = nil, ""
-	a.local().Conn = host.StateReady
+	a.Local().Conn = host.StateReady
 	calls := make(chan string, 2)
 	cl, stop := projectClient(t, func(method string, raw json.RawMessage) (any, error) {
 		switch method {
@@ -45,7 +45,7 @@ func TestSplitRightWithoutSessionStartsOne(t *testing.T) {
 			return nil, errors.New("unexpected method " + method)
 		}
 	})
-	a.local().Client = cl
+	a.Local().Client = cl
 	defer stop()
 
 	a.run("pane.split.right", nil)
@@ -176,8 +176,8 @@ func TestOpenProjectDirectories(t *testing.T) {
 			return nil, errors.New("unexpected method")
 		}
 	})
-	a.local().Client = cl
-	a.openProjectDirs(a.local(), cl, []string{first, invalid, alias, "", "relative", "file:///tmp/project", failed, packaged, second}, true)
+	a.Local().Client = cl
+	a.openProjectDirs(a.Local(), cl, []string{first, invalid, alias, "", "relative", "file:///tmp/project", failed, packaged, second}, true)
 	stop()
 	if want := []string{first, second}; !slices.Equal(opened, want) {
 		t.Errorf("sessions opened in %q, want %q", opened, want)

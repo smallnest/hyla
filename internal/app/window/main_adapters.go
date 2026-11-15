@@ -27,7 +27,7 @@ func (a *App) Language() string { return uisettings.LocaleTag(a.settingsIn.Langu
 // LanguageChanged draws anew what the language changes: the menu, the
 // settings window's title, the pet's, and the tray's menu.
 func (a *App) LanguageChanged() {
-	a.update(func() {
+	a.UpdateNow(func() {
 		mygo.App.SetMenu(a.menu())
 		if a.SetWin != nil {
 			a.SetWin.SetTitle(locales.SettingsTitle())
@@ -45,10 +45,10 @@ func (a *App) LanguageChanged() {
 // went: each tells the hosts which session the user looks at.
 func (a *App) BecomesActive() {
 	mygo.ClearNotifications()
-	a.update(func() { a.Active = true; a.ReportViewNow() })
+	a.UpdateNow(func() { a.Active = true; a.ReportViewNow() })
 }
 
-func (a *App) Resigns() { a.update(func() { a.Active = false; a.ReportViewNow() }) }
+func (a *App) Resigns() { a.UpdateNow(func() { a.Active = false; a.ReportViewNow() }) }
 
 // Activated shows the window when nothing of the app shows.
 func (a *App) Activated(hasVisible bool) {
@@ -108,8 +108,8 @@ func (a *App) openWindow() {
 		Content:   ui.View(a.view),
 	}, layout.TopBar, layout.BarMid))
 	a.WinOpen = true
-	a.updateTitle()
-	a.Win.OnFocus(func() { a.update(func() { a.setFocused(true); a.claimShown(); a.ReportViewNow() }) })
-	a.Win.OnBlur(func() { a.update(func() { a.setFocused(false); a.ReportViewNow() }) })
+	a.UpdateTitle()
+	a.Win.OnFocus(func() { a.UpdateNow(func() { a.setFocused(true); a.claimShown(); a.ReportViewNow() }) })
+	a.Win.OnBlur(func() { a.UpdateNow(func() { a.setFocused(false); a.ReportViewNow() }) })
 	a.Win.OnClosed(a.windowClosed)
 }

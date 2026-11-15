@@ -11,13 +11,13 @@ import (
 	"hyla/internal/ui/sidebar"
 )
 
-func (a *App) local() *host.Host { return a.Machines[0] }
+func (a *App) Local() *host.Host { return a.Machines[0] }
 
 func (a *App) hostOf(id string) *host.Host {
 	if h := a.Owner[id]; h != nil {
 		return h
 	}
-	return a.local()
+	return a.Local()
 }
 
 // hostNamed returns a remote host, by name, else nil.
@@ -31,7 +31,7 @@ func (a *App) hostNamed(name string) *host.Host {
 }
 
 // selectedHost is the host of the session shown: this machine.
-func (a *App) selectedHost() *host.Host { return a.local() }
+func (a *App) selectedHost() *host.Host { return a.Local() }
 
 // sessionsOn returns a host's sessions, in the state the app shows.
 func (a *App) sessionsOn(h *host.Host) []proto.Session {
@@ -91,11 +91,12 @@ func (a *App) allLoaded() bool {
 }
 
 // actionHost is the host an action runs for: this machine.
-func (a *App) actionHost() *host.Host { return a.local() }
+func (a *App) actionHost() *host.Host { return a.Local() }
 
-// reselect shows another session when the one shown is gone: the first,
-// once the state came or failed to.
-func (a *App) reselect() {
+// ReselectNow shows another session when the one shown is gone: the
+// first, once the state came or failed to. Reselect is the same, under
+// the name the hosts' views and the host link ask.
+func (a *App) ReselectNow() {
 	if a.session(a.Selected) != nil {
 		return
 	}
@@ -108,6 +109,8 @@ func (a *App) reselect() {
 	}
 }
 
+func (a *App) Reselect() { a.ReselectNow() }
+
 // mergeState makes st a host's part of the state the app shows.
 func (a *App) mergeState(h *host.Host, st proto.State) {
 	a.St.Projects, a.St.Sessions, a.Owner = hostlink.Merge(a, h, st)
@@ -116,9 +119,9 @@ func (a *App) mergeState(h *host.Host, st proto.State) {
 // own records a session the app just made as a host's.
 func (a *App) own(h *host.Host, s proto.Session) { hostlink.Own(a, h, s) }
 
-// dropTerms lets go of a host's terminals, which attach again as they
+// DropHostTerms lets go of a host's terminals, which attach again as they
 // show.
-func (a *App) dropTerms(h *host.Host) {
+func (a *App) DropHostTerms(h *host.Host) {
 	for id := range a.Terms {
 		if a.hostOf(id) == h {
 			a.dropTerm(id)

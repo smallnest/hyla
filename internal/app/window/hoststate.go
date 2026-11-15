@@ -37,6 +37,6 @@ func (a *App) ConfirmRestart(h *host.Host) {
 func (a *App) DaemonVersion() string { return mygo.App.Version() }
 
 // hostStateNow says how the app stands with a machine's hylad.
-func (a *App) hostStateNow(c *ui.Context, pal *theme.Palette, h *host.Host) {
+func (a *App) HostState(c *ui.Context, pal *theme.Palette, h *host.Host) {
 	hostlink.State(a, c, pal, h)
 }

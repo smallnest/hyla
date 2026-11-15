@@ -3,7 +3,6 @@ package window
 import (
 	ui "github.com/egoist/mygo/ui"
 
-	"hyla/internal/proto"
 	"hyla/internal/settings"
 	"hyla/internal/ui/layout"
 	"hyla/internal/ui/side"
@@ -56,10 +55,6 @@ func (a *App) showSide(view string) { side.Show(a, view) }
 func (a *App) sideWidth(w float32) float32 { return side.Width(a.Prefs.SideWidth, sideGap, w) }
 
 func (a *App) SideEdge(c *ui.Context, pal *theme.Palette, row float32) { side.Edge(a, c, pal, row) }
-
-func (a *App) sidePanel(c *ui.Context, pal *theme.Palette, s *proto.Session, width float32, right bool) {
-	side.Panel(a, c, pal, s, width, right)
-}
 
 func sideRowW(winW float32, ch layout.Chrome) float32 {
 	return side.RowW(winW, ch.SideW, ch.MainPad, layout.CardGap)

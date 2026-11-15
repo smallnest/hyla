@@ -53,13 +53,13 @@ func (a *App) SideCrowded() bool { return a.Side.Crowded }
 func (a *App) UnforcePanel() { a.Side.Forced = false }
 
 func (a *App) SidebarTakesFiles() bool {
-	h := a.local()
+	h := a.Local()
 	return h.Conn == host.StateReady && h.Client != nil && !a.Prefs.SidebarHidden && !a.Pal.Open && !a.Picker.Open &&
 		a.SshAsk == nil && a.K8sAsk == nil && (a.Confirm == nil || !a.Confirm.Open)
 }
 
 func (a *App) SidebarDropped(files []string) {
-	h := a.local()
+	h := a.Local()
 	go a.openProjectDirs(h, h.Client, slices.Clone(files), true)
 }
 func (a *App) CardFor(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown float32, id string) {
@@ -148,10 +148,10 @@ func (a *App) Leaving()                                { a.quittingApp = true }
 func (a *App) SessionsOn(h *host.Host) []proto.Session { return a.sessionsOn(h) }
 
 // The restart's steps, as a quit's restart asks them.
-func (a *App) Restarting() { a.local().Conn = host.StateConnecting }
+func (a *App) Restarting() { a.Local().Conn = host.StateConnecting }
 
 func (a *App) RestartEnded(err error) {
-	h := a.local()
+	h := a.Local()
 	if err != nil {
 		h.Conn, h.Err = host.StateFailed, err.Error()
 		a.toast(locales.HostRestartFailed(err.Error()))
@@ -163,4 +163,4 @@ func (a *App) RestartEnded(err error) {
 // The restart's versions, as offering one asks them.
 func (a *App) Version() string { return mygo.App.Version() }
 
-func (a *App) DaemonApp() string { return a.local().DaemonApp }
+func (a *App) DaemonApp() string { return a.Local().DaemonApp }

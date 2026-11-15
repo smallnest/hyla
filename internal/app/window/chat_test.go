@@ -83,7 +83,7 @@ func (f *fakeHylad) answer(req proto.Request) proto.Message {
 		// A state event's, as the app merges it.
 		a := f.a
 		if a != nil {
-			go a.main(func() { a.TakeStateOf(a.local(), st) })
+			go a.main(func() { a.TakeStateOf(a.Local(), st) })
 		}
 		return proto.Message{ID: req.ID}
 	case "host.info", "view":
@@ -167,7 +167,7 @@ func chatApp(t *testing.T) (*App, *fakeHylad) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { cl.Close() })
-	h := a.local()
+	h := a.Local()
 	h.Client = cl
 	h.Conn = host.StateReady
 	// The pane's terminal, whose program is a pipe here, takes the chat's

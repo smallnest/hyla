@@ -52,7 +52,7 @@ func (a *App) CardGap() float32                           { return layout.CardGa
 func (a *App) Vibrancy(s settings.Settings) mygo.Vibrancy { return vibrancyFor(s) }
 
 func (a *App) CallOnLocal(method string, params any, done func(err error)) {
-	a.callOn(a.local(), method, params, done)
+	a.callOn(a.Local(), method, params, done)
 }
 
 // WindowControls draws the window's own buttons, where the system draws

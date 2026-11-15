@@ -9,8 +9,6 @@ import (
 // The app, as the pane actions ask it.
 var _ panes.App = (*App)(nil)
 
-func (a *App) SelectedSession() *proto.Session { return a.session(a.Selected) }
-
 func (a *App) FocusMap() map[string]string {
 	if a.Focus == nil {
 		a.Focus = map[string]string{}
@@ -20,7 +18,6 @@ func (a *App) FocusMap() map[string]string {
 
 func (a *App) SetConfirm(q *confirm.Ask) { a.Confirm = q }
 func (a *App) DropTerms(pane string)     { a.dropTerm(pane) }
-func (a *App) Shows(pane string) bool    { return a.shows(pane) }
 
 func (a *App) splitPane(s *proto.Session, at, direction string) { panes.SplitPane(a, s, at, direction) }
 

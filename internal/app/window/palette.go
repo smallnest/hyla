@@ -37,8 +37,6 @@ func (a *App) Groups() [][]*proto.Session {
 
 func (a *App) HostOf(id string) *host.Host { return a.hostOf(id) }
 
-func (a *App) Local() *host.Host { return a.local() }
-
 func (a *App) Shown() string { return a.Selected }
 
 func (a *App) Session(id string) *proto.Session { return a.session(id) }
@@ -96,7 +94,7 @@ func (a *App) ResumeConversation(h *host.Host, cv proto.Conversation) {
 	go func() {
 		var s proto.Session
 		err := cl.Call("conversation.resume", p, &s)
-		a.update(func() {
+		a.UpdateNow(func() {
 			if err != nil {
 				a.toast(err.Error())
 				return

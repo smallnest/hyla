@@ -151,7 +151,7 @@ func TestRemoteHost(t *testing.T) {
 	if len(a.Machines) != 1 || a.hostNamed("studio") != nil {
 		t.Errorf("hosts %+v", a.Machines)
 	}
-	if a.hostOf("rs") != a.local() {
+	if a.hostOf("rs") != a.Local() {
 		t.Error("a session of the machine stayed")
 	}
 }

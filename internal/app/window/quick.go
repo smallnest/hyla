@@ -26,7 +26,7 @@ func (a *App) Recording() string { return a.Ss.Recording }
 
 func (a *App) Quitting() bool { return a.quittingApp }
 
-func (a *App) LocalHost() *host.Host { return a.local() }
+func (a *App) LocalHost() *host.Host { return a.Local() }
 
 func (a *App) SessionOf(id string) *proto.Session { return a.session(id) }
 
