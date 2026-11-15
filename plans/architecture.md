@@ -136,8 +136,7 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     names and sizes, opening and closing it, the edge a drag moves, the
     moved card and its tabs — over an `App` of the views it shows,
     which the root's `side_adapters.go` gives it. The Info view's
-    place is its state's, `side.InfoState`, until `internal/ui/info`
-    takes it.
+    place, its scroll, is the panel's state's too.
   - Also: the Chat view is `internal/ui/chat` — a session's windows,
     their reads (`feishu.feed`) and the lines. The root keeps the state
     in the side panel's struct, and `chat.go` as its adapters.

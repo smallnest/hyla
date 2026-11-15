@@ -36,9 +36,9 @@ type App interface {
 	WorkDir(id string) string
 	// FocusOf is the pane of a session the user is in.
 	FocusOf(s *proto.Session) string
-	// Scroll is the Info view's scroll.
-	Scroll() *ui.ScrollState
-	// SideMessage shows a word in the side panel.
+	// InfoScroll is the Info view's scroll, and SideMessage shows a word
+	// in the side panel.
+	InfoScroll() *ui.ScrollState
 	SideMessage(c *ui.Context, pal *theme.Palette, title, detail string)
 	// Folded are the cards the user folded, by their key, and sets one.
 	Folded() map[string]bool
@@ -91,7 +91,7 @@ func View(c *ui.Context, x App, pal *theme.Palette, s *proto.Session) {
 		return
 	}
 	infoTick(c, x, p)
-	ui.Scroll(c.Key("info")).Grow(1).MinHeight(0).TrackScroll(x.Scroll()).Children(func() {
+	ui.Scroll(c.Key("info")).Grow(1).MinHeight(0).TrackScroll(x.InfoScroll()).Children(func() {
 		Body(c, x, pal, s, p)
 	})
 }

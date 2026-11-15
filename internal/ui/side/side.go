@@ -79,13 +79,6 @@ type App interface {
 	InfoSide(c *ui.Context, pal *theme.Palette, s *proto.Session)
 }
 
-// InfoState is the Info view's: what it keeps of the pane it shows.
-// internal/ui/info moves it here.
-type InfoState struct {
-	// Scroll is the view's place.
-	Scroll ui.ScrollState
-}
-
 // State is the panel's, beside the prefs that open it and size it.
 type State struct {
 	// Drag is the width as a drag of the edge began, 0 while none.
@@ -108,7 +101,7 @@ type State struct {
 	// FileOpeners tells that the left control of the header is pressed,
 	// which shows the viewer, the file open, over the panel.
 	FileOpeners bool
-	Info        InfoState
+	Info        ui.ScrollState // the Info view's place
 	Chat        chat.State
 }
 
