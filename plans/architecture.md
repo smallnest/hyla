@@ -208,6 +208,11 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     read it. The preferences it sets are a copy's: `PrefsNow` gives the
     app's own back, as its `SetProjectOrder` and `SetSessionOrder` set
     them.
+  - Also: the icon in the menu bar or the notification area, its menu and
+    its images are `internal/ui/tray`, of the cli layer as it reads the
+    menus' titles; its images moved from the root's `icons/`. `tray.go`
+    is its adapters, and keeps the window's closing, which the icon makes
+    the app's to.
   - Also: the panes' drawing is `internal/ui/panes`, beside their
     actions: the card, the layout's nodes and its divider, the header and
     its controls, the terminal's body, the drop preview and the moves a

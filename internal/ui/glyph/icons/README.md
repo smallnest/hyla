@@ -14,4 +14,4 @@ The Files tree's file and folder icons are elsewhere: [Pierre Icons](https://dif
 All but the Pierre set's as [Iconify](https://iconify.design) serves them: `https://api.iconify.design/f7/<name>.svg`.
 
 The app's icon files, which the bundle and its installer use, are in
-`resources/` and `icons/`: `icons/tray-template.png` is the frog of the app's icon (`resources/icon.png`) as a silhouette of its green, without the dark outline, black on transparent for macOS to tint in the menu bar, with its eyes, mouth and paws cut out of it: 14 points tall, centered in 18×18 points, at 2×. `tray.png` is the app's icon at 64×64, for the notification area of Windows and Linux.
+`resources/` and `internal/ui/tray/icons/`: `internal/ui/tray/icons/tray-template.png` is the frog of the app's icon (`resources/icon.png`) as a silhouette of its green, without the dark outline, black on transparent for macOS to tint in the menu bar, with its eyes, mouth and paws cut out of it: 14 points tall, centered in 18×18 points, at 2×. `internal/ui/tray/icons/tray.png` is the app's icon at 64×64, for the notification area of Windows and Linux.

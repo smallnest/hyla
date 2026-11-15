@@ -1,114 +1,38 @@
 package main
 
 import (
-	_ "embed"
-	"log"
-	"runtime"
-
 	"github.com/egoist/mygo"
-	"github.com/egoist/mygo/plugins/updater"
 
-	"hyla/internal/settings"
-
-	"hyla/locales"
+	"hyla/internal/ui/tray"
 )
 
-// Hyla's icon in the menu bar on macOS, as Settings › General chooses
-// (settings.AppIcons), and always in the notification area on Windows and
-// Linux. While it shows, closing the window leaves Hyla running there,
-// until the user quits; the icon opens the window again.
+// The app, as the icon in the menu bar or the notification area asks it.
+var _ tray.App = (*App)(nil)
 
-// trayTemplate is the frog of the app's icon, black on transparent for
-// macOS to tint: 14 points tall in the menu bar's 18, as other apps'
-// icons are, at 2×.
-//
-//go:embed icons/tray-template.png
-var trayTemplate []byte
+func (a *App) ShowWindow() { a.showWin() }
 
-// trayColor is the app's icon, for the notification area.
-//
-//go:embed icons/tray.png
-var trayColor []byte
+func (a *App) QuitItem(id string) string { return a.ActionTitle(id) }
 
-// showsTray tells whether the app's icon shows in the menu bar or the
-// notification area.
-func showsTray(s settings.Settings) bool {
-	return runtime.GOOS != "darwin" || s.AppIcon != "dock"
-}
+func (a *App) OpenSettingsAt() { a.openSettings("") }
 
-// activationPolicy is macOS's for a setting: no Dock icon for the menu bar
-// alone.
-func activationPolicy(s settings.Settings) mygo.ActivationPolicy {
-	if s.AppIcon == "menubar" {
-		return mygo.ActivationPolicyAccessory
-	}
-	return mygo.ActivationPolicyRegular
-}
+func (a *App) ShowQuick() { a.showQuick() }
 
-// changeAppIcon shows the app's icon where the settings now say, as the
-// user chose another place for it.
-func (a *App) changeAppIcon() {
-	if runtime.GOOS == "darwin" {
-		mygo.App.SetActivationPolicy(activationPolicy(a.settingsIn))
-		// Without a Dock icon, macOS may leave the app inactive behind
-		// another's windows: the Settings window the user chose in stays
-		// in front.
-		mygo.App.Focus()
-	}
-	a.applyTray()
-}
+func (a *App) TrayNow() *mygo.Tray { return a.Tray }
 
-// applyTray adds or removes the icon in the menu bar or notification area,
-// as the settings say, in the running app.
-func (a *App) applyTray() {
-	switch show := showsTray(a.settingsIn); {
-	case show && a.Tray == nil:
-		icon, template := trayColor, false
-		if runtime.GOOS == "darwin" {
-			icon, template = trayTemplate, true
-		}
-		t, err := mygo.NewTray(mygo.TrayOptions{ID: "hyla", Icon: icon, IconIsTemplate: template, ToolTip: mygo.App.Name(), Menu: a.trayMenu()})
-		if err != nil {
-			log.Println("hyla: tray:", err)
-			return
-		}
-		// Windows' left click, where the right one opens the menu.
-		t.OnClick(a.showWindow)
-		a.Tray = t
-	case !show && a.Tray != nil:
-		a.Tray.Destroy()
-		a.Tray = nil
-	}
-}
+func (a *App) SetTray(t *mygo.Tray) { a.Tray = t }
 
-// trayMenu is the icon's menu: the window, Settings, updates, and
-// quitting.
-func (a *App) trayMenu() *mygo.Menu {
-	// The updater's window in front, as from the menu bar alone, where the
-	// app may not be.
-	check := updater.MenuItem()
-	click := check.Click
-	check.Click = func(it *mygo.MenuItem, w *mygo.Window) {
-		mygo.App.Focus()
-		click(it, w)
-	}
-	return mygo.NewMenu([]*mygo.MenuItem{
-		{Label: locales.TrayOpen(mygo.App.Name()), Click: func(*mygo.MenuItem, *mygo.Window) { a.showWindow() }},
-		{Label: a.ActionTitle(QuickAction), Click: func(*mygo.MenuItem, *mygo.Window) { a.update(a.showQuick) }},
-		mygo.Separator(),
-		{Label: a.ActionTitle("settings.open"), Click: func(*mygo.MenuItem, *mygo.Window) {
-			mygo.App.Focus()
-			a.update(func() { a.openSettings("") })
-		}},
-		check,
-		mygo.Separator(),
-		{Label: locales.MenuQuitApp(mygo.App.Name()), Click: func(*mygo.MenuItem, *mygo.Window) { mygo.App.Quit() }},
-	})
-}
+// changeAppIcon shows the app's icon where the settings now say.
+func (a *App) changeAppIcon() { tray.Change(a) }
 
-// showWindow brings the main window to the front, made anew if it was
+// applyTray adds or removes the app's icon, as the settings say.
+func (a *App) applyTray() { tray.Apply(a) }
+
+// trayMenu is the icon's menu.
+func (a *App) trayMenu() *mygo.Menu { return tray.Menu(a) }
+
+// showWin brings the main window to the front, made anew if it was
 // closed.
-func (a *App) showWindow() {
+func (a *App) showWin() {
 	if a.Win == nil {
 		return
 	}
@@ -145,3 +69,6 @@ func (a *App) lastWindowClosed() {
 		mygo.App.Quit()
 	}
 }
+
+// Title is an action's title, for the icon's menu.
+func (a *App) Title(id string) string { return a.ActionTitle(id) }

@@ -31,6 +31,7 @@ import (
 	"hyla/internal/proto"
 
 	uisettings "hyla/internal/ui/settings"
+	"hyla/internal/ui/tray"
 	"hyla/locales"
 )
 
@@ -118,7 +119,7 @@ func runApp() {
 			}
 		})
 	})
-	mygo.App.OnSecondInstance(func([]string, string) { a.showWindow() })
+	mygo.App.OnSecondInstance(func([]string, string) { a.ShowWindow() })
 	mygo.App.OnDidBecomeActive(func() {
 		mygo.ClearNotifications()
 		a.update(func() { a.Active = true; a.reportView() })
@@ -128,7 +129,7 @@ func runApp() {
 	})
 	mygo.App.OnActivate(func(hasVisible bool) {
 		if !hasVisible {
-			a.showWindow()
+			a.ShowWindow()
 		}
 	})
 	mygo.App.OnWindowAllClosed(a.lastWindowClosed)
@@ -149,7 +150,7 @@ func runApp() {
 	})
 	// No Dock icon from the start for the menu bar alone.
 	if runtime.GOOS == "darwin" {
-		mygo.App.SetActivationPolicy(activationPolicy(a.settingsIn))
+		mygo.App.SetActivationPolicy(tray.Policy(a.settingsIn))
 	}
 	mygo.App.WhenReady(func() {
 		a.openWindow()

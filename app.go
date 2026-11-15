@@ -353,7 +353,7 @@ func (a *App) event(h *host.Host, cl *client.Client, m proto.Message) {
 		}
 		a.selectSession(m.Select)
 		if a.Win != nil {
-			a.showWindow()
+			a.ShowWindow()
 		}
 	case "action":
 		if !a.remoteControl(h) {
@@ -483,7 +483,7 @@ func (a *App) showNotification(id, title, body string) {
 	n.OnClick(func() {
 		a.update(func() {
 			a.selectSession(id)
-			a.showWindow()
+			a.ShowWindow()
 		})
 		n.Close()
 	})
