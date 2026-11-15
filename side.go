@@ -255,9 +255,9 @@ func (a *App) sidePanel(c *ui.Context, pal *theme.Palette, s *proto.Session, wid
 		ui.Row(c.Key("hdr")).Height(headerH).Shrink(0).AlignItems(ui.Center).Padding(0, 10, 0, 16).Gap(8).Children(func() {
 			// The views, the one shown marked, as a pane's header shows
 			// its program.
-			a.sideTabButton(c, pal, sideInfo, locales.SideInfo(), infoIcon, view == sideInfo, "info.toggle", func() { set = sideInfo })
-			a.sideTabButton(c, pal, sideChanges, locales.SideChanges(), diffIcon, view == sideChanges, "changes.toggle", func() { set = sideChanges })
-			a.sideTabButton(c, pal, sideFiles, locales.SideFiles(), folderIcon, view == sideFiles, "files.toggle", func() { set = sideFiles })
+			a.sideTabButton(c, pal, sideInfo, locales.SideInfo(), glyph.Info, view == sideInfo, "info.toggle", func() { set = sideInfo })
+			a.sideTabButton(c, pal, sideChanges, locales.SideChanges(), glyph.Diff, view == sideChanges, "changes.toggle", func() { set = sideChanges })
+			a.sideTabButton(c, pal, sideFiles, locales.SideFiles(), glyph.Folder, view == sideFiles, "files.toggle", func() { set = sideFiles })
 			if set != "" {
 				a.defer_(func() { a.showSide(set) })
 			}
@@ -267,7 +267,7 @@ func (a *App) sidePanel(c *ui.Context, pal *theme.Palette, s *proto.Session, wid
 			// their room.
 			ui.Box(c.Key("drag")).Grow(1).AlignSelf(ui.Stretch).DragWindow()
 			if view == sideFiles && a.side.files.views[s.ID] != nil {
-				iconButton(c, "files-toggle-view", docIcon, a.tip(locales.FilesCloseFile(), "files-close"), pal, func() {
+				iconButton(c, "files-toggle-view", glyph.Doc, a.tip(locales.FilesCloseFile(), "files-close"), pal, func() {
 					a.defer_(func() {
 						if fv := a.side.files.views[s.ID]; fv != nil {
 							fv.open = false
@@ -275,7 +275,7 @@ func (a *App) sidePanel(c *ui.Context, pal *theme.Palette, s *proto.Session, wid
 					})
 				})
 			}
-			iconButton(c, "close-side", closeIcon, a.tip(locales.SideClose(), "changes.toggle"), pal, func() { a.defer_(func() { a.toggleSide("") }) })
+			iconButton(c, "close-side", glyph.Close, a.tip(locales.SideClose(), "changes.toggle"), pal, func() { a.defer_(func() { a.toggleSide("") }) })
 			if right {
 				windowControls(c, pal, a.win)
 			}
@@ -475,9 +475,9 @@ func (a *App) changesView(c *ui.Context, pal *theme.Palette, s *proto.Session, w
 			}
 			ui.Spacer(c)
 			split := a.diffSplit(width)
-			layoutIcon, layoutTip := splitRightIcon, locales.ChangesSplit()
+			layoutIcon, layoutTip := glyph.SplitRight, locales.ChangesSplit()
 			if split {
-				layoutIcon, layoutTip = splitDownIcon, locales.ChangesUnified()
+				layoutIcon, layoutTip = glyph.SplitDown, locales.ChangesUnified()
 			}
 			iconButton(c, "layout", layoutIcon, layoutTip, pal, func() {
 				set := a.set
@@ -691,7 +691,7 @@ func (a *App) fileHeader(c *ui.Context, pal *theme.Palette, scope, root string, 
 		ch.collapsed[key] = !collapsed
 	}
 	hdr.Children(func() {
-		chev := ui.Icon(c, chevronIcon).Size(10, 10).TextColor(pal.TextFaint).Shrink(0)
+		chev := ui.Icon(c, glyph.Chevron).Size(10, 10).TextColor(pal.TextFaint).Shrink(0)
 		chev.Rotate(chev.AnimateTo("turn", 90*(1-b2f(collapsed)), ui.Snappy))
 		a.statusBadge(c, pal, f.Status)
 		dir, name := path.Split(f.Path)
@@ -708,7 +708,7 @@ func (a *App) fileHeader(c *ui.Context, pal *theme.Palette, scope, root string, 
 		}
 		if f.Status != "deleted" {
 			full := filepath.Join(root, filepath.FromSlash(f.Path))
-			iconButton(c, "open", openFileIcon, locales.ChangesOpenFile(), pal, func() { openPath(full) })
+			iconButton(c, "open", glyph.OpenFile, locales.ChangesOpenFile(), pal, func() { openPath(full) })
 		}
 	})
 }
@@ -931,7 +931,7 @@ func (a *App) diffOptions(c *ui.Context, pal *theme.Palette, s *proto.Session, s
 	d.RenderHunkActions = func(c *ui.Context, bar ui.Element, h *editor.DiffHunkActions) {
 		style.Floating(bar.Gap(2).Padding(3).Radius(8).Background(pal.Popover).AlignItems(ui.Center), pal)
 		bar.Children(func() {
-			if hunkButton(c, "revert", revertIcon, locales.ChangesRevert(), locales.ChangesRevertTip(), pal) {
+			if hunkButton(c, "revert", glyph.Revert, locales.ChangesRevert(), locales.ChangesRevertTip(), pal) {
 				h.Revert()
 				a.writeBack(sf)
 			}
@@ -975,14 +975,14 @@ func (a *App) separator(c *ui.Context, pal *theme.Palette, sep ui.Element, s *ed
 			}
 			switch {
 			case s.First:
-				chevron("up", chevronUpIcon, locales.ChangesExpandUp(), s.ExpandUp)
+				chevron("up", glyph.ChevronUp, locales.ChangesExpandUp(), s.ExpandUp)
 			case s.Last:
-				chevron("down", chevronDownIcon, locales.ChangesExpandDown(), s.ExpandDown)
+				chevron("down", glyph.ChevronDown, locales.ChangesExpandDown(), s.ExpandDown)
 			case s.Lines <= s.Step:
-				chevron("all", chevronIcon, locales.ChangesExpandAll(), s.ExpandAll)
+				chevron("all", glyph.Chevron, locales.ChangesExpandAll(), s.ExpandAll)
 			default:
-				chevron("down", chevronDownIcon, locales.ChangesExpandDown(), s.ExpandDown)
-				chevron("up", chevronUpIcon, locales.ChangesExpandUp(), s.ExpandUp)
+				chevron("down", glyph.ChevronDown, locales.ChangesExpandDown(), s.ExpandDown)
+				chevron("up", glyph.ChevronUp, locales.ChangesExpandUp(), s.ExpandUp)
 			}
 			label := locales.ChangesUnmodified(s.Lines)
 			b := ui.ButtonBase(c.Key("lines")).Height(24).Padding(0, 4).Radius(6).AlignItems(ui.Center).Label(label).Tooltip(locales.ChangesExpandAll())

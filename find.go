@@ -12,6 +12,8 @@ import (
 
 	"hyla/internal/ui/style"
 	"hyla/locales"
+
+	"hyla/internal/ui/glyph"
 )
 
 // findState is the find bar's: a search of a pane's output, its scrollback
@@ -103,7 +105,7 @@ func (a *App) findBar(c *ui.Context, pal *theme.Palette, p *proto.Pane, t *termi
 	bar := ui.Row(c.Key("find")).Absolute().Top(8).Right(12).Height(36).Padding(0, 4, 0, 12).Gap(4).
 		AlignItems(ui.Center).Radius(10).Background(pal.Popover).Label(locales.FindLabel())
 	style.Floating(bar, pal).Children(func() {
-		ui.Icon(c, searchIcon).Size(13, 13).TextColor(pal.TextMuted).Shrink(0)
+		ui.Icon(c, glyph.Search).Size(13, 13).TextColor(pal.TextMuted).Shrink(0)
 		in := ui.TextInputBase(c.Key("q"), &f.query).Width(180).FontSize(13).Placeholder(locales.FindPlaceholder()).Bind(&f.input)
 		if f.focus {
 			f.focus = false
@@ -129,9 +131,9 @@ func (a *App) findBar(c *ui.Context, pal *theme.Palette, p *proto.Pane, t *termi
 		}
 		ui.Text(c, count).FontSize(12).FontFeatures("tnum").TextColor(pal.TextFaint).SingleLine().MinWidth(56).TextAlign(ui.End).Margin(0, 4, 0, 0)
 		// Up goes back through the output, as Enter does, as in Ghostty.
-		iconButton(c, "next", chevronUpIcon, a.tip(locales.ActionFindNext(), "find.next"), pal, t.SearchNext)
-		iconButton(c, "previous", chevronDownIcon, a.tip(locales.ActionFindPrevious(), "find.previous"), pal, t.SearchPrevious)
-		iconButton(c, "close", closeIcon, locales.FindClose(), pal, func() { a.defer_(a.closeFind) })
+		iconButton(c, "next", glyph.ChevronUp, a.tip(locales.ActionFindNext(), "find.next"), pal, t.SearchNext)
+		iconButton(c, "previous", glyph.ChevronDown, a.tip(locales.ActionFindPrevious(), "find.previous"), pal, t.SearchPrevious)
+		iconButton(c, "close", glyph.Close, locales.FindClose(), pal, func() { a.defer_(a.closeFind) })
 	})
 	// Escape closes it from its field and its buttons alike.
 	if bar.Shortcut(0, ui.KeyEscape) {

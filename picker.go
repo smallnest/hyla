@@ -12,6 +12,8 @@ import (
 
 	"hyla/internal/ui/style"
 	"hyla/locales"
+
+	"hyla/internal/ui/glyph"
 )
 
 // folderPicker lists the folders of a host, to open a project in, as the
@@ -137,7 +139,7 @@ func (a *App) pickerView(c *ui.Context, pal *theme.Palette) {
 		style.Floating(panel.Width(600).MaxHeight(500).Radius(14).Background(pal.Popover), pal).Clip().
 			Label(locales.PickerTitle(h.label()))
 		ui.Row(c).Height(42).Shrink(0).Padding(0, 16).Gap(8).AlignItems(ui.Center).Children(func() {
-			ui.Icon(c, hostIcon).Size(14, 14).TextColor(pal.TextMuted)
+			ui.Icon(c, glyph.Host).Size(14, 14).TextColor(pal.TextMuted)
 			{
 				ui.Text(c, locales.PickerTitle(h.label())).FontSize(13).FontWeight(600).TextColor(pal.Text).SingleLine().Shrink(0)
 			}
@@ -160,7 +162,7 @@ func (a *App) pickerView(c *ui.Context, pal *theme.Palette) {
 			}
 		})
 		ui.Row(c).Height(44).Shrink(0).Padding(0, 16).Gap(10).AlignItems(ui.Center).Children(func() {
-			ui.Icon(c, folderIcon).Size(16, 16).TextColor(pal.TextMuted)
+			ui.Icon(c, glyph.Folder).Size(16, 16).TextColor(pal.TextMuted)
 			in := ui.TextInputBase(c.Key("q"), &p.query).Grow(1).FontSize(15).Placeholder(locales.PickerPlaceholder()).AutoFocus()
 			if in.Changed() {
 				p.index, p.reveal = 0, true
@@ -214,11 +216,11 @@ func (a *App) pickerView(c *ui.Context, pal *theme.Palette) {
 					goTo = it.path
 				}
 				row.Children(func() {
-					glyph := folderIcon
+					ic := glyph.Folder
 					if it.repo {
-						glyph = branchIcon
+						ic = glyph.Branch
 					}
-					ui.Icon(c, glyph).Size(14, 14).TextColor(pal.TextFaint)
+					ui.Icon(c, ic).Size(14, 14).TextColor(pal.TextFaint)
 					ui.Text(c, it.name).FontSize(13.5).TextColor(pal.Text).SingleLine().Ellipsis("…").Grow(1).MinWidth(0)
 				})
 			}

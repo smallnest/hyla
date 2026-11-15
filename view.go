@@ -17,6 +17,8 @@ import (
 	"hyla/internal/ui/marks"
 	"hyla/internal/ui/style"
 	"hyla/locales"
+
+	"hyla/internal/ui/glyph"
 )
 
 const (
@@ -291,7 +293,7 @@ func (a *App) sidebar(c *ui.Context, pal *theme.Palette, bar ui.TitleBar) {
 		if runtime.GOOS == "darwin" {
 			ui.Spacer(c)
 		}
-		iconButton(c, "hide-sidebar", sidebarIcon, a.tip(locales.SidebarHide(), "sidebar.toggle"), pal, a.toggleSidebar)
+		iconButton(c, "hide-sidebar", glyph.Sidebar, a.tip(locales.SidebarHide(), "sidebar.toggle"), pal, a.toggleSidebar)
 		a.foldButton(c, pal)
 		a.sortButton(c, pal)
 		a.newSessionButton(c, pal)
@@ -344,9 +346,9 @@ func (a *App) foldButton(c *ui.Context, pal *theme.Palette) {
 	if g != "" && g != "project" {
 		return
 	}
-	svg, label := foldAllIcon, locales.SidebarCollapseAll()
+	svg, label := glyph.FoldAll, locales.SidebarCollapseAll()
 	if a.allProjectsCollapsed() {
-		svg, label = unfoldAllIcon, locales.SidebarExpandAll()
+		svg, label = glyph.UnfoldAll, locales.SidebarExpandAll()
 	}
 	iconButton(c, "fold-sidebar", svg, label, pal, a.toggleAllProjects)
 }
@@ -393,7 +395,7 @@ func (a *App) sortButton(c *ui.Context, pal *theme.Palette) {
 			a.savePrefs()
 		}
 	})
-	b.Children(func() { ui.Icon(c, sortIcon).Size(16, 16) })
+	b.Children(func() { ui.Icon(c, glyph.Sort).Size(16, 16) })
 }
 
 // newSessionButton opens the menu that starts work: a session, in a
@@ -408,24 +410,24 @@ func (a *App) newSessionButton(c *ui.Context, pal *theme.Palette) {
 		b.Background(pal.RowHover).TextColor(pal.Text)
 	}
 	b.Menu(func(m *ui.Menu) {
-		if a.menuShortcut(m.Item(locales.ActionNewSession()).Icon(newSessionMenuIcon), "session.new").Chosen() {
+		if a.menuShortcut(m.Item(locales.ActionNewSession()).Icon(glyph.NewSessionMenuIcon), "session.new").Chosen() {
 			a.newSession("")
 		}
 		if a.menuShortcut(m.Item(locales.ActionNewSessionHome()), "session.newHome").Chosen() {
 			a.run("session.newHome", nil)
 		}
 		m.Separator()
-		if a.menuShortcut(m.Item(locales.ActionOpenProject()).Icon(openProjectMenuIcon), "project.open").Chosen() {
+		if a.menuShortcut(m.Item(locales.ActionOpenProject()).Icon(glyph.OpenProjectMenuIcon), "project.open").Chosen() {
 			a.openProject()
 		}
-		if m.Item(locales.ActionAddSSHHost()).Icon(addSSHMenuIcon).Chosen() {
+		if m.Item(locales.ActionAddSSHHost()).Icon(glyph.AddSSHMenuIcon).Chosen() {
 			a.askSSHHost()
 		}
-		if m.Item(locales.ActionAddK8sPod()).Icon(addK8sMenuIcon).Chosen() {
+		if m.Item(locales.ActionAddK8sPod()).Icon(glyph.AddK8sMenuIcon).Chosen() {
 			a.askK8sPod()
 		}
 	})
-	b.Children(func() { ui.Icon(c, plusIcon).Size(16, 16) })
+	b.Children(func() { ui.Icon(c, glyph.Plus).Size(16, 16) })
 }
 
 // sessionSidebar lists every session, without projects: flat, or under
@@ -609,9 +611,9 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g group, gi int, n *i
 			// The SSH and K8s projects are machines rather than folders:
 			// their mark stands before their name as an agent's stands
 			// before a session's, in the colour the project wears.
-			icon := hostIcon
+			icon := glyph.Host
 			if k8s {
-				icon = k8sIcon
+				icon = glyph.K8s
 			}
 			badge.Center().Children(func() {
 				ui.Icon(c, icon).Size(14, 14).TextColor(marks.Tint(badgeColor, pal.Dark, pal.Text))
@@ -649,7 +651,7 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g group, gi int, n *i
 		}
 		ui.Text(c, g.project.Name).FontSize(13).FontWeight(500).TextColor(pal.Group).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 		ui.Textf(c, "%d", len(g.sessions)).FontSize(12.5).TextColor(pal.TextFaint).FontFeatures("tnum")
-		chev := ui.Icon(c, chevronIcon).Size(11, 11).TextColor(pal.TextFaint)
+		chev := ui.Icon(c, glyph.Chevron).Size(11, 11).TextColor(pal.TextFaint)
 		turn := chev.AnimateTo("turn", 90*(1-b2f(collapsed)), ui.Snappy)
 		chev.Rotate(turn).Opacity(chev.Animate("shown", b2f(hovered || collapsed), 120*time.Millisecond))
 		ui.Spacer(c)
@@ -666,7 +668,7 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g group, gi int, n *i
 			if b.Hovered() {
 				b.Background(pal.RowHover).TextColor(pal.Text)
 			}
-			b.Children(func() { ui.Icon(c, plusIcon).Size(13, 13) })
+			b.Children(func() { ui.Icon(c, glyph.Plus).Size(13, 13) })
 			if b.Clicked() {
 				a.newSessionOn(g.host, id)
 			}
@@ -981,7 +983,7 @@ func statusSlot(c *ui.Context, pal *theme.Palette, hovered bool, st proto.Status
 		if b.Hovered() {
 			b.Background(pal.RowHover).TextColor(pal.Text)
 		}
-		b.Children(func() { ui.Icon(c, closeIcon).Size(13, 13) })
+		b.Children(func() { ui.Icon(c, glyph.Close).Size(13, 13) })
 		if b.Clicked() {
 			close()
 		}
@@ -1072,8 +1074,8 @@ func (a *App) sessionMenu(m *ui.Menu, s *proto.Session) {
 // nothing does, or the connection to hylad while there is none.
 func (a *App) sidebarFooter(c *ui.Context, pal *theme.Palette) {
 	ui.Row(c).Height(36).Shrink(0).Padding(0, 12, 4, 12).Gap(2).AlignItems(ui.Center).DragWindow().Children(func() {
-		iconButton(c, "palette", searchIcon, a.tip(locales.ActionGoToSession(), "palette.open"), pal, a.openPalette)
-		iconButton(c, "settings", gearIcon, a.tip(locales.SettingsTitle(), "settings.open"), pal, func() { a.openSettings("") })
+		iconButton(c, "palette", glyph.Search, a.tip(locales.ActionGoToSession(), "palette.open"), pal, a.openPalette)
+		iconButton(c, "settings", glyph.Gear, a.tip(locales.SettingsTitle(), "settings.open"), pal, func() { a.openSettings("") })
 		ui.Spacer(c)
 		switch a.local().conn {
 		case connReady:
@@ -1409,8 +1411,8 @@ func (a *App) cardFor(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown 
 		ui.Row(c).Height(headerH).Shrink(0).AlignItems(ui.Center).Padding(0, 10, 0, left).DragWindow().Children(func() {
 			if shown < 0.5 {
 				ui.Row(c).Absolute().Left(a.chrome.buttonsLeft(bar)).Top(0).Bottom(0).AlignItems(ui.Center).Gap(2).Opacity(1 - 2*shown).Children(func() {
-					iconButton(c, "show-sidebar", sidebarIcon, a.tip(locales.SidebarShow(), "sidebar.toggle"), pal, a.toggleSidebar)
-					iconButton(c, "new-session-2", plusIcon, a.tip(locales.ActionNewSession(), "session.new"), pal, func() { a.newSession("") })
+					iconButton(c, "show-sidebar", glyph.Sidebar, a.tip(locales.SidebarShow(), "sidebar.toggle"), pal, a.toggleSidebar)
+					iconButton(c, "new-session-2", glyph.Plus, a.tip(locales.ActionNewSession(), "session.new"), pal, func() { a.newSession("") })
 				})
 			}
 			ui.Text(c, "Hyla").FontSize(14).FontWeight(600).TextColor(pal.Text)
@@ -1450,7 +1452,7 @@ func (a *App) message(c *ui.Context, pal *theme.Palette, title, detail, action s
 func (a *App) emptyState(c *ui.Context, pal *theme.Palette) {
 	ui.Column(c).Fill().Center().Gap(0).Padding(24).Children(func() {
 		ui.Box(c).Size(52, 52).Radius(14).Center().Background(pal.Chip).TextColor(pal.TextMuted).Margin(0, 0, 18, 0).Children(func() {
-			ui.Icon(c, terminalIcon).Size(26, 26)
+			ui.Icon(c, glyph.Terminal).Size(26, 26)
 		})
 		ui.Text(c, locales.EmptyTitle()).FontSize(19).FontWeight(650).TextColor(pal.Text)
 		ui.Text(c, locales.EmptyDetail()).

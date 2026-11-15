@@ -112,7 +112,7 @@ func windowControls(c *ui.Context, pal *theme.Palette, w *mygo.Window) {
 		if b.Hovered() || b.Pressed() {
 			b.Background(pal.Danger).TextColor(ui.RGB(255, 255, 255))
 		}
-		b.Children(func() { ui.Icon(c, closeIcon).Size(16, 16) })
+		b.Children(func() { ui.Icon(c, glyph.Close).Size(16, 16) })
 		if b.Clicked() {
 			w.Close()
 		}

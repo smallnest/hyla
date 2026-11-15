@@ -18,6 +18,8 @@ import (
 
 	"hyla/internal/ui/style"
 	"hyla/locales"
+
+	"hyla/internal/ui/glyph"
 )
 
 // The Files tab is the tree of the worktree of the pane the user is in,
@@ -232,9 +234,9 @@ func (a *App) filesSide(c *ui.Context, pal *theme.Palette, s *proto.Session) {
 
 	ui.Row(c.Key("root")).Height(28).Shrink(0).Padding(0, 10, 6, 16).Gap(0).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, h.shortDir(root)).FontSize(12.5).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").MinWidth(0).Grow(1).Tooltip(root)
-		iconButton(c, "new-file", docIcon, locales.FilesNewFile(), pal, func() { a.startCreate(s, p.ID, root, "", false) })
-		iconButton(c, "new-folder", folderIcon, locales.FilesNewFolder(), pal, func() { a.startCreate(s, p.ID, root, "", true) })
-		iconButton(c, "fold-folders", collapseIcon, locales.FilesCollapseFolders(), pal, func() {
+		iconButton(c, "new-file", glyph.Doc, locales.FilesNewFile(), pal, func() { a.startCreate(s, p.ID, root, "", false) })
+		iconButton(c, "new-folder", glyph.Folder, locales.FilesNewFolder(), pal, func() { a.startCreate(s, p.ID, root, "", true) })
+		iconButton(c, "fold-folders", glyph.Collapse, locales.FilesCollapseFolders(), pal, func() {
 			prefix := filesKey(h, root)
 			for k := range fs.open {
 				if strings.HasPrefix(k, prefix) {
@@ -342,7 +344,7 @@ func (a *App) treeFolder(c *ui.Context, pal *theme.Palette, name, tip string, de
 		toggle()
 	}
 	row.Children(func() {
-		chev := ui.Icon(c, chevronIcon).Size(9, 9).TextColor(pal.TextFaint).Shrink(0)
+		chev := ui.Icon(c, glyph.Chevron).Size(9, 9).TextColor(pal.TextFaint).Shrink(0)
 		chev.Rotate(chev.AnimateTo("turn", 90*b2f(open), ui.Snappy))
 		fileicons.Image(c, name, true, open, pal.Dark)
 		ui.Text(c, name).FontSize(12.5).TextColor(pal.TextMuted).SingleLine().Ellipsis("…").MinWidth(0)
@@ -437,15 +439,15 @@ func (a *App) fileViewer(c *ui.Context, pal *theme.Palette, s *proto.Session, fv
 		ui.Box(c.Key("drag")).Grow(1).AlignSelf(ui.Stretch).DragWindow()
 		if !fv.gone {
 			pid, file := fv.pane, fv.path
-			iconButton(c, "files-edit", docIcon, locales.FilesOpenInPane(), pal, func() { a.defer_(func() { a.openFileInPane(pid, file) }) })
-			iconButton(c, "files-editor", splitRightIcon, locales.FilesOpenInEditor(), pal, func() { a.defer_(func() { a.openFileInEditor(pid, file) }) })
+			iconButton(c, "files-edit", glyph.Doc, locales.FilesOpenInPane(), pal, func() { a.defer_(func() { a.openFileInPane(pid, file) }) })
+			iconButton(c, "files-editor", glyph.SplitRight, locales.FilesOpenInEditor(), pal, func() { a.defer_(func() { a.openFileInEditor(pid, file) }) })
 		}
 		if !fv.gone {
 			full := fv.path
-			iconButton(c, "open", openFileIcon, locales.ChangesOpenFile(), pal, func() { openPath(full) })
+			iconButton(c, "open", glyph.OpenFile, locales.ChangesOpenFile(), pal, func() { openPath(full) })
 		}
 		sid := s.ID
-		iconButton(c, "files-close", closeIcon, locales.SideClose(), pal, func() {
+		iconButton(c, "files-close", glyph.Close, locales.SideClose(), pal, func() {
 			a.defer_(func() {
 				if fv := a.side.files.views[sid]; fv != nil {
 					fv.open = false

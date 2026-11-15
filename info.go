@@ -16,6 +16,8 @@ import (
 	"hyla/internal/proto"
 
 	"hyla/locales"
+
+	"hyla/internal/ui/glyph"
 )
 
 // The Info view is the side panel's first: where the pane in the session
@@ -234,7 +236,7 @@ func (a *App) infoHead(c *ui.Context, pal *theme.Palette, fold string, collapsed
 	turn := head.AnimateTo("fold", 90*(1-b2f(collapsed)), ui.Snappy)
 	head.Label(label).Tooltip(label).Children(func() {
 		fn()
-		ui.Icon(c, chevronIcon).Size(11, 11).TextColor(pal.TextFaint).Shrink(0).Rotate(turn)
+		ui.Icon(c, glyph.Chevron).Size(11, 11).TextColor(pal.TextFaint).Shrink(0).Rotate(turn)
 	})
 	// The click lands in prefs, which reshape the cards after the frame.
 	if head.Clicked() {
@@ -312,12 +314,12 @@ func (a *App) infoDir(c *ui.Context, pal *theme.Palette, s *proto.Session, h *ho
 		a.copyText = dir
 	}
 	_, name := splitDir(dir)
-	a.infoCard(c, pal, infoFoldDir, folderIcon, name, dir, func() {
+	a.infoCard(c, pal, infoFoldDir, glyph.Folder, name, dir, func() {
 		ui.Row(c).Padding(8, 12, 12, 12).Gap(6).Wrap().Children(func() {
 			// This machine's folder alone opens here: another machine's
 			// files are its own, its Zed's to open.
 			if dir != "" {
-				a.infoAction(c, pal, "zed", locales.InfoOpenEditor("Zed"), zedIcon, func() {
+				a.infoAction(c, pal, "zed", locales.InfoOpenEditor("Zed"), glyph.Zed, func() {
 					if cur := a.session(sid); cur != nil {
 						a.setFocus(cur, pid)
 					}
@@ -331,8 +333,8 @@ func (a *App) infoDir(c *ui.Context, pal *theme.Palette, s *proto.Session, h *ho
 			a.infoAction(c, pal, "editor", locales.InfoOpenEditor(editor), editorGlyph(editor), func() {
 				a.split(s, proto.CreateParams{Split: p.ID, Direction: "right", Command: editorCommand(h, dir)})
 			})
-			a.infoAction(c, pal, "copy-dir", locales.InfoCopyPath(), infoCopyIcon, copyDir)
-			a.infoAction(c, pal, "reveal", locales.InfoReveal(), folderIcon, func() { revealPath(dir) })
+			a.infoAction(c, pal, "copy-dir", locales.InfoCopyPath(), glyph.InfoCopy, copyDir)
+			a.infoAction(c, pal, "reveal", locales.InfoReveal(), glyph.Folder, func() { revealPath(dir) })
 		})
 	})
 }
@@ -374,13 +376,13 @@ func splitDir(dir string) (parent, name string) {
 // editorGlyph is the logo of the editor the editor button opens, as vim's
 // for vi and nvim.
 func editorGlyph(name string) *ui.SVG {
-	if g := programIcons[name]; g != nil {
+	if g := glyph.ProgramIcons[name]; g != nil {
 		return g
 	}
 	if name == "vi" {
-		return programIcons["vim"]
+		return glyph.ProgramIcons["vim"]
 	}
-	return linkIcon
+	return glyph.Link
 }
 
 // openInZed opens a folder on this machine in the Zed outside Hyla: Zed's
@@ -428,7 +430,7 @@ func (a *App) infoProcs(c *ui.Context, pal *theme.Palette, p *proto.Pane, st *pa
 	if len(st.procs) > 0 {
 		aside = itoa(len(st.procs))
 	}
-	a.infoCard(c, pal, infoFoldProcs, cpuIcon, locales.InfoProcess(), aside, func() {
+	a.infoCard(c, pal, infoFoldProcs, glyph.CPU, locales.InfoProcess(), aside, func() {
 		switch {
 		case st.listErr != "":
 			ui.Text(c, st.listErr).FontSize(12).TextColor(pal.Danger).LineHeight(1.35).Padding(0, 12, 8, 12).Wrap()
@@ -473,7 +475,7 @@ func processRow(c *ui.Context, pal *theme.Palette, pr proto.Process) {
 		if pr.CPU >= 0.5 {
 			ui.Text(c, fmt.Sprintf("%.0f%%", pr.CPU)).FontSize(11.5).TextColor(pal.TextMuted).FontFeatures("tnum").Shrink(0)
 		}
-		if g := programIcons[pr.Name]; g != nil {
+		if g := glyph.ProgramIcons[pr.Name]; g != nil {
 			ui.Icon(c, g).Size(12, 12).TextColor(pal.TextFaint).Opacity(0.8)
 		}
 	})
@@ -490,7 +492,7 @@ func (a *App) infoPorts(c *ui.Context, pal *theme.Palette, p *proto.Pane, st *pa
 	if st.ports > 0 {
 		aside = itoa(st.ports)
 	}
-	a.infoCard(c, pal, infoFoldPorts, globeIcon, locales.InfoPorts(), aside, func() {
+	a.infoCard(c, pal, infoFoldPorts, glyph.Globe, locales.InfoPorts(), aside, func() {
 		switch {
 		case !st.procsAt && p.PID <= 0:
 			infoEmpty(c, pal, locales.InfoNoShell())
@@ -527,7 +529,7 @@ func portRow(c *ui.Context, pal *theme.Palette, name string, port int) {
 	row.Children(func() {
 		ui.Text(c, "localhost:"+itoa(port)).FontSize(12.5).FontWeight(600).TextColor(pal.Accent).FontFeatures("tnum").SingleLine().Shrink(0)
 		ui.Text(c, name).FontSize(11.5).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
-		ui.Icon(c, linkIcon).Size(11, 11).TextColor(pal.TextFaint).Opacity(0.8)
+		ui.Icon(c, glyph.Link).Size(11, 11).TextColor(pal.TextFaint).Opacity(0.8)
 	})
 }
 

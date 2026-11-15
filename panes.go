@@ -12,6 +12,8 @@ import (
 
 	"hyla/internal/ui/style"
 	"hyla/locales"
+
+	"hyla/internal/ui/glyph"
 )
 
 const paneGap = 8 // between panes, where the divider is
@@ -520,14 +522,15 @@ func (a *App) dropPreview(c *ui.Context, pal *theme.Palette, target string, zone
 		zoneDown:  {0, 50, 100, 50},
 		zoneSwap:  {0, 0, 100, 100},
 	}[zone]
-	label, glyph := map[dropZone]string{
+	label := map[dropZone]string{
 		zoneLeft: locales.PaneSplitLeft(), zoneRight: locales.ActionSplitRight(), zoneUp: locales.PaneSplitUp(), zoneDown: locales.ActionSplitDown(), zoneSwap: locales.PaneSwap(),
-	}[zone], splitRightIcon
+	}[zone]
+	dropIcon := glyph.SplitRight
 	if zone == zoneUp || zone == zoneDown {
-		glyph = splitDownIcon
+		dropIcon = glyph.SplitDown
 	}
 	if zone == zoneSwap {
-		glyph = swapIcon
+		dropIcon = glyph.Swap
 	}
 	fadeIn := min(float32(c.Now().Sub(a.previewSince))/float32(140*time.Millisecond), 1)
 	if fadeIn < 1 {
@@ -547,7 +550,7 @@ func (a *App) dropPreview(c *ui.Context, pal *theme.Palette, target string, zone
 			pill := ui.Row(c).Height(30).Padding(0, 12).Gap(7).Radius(15).AlignItems(ui.Center).
 				Background(pal.Accent).TextColor(ui.Hex("#ffffff"))
 			style.Floating(pill, pal).Children(func() {
-				ui.Icon(c, glyph).Size(14, 14)
+				ui.Icon(c, dropIcon).Size(14, 14)
 				ui.Text(c, label).FontSize(12.5).FontWeight(600).SingleLine()
 			})
 			pill.AnimatePose(ui.Pose{Scale: 0.9 + 0.1*fadeIn}, ui.Snappy)
@@ -612,7 +615,7 @@ func (a *App) paneHeader(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, sho
 				if p.Status != proto.Idle || p.Unread {
 					statusIconP(c, pal, p.Status, p.Unread, p.Progress, 13)
 				} else {
-					ui.Icon(c, programIcon(p)).Size(14, 14).TextColor(pal.TextFaint)
+					ui.Icon(c, glyph.ProgramIcon(p)).Size(14, 14).TextColor(pal.TextFaint)
 				}
 			}
 			title, size := p.PaneName(), float32(13.5)
@@ -658,8 +661,8 @@ func (a *App) sidebarButtons(c *ui.Context, pal *theme.Palette, bar ui.TitleBar,
 		return
 	}
 	ui.Row(c).Absolute().Left(a.chrome.buttonsLeft(bar)).Top(0).Bottom(0).AlignItems(ui.Center).Gap(2).Opacity(1 - 2*shown).Children(func() {
-		iconButton(c, "show-sidebar", sidebarIcon, a.tip(locales.SidebarShow(), "sidebar.toggle"), pal, a.toggleSidebar)
-		iconButton(c, "new-session-2", plusIcon, a.tip(locales.ActionNewSession(), "session.new"), pal, func() { a.newSession("") })
+		iconButton(c, "show-sidebar", glyph.Sidebar, a.tip(locales.SidebarShow(), "sidebar.toggle"), pal, a.toggleSidebar)
+		iconButton(c, "new-session-2", glyph.Plus, a.tip(locales.ActionNewSession(), "session.new"), pal, func() { a.newSession("") })
 	})
 }
 
@@ -673,22 +676,22 @@ func (a *App) paneControls(c *ui.Context, pal *theme.Palette, s *proto.Session, 
 		}
 		if a.feishuOn() {
 			if a.paneChat[p.ID] {
-				iconButton(c, "chat-toggle", terminalIcon, a.tip(locales.ActionShowTerminal(), "pane.chat"), pal, func() { a.hidePaneChat(s, p.ID) })
+				iconButton(c, "chat-toggle", glyph.Terminal, a.tip(locales.ActionShowTerminal(), "pane.chat"), pal, func() { a.hidePaneChat(s, p.ID) })
 			} else {
-				iconButton(c, "chat-toggle", chatIcon, a.tip(locales.SideChat(), "pane.chat"), pal, func() { a.showPaneChat(s, p.ID) })
+				iconButton(c, "chat-toggle", glyph.Chat, a.tip(locales.SideChat(), "pane.chat"), pal, func() { a.showPaneChat(s, p.ID) })
 			}
 		}
-		iconButton(c, "split-r", splitRightIcon, a.tip(locales.ActionSplitRight(), "pane.split.right"), pal, func() { a.splitPane(s, p.ID, "right") })
-		iconButton(c, "split-d", splitDownIcon, a.tip(locales.ActionSplitDown(), "pane.split.down"), pal, func() { a.splitPane(s, p.ID, "down") })
+		iconButton(c, "split-r", glyph.SplitRight, a.tip(locales.ActionSplitRight(), "pane.split.right"), pal, func() { a.splitPane(s, p.ID, "right") })
+		iconButton(c, "split-d", glyph.SplitDown, a.tip(locales.ActionSplitDown(), "pane.split.down"), pal, func() { a.splitPane(s, p.ID, "down") })
 		if multi {
 			sid, pid := s.ID, p.ID
 			zoom := func() { a.defer_(func() { a.zoomPane(a.session(sid), pid) }) }
 			if s.Zoomed == p.ID {
-				iconButton(c, "zoom", unzoomIcon, a.tip(locales.PaneShowAll(), "pane.zoom"), pal, zoom)
+				iconButton(c, "zoom", glyph.Unzoom, a.tip(locales.PaneShowAll(), "pane.zoom"), pal, zoom)
 			} else {
-				iconButton(c, "zoom", zoomIcon, a.tip(locales.ActionZoomPane(), "pane.zoom"), pal, zoom)
+				iconButton(c, "zoom", glyph.Zoom, a.tip(locales.ActionZoomPane(), "pane.zoom"), pal, zoom)
 			}
-			iconButton(c, "close", closeIcon, a.tip(locales.PaneClose(), "pane.close"), pal, func() { a.defer_(func() { a.closePane(a.session(sid), pid, true) }) })
+			iconButton(c, "close", glyph.Close, a.tip(locales.PaneClose(), "pane.close"), pal, func() { a.defer_(func() { a.closePane(a.session(sid), pid, true) }) })
 		}
 	})
 }

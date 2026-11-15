@@ -16,6 +16,8 @@ import (
 	"hyla/internal/ui/marks"
 	"hyla/internal/ui/style"
 	"hyla/locales"
+
+	"hyla/internal/ui/glyph"
 )
 
 // sshAsk is the dialog that adds an SSH terminal to the sidebar: the
@@ -476,7 +478,7 @@ func (a *App) sshHostRow(c *ui.Context, pal *theme.Palette, i int) {
 		// starts under the name, past the mark.
 		mark := func(gap float32) {
 			markSlot(c, gap).Children(func() {
-				ui.Icon(c, terminalIcon).Size(marks.Size, marks.Size).TextColor(pal.TextMuted)
+				ui.Icon(c, glyph.Terminal).Size(marks.Size, marks.Size).TextColor(pal.TextMuted)
 			})
 		}
 		top := func() {
@@ -526,7 +528,7 @@ func (a *App) sshEmpty(c *ui.Context, pal *theme.Palette) {
 	}
 	row.Children(func() {
 		markSlot(c, rowGap).Children(func() {
-			ui.Icon(c, plusIcon).Size(13, 13).TextColor(pal.TextMuted)
+			ui.Icon(c, glyph.Plus).Size(13, 13).TextColor(pal.TextMuted)
 		})
 		ui.Text(c, locales.ActionAddSSHHost()).FontSize(13).TextColor(pal.TextMuted).SingleLine()
 	})

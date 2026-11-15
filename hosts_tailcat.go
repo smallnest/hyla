@@ -178,7 +178,7 @@ func (a *App) tailcatListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) 
 			if code == "" || d.codeErr != "" {
 				return
 			}
-			icon, label := copyIcon, locales.HostCopyAddress()
+			icon, label := glyph.Copy, locales.HostCopyAddress()
 			if time.Since(d.copied) < 1500*time.Millisecond {
 				icon, label = glyph.Of("lucide-check"), locales.ToastCopied()
 			}
@@ -190,7 +190,7 @@ func (a *App) tailcatListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) 
 					a.update(func() {})
 				}()
 			})
-			iconButton(c, "change-tailcat", reloadIcon, locales.SetTailcatChange(), pal, func() {
+			iconButton(c, "change-tailcat", glyph.Reload, locales.SetTailcatChange(), pal, func() {
 				a.ss.confirm = &confirmation{
 					open:    true,
 					title:   locales.SetTailcatChange(),
@@ -344,7 +344,7 @@ func (a *App) tcpListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) {
 		ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, d.tcpToken).Font("monospace").FontSize(12.5).TextColor(pal.Text).Selectable().MinWidth(0)
 			ui.Row(c).Grow(1)
-			icon, label := copyIcon, locales.HostCopyAddress()
+			icon, label := glyph.Copy, locales.HostCopyAddress()
 			if time.Since(d.copied) < 1500*time.Millisecond {
 				icon, label = glyph.Of("lucide-check"), locales.ToastCopied()
 			}
@@ -356,7 +356,7 @@ func (a *App) tcpListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) {
 					a.update(func() {})
 				}()
 			})
-			iconButton(c, "new-token", reloadIcon, locales.SetTCPNew(), pal, func() {
+			iconButton(c, "new-token", glyph.Reload, locales.SetTCPNew(), pal, func() {
 				token, err := remote.RandomToken()
 				if err != nil {
 					a.toast(err.Error())

@@ -12,6 +12,8 @@ import (
 	"hyla/internal/ui/theme"
 
 	"hyla/locales"
+
+	"hyla/internal/ui/glyph"
 )
 
 // The Chat view is a session's conversation as a chat: the prompts the
@@ -268,9 +270,9 @@ func (a *App) chatMarkdown(c *ui.Context, pal *theme.Palette, text string, fg, c
 // chatTool is a tool's line: its icon and its name, and what it ran,
 // with the output under it, which a click folds or opens.
 func (a *App) chatTool(c *ui.Context, pal *theme.Palette, session string, at int, l proto.FeishuLine) {
-	g, name := gearIcon, strings.TrimPrefix(l.Text, "Tool ")
+	g, name := glyph.Gear, strings.TrimPrefix(l.Text, "Tool ")
 	if l.Text == "Result" {
-		g, name = returnIcon, locales.ChatOutput()
+		g, name = glyph.Return, locales.ChatOutput()
 	}
 	// A tool's name is its line, and what it ran, after it: a line
 	// without a name, as an older host's, says no more than it holds.

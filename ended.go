@@ -11,6 +11,8 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/ui/theme"
 	"hyla/locales"
+
+	"hyla/internal/ui/glyph"
 )
 
 const endedShown = 5
@@ -101,7 +103,7 @@ func (a *App) endedSection(c *ui.Context, pal *theme.Palette, key, title string,
 	hdr.Children(func() {
 		ui.Text(c, title).FontSize(12.5).FontWeight(600).TextColor(pal.TextMuted).SingleLine()
 		ui.Textf(c, "%d", len(list)).FontSize(12.5).TextColor(pal.TextFaint).FontFeatures("tnum")
-		chev := ui.Icon(c, chevronIcon).Size(11, 11).TextColor(pal.TextFaint)
+		chev := ui.Icon(c, glyph.Chevron).Size(11, 11).TextColor(pal.TextFaint)
 		chev.Rotate(chev.AnimateTo("turn", 90*b2f(*open), ui.Snappy))
 	})
 	if !*open {
@@ -142,9 +144,9 @@ func (a *App) endedRow(c *ui.Context, pal *theme.Palette, h *host, cv proto.Conv
 	}
 	row.ContextMenu(func(m *ui.Menu) { a.endedMenu(m, h, cv) })
 	row.Children(func() {
-		i := programIcons[cv.Agent]
+		i := glyph.ProgramIcons[cv.Agent]
 		if i == nil {
-			i = terminalIcon
+			i = glyph.Terminal
 		}
 		ui.Icon(c, i).Size(16, 16).TextColor(pal.TextMuted).Shrink(0)
 		ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
@@ -154,7 +156,7 @@ func (a *App) endedRow(c *ui.Context, pal *theme.Palette, h *host, cv proto.Conv
 			ui.Text(c, proto.DirName(cv.Dir)).FontSize(12).TextColor(pal.TextFaint).SingleLine().Ellipsis("…")
 		})
 		if hovered && !cv.Archived {
-			iconButton(c, "archive", archiveIcon, locales.EndedArchive(), pal, func() {
+			iconButton(c, "archive", glyph.Archive, locales.EndedArchive(), pal, func() {
 				a.conversationCall(h, "conversation.archive", cv, nil)
 			})
 		} else {

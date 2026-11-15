@@ -47,15 +47,15 @@ type settingsPage struct {
 var settingsPages = []settingsPage{
 	{"general", locales.PageGeneral, glyph.Of("f7-gear-alt"), false},
 	{"appearance", locales.PageAppearance, glyph.Of("f7-paintbrush"), false},
-	{"terminal", locales.PageTerminal, terminalIcon, false},
+	{"terminal", locales.PageTerminal, glyph.Terminal, false},
 	{"shell", locales.PageShell, glyph.Of("f7-chevron-left-slash-chevron-right"), false},
-	{"browser", locales.PageBrowser, globeIcon, false},
+	{"browser", locales.PageBrowser, glyph.Globe, false},
 	{"notifications", locales.PageNotifications, glyph.Of("f7-bell"), false},
 	{"keyboard", locales.PageKeyboard, glyph.Of("f7-keyboard"), false},
 	{"feishu", locales.PageFeishu, glyph.Of("f7-chat-bubble-2"), false},
 	{"agents", locales.PageAgents, glyph.Of("f7-sparkles"), false},
-	{"sync", locales.PageSync, syncIcon, false},
-	{"hosts", locales.PageHosts, hostIcon, true},
+	{"sync", locales.PageSync, glyph.Sync, false},
+	{"hosts", locales.PageHosts, glyph.Host, true},
 	{"advanced", locales.PageAdvanced, glyph.Of("f7-slider-horizontal-3"), false},
 }
 
@@ -366,7 +366,7 @@ func (a *App) settingsSearch(c *ui.Context, pal *theme.Palette) {
 	var in ui.Element
 	frame := ui.Row(c.Key("search")).Cursor(ui.CursorText).Margin(0, 0, 10, 0)
 	frame.Children(func() {
-		ui.Icon(c, searchIcon).Size(13, 13).TextColor(pal.TextFaint).Shrink(0)
+		ui.Icon(c, glyph.Search).Size(13, 13).TextColor(pal.TextFaint).Shrink(0)
 		in = ui.TextInputBase(c.Key("in"), &a.ss.query).Bind(&a.ss.searchRef).Grow(1).MinWidth(0).AlignSelf(ui.Stretch).FontSize(13).
 			Placeholder(locales.CommonSearch()).Label(locales.SettingsSearchLabel())
 		in.OnShortcut(0, ui.KeyEscape, func() { a.ss.query = "" })
@@ -376,7 +376,7 @@ func (a *App) settingsSearch(c *ui.Context, pal *theme.Palette) {
 			if x.Hovered() {
 				x.Background(pal.TextMuted)
 			}
-			x.Children(func() { ui.Icon(c, closeIcon).Size(8, 8) })
+			x.Children(func() { ui.Icon(c, glyph.Close).Size(8, 8) })
 			if x.Clicked() {
 				a.ss.query = ""
 				a.ss.searchRef.Focus(c)
@@ -1121,7 +1121,7 @@ func (a *App) fontFallbackField(c *ui.Context, pal *theme.Palette) {
 		ui.Row(c.Key("fb-"+family)).Padding(8, 0).Gap(8).AlignItems(ui.Center).Children(func() {
 			ui.Textf(c, "%d", at+1).FontSize(12).TextColor(pal.TextFaint).Width(14).FontFeatures("tnum").Shrink(0)
 			ui.Text(c, family).FontSize(13).TextColor(pal.Text).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1).Grow(1)
-			iconButton(c, "fb-x-"+family, closeIcon, locales.CommonRemove(), pal, func() {
+			iconButton(c, "fb-x-"+family, glyph.Close, locales.CommonRemove(), pal, func() {
 				a.set.FontFallback = strings.Join(slices.Delete(slices.Clone(cur), at, at+1), ", ")
 			})
 		})
@@ -1247,7 +1247,7 @@ func (a *App) shellPage(c *ui.Context, pal *theme.Palette) {
 				ui.Text(c, k).Font("monospace").FontSize(12.5).FontWeight(600).TextColor(pal.Text)
 				ui.Text(c, v).Font("monospace").FontSize(12.5).TextColor(pal.TextMuted).Grow(1).SingleLine().Ellipsis("…").MinWidth(0)
 				idx := i
-				iconButton(c, "rm", closeIcon, locales.CommonRemove(), pal, func() {
+				iconButton(c, "rm", glyph.Close, locales.CommonRemove(), pal, func() {
 					a.set.Env = slices.Delete(slices.Clone(a.set.Env), idx, idx+1)
 				})
 			})
@@ -1486,7 +1486,7 @@ func (a *App) shortcutRow(c *ui.Context, pal *theme.Palette, act actions.Action)
 			if b.Hovered() {
 				b.Background(pal.RowHover).TextColor(pal.Text)
 			}
-			b.Children(func() { ui.Icon(c, returnIcon).Size(12, 12) })
+			b.Children(func() { ui.Icon(c, glyph.Return).Size(12, 12) })
 			if b.Clicked() {
 				delete(a.set.Shortcuts, act.ID)
 				if len(a.set.Shortcuts) == 0 {

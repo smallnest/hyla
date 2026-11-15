@@ -17,6 +17,8 @@ import (
 
 	"hyla/internal/ui/style"
 	"hyla/locales"
+
+	"hyla/internal/ui/glyph"
 )
 
 // paletteState is the command palette's: a field that finds sessions and
@@ -329,7 +331,7 @@ func (a *App) paletteView(c *ui.Context, pal *theme.Palette) {
 		style.Floating(panel.Width(600).MaxHeight(460).Radius(14).Background(pal.Popover), pal).Clip().
 			Label(label)
 		ui.Row(c).Height(50).Shrink(0).Padding(0, 16).Gap(10).AlignItems(ui.Center).Children(func() {
-			ui.Icon(c, searchIcon).Size(16, 16).TextColor(pal.TextMuted)
+			ui.Icon(c, glyph.Search).Size(16, 16).TextColor(pal.TextMuted)
 			in := ui.TextInputBase(c.Key("q"), &a.pal.query).Grow(1).FontSize(15).Placeholder(placeholder).AutoFocus()
 			if in.Changed() {
 				a.pal.index, a.pal.reveal = 0, true
@@ -381,9 +383,9 @@ func (a *App) paletteView(c *ui.Context, pal *theme.Palette) {
 					case paletteSession:
 						statusIcon(c, pal, it.session.Status, it.session.Unread, 14)
 					case paletteConversation:
-						ui.Icon(c, programIcon(&proto.Pane{Agent: it.conv.Agent})).Size(14, 14).TextColor(pal.TextFaint)
+						ui.Icon(c, glyph.ProgramIcon(&proto.Pane{Agent: it.conv.Agent})).Size(14, 14).TextColor(pal.TextFaint)
 					default:
-						ui.Icon(c, returnIcon).Size(14, 14).TextColor(pal.TextFaint)
+						ui.Icon(c, glyph.Return).Size(14, 14).TextColor(pal.TextFaint)
 					}
 					ui.Text(c, it.title).FontSize(13.5).TextColor(pal.Text).SingleLine().Ellipsis("…").Shrink(0).MaxWidth(300)
 					ui.Text(c, it.detail).FontSize(12.5).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").Grow(1).MinWidth(0)

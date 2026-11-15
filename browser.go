@@ -14,6 +14,8 @@ import (
 
 	"hyla/internal/ui/style"
 	"hyla/locales"
+
+	"hyla/internal/ui/glyph"
 )
 
 // webEntry is a browser pane's web view in the app: hylad keeps the pane's
@@ -256,7 +258,7 @@ func (a *App) paneBrowser(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, sh
 		case blank:
 			// Nothing to show yet: the address bar asks.
 			ui.Column(c).Fill().Center().Gap(10).Children(func() {
-				ui.Icon(c, globeIcon).Size(36, 36).TextColor(pal.TextFaint)
+				ui.Icon(c, glyph.Globe).Size(36, 36).TextColor(pal.TextFaint)
 				ui.Text(c, locales.BrowserBlank()).FontSize(13).TextColor(pal.TextMuted)
 			})
 		case e.view == nil:
@@ -311,16 +313,16 @@ func (a *App) browserBar(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, sho
 		if top && left {
 			a.sidebarButtons(c, pal, bar, shown)
 		}
-		navButton(c, "back", chevronLeftIcon, locales.BrowserBack(), e.back, pal, func() { e.view.Page().GoBack() })
-		navButton(c, "forward", chevronIcon, locales.BrowserForward(), e.fwd, pal, func() { e.view.Page().GoForward() })
+		navButton(c, "back", glyph.ChevronLeft, locales.BrowserBack(), e.back, pal, func() { e.view.Page().GoBack() })
+		navButton(c, "forward", glyph.Chevron, locales.BrowserForward(), e.fwd, pal, func() { e.view.Page().GoForward() })
 		if e.loading {
-			navButton(c, "stop", closeIcon, locales.BrowserStop(), true, pal, func() { e.view.Page().Stop(); e.loading = false })
+			navButton(c, "stop", glyph.Close, locales.BrowserStop(), true, pal, func() { e.view.Page().Stop(); e.loading = false })
 			// Loading ends with an event, which a page that never ends
 			// loading sends late: look again meanwhile.
 			c.After(500 * time.Millisecond)
 			e.syncNav()
 		} else {
-			navButton(c, "reload", reloadIcon, locales.BrowserReload(), e.view != nil && e.url != proto.BlankURL, pal, func() {
+			navButton(c, "reload", glyph.Reload, locales.BrowserReload(), e.view != nil && e.url != proto.BlankURL, pal, func() {
 				e.view.Page().Reload()
 				e.loading = true
 			})
@@ -386,7 +388,7 @@ func (a *App) addressBar(c *ui.Context, pal *theme.Palette, s *proto.Session, p 
 			if icon := a.favicon(e); icon != nil && !blank {
 				ui.Image(c, icon).Size(14, 14).Radius(3)
 			} else {
-				ui.Icon(c, globeIcon).Size(13, 13)
+				ui.Icon(c, glyph.Globe).Size(13, 13)
 			}
 		})
 		in = ui.TextInputBase(c.Key("in"), &e.address).Grow(1).MinWidth(0).FontSize(12.5).
@@ -445,7 +447,7 @@ func (a *App) browserError(c *ui.Context, pal *theme.Palette, e *webEntry) {
 		if style.Button(c, "retry", locales.CommonTryAgain(), "", false, pal) {
 			e.load(e.url)
 		}
-		iconButton(c, "dismiss", closeIcon, locales.FindClose(), pal, func() { e.err = "" })
+		iconButton(c, "dismiss", glyph.Close, locales.FindClose(), pal, func() { e.err = "" })
 	})
 }
 
@@ -458,7 +460,7 @@ func (a *App) browserFind(c *ui.Context, pal *theme.Palette, e *webEntry) {
 	bar := ui.Row(c.Key("find")).Absolute().Top(8).Right(12).Height(36).Padding(0, 4, 0, 12).Gap(4).
 		AlignItems(ui.Center).Radius(10).Background(pal.Popover).Label(locales.FindLabel())
 	style.Floating(bar, pal).Children(func() {
-		ui.Icon(c, searchIcon).Size(13, 13).TextColor(pal.TextMuted).Shrink(0)
+		ui.Icon(c, glyph.Search).Size(13, 13).TextColor(pal.TextMuted).Shrink(0)
 		in := ui.TextInputBase(c.Key("q"), &f.query).Width(180).FontSize(13).Placeholder(locales.FindPlaceholder()).Bind(&f.input)
 		if f.focus {
 			f.focus = false
@@ -476,9 +478,9 @@ func (a *App) browserFind(c *ui.Context, pal *theme.Palette, e *webEntry) {
 			count = locales.FindCount(itoa(e.found.Active), itoa(e.found.Matches))
 		}
 		ui.Text(c, count).FontSize(12).FontFeatures("tnum").TextColor(pal.TextFaint).SingleLine().MinWidth(56).TextAlign(ui.End).Margin(0, 4, 0, 0)
-		iconButton(c, "previous", chevronUpIcon, a.tip(locales.ActionFindPrevious(), "find.previous"), pal, func() { a.findInPage(e, true, true) })
-		iconButton(c, "next", chevronDownIcon, a.tip(locales.ActionFindNext(), "find.next"), pal, func() { a.findInPage(e, true, false) })
-		iconButton(c, "close", closeIcon, locales.FindClose(), pal, func() { a.defer_(a.closeFind) })
+		iconButton(c, "previous", glyph.ChevronUp, a.tip(locales.ActionFindPrevious(), "find.previous"), pal, func() { a.findInPage(e, true, true) })
+		iconButton(c, "next", glyph.ChevronDown, a.tip(locales.ActionFindNext(), "find.next"), pal, func() { a.findInPage(e, true, false) })
+		iconButton(c, "close", glyph.Close, locales.FindClose(), pal, func() { a.defer_(a.closeFind) })
 	})
 	if bar.Shortcut(0, ui.KeyEscape) {
 		a.defer_(a.closeFind)

@@ -18,6 +18,8 @@ import (
 	"hyla/internal/ui/controls"
 	"hyla/internal/ui/style"
 	"hyla/locales"
+
+	"hyla/internal/ui/glyph"
 )
 
 // remoteHost is another machine Hyla reaches: over its tcp:// listener, by
@@ -255,13 +257,13 @@ func (a *App) tailcatHosts(c *ui.Context, pal *theme.Palette) {
 			n++
 			r := r
 			ui.Row(c).Padding(2, 0).Gap(10).AlignItems(ui.Center).Children(func() {
-				ui.Icon(c, hostIcon).Size(14, 14).TextColor(pal.TextMuted).Shrink(0)
+				ui.Icon(c, glyph.Host).Size(14, 14).TextColor(pal.TextMuted).Shrink(0)
 				ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
 					ui.Text(c, r.Name).FontSize(13).TextColor(pal.Text).SingleLine().Ellipsis("…")
 					ui.Text(c, strings.TrimPrefix(r.Addr, "tailcat://")[:min(12, len(strings.TrimPrefix(r.Addr, "tailcat://")))]+"… "+r.Port).
 						Font("monospace").FontSize(12).TextColor(pal.TextFaint).SingleLine().Ellipsis("…")
 				})
-				iconButton(c, "rm-tc-"+r.Name, closeIcon, locales.HostRemove(), pal, func() {
+				iconButton(c, "rm-tc-"+r.Name, glyph.Close, locales.HostRemove(), pal, func() {
 					a.removeRemoteHost(r.Name)
 				})
 			})
@@ -332,12 +334,12 @@ func (a *App) remoteHosts(c *ui.Context, pal *theme.Palette) {
 			}
 			r := r
 			ui.Row(c).Padding(2, 0).Gap(10).AlignItems(ui.Center).Children(func() {
-				ui.Icon(c, hostIcon).Size(14, 14).TextColor(pal.TextMuted).Shrink(0)
+				ui.Icon(c, glyph.Host).Size(14, 14).TextColor(pal.TextMuted).Shrink(0)
 				ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
 					ui.Text(c, r.Name).FontSize(13).TextColor(pal.Text).SingleLine().Ellipsis("…")
 					ui.Text(c, r.Addr).Font("monospace").FontSize(12).TextColor(pal.TextFaint).SingleLine().Ellipsis("…")
 				})
-				iconButton(c, "rm-"+r.Name, closeIcon, locales.HostRemove(), pal, func() {
+				iconButton(c, "rm-"+r.Name, glyph.Close, locales.HostRemove(), pal, func() {
 					a.removeRemoteHost(r.Name)
 				})
 			})
@@ -400,7 +402,7 @@ func (a *App) remoteHostHeader(c *ui.Context, pal *theme.Palette, h *host, top f
 		}
 	}
 	hdr.Children(func() {
-		ui.Icon(c, hostIcon).Size(13, 13).TextColor(pal.TextMuted).Shrink(0)
+		ui.Icon(c, glyph.Host).Size(13, 13).TextColor(pal.TextMuted).Shrink(0)
 		ui.Text(c, h.name).FontSize(13).FontWeight(600).TextColor(pal.Text).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 		ui.Spacer(c)
 		a.hostState(c, pal, h)
@@ -413,7 +415,7 @@ func (a *App) remoteHostHeader(c *ui.Context, pal *theme.Palette, h *host, top f
 			if b.Hovered() {
 				b.Background(pal.RowHover).TextColor(pal.Text)
 			}
-			b.Children(func() { ui.Icon(c, plusIcon).Size(13, 13) })
+			b.Children(func() { ui.Icon(c, glyph.Plus).Size(13, 13) })
 			if b.Clicked() {
 				a.newSessionOn(h, "")
 			}

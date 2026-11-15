@@ -10,6 +10,8 @@ import (
 	"hyla/internal/ui/theme"
 
 	"hyla/locales"
+
+	"hyla/internal/ui/glyph"
 )
 
 // feishuStatusTick is the time between the reads of the bot's state.
@@ -50,7 +52,7 @@ func (a *App) infoFeishu(c *ui.Context, pal *theme.Palette, p *proto.Pane) {
 	if len(set.Allow) > 0 {
 		who = locales.SetFeishuAllow() + ": " + strings.Join(set.Allow, ", ")
 	}
-	a.infoCard(c, pal, infoFoldFeishu, linkIcon, locales.SetFeishu(), aside, func() {
+	a.infoCard(c, pal, infoFoldFeishu, glyph.Link, locales.SetFeishu(), aside, func() {
 		infoRows(c, func() {
 			ui.Column(c).Padding(4, 12, 10, 12).Gap(4).Children(func() {
 				ui.Text(c, who).FontSize(12).TextColor(pal.TextMuted).Wrap()

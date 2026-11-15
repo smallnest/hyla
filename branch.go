@@ -9,6 +9,8 @@ import (
 	"hyla/internal/ui/theme"
 
 	"hyla/locales"
+
+	"hyla/internal/ui/glyph"
 )
 
 // gitChip is a pane's branch and its changes since HEAD, after its title:
@@ -30,7 +32,7 @@ func (a *App) gitChip(c *ui.Context, pal *theme.Palette, s *proto.Session, p *pr
 		b.Background(pal.RowHover)
 	}
 	b.Children(func() {
-		ui.Icon(c, branchIcon).Size(12, 12).TextColor(pal.TextFaint).Shrink(0)
+		ui.Icon(c, glyph.Branch).Size(12, 12).TextColor(pal.TextFaint).Shrink(0)
 		if compact && g.Files > 0 {
 			a.lineCounts(c, pal, g.Added, g.Removed, 12)
 			return
