@@ -913,7 +913,7 @@ func (a *App) termOptions(id string, conn *gated) terminal.Options {
 		OpenLink: func(link string) bool { return a.openLink(id, link) },
 		// An image alone on the clipboard pastes as the path of a file
 		// with it, which agents take as an image they attach.
-		OnPaste: func(d transfer.Data) bool { return a.pasteImage(id, d) },
+		OnPaste: func(d transfer.Data) bool { return a.PasteImage(id, d) },
 		// A selection copied as it ends shows nothing else: say so.
 		OnCopy: func(_ string, by terminal.CopySource) {
 			if by == terminal.CopySelect {
@@ -1820,7 +1820,7 @@ func (a *App) endSessionsAndQuit() {
 		} else if cl.Call("shutdown", nil, nil) != nil {
 			// hylad went before it answered, or speaks another version:
 			// stop the one this machine runs.
-			stopDaemon()
+			a.StopDaemon()
 		}
 		mygo.App.Quit()
 	}()

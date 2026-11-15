@@ -174,8 +174,6 @@ func (a *App) SessionsOn(h *host.Host) []proto.Session { return a.sessionsOn(h) 
 // The restart's steps, as a quit's restart asks them.
 func (a *App) Restarting() { a.local().Conn = host.StateConnecting }
 
-func (a *App) StopDaemon() error { return stopDaemon() }
-
 func (a *App) RestartEnded(err error) {
 	h := a.local()
 	if err != nil {

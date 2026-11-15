@@ -19,5 +19,6 @@
       "NSCameraUsageDescription": "A program running in Hyla would like to use the camera.",
       "NSAppleEventsUsageDescription": "A program running in Hyla would like to control another app."
     }
-  }
+  },
+  "cmd": "hyla"
 }

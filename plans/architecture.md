@@ -311,6 +311,8 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     asks while a program runs, ends this machine's sessions without hylad
     to ask, and the grace before the app leaves anyway. It is of the cli
     layer, as it asks with the confirmation the views draw.
+  - Also: hylad's restart is `quit.Daemon`, `quit.Offer` and
+    `quit.RestartEnded`, beside the quit that asks it.
   - The guard now fails on a package of `internal/` that no layer's
     names hold. It found `buildinfo`, `fileicons` and `profiling` never
     listed.
@@ -342,14 +344,18 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
   `worktree.go` joined `internal/ui/worktree`. `files.go`, `sync.go` and
   `branch.go` were adapters of the small parts the root has always held:
   they stay until `App` itself moves.
-- **Step 5: the end** — `package main` is `main.go` and `app.go`, and the
-  architecture test names every package. Not done: `App`'s state — the
-  hosts, the sessions, the terminals, the settings — is what every view
-  it holds reads. It is the window's state, so it moves to a package of
-  the cli layer (`internal/app/window`) with `main.go`, which sets the
-  hooks. That is a move by fields, not by files: `App` becomes the
-  window's struct there, and the root's `*_adapters.go` files go, as each
-  view's `App` is that struct's methods.
+- **Step 5: the end** — done for the app: `App` and the files that were
+  its methods are `internal/app/window`, of the cli layer, as it holds
+  every view it draws. `cmd/hyla/main.go` — the CLI's and hylad's entry
+  too, as one executable is all three — sets the hooks, which the
+  window's `main_adapters.go` answers: `New`, `LoadFonts`, `Start`,
+  `Appearance`, `Language`, `Menu`, `BeforeQuit` and the rest. `App`'s
+  fields are exported, and the view packages' `App` interfaces are what
+  the struct keeps answering, so the `*_adapters.go` files stay until
+  each view's interface is narrowed to that struct's own methods.
+  `fonts.go` reads the fonts from the repository's `resources/fonts` as
+  well as from beside the binary, as the test does not run from the
+  repository's root.
 
 ## What a move looks like
 

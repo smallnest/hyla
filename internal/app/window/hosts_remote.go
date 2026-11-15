@@ -49,8 +49,8 @@ func (a *App) UpdateTitle() { a.updateTitle() }
 
 func (a *App) NewSessionOn(h *host.Host, projectID string) { a.newSessionOn(h, projectID) }
 
-// stopDaemon stops this machine's hylad.
-func stopDaemon() error { return cli.StopDaemon() }
+// StopDaemon stops this machine's hylad.
+func (a *App) StopDaemon() error { return cli.StopDaemon() }
 
 func (a *App) HostState(c *ui.Context, pal *theme.Palette, h *host.Host) { a.hostStateNow(c, pal, h) }
 

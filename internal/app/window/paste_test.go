@@ -127,7 +127,7 @@ func pastedFiles(t *testing.T, dir string) []string {
 // and only the user can enter its directory.
 func TestPasteImageAsPath(t *testing.T) {
 	a, sink, dir := pasteApp(t)
-	if !a.pasteImage("a", imageData()) {
+	if !a.PasteImage("a", imageData()) {
 		t.Fatal("the paste of an image was left to the terminal")
 	}
 	files := pastedFiles(t, dir)
@@ -153,7 +153,7 @@ func TestPasteImageAsPath(t *testing.T) {
 func TestPasteImageBracketed(t *testing.T) {
 	a, sink, dir := pasteApp(t)
 	a.Terms["a"].term.Feed([]byte("\x1b[?2004h"))
-	if !a.pasteImage("a", imageData()) {
+	if !a.PasteImage("a", imageData()) {
 		t.Fatal("the paste of an image was left to the terminal")
 	}
 	files := pastedFiles(t, dir)
@@ -177,7 +177,7 @@ func TestPasteImageLeavesText(t *testing.T) {
 		"only text":         transfer.TextData("hello"),
 		"only html":         transfer.New(transfer.NewItem(transfer.Bytes(transfer.HTML, []byte("<b>x</b>")))),
 	} {
-		if a.pasteImage("a", d) {
+		if a.PasteImage("a", d) {
 			t.Errorf("%s: the paste was taken", name)
 		}
 	}
@@ -228,7 +228,7 @@ func TestPasteFilesAsPaths(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			a, sink, dir := pasteApp(t)
-			if !a.pasteImage("a", c.d) {
+			if !a.PasteImage("a", c.d) {
 				t.Fatal("the paste of files was left to the terminal")
 			}
 			if got := sink.written(t); got != c.want {
@@ -244,11 +244,11 @@ func TestPasteFilesAsPaths(t *testing.T) {
 // A pane that has no terminal (it is not attached yet) takes no paste.
 func TestPasteImageNoTerminal(t *testing.T) {
 	a, _, dir := pasteApp(t)
-	if a.pasteImage("b", imageData()) {
+	if a.PasteImage("b", imageData()) {
 		t.Error("a pane without a terminal took the paste")
 	}
 	a.Terms["b"] = &termEntry{err: "no session"}
-	if a.pasteImage("b", imageData()) {
+	if a.PasteImage("b", imageData()) {
 		t.Error("a pane that failed to attach took the paste")
 	}
 	if got := pastedFiles(t, dir); len(got) != 0 {
@@ -265,7 +265,7 @@ func TestPasteImageWriteFails(t *testing.T) {
 	if err := os.WriteFile(dir, nil, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if !a.pasteImage("a", imageData()) {
+	if !a.PasteImage("a", imageData()) {
 		t.Fatal("the paste was left to the terminal")
 	}
 	if !strings.HasPrefix(a.PendingToast, "Couldn’t paste the image: ") || !strings.Contains(a.PendingToast, "drop the image file") {
@@ -313,7 +313,7 @@ func TestPastedImagesExpire(t *testing.T) {
 func TestPasteImageEachItsOwnFile(t *testing.T) {
 	a, _, dir := pasteApp(t)
 	for range 3 {
-		if !a.pasteImage("a", imageData()) {
+		if !a.PasteImage("a", imageData()) {
 			t.Fatal("the paste was left to the terminal")
 		}
 	}
@@ -469,7 +469,7 @@ func jpegData() transfer.Data {
 // too, to a file of its own type, and a PNG is preferred to the rest.
 func TestPasteImageOtherTypes(t *testing.T) {
 	a, sink, dir := pasteApp(t)
-	if !a.pasteImage("a", jpegData()) {
+	if !a.PasteImage("a", jpegData()) {
 		t.Fatal("the paste of a JPEG was left to the terminal")
 	}
 	files := pastedFiles(t, dir)
@@ -484,7 +484,7 @@ func TestPasteImageOtherTypes(t *testing.T) {
 	}
 	both := transfer.New(transfer.NewItem(
 		transfer.Bytes("image/jpeg", []byte("JPEG")), transfer.Bytes(transfer.PNG, fakePNG)))
-	if !a.pasteImage("a", both) {
+	if !a.PasteImage("a", both) {
 		t.Fatal("the paste was left to the terminal")
 	}
 	if got := pastedFiles(t, dir); len(got) != 2 || !slices.ContainsFunc(got, func(p string) bool { return filepath.Ext(p) == ".png" }) {
@@ -513,7 +513,7 @@ func TestPasteImageSaysWhyNot(t *testing.T) {
 	}
 	for _, c := range cases {
 		a.PendingToast = ""
-		if !a.pasteImage("a", c.d) {
+		if !a.PasteImage("a", c.d) {
 			t.Errorf("%s: the paste was left to the terminal", c.name)
 		}
 		if !strings.Contains(a.PendingToast, c.want) {
