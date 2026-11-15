@@ -298,6 +298,10 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     whose names take the "Now" suffix where the app's own already take
     theirs (`Local`, `Update`, `ReportView`, `MergeState`, `Reselect`,
     `DropTerms`), and `Connected` is exported for the test that drives it.
+  - Also: `automate.go` is `internal/app/shell`, which is of the ui layer
+    as it holds a page — the commands a shell sends the window, `hyla do`
+    through `browse` and `hyla browser` through its page, made if the pane
+    had none. `shell_adapters.go` answers them.
   - The guard now fails on a package of `internal/` that no layer's
     names hold. It found `buildinfo`, `fileicons` and `profiling` never
     listed.
