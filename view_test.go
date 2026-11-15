@@ -1399,21 +1399,21 @@ func TestSessionSwitchStyles(t *testing.T) {
 	a := testApp(t)
 	for _, style := range settings.SessionSwitches {
 		a.settingsIn.SessionSwitch = style
-		sw := a.sessionSwitch()
+		sw := panes.Switch(style)
 		if style == "none" {
-			if sw != switchNone || sw.transition().Duration >= 0 || sw.transition().Exit != nil {
-				t.Errorf("none: goes as %v, %+v", sw, sw.transition())
+			if sw != panes.SwitchNone || panes.Transition(sw).Duration >= 0 || panes.Transition(sw).Exit != nil {
+				t.Errorf("none: goes as %v, %+v", sw, panes.Transition(sw))
 			}
 			continue
 		}
 		if style == "dissolve" {
-			tr := sw.transition()
+			tr := panes.Transition(sw)
 			if tr.Exit == nil || tr.Exit.Blur == 0 || tr.Animation == nil {
 				t.Errorf("dissolve: goes as %+v", tr)
 			}
 			continue
 		}
-		from := sw.pose(sw.motion(), true)
+		from := panes.Pose(sw, panes.Motion(sw), true)
 		if from.XPercent == 0 && from.Scale == 1 {
 			t.Errorf("%s: comes in from its place, %+v", style, from)
 		}

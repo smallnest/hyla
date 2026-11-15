@@ -281,7 +281,9 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
   - Also: the card of the session shown is `layout.Card`, which asks a
     `layout.Carder`: its panes, the side panel beside them, the card of
     no session with its messages and the empty state, and the app's
-    settings through `Glass`. The root keeps `card_adapters.go`.
+    settings through `Glass`. The root keeps `card_adapters.go`. The
+    root's `sessionSwitch` is `panes.SessionSwitch`, which `panes.Switch`
+    names; its ids are the settings' strings.
   - The guard now fails on a package of `internal/` that no layer's
     names hold. It found `buildinfo`, `fileicons` and `profiling` never
     listed.
