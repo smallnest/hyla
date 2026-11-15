@@ -30,6 +30,7 @@ import (
 	"hyla/internal/shell"
 	"hyla/internal/ui/confirm"
 	"hyla/internal/ui/paints"
+	"hyla/internal/ui/settings/draft"
 	"hyla/internal/ui/settings/kit"
 	"hyla/internal/ui/settings/search"
 	"hyla/internal/ui/theme"
@@ -94,10 +95,10 @@ type State struct {
 	Confirm         *confirm.Ask                    // a question, asked in this window
 
 	// The forms the root keeps keep their drafts here.
-	Tailcat TailcatDraft // the Tailcat machines' form
-	TCHost  TCHostDraft  // the machines reached by a pair code
-	Remote  HostDraft    // the other machines' form
-	Feishu  FeishuDraft  // the Feishu page's form
+	Tailcat draft.TailcatDraft // the Tailcat machines' form
+	TCHost  draft.TCHostDraft  // the machines reached by a pair code
+	Remote  draft.HostDraft    // the other machines' form
+	Feishu  draft.FeishuDraft  // the Feishu page's form
 }
 
 // checkUpdates asks the updater for a newer app, which none does where

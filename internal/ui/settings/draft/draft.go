@@ -1,4 +1,4 @@
-package settings
+package draft
 
 import (
 	"time"

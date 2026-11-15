@@ -15,6 +15,7 @@ import (
 	"hyla/internal/client"
 	"hyla/internal/proto"
 	"hyla/internal/remote"
+	"hyla/internal/ui/hosts"
 	uisettings "hyla/internal/ui/settings"
 )
 
@@ -97,7 +98,7 @@ func remoteState() proto.State {
 func TestRemoteHost(t *testing.T) {
 	a := testApp(t)
 	addr := aRemoteHylad(t, "s3cret-pass", remoteState())
-	if err := a.addRemoteHost("studio", "tcp://"+addr, "s3cret-pass", ""); err != nil {
+	if err := hosts.Add(a, "studio", "tcp://"+addr, "s3cret-pass", ""); err != nil {
 		t.Fatal(err)
 	}
 	h := a.hostNamed("studio")
@@ -145,7 +146,7 @@ func TestRemoteHost(t *testing.T) {
 		}
 	}
 	// It goes as the user removes it.
-	a.removeRemoteHost("studio")
+	hosts.Remove(a, "studio")
 	if len(a.Machines) != 1 || a.hostNamed("studio") != nil {
 		t.Errorf("hosts %+v", a.Machines)
 	}
@@ -159,7 +160,7 @@ func TestRemoteHost(t *testing.T) {
 func TestRemoteHostWrongPassword(t *testing.T) {
 	a := testApp(t)
 	addr := aRemoteHylad(t, "s3cret-pass", remoteState())
-	if err := a.addRemoteHost("studio", addr, "wrong", ""); err != nil {
+	if err := hosts.Add(a, "studio", addr, "wrong", ""); err != nil {
 		t.Fatal(err)
 	}
 	h := a.hostNamed("studio")
@@ -175,7 +176,7 @@ func TestRemoteHostWrongPassword(t *testing.T) {
 // address and password.
 func TestRemoteHostsSettings(t *testing.T) {
 	a := testApp(t)
-	a.Prefs.RemoteHosts = []remoteHost{{Name: "studio", Addr: "192.168.1.5:7297", Token: "s3cret-pass"}}
+	a.Prefs.RemoteHosts = []hosts.Remote{{Name: "studio", Addr: "192.168.1.5:7297", Token: "s3cret-pass"}}
 	a.Ss.Page = "hosts"
 	tt := ui.NewTester(uisettings.View(a), 820, 900)
 	tt.Frame()
@@ -190,7 +191,7 @@ func TestRemoteHostsSettings(t *testing.T) {
 // address when the user does not.
 func TestAddRemoteHost(t *testing.T) {
 	a := testApp(t)
-	if err := a.addRemoteHost("", "192.168.1.5:7297", "s3cret-pass", ""); err != nil {
+	if err := hosts.Add(a, "", "192.168.1.5:7297", "s3cret-pass", ""); err != nil {
 		t.Fatal(err)
 	}
 	if h := a.hostNamed("192.168.1.5"); h == nil {
@@ -210,20 +211,20 @@ func TestAddRemoteHost(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := a.addRemoteHost("relay", code, "", ""); err != nil {
+	if err := hosts.Add(a, "relay", code, "", ""); err != nil {
 		t.Fatal(err)
 	}
 	if h := a.hostNamed("relay"); h == nil || !h.TC || h.Code != code || h.Port == "" || h.Addr != "tailcat://"+code {
 		t.Errorf("the pair code is %+v", h)
 	}
-	if err := a.addRemoteHost("", "hyla://pair?code="+code+"&name=scanned", "", "7400"); err != nil {
+	if err := hosts.Add(a, "", "hyla://pair?code="+code+"&name=scanned", "", "7400"); err != nil {
 		t.Fatal(err)
 	}
 	if h := a.hostNamed("scanned"); h == nil || h.Code != code || h.Port != "7400" {
 		t.Errorf("the scanned code is %+v", h)
 	}
 	// A whole code pasted in the address field takes its password.
-	if err := a.addRemoteHost("code", "tcp://192.168.1.7:7297?token=s3cret-pass", "", ""); err != nil {
+	if err := hosts.Add(a, "code", "tcp://192.168.1.7:7297?token=s3cret-pass", "", ""); err != nil {
 		t.Fatal(err)
 	}
 	if h := a.hostNamed("code"); h == nil || h.Addr != "192.168.1.7:7297" || h.Token != "s3cret-pass" {
@@ -234,7 +235,7 @@ func TestAddRemoteHost(t *testing.T) {
 		{"studio", "192.168.1.5:7297", ""},
 		{"192.168.1.5", "192.168.1.6:7297", "s3cret-pass"},
 	} {
-		if err := a.addRemoteHost(c.name, c.addr, c.token, ""); err == nil {
+		if err := hosts.Add(a, c.name, c.addr, c.token, ""); err == nil {
 			t.Errorf("%+v was taken", c)
 		}
 	}

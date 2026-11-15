@@ -141,6 +141,13 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     between the panes — are `internal/ui/panes`, which the actions, the
     panes' controls, a browser and the Info view call; the root keeps
     `panes_adapters.go`, and the session a replaced one arrives in.
+  - Also: the machines the app reaches — the entries they are added by,
+    their connecting and going, and the Settings pages' P2P and Tailcat
+    lists and the sidebar's headers — are `internal/ui/hosts`, over an
+    `App` whose names the palette's `Local` and `SelectSession` already
+    take (`PaletteLocal`, `PaletteSelectSession`), as `DropTerms` does
+    (`DropHostTerms`). The forms' drafts moved to
+    `internal/ui/settings/draft`, which the pages and the machines' read.
   - Also: the pet is `internal/ui/petme` — its mood and the words it
     says, the frog it draws, the Codex pets' spritesheets, the pets it
     lists and the window that follows the main one. Its state is the

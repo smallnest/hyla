@@ -20,7 +20,7 @@ import (
 
 	"hyla/internal/ui/controls"
 	"hyla/internal/ui/glyph"
-	uisettings "hyla/internal/ui/settings"
+	"hyla/internal/ui/settings/draft"
 	"hyla/internal/ui/style"
 	"hyla/locales"
 )
@@ -66,7 +66,7 @@ func (a *App) tailcatGroup(c *ui.Context, pal *theme.Palette) {
 func (a *App) resetTailcat() {
 	s := a.settingsIn
 	d := &a.Ss.Tailcat
-	*d = uisettings.TailcatDraft{
+	*d = draft.TailcatDraft{
 		Relay:      s.TailcatRelay,
 		ListenPort: settings.TailcatListenPortDefault(),
 		TCPAddr:    tcpListenAddr(&s),
@@ -90,7 +90,7 @@ func tailcatSettingRow(c *ui.Context, pal *theme.Palette, label, detail string, 
 // tailcatListen is this machine as a host over Tailcat: the switch of
 // hylad's tailcat listener here, its port, and the pair code Hyla on
 // other machines adds with.
-func (a *App) tailcatListen(c *ui.Context, pal *theme.Palette, d *uisettings.TailcatDraft) {
+func (a *App) tailcatListen(c *ui.Context, pal *theme.Palette, d *draft.TailcatDraft) {
 	on := hasTailcatListener(&a.settingsIn)
 	detail := locales.SetTailcatListenDetail()
 	if on {
@@ -186,7 +186,7 @@ func (a *App) tailcatListen(c *ui.Context, pal *theme.Palette, d *uisettings.Tai
 }
 
 // tailcatFieldErr is the reason a field of the group failed, under it.
-func tailcatFieldErr(c *ui.Context, pal *theme.Palette, d *uisettings.TailcatDraft, key string) {
+func tailcatFieldErr(c *ui.Context, pal *theme.Palette, d *draft.TailcatDraft, key string) {
 	if d.Err.Key == key {
 		ui.Text(c, d.Err.Err).FontSize(12).TextColor(pal.Danger)
 	}
@@ -222,7 +222,7 @@ func (a *App) rotateTailcatCode() {
 		return
 	}
 	d := &a.Ss.Tailcat
-	*d = uisettings.TailcatDraft{Relay: d.Relay, ListenPort: d.ListenPort}
+	*d = draft.TailcatDraft{Relay: d.Relay, ListenPort: d.ListenPort}
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		k, err := remote.TailcatKeyAt(ctx, remote.TailcatKeyPath())
@@ -260,7 +260,7 @@ func errorText(err error) string {
 
 // tcpListen is this machine on its own network: a tcp:// listener, whose
 // address and password a client of Hyla, or of HylaPocket, takes.
-func (a *App) tcpListen(c *ui.Context, pal *theme.Palette, d *uisettings.TailcatDraft) {
+func (a *App) tcpListen(c *ui.Context, pal *theme.Palette, d *draft.TailcatDraft) {
 	on := hasTCPListener(&a.settingsIn)
 	detail := locales.SetTCPListenDetail()
 	ui.Column(c).Padding(11, 0).Gap(8).Children(func() {
@@ -441,13 +441,13 @@ func tcpListenPort(s *settings.Settings) string {
 
 // save checks and keeps the group's field keyed key, which is one of its
 // fields set.
-func saveTailcat(a *App, d *uisettings.TailcatDraft, key string) {
+func saveTailcat(a *App, d *draft.TailcatDraft, key string) {
 	var v string
 	switch key {
 	case "tailcat-relay":
 		v = strings.TrimSpace(d.Relay)
 		if v != "" && !settings.ValidDERPMapURL(v) {
-			d.Err = uisettings.TailcatField{Key: key, Err: v + ": a relay is the https URL of a DERP map"}
+			d.Err = draft.TailcatField{Key: key, Err: v + ": a relay is the https URL of a DERP map"}
 			return
 		}
 	case "tcp-addr":
@@ -457,7 +457,7 @@ func saveTailcat(a *App, d *uisettings.TailcatDraft, key string) {
 		}
 		spec, err := remote.ParseListen("tcp://" + addr)
 		if err != nil {
-			d.Err = uisettings.TailcatField{Key: key, Err: err.Error()}
+			d.Err = draft.TailcatField{Key: key, Err: err.Error()}
 			return
 		}
 		s := a.settingsIn.Clone()
@@ -466,21 +466,21 @@ func saveTailcat(a *App, d *uisettings.TailcatDraft, key string) {
 			return err == nil && o.Kind == "tcp"
 		})
 		s.Listen = append(s.Listen, spec.String())
-		a.settingsIn, d.Err = s, uisettings.TailcatField{}
+		a.settingsIn, d.Err = s, draft.TailcatField{}
 		return
 	case "tailcat-listen-port":
 		if v = strings.TrimSpace(d.ListenPort); !settings.ValidListenPort(v) {
-			d.Err = uisettings.TailcatField{Key: key, Err: v + ": a port is 1 to 65535"}
+			d.Err = draft.TailcatField{Key: key, Err: v + ": a port is 1 to 65535"}
 			return
 		}
 		s := a.settingsIn.Clone()
 		s.SetTailcatListen(v)
-		a.settingsIn, d.Err = s, uisettings.TailcatField{}
+		a.settingsIn, d.Err = s, draft.TailcatField{}
 		return
 	}
 	s := a.settingsIn.Clone()
 	if key == "tailcat-relay" {
 		s.TailcatRelay = v
 	}
-	a.settingsIn, d.Err = s, uisettings.TailcatField{}
+	a.settingsIn, d.Err = s, draft.TailcatField{}
 }

@@ -13,7 +13,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/settings"
 	"hyla/internal/ui/controls"
-	uisettings "hyla/internal/ui/settings"
+	"hyla/internal/ui/settings/draft"
 	"hyla/internal/ui/settings/kit"
 	"hyla/internal/ui/style"
 	"hyla/internal/ui/theme"
@@ -215,7 +215,7 @@ func (a *App) feishuRow(c *ui.Context, pal *theme.Palette, label, detail string,
 
 // feishuRows saves what the fields hold, as one submits: a field the app
 // cannot read, as a time that does not parse, stays as it was.
-func (a *App) feishuRows(d *uisettings.FeishuDraft) {
+func (a *App) feishuRows(d *draft.FeishuDraft) {
 	f := a.feishu()
 	f.Allow = splitList(d.Allow)
 	f.Dir = strings.TrimSpace(d.Dir)
@@ -337,7 +337,7 @@ func (a *App) feishuAgent(agent string) string {
 
 // feishuStatusLine tells the bot of this machine: connected to which
 // app, off, or why not.
-func (a *App) feishuStatusLine(d *uisettings.FeishuDraft) string {
+func (a *App) feishuStatusLine(d *draft.FeishuDraft) string {
 	if !d.Known {
 		return ""
 	}
@@ -355,7 +355,7 @@ func (a *App) feishuStatusLine(d *uisettings.FeishuDraft) string {
 // feishuConnect checks the app with Feishu, keeps its secret and its ID,
 // and connects the bot of this machine. The secret is needed when the ID
 // is another app's, or none is kept.
-func (a *App) feishuConnect(d *uisettings.FeishuDraft) {
+func (a *App) feishuConnect(d *draft.FeishuDraft) {
 	app := strings.TrimSpace(d.App)
 	if app == "" {
 		d.Err = locales.SetFeishuSecretNeeded()
@@ -387,7 +387,7 @@ func (a *App) feishuConnect(d *uisettings.FeishuDraft) {
 
 // feishuKeep saves the app's secret, keeping who set it up, writes the
 // app to the configuration, and connects the bot.
-func (a *App) feishuKeep(d *uisettings.FeishuDraft, app, secret, me string) {
+func (a *App) feishuKeep(d *draft.FeishuDraft, app, secret, me string) {
 	if err := settings.SaveFeishuSecret(settings.FeishuSecret{AppID: app, AppSecret: secret, Me: me}); err != nil {
 		d.Err = err.Error()
 		return
@@ -406,7 +406,7 @@ func (a *App) feishuKeep(d *uisettings.FeishuDraft, app, secret, me string) {
 
 // feishuDisconnect takes the app off the configuration, and stops the
 // bot.
-func (a *App) feishuDisconnect(d *uisettings.FeishuDraft) {
+func (a *App) feishuDisconnect(d *draft.FeishuDraft) {
 	f := a.feishu()
 	f.App = ""
 	a.feishuNormal()

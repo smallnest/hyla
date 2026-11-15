@@ -35,6 +35,7 @@ import (
 	"hyla/internal/remote"
 	"hyla/internal/settings"
 	"hyla/internal/ui/confirm"
+	"hyla/internal/ui/hosts"
 	"hyla/internal/ui/k8sdialog"
 	"hyla/internal/ui/palette"
 	"hyla/internal/ui/panes"
@@ -90,7 +91,7 @@ type prefs struct {
 	QuickSession string `json:"quickSession,omitempty"`
 	// RemoteHosts are the other machines Hyla shows the sessions of, each
 	// by the address and the password of its tcp:// listener.
-	RemoteHosts []remoteHost `json:"remoteHosts,omitempty"`
+	RemoteHosts []hosts.Remote `json:"remoteHosts,omitempty"`
 	// SSHProject is the software project the sidebar's SSH terminals open
 	// in, "" until one is made; SSHHosts are the machines it lists.
 	SSHProject string    `json:"sshProject,omitempty"`
