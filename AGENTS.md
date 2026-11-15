@@ -1,6 +1,8 @@
 # Hyla
 
 - Cutting a release: follow [RELEASING.md](RELEASING.md), from `master`.
+- The app's code is `internal/app/window`; `package main` is
+  `cmd/hyla/main.go`, which sets the window's hooks and nothing else.
 - A tag push publishes its release when every job of the Release run
   passed: tag only when the user asks to release, and never publish a
   draft by hand. A job that failed leaves the draft unpublished.
@@ -23,7 +25,7 @@ This repository is `smallnest/hyla`, which was the fork `smallnest/kero` of
 git checkout master
 git fetch upstream
 git merge upstream/main
-go build ./... && go vet ./... && go test . ./internal/...
+go build ./... && go vet ./... && go test ./internal/...
 git push origin master
 ```
 
@@ -127,7 +129,7 @@ repository anyway. From here on the pair stays as it is.
 ## Checks before a push
 
 ```sh
-go build ./... && go vet ./... && go test . ./internal/...
+go build ./... && go vet ./... && go test ./internal/...
 go tool mygo i18n check
 bun install && bun run --filter website build   # when the website changes
 ```
