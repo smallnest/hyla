@@ -161,7 +161,7 @@ func Menu(a App) *mygo.Menu {
 	return mygo.NewMenu([]*mygo.MenuItem{
 		hyla,
 		{Label: locales.MenuSession(), Submenu: Items(a, "Session",
-			[]string{"session.new", "session.newHome", "project.open"},
+			[]string{"session.new", "session.newHome", "session.newWorktree", "project.open"},
 			[]string{"palette.open", "session.attention", "session.next", "session.previous"},
 			[]string{"session.rename", "pane.restart"},
 			[]string{"pane.close", "session.close"})},

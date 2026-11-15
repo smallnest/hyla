@@ -314,6 +314,9 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     layer, as it asks with the confirmation the views draw.
   - Also: hylad's restart is `quit.Daemon`, `quit.Offer` and
     `quit.RestartEnded`, beside the quit that asks it.
+  - Also: `session.newWorktree` runs `worktree.NewSession`: it was
+    missing from the app's actions and its menu, though the shortcut
+    sheet named it.
   - The guard now fails on a package of `internal/` that no layer's
     names hold. It found `buildinfo`, `fileicons` and `profiling` never
     listed.

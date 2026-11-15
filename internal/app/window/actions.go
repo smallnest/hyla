@@ -9,6 +9,7 @@ import (
 	"hyla/internal/proto"
 
 	"hyla/internal/ui/menus"
+	"hyla/internal/ui/worktree"
 )
 
 // The app, as the menus ask it.
@@ -59,6 +60,8 @@ func (a *App) run(id string, args map[string]string) {
 		}
 	case "session.newHome":
 		a.NewSessionInDir(a.local(), proto.Home())
+	case "session.newWorktree":
+		worktree.NewSession(a)
 	case "project.open":
 		a.openProject()
 	case "palette.open":

@@ -10,11 +10,10 @@ require (
 	github.com/coder/websocket v1.8.15
 	github.com/ebitengine/purego v0.11.3
 	github.com/egoist/mygo v0.9.0
-	github.com/hashicorp/yamux v0.1.2
 	github.com/larksuite/oapi-sdk-go/v3 v3.12.2
-	github.com/pkg/sftp v1.13.12
 	github.com/tailscale/tailcat v0.7.0
 	github.com/xingkaixin/mygo-native-ui v0.4.0
+	golang.org/x/crypto v0.58.0
 	golang.org/x/image v0.46.0
 	golang.org/x/sys v0.49.0
 	golang.org/x/term v0.47.0
@@ -47,6 +46,7 @@ require (
 	github.com/mdlayher/socket v0.7.0 // indirect
 	github.com/mitchellh/go-ps v1.0.0 // indirect
 	github.com/pires/go-proxyproto v0.15.0 // indirect
+	github.com/pkg/sftp v1.13.12 // indirect
 	github.com/safchain/ethtool v0.7.0 // indirect
 	github.com/tailscale/certstore v0.1.1-0.20260409135935-3638fb84b77d // indirect
 	github.com/tailscale/gliderssh v0.3.4-0.20261026144310-31f7cf365d3a // indirect
@@ -61,7 +61,6 @@ require (
 	go.digitalxero.dev/rpm v0.3.4 // indirect
 	go4.org/mem v0.0.0-20240501181205-ae6ca9944745 // indirect
 	go4.org/netipx v0.0.0-20260823151212-3075585bcbeb // indirect
-	golang.org/x/crypto v0.58.0 // indirect
 	golang.org/x/exp v0.0.0-20261106192419-47ce03d25ef0 // indirect
 	golang.org/x/net v0.60.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
