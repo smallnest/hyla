@@ -688,30 +688,6 @@ func appearancePage(x App, c *ui.Context, pal *theme.Palette) {
 				ui.Textf(c, "%.0f%%", s.SidebarImageOpacity*100).FontSize(12.5).TextColor(pal.TextMuted).Width(40).FontFeatures("tnum")
 			})
 		}
-		detail = locales.SetPaneImageDetail()
-		if s.PaneImage != "" {
-			detail = filepath.Base(s.PaneImage)
-		}
-		kit.Row(c, pal, locales.SetPaneImage(), detail, func() {
-			if style.Button(c, "pane-image", locales.SetSidebarImageChoose(), "", false, pal) {
-				x.PickPaneImage()
-			}
-			if s.PaneImage != "" && style.Button(c, "pane-image-clear", locales.CommonRemove(), "", false, pal) {
-				s.PaneImage = ""
-			}
-		})
-		if s.PaneImage != "" {
-			kit.Row(c, pal, locales.SetPaneImageOpacity(), locales.SetPaneImageOpacityDetail(), func() {
-				v := float64(s.PaneImageOpacity)
-				controls.Slider(c, "pane-image-opacity", &v, 0, 1, 160, pal).OnChange(func() {
-					s.PaneImageOpacity = float32(int(v*100+0.5)) / 100
-				})
-				ui.Textf(c, "%.0f%%", s.PaneImageOpacity*100).FontSize(12.5).TextColor(pal.TextMuted).Width(40).FontFeatures("tnum")
-			})
-			kit.Row(c, pal, locales.SetPaneImageFit(), locales.SetPaneImageFitDetail(), func() {
-				controls.Popup(c, "pane-image-fit", &s.PaneImageFit, settings.PaneImageFits, paneFitName, 200, pal)
-			})
-		}
 	})
 	kit.Group(c, pal, locales.SetPetGroup(), "", func() {
 		kit.Row(c, pal, locales.SetPet(), locales.SetPetDetail(), func() {
@@ -994,6 +970,30 @@ func terminalPage(x App, c *ui.Context, pal *theme.Palette) {
 		kit.Row(c, pal, locales.SetPaneMaterial(), locales.SetPaneMaterialDetail(), func() {
 			controls.Popup(c, "pane-material", &s.PaneMaterial, []string{"glass", "plastic", "glass-clear"}, materialName, 200, pal)
 		})
+		detail := locales.SetPaneImageDetail()
+		if s.PaneImage != "" {
+			detail = filepath.Base(s.PaneImage)
+		}
+		kit.Row(c, pal, locales.SetPaneImage(), detail, func() {
+			if style.Button(c, "pane-image", locales.SetSidebarImageChoose(), "", false, pal) {
+				x.PickPaneImage()
+			}
+			if s.PaneImage != "" && style.Button(c, "pane-image-clear", locales.CommonRemove(), "", false, pal) {
+				s.PaneImage = ""
+			}
+		})
+		if s.PaneImage != "" {
+			kit.Row(c, pal, locales.SetPaneImageOpacity(), locales.SetPaneImageOpacityDetail(), func() {
+				v := float64(s.PaneImageOpacity)
+				controls.Slider(c, "pane-image-opacity", &v, 0, 1, 160, pal).OnChange(func() {
+					s.PaneImageOpacity = float32(int(v*100+0.5)) / 100
+				})
+				ui.Textf(c, "%.0f%%", s.PaneImageOpacity*100).FontSize(12.5).TextColor(pal.TextMuted).Width(40).FontFeatures("tnum")
+			})
+			kit.Row(c, pal, locales.SetPaneImageFit(), locales.SetPaneImageFitDetail(), func() {
+				controls.Popup(c, "pane-image-fit", &s.PaneImageFit, settings.PaneImageFits, paneFitName, 200, pal)
+			})
+		}
 	})
 	kit.Group(c, pal, locales.SetCursor(), "", func() {
 		kit.Row(c, pal, locales.SetShape(), locales.SetShapeDetail(), func() {
