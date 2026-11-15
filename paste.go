@@ -164,8 +164,8 @@ func pasteImageError(err error, dir string) string {
 // paneShell returns the name of the shell of a pane, or of the pane in
 // front of a session, by id.
 func (a *App) paneShell(id string) string {
-	for i := range a.st.Sessions {
-		if p := a.st.Sessions[i].PaneByID(id); p != nil {
+	for i := range a.St.Sessions {
+		if p := a.St.Sessions[i].PaneByID(id); p != nil {
 			return p.Shell
 		}
 	}

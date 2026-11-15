@@ -56,11 +56,11 @@ func (a *App) imagePeek(paneID, link string, at, term ui.Rect) {
 	if !a.localPeek(paneID, link) {
 		return
 	}
-	a.peek.shown = true
-	if a.peek.bm == nil {
+	a.Peek.shown = true
+	if a.Peek.bm == nil {
 		return
 	}
-	w, h := peekSize(a.peek.bm)
+	w, h := peekSize(a.Peek.bm)
 	r := func(v float32) int { return int(math.Round(float64(v))) }
 	anchor := mygo.Rectangle{X: r(term.X + at.X), Y: r(term.Y + at.Y), Width: r(at.W), Height: r(at.H)}
 	// The flyout is a window: it opens, or follows the link, once the
@@ -79,9 +79,9 @@ func (a *App) localPeek(paneID, link string) bool {
 	if err != nil || fi.IsDir() || fi.Size() > maxPeekBytes {
 		return false
 	}
-	if a.peek.path != path || !a.peek.mod.Equal(fi.ModTime()) {
+	if a.Peek.path != path || !a.Peek.mod.Equal(fi.ModTime()) {
 		a.closePeek()
-		a.peek = peek{path: path, name: filepath.Base(path), mod: fi.ModTime()}
+		a.Peek = peek{path: path, name: filepath.Base(path), mod: fi.ModTime()}
 		mod := fi.ModTime()
 		go func() {
 			data, err := os.ReadFile(path)
@@ -93,8 +93,8 @@ func (a *App) localPeek(paneID, link string) bool {
 				return
 			}
 			a.update(func() {
-				if a.peek.path == path && a.peek.mod.Equal(mod) {
-					a.peek.bm = bm
+				if a.Peek.path == path && a.Peek.mod.Equal(mod) {
+					a.Peek.bm = bm
 				}
 			})
 		}()
@@ -116,13 +116,13 @@ func peekSize(bm *ui.Bitmap) (w, h float32) {
 // showPeek opens the flyout of the image, w by h, against anchor, or
 // moves it there.
 func (a *App) showPeek(anchor mygo.Rectangle, w, h int) {
-	p := &a.peek
-	if a.win == nil || p.bm == nil {
+	p := &a.Peek
+	if a.Win == nil || p.bm == nil {
 		return
 	}
 	if p.win == nil {
 		win := mygo.NewFlyout(mygo.FlyoutOptions{
-			Parent:       a.win,
+			Parent:       a.Win,
 			Anchor:       anchor,
 			Gap:          6,
 			Width:        w,
@@ -132,8 +132,8 @@ func (a *App) showPeek(anchor mygo.Rectangle, w, h int) {
 			Content:      ui.View(a.peekView),
 		})
 		win.OnClosed(func() {
-			if a.peek.win == win {
-				a.peek.win = nil
+			if a.Peek.win == win {
+				a.Peek.win = nil
 			}
 		})
 		p.win, p.anchor, p.w, p.h = win, anchor, w, h
@@ -151,9 +151,9 @@ func (a *App) showPeek(anchor mygo.Rectangle, w, h int) {
 
 // closePeek closes the flyout of the image, if open.
 func (a *App) closePeek() {
-	if a.peek.win != nil {
-		a.peek.win.Close()
-		a.peek.win = nil
+	if a.Peek.win != nil {
+		a.Peek.win.Close()
+		a.Peek.win = nil
 	}
 }
 
@@ -162,7 +162,7 @@ func (a *App) closePeek() {
 func (a *App) peekView(c *ui.Context) {
 	pal := theme.For(c)
 	c.Root().Background(ui.Transparent)
-	bm := a.peek.bm
+	bm := a.Peek.bm
 	if bm == nil {
 		return
 	}
@@ -171,7 +171,7 @@ func (a *App) peekView(c *ui.Context) {
 	ui.Column(c).Fill().Padding(peekPad, peekPad, 0, peekPad).AlignItems(ui.Center).Radius(10).Background(pal.Popover).Children(func() {
 		ui.Image(c, bm).Size(w, h).Fit(ui.Contain).Radius(5)
 		ui.Row(c).Height(peekCaption).AlignSelf(ui.Stretch).Gap(8).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, a.peek.name).FontSize(11.5).TextColor(pal.TextMuted).SingleLine().Grow(1).MinWidth(0)
+			ui.Text(c, a.Peek.name).FontSize(11.5).TextColor(pal.TextMuted).SingleLine().Grow(1).MinWidth(0)
 			ui.Text(c, itoa(pw)+" × "+itoa(ph)).FontSize(11.5).FontFeatures("tnum").TextColor(pal.TextFaint).SingleLine().Shrink(0)
 		})
 	})

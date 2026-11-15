@@ -47,13 +47,13 @@ func (a *App) openProjectOn(h *host) {
 		a.toast(locales.HostNotConnected(h.name))
 		return
 	}
-	a.picker = folderPicker{open: true, host: h}
+	a.Picker = folderPicker{open: true, host: h}
 	a.pickerGo("~")
 }
 
 // pickerGo lists a folder of the picker's host.
 func (a *App) pickerGo(dir string) {
-	p := &a.picker
+	p := &a.Picker
 	p.gen++
 	gen, hidden := p.gen, p.hidden
 	p.err, p.query, p.index, p.reveal = "", "", 0, true
@@ -66,15 +66,15 @@ func (a *App) pickerGo(dir string) {
 		var l proto.FSList
 		err := cl.Call("fs.list", proto.FSListParams{Dir: dir, Hidden: hidden}, &l)
 		a.update(func() {
-			if a.picker.gen != gen {
+			if a.Picker.gen != gen {
 				return
 			}
 			if err != nil {
-				a.picker.err = err.Error()
+				a.Picker.err = err.Error()
 				return
 			}
 			// It shows from its first folder, whatever the last one's scroll.
-			a.picker.list, a.picker.reveal = &l, true
+			a.Picker.list, a.Picker.reveal = &l, true
 		})
 	}()
 }
@@ -82,7 +82,7 @@ func (a *App) pickerGo(dir string) {
 // pickerItems are the folders the picker shows: the parent, then those of
 // the folder listed that the query matches.
 func (a *App) pickerItems() []pickerItem {
-	p := &a.picker
+	p := &a.Picker
 	if p.list == nil {
 		return nil
 	}
@@ -126,7 +126,7 @@ func isPathQuery(q string, windows bool) bool {
 }
 
 func (a *App) pickerView(c *ui.Context, pal *theme.Palette) {
-	p := &a.picker
+	p := &a.Picker
 	if !p.open {
 		return
 	}
@@ -243,7 +243,7 @@ func (a *App) pickerView(c *ui.Context, pal *theme.Palette) {
 		a.pickerGo(goTo)
 	}
 	if !p.open {
-		a.picker = folderPicker{}
+		a.Picker = folderPicker{}
 		if openDir == "" {
 			a.focusTerminal()
 		}
@@ -253,7 +253,7 @@ func (a *App) pickerView(c *ui.Context, pal *theme.Palette) {
 // pickerChosen is the folder Open opens: the one chosen in the list,
 // else, as with the parent chosen, the folder listed.
 func (a *App) pickerChosen(items []pickerItem) string {
-	p := &a.picker
+	p := &a.Picker
 	if len(items) > 0 && !items[p.index].up {
 		return items[p.index].path
 	}
@@ -267,7 +267,7 @@ func (a *App) pickerChosen(items []pickerItem) string {
 // each other, which a click lists instead.
 func (a *App) pickerHosts(c *ui.Context, pal *theme.Palette, shown *host) {
 	ui.Row(c.Key("hosts")).Gap(2).AlignItems(ui.Center).MinWidth(0).Shrink(1).Children(func() {
-		for _, h := range a.hosts {
+		for _, h := range a.Hosts {
 			label := h.label()
 			b := ui.ButtonBase(c.Key("host-"+h.name)).Height(24).Padding(0, 8).Radius(6).AlignItems(ui.Center).
 				Label(locales.PickerTitle(label))

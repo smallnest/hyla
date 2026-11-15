@@ -83,20 +83,20 @@ type petState struct {
 
 // syncPet shows or hides the pet, as the settings and the window say.
 func (a *App) syncPet() {
-	if a.win == nil || a.win.IsDestroyed() {
+	if a.Win == nil || a.Win.IsDestroyed() {
 		return
 	}
 	switch {
-	case a.set.Pet && a.pet.win == nil:
+	case a.Settings.Pet && a.Pet.win == nil:
 		a.petShow()
-	case !a.set.Pet && a.pet.win != nil:
+	case !a.Settings.Pet && a.Pet.win != nil:
 		a.petClose()
 	}
 }
 
 // petShow opens the pet's window over the main one, and keeps it there.
 func (a *App) petShow() {
-	p := &a.pet
+	p := &a.Pet
 	now := time.Now()
 	p.since, p.lastActive, p.wink = now, now, time.Time{}
 	p.calm = mygo.Theme.Preferences().ReduceMotion
@@ -119,29 +119,29 @@ func (a *App) petShow() {
 		SkipTaskbar:       true,
 		AlwaysOnTop:       true,
 		Hidden:            true,
-		Parent:            a.win,
+		Parent:            a.Win,
 		Content:           ui.View(a.petView),
 	})
 	win := p.win
 	p.offs = []func(){
 		// Closed with the app, and never in the way of quitting.
 		win.OnClosed(func() {
-			if a.pet.win == win {
-				a.pet.win = nil
+			if a.Pet.win == win {
+				a.Pet.win = nil
 			}
-			a.petSet = nil
+			a.PetSet = nil
 		}),
-		a.win.OnMove(a.petPlace),
-		a.win.OnResize(a.petPlace),
+		a.Win.OnMove(a.petPlace),
+		a.Win.OnResize(a.petPlace),
 		// A window ordered in, as the app comes to the front, goes over
 		// its children: the pet comes above it again.
-		a.win.OnFocus(a.petRaise),
-		a.win.OnShow(a.petPlace),
-		a.win.OnHide(win.Hide),
-		a.win.OnMinimize(win.Hide),
-		a.win.OnRestore(a.petPlace),
-		a.win.OnEnterFullScreen(win.Hide),
-		a.win.OnLeaveFullScreen(a.petPlace),
+		a.Win.OnFocus(a.petRaise),
+		a.Win.OnShow(a.petPlace),
+		a.Win.OnHide(win.Hide),
+		a.Win.OnMinimize(win.Hide),
+		a.Win.OnRestore(a.petPlace),
+		a.Win.OnEnterFullScreen(win.Hide),
+		a.Win.OnLeaveFullScreen(a.petPlace),
 		mygo.Screen.OnDisplaysChanged(a.petPlace),
 	}
 	// The pet shows while this app is in front, above the window's kind
@@ -150,8 +150,8 @@ func (a *App) petShow() {
 	p.appOffs = []func(){
 		mygo.App.OnActivate(func(bool) { a.petRaise() }),
 		mygo.App.OnDidResignActive(func() {
-			if a.pet.win != nil {
-				a.pet.win.Hide()
+			if a.Pet.win != nil {
+				a.Pet.win.Hide()
 			}
 		}),
 	}
@@ -160,7 +160,7 @@ func (a *App) petShow() {
 
 // petClose takes the pet's window away.
 func (a *App) petClose() {
-	p := &a.pet
+	p := &a.Pet
 	p.dragging, p.moved = false, false
 	for _, off := range p.offs {
 		off()
@@ -181,17 +181,17 @@ func (a *App) petClose() {
 // edge where the screen leaves room, else standing inside at its bottom
 // edge, as ELY does. It hides the pet while the window is away.
 func (a *App) petPlace() {
-	p := &a.pet
-	if p.win == nil || a.win == nil || a.win.IsDestroyed() {
+	p := &a.Pet
+	if p.win == nil || a.Win == nil || a.Win.IsDestroyed() {
 		return
 	}
-	if !a.win.IsVisible() || a.win.IsMinimized() || a.win.IsFullScreen() {
+	if !a.Win.IsVisible() || a.Win.IsMinimized() || a.Win.IsFullScreen() {
 		p.win.Hide()
 		return
 	}
-	b := a.win.Bounds()
+	b := a.Win.Bounds()
 	d := mygo.Screen.DisplayNearestPoint(mygo.Point{X: b.X + b.Width, Y: b.Y})
-	r, _ := petSpot(b, d.WorkArea, a.set.PetOffset, petSetBodyH(a), petSetHead(a))
+	r, _ := petSpot(b, d.WorkArea, a.Settings.PetOffset, petSetBodyH(a), petSetHead(a))
 	was := p.win.Bounds()
 	if was != r {
 		p.win.SetBounds(r)
@@ -210,11 +210,11 @@ func (a *App) petPlace() {
 // it over its children: as the window takes the keyboard, and as the app
 // comes to the front.
 func (a *App) petRaise() {
-	p := &a.pet
-	if p.win == nil || a.win == nil || a.win.IsDestroyed() {
+	p := &a.Pet
+	if p.win == nil || a.Win == nil || a.Win.IsDestroyed() {
 		return
 	}
-	if !a.win.IsVisible() || a.win.IsMinimized() || a.win.IsFullScreen() {
+	if !a.Win.IsVisible() || a.Win.IsMinimized() || a.Win.IsFullScreen() {
 		return
 	}
 	p.win.ShowInactive()
@@ -224,7 +224,7 @@ func (a *App) petRaise() {
 // frame: a slider dragged asks for this, rather than the settings
 // applied, and saved, on each frame of the drag.
 func (a *App) petGrow() {
-	if a.petSet != nil {
+	if a.PetSet != nil {
 		a.petSetGrow()
 	}
 	a.petPlace()
@@ -235,8 +235,8 @@ func (a *App) petGrow() {
 // says nothing, as for the sidebar's counts.
 func (a *App) petCurrent(at time.Time) (petMood, int) {
 	waiting, failed, done, working := 0, 0, 0, 0
-	for i := range a.st.Sessions {
-		s := &a.st.Sessions[i]
+	for i := range a.St.Sessions {
+		s := &a.St.Sessions[i]
 		switch {
 		case s.Status == proto.Waiting:
 			waiting++
@@ -258,7 +258,7 @@ func (a *App) petCurrent(at time.Time) (petMood, int) {
 	case working > 0:
 		return petWorking, working
 	}
-	if !a.pet.lastActive.IsZero() && at.Sub(a.pet.lastActive) > petDoze {
+	if !a.Pet.lastActive.IsZero() && at.Sub(a.Pet.lastActive) > petDoze {
 		return petAsleep, 0
 	}
 	return petIdle, 0
@@ -268,7 +268,7 @@ func (a *App) petCurrent(at time.Time) (petMood, int) {
 // starts its reaction, and work moving keeps the pet awake. The daemon
 // sends a whole state, so this is where the pet hears of it.
 func (a *App) petNote(at time.Time) {
-	p := &a.pet
+	p := &a.Pet
 	if p.win == nil {
 		return
 	}
@@ -339,7 +339,7 @@ func (a *App) petView(c *ui.Context) {
 		body = ui.Box(c.Key("hyla")).Size(wide, bodyH).Shrink(0).Cursor(ui.CursorGrab).
 			Description(petDescription(name, label))
 		hovered := body.Hovered()
-		state, since := pets.Idle, a.pet.since
+		state, since := pets.Idle, a.Pet.since
 		if set != nil {
 			state, since = a.petSetStateAt(mood, now)
 		}
@@ -353,11 +353,11 @@ func (a *App) petView(c *ui.Context) {
 		})
 		a.petDrag(body)
 		clicked = clicked || body.Clicked()
-		if a.pet.moved {
+		if a.Pet.moved {
 			// A drag is not a pat: it only let go.
 			clicked = false
-			if !a.pet.dragging {
-				a.pet.moved = false
+			if !a.Pet.dragging {
+				a.Pet.moved = false
 			}
 		}
 	})
@@ -368,16 +368,16 @@ func (a *App) petView(c *ui.Context) {
 	// Rebuild when what the pet says, or how awake it is, turns over;
 	// its motion repaints without a build, in petDraw.
 	if mood == petIdle {
-		if at := a.pet.lastActive.Add(petDoze); at.After(now) {
+		if at := a.Pet.lastActive.Add(petDoze); at.After(now) {
 			c.After(at.Sub(now) + 16*time.Millisecond)
 		}
 	}
 	if showing && (mood == petWorking || mood == petDone || mood == petFailed) {
-		if d := a.petSaysFor(mood) - now.Sub(a.pet.since); d > 0 {
+		if d := a.petSaysFor(mood) - now.Sub(a.Pet.since); d > 0 {
 			c.After(d + 16*time.Millisecond)
 		}
 	}
-	if d := petWink - now.Sub(a.pet.wink); d > 0 {
+	if d := petWink - now.Sub(a.Pet.wink); d > 0 {
 		c.After(d + 16*time.Millisecond)
 	}
 }
@@ -416,7 +416,7 @@ func (a *App) petSays(now time.Time, mood petMood) bool {
 	case petWaiting:
 		return true
 	case petWorking, petDone, petFailed:
-		return now.Sub(a.pet.since) < a.petSaysFor(mood)
+		return now.Sub(a.Pet.since) < a.petSaysFor(mood)
 	}
 	return false
 }
@@ -436,9 +436,9 @@ func (a *App) petSaysFor(mood petMood) time.Duration {
 // desktop asks for less motion, and when the user is elsewhere.
 func (a *App) petTick() time.Duration {
 	switch {
-	case a.pet.calm:
+	case a.Pet.calm:
 		return 250 * time.Millisecond
-	case !a.focused:
+	case !a.Focused:
 		return petCalm
 	}
 	return petFrame
@@ -448,18 +448,18 @@ func (a *App) petTick() time.Duration {
 // pet, and takes the user to a session that waits on them, if another one
 // does.
 func (a *App) petPetted(now time.Time, mood petMood) {
-	a.pet.lastActive, a.pet.since, a.pet.mood = now, now, mood
-	a.pet.wink, a.pet.wave = now, now
+	a.Pet.lastActive, a.Pet.since, a.Pet.mood = now, now, mood
+	a.Pet.wink, a.Pet.wave = now, now
 	if mood == petWaiting {
-		if s := a.session(a.selected); s == nil || s.Status != proto.Waiting {
+		if s := a.session(a.Selected); s == nil || s.Status != proto.Waiting {
 			a.jumpToAttention()
 		}
 	}
-	if a.pet.win != nil {
-		a.pet.win.Invalidate()
+	if a.Pet.win != nil {
+		a.Pet.win.Invalidate()
 	}
-	if a.win != nil {
-		a.win.Focus()
+	if a.Win != nil {
+		a.Win.Focus()
 		a.focusTerminal()
 	}
 }
@@ -470,32 +470,32 @@ func (a *App) petPetted(now time.Time, mood petMood) {
 func (a *App) petDrag(body ui.Element) {
 	_, _, pressed := body.Dragged()
 	if pressed {
-		if !a.pet.dragging {
+		if !a.Pet.dragging {
 			x, _, over := body.PointerPosition()
 			if !over {
 				return
 			}
-			a.pet.dragging, a.pet.moved, a.pet.grab = true, false, x
-			a.pet.lastActive = time.Now()
+			a.Pet.dragging, a.Pet.moved, a.Pet.grab = true, false, x
+			a.Pet.lastActive = time.Now()
 			if cx, ok := a.petCursorX(); ok {
-				a.pet.startX = cx
+				a.Pet.startX = cx
 			} else {
-				a.pet.startX = 0
+				a.Pet.startX = 0
 			}
 		}
 		if cx, ok := a.petCursorX(); ok {
-			if abs(cx-a.pet.startX) > 2 {
-				a.pet.moved = true
+			if abs(cx-a.Pet.startX) > 2 {
+				a.Pet.moved = true
 			}
-			if a.pet.moved {
-				a.petDragTo(cx - a.pet.grab)
+			if a.Pet.moved {
+				a.petDragTo(cx - a.Pet.grab)
 			}
 		}
 		return
 	}
-	if a.pet.dragging {
-		a.pet.dragging = false
-		if a.pet.moved {
+	if a.Pet.dragging {
+		a.Pet.dragging = false
+		if a.Pet.moved {
 			a.petDrop()
 		}
 	}
@@ -503,7 +503,7 @@ func (a *App) petDrag(body ui.Element) {
 
 // petCursorX is the pointer's x on screen, where the pet's window moves.
 func (a *App) petCursorX() (float32, bool) {
-	if a.pet.win == nil || a.win == nil {
+	if a.Pet.win == nil || a.Win == nil {
 		return 0, false
 	}
 	return float32(mygo.Screen.CursorScreenPoint().X), true
@@ -512,21 +512,21 @@ func (a *App) petCursorX() (float32, bool) {
 // petDragTo puts the pet's window at left, as a custom position across
 // the main window, and moves it there.
 func (a *App) petDragTo(left float32) {
-	if a.pet.win == nil || a.win == nil {
+	if a.Pet.win == nil || a.Win == nil {
 		return
 	}
-	off := petOffsetAt(a.win.Bounds(), left)
+	off := petOffsetAt(a.Win.Bounds(), left)
 	off = float32(math.Round(float64(off)*1000)) / 1000
-	a.set.PetOffset = off
+	a.Settings.PetOffset = off
 	a.petPlace()
 }
 
 // petDrop keeps where a drag left the pet.
 func (a *App) petDrop() {
-	if a.pet.win == nil {
+	if a.Pet.win == nil {
 		return
 	}
-	a.applySettings(a.set)
+	a.applySettings(a.Settings)
 }
 
 // petOffsetAt is where the middle of a pet placed at left stands across

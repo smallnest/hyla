@@ -24,11 +24,11 @@ func TestDuration(t *testing.T) {
 // panel away.
 func TestInfoToggle(t *testing.T) {
 	a := testApp(t)
-	a.prefs.Side = ""
+	a.Prefs.Side = ""
 	a.showSide(sideChanges)
 	a.run("info.toggle", nil)
-	if a.prefs.Side != sideInfo {
-		t.Fatalf("the Info view did not show: %q", a.prefs.Side)
+	if a.Prefs.Side != sideInfo {
+		t.Fatalf("the Info view did not show: %q", a.Prefs.Side)
 	}
 	tt := ui.NewTester(a.view, 1100, 640)
 	tt.Frame()
@@ -36,8 +36,8 @@ func TestInfoToggle(t *testing.T) {
 		t.Errorf("the Info view shows no directory: %v", tt.Texts())
 	}
 	a.run("info.toggle", nil)
-	if a.prefs.Side != "" {
-		t.Errorf("the panel stayed: %q", a.prefs.Side)
+	if a.Prefs.Side != "" {
+		t.Errorf("the panel stayed: %q", a.Prefs.Side)
 	}
 }
 
@@ -56,7 +56,7 @@ func TestInfoFoldCards(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !a.prefs.InfoFolded[infoFoldProcs] {
+	if !a.Prefs.InfoFolded[infoFoldProcs] {
 		t.Fatal("the click did not fold the process card")
 	}
 	if !tt.HasText(locales.InfoCopyPath()) {
@@ -66,7 +66,7 @@ func TestInfoFoldCards(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.prefs.InfoFolded[infoFoldProcs] {
+	if a.Prefs.InfoFolded[infoFoldProcs] {
 		t.Error("the second click left the process card folded")
 	}
 }
@@ -74,7 +74,7 @@ func TestInfoFoldCards(t *testing.T) {
 // The side panel's Info tab shows the view, by the Changes and Files tabs.
 func TestSideInfoTab(t *testing.T) {
 	a := testApp(t)
-	a.prefs.Side = sideChanges
+	a.Prefs.Side = sideChanges
 	tt := ui.NewTester(a.view, 1100, 640)
 	tt.Frame()
 	if !tt.HasText(locales.SideInfo()) {

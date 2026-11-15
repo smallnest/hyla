@@ -35,7 +35,7 @@ func TestProfile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	a.terms["a"] = &termEntry{term: term}
+	a.Terms["a"] = &termEntry{term: term}
 	t.Cleanup(func() { term.Close() })
 	tt := ui.NewTester(a.view, 1180, 760)
 	tt.Frame()

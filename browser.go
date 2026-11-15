@@ -65,18 +65,18 @@ func browserUA() string {
 
 // ensureWeb makes the web view of a browser pane, on the page hylad has.
 func (a *App) ensureWeb(p *proto.Pane) *webEntry {
-	if e := a.webs[p.ID]; e != nil {
+	if e := a.Webs[p.ID]; e != nil {
 		return e
 	}
 	e := &webEntry{url: p.URL, title: p.Title, address: p.URL, told: [2]string{p.URL, p.Title}}
 	if p.URL == proto.BlankURL {
 		e.address, e.focusAddress = "", true
 	}
-	a.webs[p.ID] = e
-	if a.win == nil {
+	a.Webs[p.ID] = e
+	if a.Win == nil {
 		return e
 	}
-	v, err := a.win.NewWebView(mygo.WebViewOptions{
+	v, err := a.Win.NewWebView(mygo.WebViewOptions{
 		Page: mygo.PageOptions{DevTools: mygo.DevToolsEnabled, UserAgentSuffix: browserUA(), ContentRules: a.adRules()},
 	})
 	if err != nil {
@@ -90,7 +90,7 @@ func (a *App) ensureWeb(p *proto.Pane) *webEntry {
 	// pane shows, and what hylad keeps.
 	page.OnDidNavigate(func(url string) {
 		a.update(func() {
-			if a.webs[id] != e {
+			if a.Webs[id] != e {
 				return
 			}
 			e.url, e.err, e.iconURL = url, "", ""
@@ -103,7 +103,7 @@ func (a *App) ensureWeb(p *proto.Pane) *webEntry {
 	})
 	page.OnPageTitleUpdated(func(t *mygo.TitleEvent) {
 		a.update(func() {
-			if a.webs[id] != e {
+			if a.Webs[id] != e {
 				return
 			}
 			e.title = t.Title
@@ -184,19 +184,19 @@ func (a *App) tellPage(id string, e *webEntry) {
 }
 
 func (a *App) dropWeb(id string) {
-	if e := a.webs[id]; e != nil {
+	if e := a.Webs[id]; e != nil {
 		if e.view != nil {
 			e.view.Destroy()
 		}
-		delete(a.webs, id)
+		delete(a.Webs, id)
 	}
 }
 
 // sessionOfPane returns the session a pane is of.
 func (a *App) sessionOfPane(id string) *proto.Session {
-	for i := range a.st.Sessions {
-		if a.st.Sessions[i].PaneByID(id) != nil {
-			return &a.st.Sessions[i]
+	for i := range a.St.Sessions {
+		if a.St.Sessions[i].PaneByID(id) != nil {
+			return &a.St.Sessions[i]
 		}
 	}
 	return nil
@@ -214,12 +214,12 @@ func (a *App) shows(id string) bool {
 // openBrowser opens a browser pane beside the pane the user is in, or the
 // address bar of the browser they are in.
 func (a *App) openBrowser(url string) {
-	s := a.session(a.selected)
+	s := a.session(a.Selected)
 	if s == nil {
 		return
 	}
 	at := a.focusOf(s)
-	if e := a.webs[at]; e != nil && url == "" {
+	if e := a.Webs[at]; e != nil && url == "" {
 		e.focusAddress = true
 		return
 	}
@@ -232,8 +232,8 @@ func (a *App) openBrowser(url string) {
 // focusAddress gives the address bar of the browser the user is in the
 // keyboard.
 func (a *App) focusAddress() {
-	if s := a.session(a.selected); s != nil {
-		if e := a.webs[a.focusOf(s)]; e != nil {
+	if s := a.session(a.Selected); s != nil {
+		if e := a.Webs[a.focusOf(s)]; e != nil {
 			e.focusAddress = true
 		}
 	}
@@ -285,7 +285,7 @@ func (a *App) paneBrowser(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, sh
 			if e.err != "" {
 				a.browserError(c, pal, e)
 			}
-			if a.find.pane == p.ID {
+			if a.Find.pane == p.ID {
 				a.browserFind(c, pal, e)
 			}
 		}
@@ -300,7 +300,7 @@ func (a *App) paneBrowser(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, sh
 func (a *App) browserBar(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown float32, s *proto.Session, p *proto.Pane, e *webEntry, top, left, right, multi, focused, hovered bool) (ui.Element, bool) {
 	pad := float32(16)
 	if top && left {
-		pad = a.chrome.headerPad
+		pad = a.Chrome.headerPad
 	}
 	// The first button's icon starts where a header's title does.
 	h := ui.Row(c.Key("hdr")).Height(headerH).Shrink(0).AlignItems(ui.Center).Padding(0, 10, 0, pad-6).Gap(2)
@@ -339,7 +339,7 @@ func (a *App) browserBar(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, sho
 		// The room past the address bar takes the buttons as they show.
 		a.paneControls(c, pal, s, p, (hovered || focused && multi) && !dragging, multi)
 		if top && right {
-			windowControls(c, pal, a.win)
+			windowControls(c, pal, a.Win)
 		}
 	})
 	return h, dragging
@@ -453,7 +453,7 @@ func (a *App) browserError(c *ui.Context, pal *theme.Palette, e *webEntry) {
 
 // browserFind is the find bar over a browser's page, as over a terminal.
 func (a *App) browserFind(c *ui.Context, pal *theme.Palette, e *webEntry) {
-	f := &a.find
+	f := &a.Find
 	if e.findText != f.query {
 		a.findInPage(e, false, false)
 	}
@@ -493,7 +493,7 @@ func (a *App) findInPage(e *webEntry, next, back bool) {
 	if e.view == nil {
 		return
 	}
-	q := a.find.query
+	q := a.Find.query
 	e.findText = q
 	e.findSeq++
 	seq, page := e.findSeq, e.view.Page()

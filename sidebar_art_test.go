@@ -44,9 +44,9 @@ func TestSidebarArtShows(t *testing.T) {
 			pic.Set(x, y, color.RGBA{G: 255, A: 255})
 		}
 	}
-	a.set.SidebarImage = "/tmp/picture.png"
-	a.set.SidebarImageOpacity = 1
-	a.art = sidebarArt{path: a.set.SidebarImage, bm: ui.NewBitmap(pic)}
+	a.Settings.SidebarImage = "/tmp/picture.png"
+	a.Settings.SidebarImageOpacity = 1
+	a.Art = sidebarArt{path: a.Settings.SidebarImage, bm: ui.NewBitmap(pic)}
 	tt.Frame()
 	after := tt.Image()
 
@@ -64,13 +64,13 @@ func TestSidebarArtShows(t *testing.T) {
 	shot(t, tt, "sidebar-art")
 
 	// At no opacity it shows not at all.
-	a.set.SidebarImageOpacity = 0
+	a.Settings.SidebarImageOpacity = 0
 	tt.Frame()
 	if got := inside(tt.Image(), 20, 620); got != inside(before, 20, 620) {
 		t.Errorf("the picture shows at 0 opacity: %v, was %v", got, inside(before, 20, 620))
 	}
 
-	a.set.SidebarImage = ""
+	a.Settings.SidebarImage = ""
 	tt.Frame()
 	if got := inside(tt.Image(), 20, 620); got != inside(before, 20, 620) {
 		t.Errorf("the picture stays after it is cleared: %v, was %v", got, inside(before, 20, 620))

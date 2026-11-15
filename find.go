@@ -30,7 +30,7 @@ type findState struct {
 // openFind opens the find bar over the pane the user is in, or gives the
 // keyboard back to it, with the last query to type over.
 func (a *App) openFind() {
-	s := a.session(a.selected)
+	s := a.session(a.Selected)
 	if s == nil {
 		return
 	}
@@ -38,22 +38,22 @@ func (a *App) openFind() {
 	if id == "" {
 		return
 	}
-	if a.find.pane != id {
+	if a.Find.pane != id {
 		if t := a.findTerm(); t != nil {
 			t.EndSearch()
 		}
 	}
-	a.find.pane, a.find.focus = id, true
+	a.Find.pane, a.Find.focus = id, true
 }
 
 // findStep goes to the next match, toward older output, or the previous
 // one; with the bar closed it opens, the last query searched again.
 func (a *App) findStep(back bool) {
-	if a.find.pane == "" {
+	if a.Find.pane == "" {
 		a.openFind()
 		return
 	}
-	if e := a.webs[a.find.pane]; e != nil {
+	if e := a.Webs[a.Find.pane]; e != nil {
 		a.findInPage(e, true, back)
 		return
 	}
@@ -74,13 +74,13 @@ func (a *App) closeFind() {
 	if t := a.findTerm(); t != nil {
 		t.EndSearch()
 	}
-	pane := a.find.pane
-	if e := a.webs[pane]; e != nil && e.view != nil {
+	pane := a.Find.pane
+	if e := a.Webs[pane]; e != nil && e.view != nil {
 		e.findText, e.found = "", mygo.FindResult{}
 		e.findSeq++
 		go e.view.Page().StopFindInPage()
 	}
-	a.find.pane = ""
+	a.Find.pane = ""
 	if pane != "" {
 		a.paneRef(pane).Focus()
 	}
@@ -88,7 +88,7 @@ func (a *App) closeFind() {
 
 // findTerm returns the terminal of the pane searched.
 func (a *App) findTerm() *terminal.Terminal {
-	if e := a.terms[a.find.pane]; e != nil {
+	if e := a.Terms[a.Find.pane]; e != nil {
 		return e.term
 	}
 	return nil
@@ -97,7 +97,7 @@ func (a *App) findTerm() *terminal.Terminal {
 // findBar floats over the top right of the pane searched: the query, how
 // many matches it has, and the buttons going through them.
 func (a *App) findBar(c *ui.Context, pal *theme.Palette, p *proto.Pane, t *terminal.Terminal) {
-	f := &a.find
+	f := &a.Find
 	// A terminal attached anew, as settings change, searches again.
 	if f.query != "" && t.SearchStatus().Text != f.query {
 		t.Search(f.query)

@@ -77,7 +77,7 @@ func relaunchForHylad(v string) {
 // development build's.
 func released(v string) bool { return v != "" && !strings.Contains(v, "dev") && !mygo.IsDev() }
 
-func (a *App) local() *host { return a.hosts[0] }
+func (a *App) local() *host { return a.Hosts[0] }
 
 // remote reports whether h is another machine's.
 func (h *host) remote() bool { return h.name != "" }
@@ -85,7 +85,7 @@ func (h *host) remote() bool { return h.name != "" }
 // hostOf returns the host of a session, a pane or a project, by id: this
 // machine when none has it.
 func (a *App) hostOf(id string) *host {
-	if h := a.owner[id]; h != nil {
+	if h := a.Owner[id]; h != nil {
 		return h
 	}
 	return a.local()
@@ -93,7 +93,7 @@ func (a *App) hostOf(id string) *host {
 
 // hostNamed returns a remote host, by name, else nil.
 func (a *App) hostNamed(name string) *host {
-	for _, h := range a.hosts[1:] {
+	for _, h := range a.Hosts[1:] {
 		if strings.EqualFold(h.name, name) {
 			return h
 		}
@@ -196,7 +196,7 @@ func connectLocal() (*client.Client, error) {
 
 // connected takes the result of connectHost.
 func (a *App) connected(h *host, gen int, cl *client.Client, err error) {
-	if h.gen != gen || !slices.Contains(a.hosts, h) {
+	if h.gen != gen || !slices.Contains(a.Hosts, h) {
 		if cl != nil {
 			go cl.Close()
 		}
@@ -244,7 +244,7 @@ func (a *App) retryLater(h *host) {
 	wait := time.Duration(h.retries) * 400 * time.Millisecond
 	time.AfterFunc(wait, func() {
 		a.update(func() {
-			if h.gen == gen && h.conn == connFailed && slices.Contains(a.hosts, h) {
+			if h.gen == gen && h.conn == connFailed && slices.Contains(a.Hosts, h) {
 				a.connectHost(h)
 			}
 		})
@@ -262,14 +262,14 @@ func (a *App) disconnected(h *host, cl *client.Client) {
 	a.dropTerms(h)
 	// What changed while the app was away tells nothing new.
 	for _, s := range a.sessionsOf(h) {
-		delete(a.statuses, s.ID)
+		delete(a.Statuses, s.ID)
 	}
 	time.AfterFunc(300*time.Millisecond, func() { a.update(func() { a.reconnect(h) }) })
 }
 
 // reconnect connects again, unless it is.
 func (a *App) reconnect(h *host) {
-	if slices.Contains(a.hosts, h) && h.cl == nil && !h.dialing {
+	if slices.Contains(a.Hosts, h) && h.cl == nil && !h.dialing {
 		a.connectHost(h)
 	}
 }
@@ -277,7 +277,7 @@ func (a *App) reconnect(h *host) {
 // dropTerms lets go of a host's terminals, which attach again as they
 // show.
 func (a *App) dropTerms(h *host) {
-	for id := range a.terms {
+	for id := range a.Terms {
 		if a.hostOf(id) == h {
 			a.dropTerm(id)
 		}
@@ -287,7 +287,7 @@ func (a *App) dropTerms(h *host) {
 // sessionsOf returns a host's sessions, in the state the app shows.
 func (a *App) sessionsOf(h *host) []proto.Session {
 	var out []proto.Session
-	for _, s := range a.st.Sessions {
+	for _, s := range a.St.Sessions {
 		if a.hostOf(s.ID) == h {
 			out = append(out, s)
 		}
@@ -297,7 +297,7 @@ func (a *App) sessionsOf(h *host) []proto.Session {
 
 func (a *App) projectsOf(h *host) []proto.Project {
 	var out []proto.Project
-	for _, p := range a.st.Projects {
+	for _, p := range a.St.Projects {
 		if a.hostOf(p.ID) == h {
 			out = append(out, p)
 		}
@@ -312,7 +312,7 @@ func (a *App) mergeState(h *host, st proto.State) {
 	var projects []proto.Project
 	var sessions []proto.Session
 	owner := map[string]*host{}
-	for _, o := range a.hosts {
+	for _, o := range a.Hosts {
 		ps, ss := st.Projects, st.Sessions
 		if o != h {
 			ps, ss = a.projectsOf(o), a.sessionsOf(o)
@@ -329,19 +329,19 @@ func (a *App) mergeState(h *host, st proto.State) {
 		projects = append(projects, ps...)
 		sessions = append(sessions, ss...)
 	}
-	a.st.Projects, a.st.Sessions, a.owner = projects, sessions, owner
+	a.St.Projects, a.St.Sessions, a.Owner = projects, sessions, owner
 }
 
 // own records a session the app just made as a host's, before its
 // hylad's state, which has it, comes.
 func (a *App) own(h *host, s proto.Session) {
-	if a.owner == nil {
-		a.owner = map[string]*host{}
+	if a.Owner == nil {
+		a.Owner = map[string]*host{}
 	}
-	a.owner[s.ID] = h
-	a.owner[s.Project] = h
+	a.Owner[s.ID] = h
+	a.Owner[s.Project] = h
 	for _, p := range s.Panes {
-		a.owner[p.ID] = h
+		a.Owner[p.ID] = h
 	}
 }
 
@@ -356,13 +356,13 @@ func (a *App) remoteControl(h *host) bool {
 	if settings.Load().Feishu != nil && settings.Load().Feishu.App != "" {
 		return true
 	}
-	return a.set.RemoteControl
+	return a.Settings.RemoteControl
 }
 
 // hostedName is a session's name, as a notification and the window's
 // title say it.
 func (a *App) hostedName(s *proto.Session) string {
-	name := s.DisplayName(a.set.SessionName)
+	name := s.DisplayName(a.Settings.SessionName)
 	if h := a.hostOf(s.ID); h.remote() {
 		return name + " · " + h.name
 	}
@@ -372,7 +372,7 @@ func (a *App) hostedName(s *proto.Session) string {
 // allLoaded reports whether the state came, or failed to: the session the
 // app showed last may be of a hylad still connecting.
 func (a *App) allLoaded() bool {
-	for _, h := range a.hosts {
+	for _, h := range a.Hosts {
 		if !h.loaded && h.conn == connConnecting {
 			return false
 		}
@@ -393,14 +393,14 @@ func hyladID(h *host, cl *client.Client) string {
 // reselect shows another session when the one shown is gone: the first,
 // once the state came or failed to.
 func (a *App) reselect() {
-	if a.session(a.selected) != nil {
+	if a.session(a.Selected) != nil {
 		return
 	}
 	ids := a.visibleOrder()
 	switch {
 	case len(ids) == 0 && a.allLoaded():
-		a.selected = ""
-	case len(ids) > 0 && (a.selected == "" || a.allLoaded()):
+		a.Selected = ""
+	case len(ids) > 0 && (a.Selected == "" || a.allLoaded()):
 		a.selectSession(ids[0])
 	}
 }
@@ -451,7 +451,7 @@ func (a *App) hostState(c *ui.Context, pal *theme.Palette, h *host) {
 // offerHostRestart restarts hylad, asking first while programs run in its
 // sessions.
 func (a *App) offerHostRestart(h *host) {
-	a.confirm = &confirmation{
+	a.Confirm = &confirmation{
 		open:    true,
 		title:   locales.HostRestartTitle(h.label()),
 		detail:  locales.HostRestartDetail(h.label()),
@@ -459,8 +459,8 @@ func (a *App) offerHostRestart(h *host) {
 		destroy: true,
 		run:     func() { a.restartDaemon() },
 	}
-	if a.win != nil {
-		a.win.Focus()
+	if a.Win != nil {
+		a.Win.Focus()
 	}
 }
 

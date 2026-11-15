@@ -99,42 +99,42 @@ func (a *App) view(c *ui.Context) {
 	pal := theme.For(c)
 	c.SetTheme(borderless(c, pal))
 
-	if a.undoAction != nil {
+	if a.UndoAction != nil {
 		// The removal's own words, even as another toast came first.
-		c.ToastAction(a.undoMessage, locales.CommonUndo(), a.undoAction)
-		a.pendingToast, a.undoAction, a.undoMessage = "", nil, ""
-	} else if a.pendingToast != "" {
-		c.Toast(a.pendingToast)
-		a.pendingToast = ""
+		c.ToastAction(a.UndoMessage, locales.CommonUndo(), a.UndoAction)
+		a.PendingToast, a.UndoAction, a.UndoMessage = "", nil, ""
+	} else if a.PendingToast != "" {
+		c.Toast(a.PendingToast)
+		a.PendingToast = ""
 	}
 	a.shortcuts(c)
 	a.State.Tick(a)
 
 	bar := c.TitleBar()
 	row := ui.Row(c).Fill().AlignItems(ui.Stretch)
-	theme.Backdrop(c, pal, row, a.set)
+	theme.Backdrop(c, pal, row, a.Settings)
 	// A curve, not a spring: a spring's long tail crawls under a pixel a
 	// frame, which whole pixels turn into hops and holds, a shake as it
 	// settles. This one lands in about 13 frames, moving in every one.
 	var progress float32
-	shown := a.chrome.shown
+	shown := a.Chrome.shown
 	// The panel is not crowded by a window too narrow for it beside the
 	// panes, which it then leaves to them while it is open, unless the
 	// user opens it anyway (sideState.forced). The row's width is this
 	// frame's, as its bounds have it: the last frame's would lag a frame
 	// as the window resizes.
 	winW, _ := c.Size()
-	a.side.crowded = winW > 0 && sideRowW(winW, a.chrome) < minCards
-	a.side.rowW = sideRowW(winW, a.chrome)
-	if !a.side.crowded {
-		a.side.forced = false
+	a.Side.crowded = winW > 0 && sideRowW(winW, a.Chrome) < minCards
+	a.Side.rowW = sideRowW(winW, a.Chrome)
+	if !a.Side.crowded {
+		a.Side.forced = false
 	}
 	row.Children(func() {
-		progress = ui.Column(c.Key("sidebar")).AnimateTo("shown", b2f(!a.prefs.SidebarHidden), sidebarMotion)
-		a.chrome = chromeFor(progress, a.prefs.SidebarWidth, bar)
-		w := a.chrome.sideW
+		progress = ui.Column(c.Key("sidebar")).AnimateTo("shown", b2f(!a.Prefs.SidebarHidden), sidebarMotion)
+		a.Chrome = chromeFor(progress, a.Prefs.SidebarWidth, bar)
+		w := a.Chrome.sideW
 		side := ui.Row(c).Width(w).Shrink(0).AlignItems(ui.Stretch).ClipX()
-		if h := a.local(); h.conn == connReady && h.cl != nil && !a.prefs.SidebarHidden && !a.pal.open && !a.picker.open && a.sshAsk == nil && a.k8sAsk == nil && (a.confirm == nil || !a.confirm.open) {
+		if h := a.local(); h.conn == connReady && h.cl != nil && !a.Prefs.SidebarHidden && !a.Pal.open && !a.Picker.open && a.SshAsk == nil && a.K8sAsk == nil && (a.Confirm == nil || !a.Confirm.open) {
 			if files := side.DroppedFiles(); len(files) > 0 {
 				go a.openProjectDirs(h, h.cl, slices.Clone(files), true)
 			}
@@ -145,14 +145,14 @@ func (a *App) view(c *ui.Context) {
 			}
 		}
 		side.Children(func() {
-			ui.Column(c).Width(a.prefs.SidebarWidth).Shrink(0).Margin(0, 0, 0, w-a.prefs.SidebarWidth).
+			ui.Column(c).Width(a.Prefs.SidebarWidth).Shrink(0).Margin(0, 0, 0, w-a.Prefs.SidebarWidth).
 				Opacity(0.4 + 0.6*shown).Children(func() {
 				a.sidebarArtView(c)
 				a.sidebar(c, pal, bar)
 			})
 		})
 		// The gaps around the cards move the window too.
-		main := ui.Column(c).Grow(1).MinWidth(0).Padding(cardGap, cardGap, cardGap, a.chrome.mainPad).DragWindow()
+		main := ui.Column(c).Grow(1).MinWidth(0).Padding(cardGap, cardGap, cardGap, a.Chrome.mainPad).DragWindow()
 		main.Children(func() {
 			if shown > 0.01 {
 				a.resizeHandle(c, pal)
@@ -162,7 +162,7 @@ func (a *App) view(c *ui.Context) {
 	})
 	// A page staged for a screenshot takes the window's size, under its
 	// content, which hides it: at no opacity, it paints no hole there.
-	for id, e := range a.webs {
+	for id, e := range a.Webs {
 		if e.staged && e.view != nil {
 			ui.Box(c.Key("staged-" + id)).Absolute().Left(0).Top(0).Right(0).Bottom(0).AlignItems(ui.Stretch).Opacity(0).Children(func() {
 				ui.WebView(c.Key("web"), e.view).Grow(1)
@@ -176,18 +176,18 @@ func (a *App) view(c *ui.Context) {
 	a.sshView(c, pal)
 	a.k8sView(c, pal)
 	// A preview that showed no more fades in anew next time.
-	if !a.previewShown {
-		a.previewKey = ""
+	if !a.PreviewShown {
+		a.PreviewKey = ""
 	}
-	a.previewShown = false
+	a.PreviewShown = false
 	// An image previewed no more closes, and lets go of its bitmap.
-	if !a.peek.shown {
+	if !a.Peek.shown {
 		a.closePeek()
-		a.peek = peek{}
+		a.Peek = peek{}
 	}
-	a.peek.shown = false
-	if later := a.later; len(later) > 0 {
-		a.later = nil
+	a.Peek.shown = false
+	if later := a.Later; len(later) > 0 {
+		a.Later = nil
 		for _, fn := range later {
 			fn()
 		}
@@ -200,17 +200,17 @@ func (a *App) resizeHandle(c *ui.Context, pal *theme.Palette) {
 	// A drag leaves the keyboard in the pane the user is in.
 	h := ui.Box(c.Key("resize")).Absolute().Left(-4).Top(0).Bottom(0).Width(9).Cursor(ui.CursorResizeColumn).KeepFocus()
 	if dx, _, ok := h.Dragged(); ok {
-		if a.sideDrag == 0 {
-			a.sideDrag = a.prefs.SidebarWidth
+		if a.SideDrag == 0 {
+			a.SideDrag = a.Prefs.SidebarWidth
 		}
-		a.sideDrag += dx
-		a.prefs.SidebarWidth = min(max(a.sideDrag, minSidebar), maxSidebar)
-	} else if a.sideDrag != 0 && !h.Pressed() {
-		a.sideDrag = 0
+		a.SideDrag += dx
+		a.Prefs.SidebarWidth = min(max(a.SideDrag, minSidebar), maxSidebar)
+	} else if a.SideDrag != 0 && !h.Pressed() {
+		a.SideDrag = 0
 		a.savePrefs()
 	}
 	if h.DoubleClicked() {
-		a.prefs.SidebarWidth = defaultSidebar
+		a.Prefs.SidebarWidth = defaultSidebar
 		a.savePrefs()
 	}
 }
@@ -300,7 +300,7 @@ func (a *App) sidebar(c *ui.Context, pal *theme.Palette, bar ui.TitleBar) {
 	})
 	ui.Scroll(c.Key("sessions")).Grow(1).Padding(0, 10, 16, 10).Children(func() {
 		n := 0 // the rows shown, for ⌘1–9 (Ctrl+1–9 elsewhere)
-		if g := a.prefs.SidebarGroup; g == "none" || g == "date" {
+		if g := a.Prefs.SidebarGroup; g == "none" || g == "date" {
 			a.sessionSidebar(c, pal, g, &n)
 			return
 		}
@@ -312,12 +312,12 @@ func (a *App) sidebar(c *ui.Context, pal *theme.Palette, bar ui.TitleBar) {
 				a.groupView(c, pal, g, gi, &n)
 				gi++
 			}
-			if len(a.st.Sessions) == 0 && local.conn == connReady {
+			if len(a.St.Sessions) == 0 && local.conn == connReady {
 				ui.Text(c, locales.SidebarNoSessions()).FontSize(12.5).TextColor(pal.TextFaint).Padding(8, 10)
 			}
 		}
 		// Then each other machine's, under its name.
-		for _, h := range a.hosts[1:] {
+		for _, h := range a.Hosts[1:] {
 			top := float32(18)
 			if gi == 0 {
 				top = 2
@@ -342,7 +342,7 @@ func (a *App) sidebar(c *ui.Context, pal *theme.Palette, bar ui.TitleBar) {
 // all are folded. A sidebar grouped by none or by date lists no projects,
 // so it keeps the button out of the toolbar's way there.
 func (a *App) foldButton(c *ui.Context, pal *theme.Palette) {
-	g := a.prefs.SidebarGroup
+	g := a.Prefs.SidebarGroup
 	if g != "" && g != "project" {
 		return
 	}
@@ -363,35 +363,35 @@ func (a *App) sortButton(c *ui.Context, pal *theme.Palette) {
 		b.Background(pal.RowHover).TextColor(pal.Text)
 	}
 	b.Menu(func(m *ui.Menu) {
-		group := a.prefs.SidebarGroup
+		group := a.Prefs.SidebarGroup
 		if group == "" {
 			group = "project"
 		}
-		order := a.prefs.SidebarOrder
+		order := a.Prefs.SidebarOrder
 		if order == "" {
 			order = "created"
 		}
 		m.Item(locales.SidebarGroupBy()).Disabled(true)
 		if m.Item(locales.SidebarGroupProject()).Checked(group == "project").Chosen() {
-			a.prefs.SidebarGroup = "project"
+			a.Prefs.SidebarGroup = "project"
 			a.savePrefs()
 		}
 		if m.Item(locales.SidebarGroupNone()).Checked(group == "none").Chosen() {
-			a.prefs.SidebarGroup = "none"
+			a.Prefs.SidebarGroup = "none"
 			a.savePrefs()
 		}
 		if m.Item(locales.SidebarGroupDate()).Checked(group == "date").Chosen() {
-			a.prefs.SidebarGroup = "date"
+			a.Prefs.SidebarGroup = "date"
 			a.savePrefs()
 		}
 		m.Separator()
 		m.Item(locales.SidebarOrderBy()).Disabled(true)
 		if m.Item(locales.SidebarOrderCreated()).Checked(order == "created").Chosen() {
-			a.prefs.SidebarOrder = "created"
+			a.Prefs.SidebarOrder = "created"
 			a.savePrefs()
 		}
 		if m.Item(locales.SidebarOrderUpdated()).Checked(order == "updated").Chosen() {
-			a.prefs.SidebarOrder = "updated"
+			a.Prefs.SidebarOrder = "updated"
 			a.savePrefs()
 		}
 	})
@@ -435,7 +435,7 @@ func (a *App) newSessionButton(c *ui.Context, pal *theme.Palette) {
 func (a *App) sessionSidebar(c *ui.Context, pal *theme.Palette, group string, n *int) {
 	gi := 0
 	local := a.local()
-	for _, h := range a.hosts {
+	for _, h := range a.Hosts {
 		if h == local && !h.loaded {
 			continue
 		}
@@ -461,7 +461,7 @@ func (a *App) sessionSidebar(c *ui.Context, pal *theme.Palette, group string, n 
 				a.sessionRow(c, pal, s, n, rowInset, "")
 			}
 		}
-		if h == local && empty && h.conn == connReady && len(a.hosts) == 1 {
+		if h == local && empty && h.conn == connReady && len(a.Hosts) == 1 {
 			ui.Text(c, locales.SidebarNoSessions()).FontSize(12.5).TextColor(pal.TextFaint).Padding(8, 10)
 		}
 	}
@@ -483,14 +483,14 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g group, gi int, n *i
 	id, key := g.project.ID, g.key()
 	// The SSH and K8s projects open terminals of their own, not shells:
 	// their rows are the machines and pods they list.
-	ssh := id != "" && id == a.prefs.SSHProject
-	k8s := id != "" && id == a.prefs.K8sProject
-	collapsed := a.prefs.Collapsed[key]
+	ssh := id != "" && id == a.Prefs.SSHProject
+	k8s := id != "" && id == a.Prefs.K8sProject
+	collapsed := a.Prefs.Collapsed[key]
 	// current says this project holds the session in the card; folded, its
 	// badge keeps a dot for it.
 	current := false
 	for _, s := range g.sessions {
-		if s.ID == a.selected {
+		if s.ID == a.Selected {
 			current = true
 			break
 		}
@@ -516,7 +516,7 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g group, gi int, n *i
 		inset++
 	}
 	hdr := ui.Row(c.Key("project-"+key)).Height(28).Margin(top, 0, 3, 0).Padding(0, 6, 0, inset).Gap(6).AlignItems(ui.Center).Radius(6)
-	renaming := id != "" && a.renamingProject == id
+	renaming := id != "" && a.RenamingProject == id
 	// The name is the project's handle: dragged, it moves the project to
 	// another place under its host.
 	if id != "" && !renaming {
@@ -529,16 +529,16 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g group, gi int, n *i
 		if d, over := ui.DragOver[projectDrag](hdr); over && d.host == g.host && d.id != id {
 			_, y, _ := hdr.PointerPosition()
 			after := y > 14
-			a.dragAt, a.dragAfter = id, after
+			a.DragAt, a.DragAfter = id, after
 			hdr.Background(pal.RowHover)
 			dragLine(hdr, pal, after)
 		}
 		if d, ok := ui.Drop[projectDrag](hdr); ok && d.host == g.host && d.id != id {
 			_, y, _ := hdr.PointerPosition()
 			after := y > 14
-			if a.dragAt == id {
+			if a.DragAt == id {
 				// The side the insertion line last showed.
-				after = a.dragAfter
+				after = a.DragAfter
 			}
 			target := id
 			a.defer_(func() { a.moveProject(d, target, after) })
@@ -569,7 +569,7 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g group, gi int, n *i
 		// runs in them ends with them.
 		if m.Item(locales.SidebarCloseAllSessions()).Disabled(len(g.sessions) == 0).Chosen() {
 			name, count := g.project.Name, len(g.sessions)
-			a.confirm = &confirmation{
+			a.Confirm = &confirmation{
 				open:    true,
 				title:   locales.ConfirmCloseAllSessionsTitle(count, name),
 				detail:  locales.ConfirmCloseAllSessionsDetail(count),
@@ -580,7 +580,7 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g group, gi int, n *i
 		}
 		if m.Item(locales.SidebarCloseProjectMenu()).Disabled(id == "").Chosen() {
 			name, count := g.project.Name, len(g.sessions)
-			a.confirm = &confirmation{
+			a.Confirm = &confirmation{
 				open:    true,
 				title:   locales.ConfirmCloseTitle(name),
 				detail:  locales.ConfirmCloseProjectDetail(count),
@@ -640,9 +640,9 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g group, gi int, n *i
 			})
 		}
 		if renaming {
-			in := ui.TextInputBase(c.Key("rename"), &a.renameBuf).Grow(1).MinWidth(0).FontSize(13).FontWeight(500).AutoFocus()
+			in := ui.TextInputBase(c.Key("rename"), &a.RenameBuf).Grow(1).MinWidth(0).FontSize(13).FontWeight(500).AutoFocus()
 			if in.Shortcut(0, ui.KeyEscape) {
-				a.renamingProject = ""
+				a.RenamingProject = ""
 				a.focusTerminal()
 			} else if in.Submitted() || (!in.Focused() && !in.Pressed() && in.Valid() && a.renameStarted(c)) {
 				a.commitProjectRename()
@@ -686,18 +686,18 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g group, gi int, n *i
 		a.sessionRow(c, pal, s, n, float32(rowInset), g.dragKey())
 	}
 	if ssh {
-		for i := range a.prefs.SSHHosts {
+		for i := range a.Prefs.SSHHosts {
 			a.sshHostRow(c, pal, i)
 		}
-		if len(a.prefs.SSHHosts) == 0 {
+		if len(a.Prefs.SSHHosts) == 0 {
 			a.sshEmpty(c, pal)
 		}
 	}
 	if k8s {
-		for i := range a.prefs.K8sPods {
+		for i := range a.Prefs.K8sPods {
 			a.k8sPodRow(c, pal, i)
 		}
-		if len(a.prefs.K8sPods) == 0 {
+		if len(a.Prefs.K8sPods) == 0 {
 			a.k8sEmpty(c, pal)
 		}
 	}
@@ -707,7 +707,7 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g group, gi int, n *i
 // the sidebar's SSH and K8s projects, which have no directory of their
 // own.
 func (a *App) projectTip(g group) string {
-	if g.project.ID != "" && (g.project.ID == a.prefs.SSHProject || g.project.ID == a.prefs.K8sProject) {
+	if g.project.ID != "" && (g.project.ID == a.Prefs.SSHProject || g.project.ID == a.Prefs.K8sProject) {
 		return g.project.Name
 	}
 	return g.host.shortDir(g.project.Dir)
@@ -729,7 +729,7 @@ func (a *App) projectBadgeColor(p proto.Project) ui.Color {
 		return ui.Hex("#8b8b95")
 	}
 	i := 0
-	for _, q := range a.st.Projects {
+	for _, q := range a.St.Projects {
 		if q.ID != "" && q.ID < p.ID {
 			i++
 		}
@@ -760,10 +760,10 @@ func dragLine(row ui.Element, pal *theme.Palette, after bool) {
 func (a *App) sessionRow(c *ui.Context, pal *theme.Palette, s *proto.Session, n *int, inset float32, group string) {
 	*n++
 	index := *n
-	selected := s.ID == a.selected
+	selected := s.ID == a.Selected
 	// A detailed row gives the session's status message, else its branch
 	// and changes, a line of its own under the name.
-	detailed := a.set.SidebarRows != "compact"
+	detailed := a.Settings.SidebarRows != "compact"
 	h := float32(rowH)
 	if detailed {
 		h = rowH2
@@ -778,10 +778,10 @@ func (a *App) sessionRow(c *ui.Context, pal *theme.Palette, s *proto.Session, n 
 	bg := ui.Transparent
 	switch {
 	case selected:
-		bg = theme.TranslucentGlass(pal.RowSelected, pal, a.set)
+		bg = theme.TranslucentGlass(pal.RowSelected, pal, a.Settings)
 		style.Chosen(row, pal)
 	case hovered:
-		bg = theme.TranslucentGlass(pal.RowHover, pal, a.set)
+		bg = theme.TranslucentGlass(pal.RowHover, pal, a.Settings)
 	}
 	row.Background(row.AnimateColor("bg", bg, ui.Animation{Duration: 110 * time.Millisecond}))
 	if (row.Pressed() || row.Clicked()) && !selected {
@@ -793,7 +793,7 @@ func (a *App) sessionRow(c *ui.Context, pal *theme.Palette, s *proto.Session, n 
 	// The row is its session's handle within its project: dragged, it
 	// moves the session to another place there, past the row of the one
 	// it is dropped on, above or below its middle.
-	if group != "" && a.renaming != s.ID {
+	if group != "" && a.Renaming != s.ID {
 		drag := sessionDrag{group: group, id: s.ID}
 		row.Drag(drag).Cursor(ui.CursorGrab)
 		if row.Dragging() {
@@ -802,16 +802,16 @@ func (a *App) sessionRow(c *ui.Context, pal *theme.Palette, s *proto.Session, n 
 		if d, over := ui.DragOver[sessionDrag](row); over && d.group == group && d.id != s.ID {
 			_, y, _ := row.PointerPosition()
 			after := y > h/2
-			a.dragAt, a.dragAfter = s.ID, after
+			a.DragAt, a.DragAfter = s.ID, after
 			row.Background(pal.RowHover)
 			dragLine(row, pal, after)
 		}
 		if d, ok := ui.Drop[sessionDrag](row); ok && d.group == group && d.id != s.ID {
 			_, y, _ := row.PointerPosition()
 			after := y > h/2
-			if a.dragAt == s.ID {
+			if a.DragAt == s.ID {
 				// The side the insertion line last showed.
-				after = a.dragAfter
+				after = a.DragAfter
 			}
 			target := s.ID
 			a.defer_(func() { a.reorderSession(d, target, after) })
@@ -860,11 +860,11 @@ func (a *App) sessionRow(c *ui.Context, pal *theme.Palette, s *proto.Session, n 
 	}
 	row.ContextMenu(func(m *ui.Menu) { a.sessionMenu(m, s) })
 	row.Children(func() {
-		if a.renaming == s.ID {
-			in := ui.TextInputBase(c.Key("rename"), &a.renameBuf).Grow(1).MinWidth(0).FontSize(13.5).FontWeight(600).AutoFocus()
+		if a.Renaming == s.ID {
+			in := ui.TextInputBase(c.Key("rename"), &a.RenameBuf).Grow(1).MinWidth(0).FontSize(13.5).FontWeight(600).AutoFocus()
 			if in.Submitted() || in.Shortcut(0, ui.KeyEscape) {
 				if in.Shortcut(0, ui.KeyEscape) {
-					a.renaming = ""
+					a.Renaming = ""
 					a.focusTerminal()
 				} else {
 					a.commitRename()
@@ -875,7 +875,7 @@ func (a *App) sessionRow(c *ui.Context, pal *theme.Palette, s *proto.Session, n 
 			return
 		}
 		name := func() {
-			name := ui.Text(c, s.DisplayName(a.set.SessionName)).FontSize(13.5).FontWeight(400).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0).TextColor(pal.Text)
+			name := ui.Text(c, s.DisplayName(a.Settings.SessionName)).FontSize(13.5).FontWeight(400).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0).TextColor(pal.Text)
 			if s.Unread {
 				name.FontWeight(650)
 			}
@@ -920,7 +920,7 @@ func (a *App) sessionRow(c *ui.Context, pal *theme.Palette, s *proto.Session, n 
 					// A K8s terminal's is the kubectl command that
 					// enters its pod.
 					line, msg = k8sCmd, false
-				case a.prefs.SidebarGroup == "none" || a.prefs.SidebarGroup == "date":
+				case a.Prefs.SidebarGroup == "none" || a.Prefs.SidebarGroup == "date":
 					// Without project headers, the project says which list
 					// the session is in, before what it is at.
 					if p := a.projectName(s.Project); p != "" {
@@ -951,7 +951,7 @@ func (a *App) sessionRow(c *ui.Context, pal *theme.Palette, s *proto.Session, n 
 			ui.Text(c, b).FontSize(12).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").Shrink(3).MinWidth(24).MaxWidth(120)
 		}
 		// Without project headers, the project says which list it is.
-		if a.prefs.SidebarGroup == "none" || a.prefs.SidebarGroup == "date" {
+		if a.Prefs.SidebarGroup == "none" || a.Prefs.SidebarGroup == "date" {
 			if p := a.projectName(s.Project); p != "" {
 				ui.Text(c, p).FontSize(12).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").Shrink(2).MinWidth(0).MaxWidth(90)
 			}
@@ -1006,8 +1006,8 @@ func rowDetail(s *proto.Session, g *proto.GitInfo, dir string) (line string, msg
 // renameStarted keeps a rename from ending in the frame it began in,
 // before its input took the focus.
 func (a *App) renameStarted(c *ui.Context) bool {
-	if a.renameFrames < 3 {
-		a.renameFrames++
+	if a.RenameFrames < 3 {
+		a.RenameFrames++
 		c.Invalidate()
 		return false
 	}
@@ -1039,7 +1039,7 @@ func (a *App) sessionMenu(m *ui.Menu, s *proto.Session) {
 			}
 		}
 	})
-	if a.set.Feishu != nil && a.set.Feishu.App != "" {
+	if a.Settings.Feishu != nil && a.Settings.Feishu.App != "" {
 		// The session's conversation, as a chat: its agent's, with the
 		// Feishu chat it is with (chat.go).
 		// It shows in the pane the user is in, in its terminal's place.
@@ -1054,10 +1054,10 @@ func (a *App) sessionMenu(m *ui.Menu, s *proto.Session) {
 	}
 	m.Separator()
 	if m.Item(locales.SessionCopyId()).Chosen() {
-		a.copyText = id
+		a.CopyText = id
 	}
 	if m.Item(locales.SessionCopyDirectory()).Disabled(s.WorkDir() == "").Chosen() {
-		a.copyText = s.WorkDir()
+		a.CopyText = s.WorkDir()
 	}
 	if m.Item(locales.SessionRevealIn(fileManager())).Disabled(s.WorkDir() == "").Chosen() {
 		a.openLink(id, s.WorkDir())
@@ -1102,8 +1102,8 @@ func (a *App) sidebarFooter(c *ui.Context, pal *theme.Palette) {
 // as "%d session needs you". It shows nothing while none is.
 func (a *App) footerChip(c *ui.Context, pal *theme.Palette, st proto.Status, unread bool, is func(*proto.Session) bool, fg ui.Color, say func(int) string, hint string, jump func()) {
 	n := 0
-	for i := range a.st.Sessions {
-		if is(&a.st.Sessions[i]) {
+	for i := range a.St.Sessions {
+		if is(&a.St.Sessions[i]) {
 			n++
 		}
 	}
@@ -1298,7 +1298,7 @@ const (
 // sessionSwitch returns how a session comes in place of another, as the
 // settings say (session-switch).
 func (a *App) sessionSwitch() sessionSwitch {
-	switch a.set.SessionSwitch {
+	switch a.Settings.SessionSwitch {
 	case "slide":
 		return switchSlide
 	case "push":
@@ -1359,7 +1359,7 @@ func (sw sessionSwitch) pose(from ui.Motion, in bool) ui.Pose {
 }
 
 func (a *App) card(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown float32) {
-	a.cardFor(c, pal, bar, shown, a.selected)
+	a.cardFor(c, pal, bar, shown, a.Selected)
 }
 
 // cardFor shows the card of the session id: its panes, and the side panel,
@@ -1371,7 +1371,7 @@ func (a *App) cardFor(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown 
 	if s != nil {
 		h = a.hostOf(s.ID)
 	}
-	if s != nil && h.conn != connVersion && a.loaded {
+	if s != nil && h.conn != connVersion && a.Loaded {
 		// Files dropped on the content go to the session's panes, on them,
 		// between them or on the panel beside them (drop_files.go).
 		box := ui.Column(c.Key("card")).Grow(1).Basis(0).MinWidth(0).MinHeight(0)
@@ -1386,8 +1386,8 @@ func (a *App) cardFor(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown 
 			// The panes, then the side panel, which takes the window's
 			// right edge.
 			row := ui.Row(c.Key("with-side")).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Bind(a.paneRef("with-side"))
-			w := a.side.rowW
-			if a.side.rowW == 0 {
+			w := a.Side.rowW
+			if a.Side.rowW == 0 {
 				w = a.paneRef("with-side").Bounds(c).W
 			}
 			row.Children(func() {
@@ -1405,19 +1405,19 @@ func (a *App) cardFor(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown 
 		return
 	}
 	// No session: one card, for what the app has to say.
-	card := style.Raised(ui.Column(c).Grow(1).MinHeight(0).Radius(14).Background(theme.TranslucentGlass(pal.Card, pal, a.set)), pal).Clip()
+	card := style.Raised(ui.Column(c).Grow(1).MinHeight(0).Radius(14).Background(theme.TranslucentGlass(pal.Card, pal, a.Settings)), pal).Clip()
 	card.Children(func() {
-		left := a.chrome.headerPad
+		left := a.Chrome.headerPad
 		ui.Row(c).Height(headerH).Shrink(0).AlignItems(ui.Center).Padding(0, 10, 0, left).DragWindow().Children(func() {
 			if shown < 0.5 {
-				ui.Row(c).Absolute().Left(a.chrome.buttonsLeft(bar)).Top(0).Bottom(0).AlignItems(ui.Center).Gap(2).Opacity(1 - 2*shown).Children(func() {
+				ui.Row(c).Absolute().Left(a.Chrome.buttonsLeft(bar)).Top(0).Bottom(0).AlignItems(ui.Center).Gap(2).Opacity(1 - 2*shown).Children(func() {
 					iconButton(c, "show-sidebar", glyph.Sidebar, a.tip(locales.SidebarShow(), "sidebar.toggle"), pal, a.toggleSidebar)
 					iconButton(c, "new-session-2", glyph.Plus, a.tip(locales.ActionNewSession(), "session.new"), pal, func() { a.newSession("") })
 				})
 			}
 			ui.Text(c, "Hyla").FontSize(14).FontWeight(600).TextColor(pal.Text)
 			ui.Spacer(c)
-			windowControls(c, pal, a.win)
+			windowControls(c, pal, a.Win)
 		})
 		ui.Column(c).Grow(1).MinHeight(0).Children(func() {
 			switch {
@@ -1425,7 +1425,7 @@ func (a *App) cardFor(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown 
 				a.message(c, pal, locales.UpdatedTitle(), locales.UpdatedDetail(), locales.CommonRestartService(), a.restartDaemon)
 			case h.conn == connFailed && h.cl == nil:
 				a.message(c, pal, locales.ConnCantReach(), h.err, locales.CommonTryAgain(), func() { h.retries = 0; h.conn = connConnecting; a.connect() })
-			case !a.loaded:
+			case !a.Loaded:
 				ui.Column(c).Fill().Center().Children(func() {
 					ui.Spinner(c).Label(locales.StatusConnectingLabel())
 				})

@@ -23,7 +23,7 @@ func TestPaletteKeywords(t *testing.T) {
 		"adblock":  locales.In("zh-Hans").PaletteSettingsPage(locales.In("zh-Hans").PageBrowser()),
 		"maximize": locales.In("zh-Hans").ActionZoomPane(),
 	} {
-		a.pal.query = ""
+		a.Pal.query = ""
 		tt.Frame()
 		tt.Type(query)
 		tt.Frame()
@@ -50,7 +50,7 @@ func TestPaletteScrolls(t *testing.T) {
 	tt.Scroll(r.X+20, r.Y, 0, 300)
 	tt.Frame()
 	tt.Frame()
-	if y := a.pal.scroll.Y; y < 100 {
+	if y := a.Pal.scroll.Y; y < 100 {
 		t.Errorf("the wheel scrolled the palette to %g, want 300", y)
 	}
 }
@@ -60,7 +60,7 @@ func TestConfirmReturnRunsAction(t *testing.T) {
 	a := testApp(t)
 	tt := ui.NewTester(a.view, 1100, 640)
 	ran := false
-	a.confirm = &confirmation{
+	a.Confirm = &confirmation{
 		open:   true,
 		title:  "Close this pane?",
 		detail: "claude is still running in it.",
@@ -72,8 +72,8 @@ func TestConfirmReturnRunsAction(t *testing.T) {
 		t.Fatal("the action button does not have the focus")
 	}
 	tt.Key(0, ui.KeyEnter)
-	if !ran || a.confirm != nil {
-		t.Fatalf("Return ran the action %v and left the confirmation %v", ran, a.confirm)
+	if !ran || a.Confirm != nil {
+		t.Fatalf("Return ran the action %v and left the confirmation %v", ran, a.Confirm)
 	}
 }
 
@@ -82,7 +82,7 @@ func TestConfirmEscapeCancels(t *testing.T) {
 	a := testApp(t)
 	tt := ui.NewTester(a.view, 1100, 640)
 	ran := false
-	a.confirm = &confirmation{
+	a.Confirm = &confirmation{
 		open:   true,
 		title:  "Close this pane?",
 		detail: "claude is still running in it.",
@@ -91,7 +91,7 @@ func TestConfirmEscapeCancels(t *testing.T) {
 	}
 	tt.Frame()
 	tt.Key(0, ui.KeyEscape)
-	if ran || a.confirm != nil {
-		t.Fatalf("Escape ran the action %v and left the confirmation %v", ran, a.confirm)
+	if ran || a.Confirm != nil {
+		t.Fatalf("Escape ran the action %v and left the confirmation %v", ran, a.Confirm)
 	}
 }

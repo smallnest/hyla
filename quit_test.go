@@ -12,14 +12,14 @@ import (
 // sessions, asking first while a program runs.
 func TestQuitEndsSessions(t *testing.T) {
 	a := testApp(t)
-	if a.set.QuitEndsSessions {
+	if a.Settings.QuitEndsSessions {
 		t.Fatal("quit-ends-sessions is on by default")
 	}
 
 	// A shell alone: the quit is let through, to end the sessions as it
 	// goes, not to close the window and leave them.
 	a.local().conn, a.local().loaded = connReady, true
-	a.set.QuitEndsSessions = true
+	a.Settings.QuitEndsSessions = true
 	if !a.quitRequested() {
 		t.Fatal("a quit of idle sessions was taken back")
 	}
@@ -27,25 +27,25 @@ func TestQuitEndsSessions(t *testing.T) {
 	// A program runs: the quit asks, and the question takes a click.
 	a = testApp(t)
 	a.local().conn, a.local().loaded = connReady, true
-	a.set.QuitEndsSessions, a.st.Sessions[0].Process = true, "claude" // the sessions came
+	a.Settings.QuitEndsSessions, a.St.Sessions[0].Process = true, "claude" // the sessions came
 	if a.quitRequested() {
 		t.Fatal("a quit that ends a running program went ahead unasked")
 	}
-	if a.confirm == nil || !a.confirm.ends {
-		t.Fatalf("no question that ends programs before the quit: %+v", a.confirm)
+	if a.Confirm == nil || !a.Confirm.ends {
+		t.Fatalf("no question that ends programs before the quit: %+v", a.Confirm)
 	}
 	tt := ui.NewTester(a.view, 1100, 640)
 	tt.Frame()
 	// Return may be a program's to read: only a click answers it.
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
-	if a.confirm == nil || !a.confirm.open {
-		t.Fatalf("Return answered a question that ends programs: %+v", a.confirm)
+	if a.Confirm == nil || !a.Confirm.open {
+		t.Fatalf("Return answered a question that ends programs: %+v", a.Confirm)
 	}
 	tt.Click("End Sessions and Quit")
 	tt.Frame()
-	if a.confirm != nil {
-		t.Fatalf("a click left the question: %+v", a.confirm)
+	if a.Confirm != nil {
+		t.Fatalf("a click left the question: %+v", a.Confirm)
 	}
 
 	// The quit the answer makes goes ahead, without asking again, and
@@ -64,9 +64,9 @@ func TestQuitAllQuestionCancel(t *testing.T) {
 	for _, answer := range []string{"click", "esc"} {
 		a := testApp(t)
 		a.local().conn, a.local().loaded = connReady, true
-		a.set.QuitEndsSessions, a.st.Sessions[0].Process = true, "claude"
-		if a.quitRequested() || a.confirm == nil {
-			t.Fatalf("%s: the quit did not ask: %+v", answer, a.confirm)
+		a.Settings.QuitEndsSessions, a.St.Sessions[0].Process = true, "claude"
+		if a.quitRequested() || a.Confirm == nil {
+			t.Fatalf("%s: the quit did not ask: %+v", answer, a.Confirm)
 		}
 		tt := ui.NewTester(a.view, 1100, 640)
 		tt.Frame()
@@ -78,8 +78,8 @@ func TestQuitAllQuestionCancel(t *testing.T) {
 			tt.Key(0, ui.KeyEscape)
 		}
 		tt.Frame()
-		if a.confirm != nil {
-			t.Fatalf("%s: the question stayed open: %+v", answer, a.confirm)
+		if a.Confirm != nil {
+			t.Fatalf("%s: the question stayed open: %+v", answer, a.Confirm)
 		}
 	}
 }
@@ -90,12 +90,12 @@ func TestQuitAllQuestionCancel(t *testing.T) {
 // its windows.
 func TestQuitEndsSessionsNotLoaded(t *testing.T) {
 	a := testApp(t)
-	a.set.QuitEndsSessions = true
+	a.Settings.QuitEndsSessions = true
 	if a.quitRequested() {
 		t.Fatal("a quit of sessions the app has not seen went ahead")
 	}
-	if a.confirm != nil || !a.quitting {
-		t.Fatalf("a quit with nothing seen asked a question: %+v, quitting %v", a.confirm, a.quitting)
+	if a.Confirm != nil || !a.quitting {
+		t.Fatalf("a quit with nothing seen asked a question: %+v, quitting %v", a.Confirm, a.quitting)
 	}
 	if !a.quitRequested() {
 		t.Fatal("the quit the window makes after was taken back")
@@ -117,7 +117,7 @@ func TestQuitLeavesTheQuickTerminal(t *testing.T) {
 
 	a = testApp(t)
 	a.local().conn, a.local().loaded = connReady, true
-	a.set.QuitEndsSessions, a.st.Sessions[0].Process = true, "claude"
+	a.Settings.QuitEndsSessions, a.St.Sessions[0].Process = true, "claude"
 	if a.quitRequested() {
 		t.Fatal("a quit that ends a program went ahead unasked")
 	}

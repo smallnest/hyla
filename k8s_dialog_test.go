@@ -59,15 +59,15 @@ func TestAddK8sPodFromSidebar(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.k8sAsk == nil || !a.k8sAsk.open {
+	if a.K8sAsk == nil || !a.K8sAsk.open {
 		t.Fatalf("Add K8s Pod opened no dialog")
 	}
 	shot(t, tt, "add-k8s-pod")
 	tt.Type("kubectl exec -it web-0 -n prod -- /bin/bash")
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
-	if a.k8sAsk != nil {
-		t.Errorf("the dialog stays open, with %q", a.k8sAsk.err)
+	if a.K8sAsk != nil {
+		t.Errorf("the dialog stays open, with %q", a.K8sAsk.err)
 	}
 
 	var p proto.CreateParams
@@ -83,10 +83,10 @@ func TestAddK8sPodFromSidebar(t *testing.T) {
 	if p.Project != "k8s-p" || p.Name != "web-0" || p.Dir != proto.Home() {
 		t.Errorf("the session is %+v", p)
 	}
-	if a.prefs.K8sProject != "k8s-p" || len(a.prefs.K8sPods) != 1 {
-		t.Fatalf("the sidebar records %q and %+v", a.prefs.K8sProject, a.prefs.K8sPods)
+	if a.Prefs.K8sProject != "k8s-p" || len(a.Prefs.K8sPods) != 1 {
+		t.Fatalf("the sidebar records %q and %+v", a.Prefs.K8sProject, a.Prefs.K8sPods)
 	}
-	if pod := a.prefs.K8sPods[0]; pod.Name != "web-0" || pod.Session != "k8s-s" {
+	if pod := a.Prefs.K8sPods[0]; pod.Name != "web-0" || pod.Session != "k8s-s" {
 		t.Errorf("the pod is %+v", pod)
 	}
 	tt.Frame()
@@ -122,18 +122,18 @@ func TestAddK8sPodOnce(t *testing.T) {
 	a.local().cl = cl
 
 	for i := range 2 {
-		a.k8sAsk = &k8sAsk{open: true, cmd: "kubectl exec -it web-0 -n prod -- /bin/bash"}
+		a.K8sAsk = &k8sAsk{open: true, cmd: "kubectl exec -it web-0 -n prod -- /bin/bash"}
 		a.addK8sPod()
 		deadline := time.Now().Add(2 * time.Second)
-		for len(a.prefs.K8sPods) == 0 || a.prefs.K8sPods[0].Session == "" {
+		for len(a.Prefs.K8sPods) == 0 || a.Prefs.K8sPods[0].Session == "" {
 			if time.Now().After(deadline) {
 				t.Fatalf("terminal %d started none", i+1)
 			}
 			time.Sleep(2 * time.Millisecond)
 		}
 	}
-	if projects != 1 || creates != 1 || len(a.prefs.K8sPods) != 1 {
-		t.Errorf("%d projects, %d terminals, %+v", projects, creates, a.prefs.K8sPods)
+	if projects != 1 || creates != 1 || len(a.Prefs.K8sPods) != 1 {
+		t.Errorf("%d projects, %d terminals, %+v", projects, creates, a.Prefs.K8sPods)
 	}
 }
 
@@ -149,7 +149,7 @@ func TestAddK8sPodOnlyExec(t *testing.T) {
 		{"kubectl exec -it -n prod -- sh", locales.K8sPodNeedsPod()},
 		{"kubectl exec -it web-0 -- sh", ""},
 	} {
-		a.k8sAsk = &k8sAsk{open: true, cmd: c.cmd}
+		a.K8sAsk = &k8sAsk{open: true, cmd: c.cmd}
 		tt.Frame()
 		if err := tt.Click(locales.CommonConnect()); err != nil {
 			t.Fatal(err)
@@ -158,8 +158,8 @@ func TestAddK8sPodOnlyExec(t *testing.T) {
 		if c.want == "" {
 			continue
 		}
-		if a.k8sAsk == nil || a.k8sAsk.err != c.want {
-			t.Errorf("%q: the dialog said %v, want %q", c.cmd, a.k8sAsk, c.want)
+		if a.K8sAsk == nil || a.K8sAsk.err != c.want {
+			t.Errorf("%q: the dialog said %v, want %q", c.cmd, a.K8sAsk, c.want)
 		}
 	}
 }
@@ -203,8 +203,8 @@ func TestSidebarK8sPod(t *testing.T) {
 	a := testApp(t)
 	a.local().conn = connReady
 	a.mergeState(a.local(), proto.State{Projects: []proto.Project{{ID: "p-k8s", Name: locales.K8sPodsProject()}}})
-	a.prefs.K8sProject = "p-k8s"
-	a.prefs.K8sPods = []k8sPod{{Name: "web-0", Command: "kubectl exec -it web-0 -n prod -- /bin/bash"}}
+	a.Prefs.K8sProject = "p-k8s"
+	a.Prefs.K8sPods = []k8sPod{{Name: "web-0", Command: "kubectl exec -it web-0 -n prod -- /bin/bash"}}
 	creates := make(chan proto.CreateParams, 1)
 	cl, stop := projectClient(t, func(method string, raw json.RawMessage) (any, error) {
 		if method != "create" {
@@ -240,7 +240,7 @@ func TestSidebarK8sPod(t *testing.T) {
 	}
 	// The terminal is the pod's row, not a session of its own.
 	deadline := time.Now().Add(2 * time.Second)
-	for a.prefs.K8sPods[0].Session == "" {
+	for a.Prefs.K8sPods[0].Session == "" {
 		if time.Now().After(deadline) {
 			t.Fatal("the row kept no terminal")
 		}
@@ -252,7 +252,7 @@ func TestSidebarK8sPod(t *testing.T) {
 	}
 
 	// Empty, the project offers the row that adds a pod.
-	a.prefs.K8sPods, a.prefs.K8sProject = nil, "p-k8s"
+	a.Prefs.K8sPods, a.Prefs.K8sProject = nil, "p-k8s"
 	tt = ui.NewTester(a.view, 1100, 700)
 	tt.Frame()
 	if !tt.HasText(locales.ActionAddK8sPod()) {
@@ -263,7 +263,7 @@ func TestSidebarK8sPod(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.k8sAsk == nil || !a.k8sAsk.open {
+	if a.K8sAsk == nil || !a.K8sAsk.open {
 		t.Fatal("the row opened no dialog")
 	}
 }
@@ -272,9 +272,9 @@ func TestSidebarK8sPod(t *testing.T) {
 // sessions move among themselves.
 func TestK8sPodDrag(t *testing.T) {
 	a := testApp(t)
-	a.st.Projects = append(a.st.Projects, proto.Project{ID: "p-k8s", Name: locales.K8sPodsProject()})
-	a.prefs.K8sProject = "p-k8s"
-	a.prefs.K8sPods = []k8sPod{
+	a.St.Projects = append(a.St.Projects, proto.Project{ID: "p-k8s", Name: locales.K8sPodsProject()})
+	a.Prefs.K8sProject = "p-k8s"
+	a.Prefs.K8sPods = []k8sPod{
 		{Name: "one", Command: "kubectl exec -it one -- sh"},
 		{Name: "two", Command: "kubectl exec -it two -- sh"},
 	}
@@ -282,7 +282,7 @@ func TestK8sPodDrag(t *testing.T) {
 	tt.Frame()
 	dragRow(t, tt, "two", "one", false)
 	var cmds []string
-	for _, p := range a.prefs.K8sPods {
+	for _, p := range a.Prefs.K8sPods {
 		cmds = append(cmds, p.Command)
 	}
 	want := []string{"kubectl exec -it two -- sh", "kubectl exec -it one -- sh"}
@@ -310,8 +310,8 @@ func TestK8sPodReconnect(t *testing.T) {
 			Panes: []proto.Pane{{ID: "kp", Status: status, Progress: -1}},
 		}}
 		a.mergeState(a.local(), st)
-		a.prefs.K8sProject = "p-k8s"
-		a.prefs.K8sPods = []k8sPod{{Name: "web-0", Command: "kubectl exec -it web-0 -n prod -- /bin/bash", Session: "k8s-s"}}
+		a.Prefs.K8sProject = "p-k8s"
+		a.Prefs.K8sPods = []k8sPod{{Name: "web-0", Command: "kubectl exec -it web-0 -n prod -- /bin/bash", Session: "k8s-s"}}
 		creates := make(chan proto.CreateParams, 1)
 		cl, stop := projectClient(t, func(method string, raw json.RawMessage) (any, error) {
 			if method != "create" {
@@ -353,10 +353,10 @@ func TestK8sPodReconnect(t *testing.T) {
 			t.Fatalf("open %v: Reconnect Host started no terminal", open)
 		}
 		deadline := time.Now().Add(2 * time.Second)
-		for len(a.prefs.K8sPods) == 0 || a.prefs.K8sPods[0].Session != "k8s-s2" {
+		for len(a.Prefs.K8sPods) == 0 || a.Prefs.K8sPods[0].Session != "k8s-s2" {
 			if time.Now().After(deadline) {
 				stop()
-				t.Fatalf("open %v: the pods kept %+v", open, a.prefs.K8sPods)
+				t.Fatalf("open %v: the pods kept %+v", open, a.Prefs.K8sPods)
 			}
 			time.Sleep(2 * time.Millisecond)
 		}
@@ -376,9 +376,9 @@ func TestK8sSessionRowShowsCommand(t *testing.T) {
 			Panes: []proto.Pane{{ID: "kp", Dir: "/home/me", Status: proto.Idle, Progress: -1}},
 		}},
 	})
-	a.prefs.K8sProject = "p-k8s"
-	a.prefs.K8sPods = []k8sPod{{Name: "web-0", Command: cmd, Session: "k8s-s"}}
-	a.prefs.SidebarGroup = "none"
+	a.Prefs.K8sProject = "p-k8s"
+	a.Prefs.K8sPods = []k8sPod{{Name: "web-0", Command: cmd, Session: "k8s-s"}}
+	a.Prefs.SidebarGroup = "none"
 	tt := ui.NewTester(a.view, 1100, 700)
 	tt.Frame()
 	if !tt.HasText(cmd) {
@@ -395,12 +395,12 @@ func TestK8sSessionRowShowsCommand(t *testing.T) {
 // it, as Remove does, without its question.
 func TestK8sPodHoverClose(t *testing.T) {
 	a := testApp(t)
-	a.prefs.K8sProject = "k8s-p"
-	a.prefs.K8sPods = []k8sPod{{Name: "web-0", Command: "kubectl exec -it web-0 -- bash", Session: "k8s-s"}}
-	a.st.Projects = append(a.st.Projects, proto.Project{ID: "k8s-p", Name: locales.K8sPodsProject()})
-	base := a.st.Sessions[0]
+	a.Prefs.K8sProject = "k8s-p"
+	a.Prefs.K8sPods = []k8sPod{{Name: "web-0", Command: "kubectl exec -it web-0 -- bash", Session: "k8s-s"}}
+	a.St.Projects = append(a.St.Projects, proto.Project{ID: "k8s-p", Name: locales.K8sPodsProject()})
+	base := a.St.Sessions[0]
 	base.ID, base.Name, base.Project, base.Process, base.Status = "k8s-s", "web-0", "k8s-p", "kubectl", proto.Working
-	a.st.Sessions = append(a.st.Sessions, base)
+	a.St.Sessions = append(a.St.Sessions, base)
 	tt := ui.NewTester(a.view, 1100, 640)
 	tt.Frame()
 	tt.Advance(time.Second)
@@ -423,10 +423,10 @@ func TestK8sPodHoverClose(t *testing.T) {
 	tt.Frame()
 	tt.Release(button.X+button.W/2, button.Y+button.H/2)
 	tt.Frame()
-	if a.confirm != nil && a.confirm.open {
+	if a.Confirm != nil && a.Confirm.open {
 		t.Fatal("closing from the row asked first")
 	}
-	if len(a.prefs.K8sPods) != 0 || a.session("k8s-s") != nil {
-		t.Errorf("the pod stays: %+v, %+v", a.prefs.K8sPods, a.st.Sessions)
+	if len(a.Prefs.K8sPods) != 0 || a.session("k8s-s") != nil {
+		t.Errorf("the pod stays: %+v, %+v", a.Prefs.K8sPods, a.St.Sessions)
 	}
 }

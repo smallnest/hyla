@@ -8,7 +8,7 @@ import (
 // The app as the sync state reads it: the run's own work on the main
 // thread, and the lines it says.
 
-func (a *App) Loaded() bool { return a.loaded }
+func (a *App) StateCame() bool { return a.Loaded }
 
 func (a *App) Update(fn func()) { a.update(fn) }
 

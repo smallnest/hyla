@@ -33,18 +33,18 @@ func (a *App) newWorktreeSession() {
 		return
 	}
 	var p proto.CreateParams
-	if cur := a.session(a.selected); cur != nil && a.hostOf(cur.ID) == h {
+	if cur := a.session(a.Selected); cur != nil && a.hostOf(cur.ID) == h {
 		p.Project, p.After, p.Dir = cur.Project, cur.ID, cur.FocusPane().WorkDir()
 		p.Cols, p.Rows = cur.Cols, cur.Rows
 	}
-	if a.set.WorktreeBase == "current" {
+	if a.Settings.WorktreeBase == "current" {
 		p.Base = "HEAD"
 	}
-	a.wtAsk = &worktreeAsk{open: true, host: h, p: p}
+	a.WtAsk = &worktreeAsk{open: true, host: h, p: p}
 }
 
 func (a *App) worktreeView(c *ui.Context, pal *theme.Palette) {
-	w := a.wtAsk
+	w := a.WtAsk
 	if w == nil {
 		return
 	}
@@ -80,7 +80,7 @@ func (a *App) worktreeView(c *ui.Context, pal *theme.Palette) {
 		a.create(w.host, w.p, w.p.Project)
 	}
 	if !w.open {
-		a.wtAsk = nil
+		a.WtAsk = nil
 		a.focusTerminal()
 	}
 }
@@ -95,7 +95,7 @@ func (a *App) askCloseWorktree(id string) {
 	if s == nil || cl == nil {
 		return
 	}
-	name := s.DisplayName(a.set.SessionName)
+	name := s.DisplayName(a.Settings.SessionName)
 	go func() {
 		var wc proto.WorktreeCheck
 		err := cl.Call("worktree.check", proto.IDParams{ID: id}, &wc)
@@ -124,7 +124,7 @@ func (a *App) askCloseWorktree(id string) {
 			default:
 				cf.detail = locales.WorktreeRemoveUnmerged(path, wc.Branch)
 			}
-			a.confirm = cf
+			a.Confirm = cf
 		})
 	}()
 }

@@ -21,17 +21,17 @@ import (
 // agent changed in its turn, and opens a file as its diff.
 func TestSidePanel(t *testing.T) {
 	a := testApp(t)
-	s := &a.st.Sessions[0]
+	s := &a.St.Sessions[0]
 	g := &proto.GitInfo{Root: "/tmp/demo", Branch: "fix-login", Default: "main", Head: "0123456789abcdef", Ahead: 2, Files: 3, Added: 40, Removed: 2}
 	s.Panes[0].Git = g
 	s.Panes[0].Agent, s.Panes[0].Process = "claude", "claude"
 	s.Panes[0].Turn = &proto.Turn{Tree: "abc", Root: "/tmp/demo", At: time.Now().UnixMilli()}
 	s.Panes[1].Git = g
 	s.Pane = s.Panes[0]
-	a.prefs.Side = sideChanges
+	a.Prefs.Side = sideChanges
 
 	// What hylad would answer.
-	ch := &a.side.changes
+	ch := &a.Side.changes
 	turnScope := changesScope(&s.Panes[0], git.BaseTurn)
 	ch.base, ch.scope, ch.stamp = git.BaseTurn, turnScope, gitStamp(g)+"|abc"
 	ch.res = &proto.GitChanges{Root: "/tmp/demo", Files: []proto.GitFile{
@@ -181,7 +181,7 @@ func TestChangesInPalette(t *testing.T) {
 	for _, q := range []string{"", "toggle changes", "git", "diff"} {
 		a := testApp(t)
 		a.openPalette()
-		a.pal.query = q
+		a.Pal.query = q
 		tt := ui.NewTester(a.view, 1100, 2000)
 		tt.Frame()
 		if !tt.HasText("Toggle Changes") {
@@ -190,12 +190,12 @@ func TestChangesInPalette(t *testing.T) {
 	}
 	a := testApp(t)
 	a.openPalette()
-	a.pal.query = "git"
+	a.Pal.query = "git"
 	tt := ui.NewTester(a.view, 1100, 720)
 	tt.Frame()
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
-	if a.prefs.Side != sideChanges {
+	if a.Prefs.Side != sideChanges {
 		t.Error("choosing it in the palette didn't open the changes panel")
 	}
 }
@@ -204,11 +204,11 @@ func TestChangesInPalette(t *testing.T) {
 // were, scrolled where they were: the list is the worktree's, not a pane's.
 func TestChangesFollowWorktree(t *testing.T) {
 	a := testApp(t)
-	s := &a.st.Sessions[0]
+	s := &a.St.Sessions[0]
 	g := &proto.GitInfo{Root: "/tmp/demo", Branch: "main", Default: "main", Files: 40, Added: 400}
 	s.Panes[0].Git, s.Panes[1].Git = g, g
-	a.prefs.Side = sideChanges
-	ch := &a.side.changes
+	a.Prefs.Side = sideChanges
+	ch := &a.Side.changes
 	scope := changesScope(&s.Panes[0], git.BaseHead)
 	if scope != changesScope(&s.Panes[1], git.BaseHead) {
 		t.Fatal("two panes of one worktree list different changes")
@@ -229,7 +229,7 @@ func TestChangesFollowWorktree(t *testing.T) {
 	at, _ := tt.Find("f05.go")
 	first, _ := ch.places[scope].Visible()
 
-	a.focus[s.ID], s.Focus = "b", "b"
+	a.Focus[s.ID], s.Focus = "b", "b"
 	tt.Frame()
 	tt.Frame()
 	if ch.shown != scope || ch.switched != switched {
@@ -254,11 +254,11 @@ func pinned(tt *ui.Tester, ls *ui.ListState, name string, top float32) bool {
 // top edge, never over the summary above the list.
 func TestStickyHeaderStaysInList(t *testing.T) {
 	a := testApp(t)
-	s := &a.st.Sessions[0]
+	s := &a.St.Sessions[0]
 	g := &proto.GitInfo{Root: "/tmp/demo", Branch: "main", Default: "main", Files: 3, Added: 60}
 	s.Panes[0].Git, s.Panes[1].Git = g, g
-	a.prefs.Side = sideChanges
-	ch := &a.side.changes
+	a.Prefs.Side = sideChanges
+	ch := &a.Side.changes
 	scope := changesScope(&s.Panes[0], git.BaseHead)
 	ch.base, ch.scope, ch.stamp = git.BaseHead, scope, gitStamp(g)
 	ch.res = &proto.GitChanges{Root: "/tmp/demo"}
@@ -317,11 +317,11 @@ func TestStickyHeaderStaysInList(t *testing.T) {
 // whose diff runs past the top stays in every frame, never gone for one.
 func TestStickyHeaderAsFoldShortensList(t *testing.T) {
 	a := testApp(t)
-	s := &a.st.Sessions[0]
+	s := &a.St.Sessions[0]
 	g := &proto.GitInfo{Root: "/tmp/demo", Branch: "main", Default: "main", Files: 3, Added: 180}
 	s.Panes[0].Git, s.Panes[1].Git = g, g
-	a.prefs.Side = sideChanges
-	ch := &a.side.changes
+	a.Prefs.Side = sideChanges
+	ch := &a.Side.changes
 	scope := changesScope(&s.Panes[0], git.BaseHead)
 	ch.base, ch.scope, ch.stamp = git.BaseHead, scope, gitStamp(g)
 	ch.res = &proto.GitChanges{Root: "/tmp/demo"}

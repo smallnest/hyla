@@ -60,9 +60,9 @@ type quickTerm struct {
 func (a *App) applyGlobalShortcuts() {
 	q := &a.quick
 	want := ""
-	if a.ss.recording == "" {
+	if a.Ss.recording == "" {
 		act, _ := actions.Find(quickAction)
-		want = actions.Keys(act, a.set.Shortcuts)
+		want = actions.Keys(act, a.Settings.Shortcuts)
 	}
 	if want == q.asked {
 		return
@@ -94,7 +94,7 @@ func (a *App) toggleQuick() {
 // quickSession returns the session the quick terminal shows, nil while it
 // has none: hylad lost it, or the user closed it.
 func (a *App) quickSession() *proto.Session {
-	s := a.session(a.prefs.QuickSession)
+	s := a.session(a.Prefs.QuickSession)
 	if s == nil || a.hostOf(s.ID) != a.local() {
 		return nil
 	}
@@ -124,12 +124,12 @@ func (a *App) showQuick() {
 // left, so that it reads as the panes' own. With no window in sight, it
 // drops from the top of the display with the pointer, as Ghostty's does.
 func (a *App) quickFrame() mygo.Rectangle {
-	if a.win != nil && !a.win.IsDestroyed() && a.win.IsVisible() && !a.win.IsMinimized() && !a.win.IsFullScreen() {
-		b := a.win.Bounds()
-		sideW, pad := int(a.chrome.sideW), int(a.chrome.mainPad)
+	if a.Win != nil && !a.Win.IsDestroyed() && a.Win.IsVisible() && !a.Win.IsMinimized() && !a.Win.IsFullScreen() {
+		b := a.Win.Bounds()
+		sideW, pad := int(a.Chrome.sideW), int(a.Chrome.mainPad)
 		w := b.Width - sideW - pad - cardGap
 		if a.rightShown() {
-			w -= int(a.sideWidth(a.side.rowW)) + sideGap
+			w -= int(a.sideWidth(a.Side.rowW)) + sideGap
 		}
 		if w >= minPanes {
 			return mygo.Rectangle{X: b.X + sideW + pad, Y: b.Y + cardGap, Width: w, Height: b.Height / 2}
@@ -252,7 +252,7 @@ func (a *App) attachQuick() {
 					return
 				}
 				a.addPending(h, s)
-				a.prefs.QuickSession = s.ID
+				a.Prefs.QuickSession = s.ID
 				a.savePrefs()
 				a.attachQuick()
 				a.update(func() {}) // the sidebar shows it
@@ -410,7 +410,7 @@ func (a *App) quickTermFor(id string) *terminal.Terminal {
 // termFor returns the terminal of a pane, the window's or the quick
 // terminal's, else nil.
 func (a *App) termFor(id string) *terminal.Terminal {
-	if e := a.terms[id]; e != nil && e.term != nil {
+	if e := a.Terms[id]; e != nil && e.term != nil {
 		return e.term
 	}
 	return a.quickTermFor(id)

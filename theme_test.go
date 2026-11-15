@@ -33,7 +33,7 @@ func TestEveryBackgroundHasAWash(t *testing.T) {
 // in the language the app shows, and choosing one keeps it.
 func TestBackgroundTiles(t *testing.T) {
 	a := testApp(t)
-	a.ss.page = "appearance"
+	a.Ss.page = "appearance"
 	tt := ui.NewTester(a.settingsView, 820, 2400)
 	tt.Frame()
 	for _, b := range settings.Backgrounds {
@@ -48,11 +48,11 @@ func TestBackgroundTiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.set.Background != "umbra" || settings.Load().Background != "umbra" {
-		t.Errorf("choosing Umbra left %q", a.set.Background)
+	if a.Settings.Background != "umbra" || settings.Load().Background != "umbra" {
+		t.Errorf("choosing Umbra left %q", a.Settings.Background)
 	}
 	// A window of it, either theme, draws its scene without a panic.
-	a.set.Background = "static"
+	a.Settings.Background = "static"
 	for _, dark := range []bool{false, true} {
 		main := ui.NewTester(a.view, 1000, 600)
 		main.SetDark(dark)
@@ -68,12 +68,12 @@ func TestWashShots(t *testing.T) {
 	for _, id := range []string{"ember", "tidal", "umbra", "static"} {
 		for _, dark := range []bool{false, true} {
 			a := testApp(t)
-			a.set.Background = id
-			a.set.Appearance = "light"
+			a.Settings.Background = id
+			a.Settings.Appearance = "light"
 			if dark {
-				a.set.Appearance = "dark"
+				a.Settings.Appearance = "dark"
 			}
-			a.applied = a.set.Clone()
+			a.Applied = a.Settings.Clone()
 			tt := ui.NewTester(a.view, 1000, 600)
 			tt.SetDark(dark)
 			tt.Frame()
@@ -87,10 +87,10 @@ func TestWashShots(t *testing.T) {
 // The appearance page's washes, for a look ($HYLA_SHOTS).
 func TestBackgroundTilesShot(t *testing.T) {
 	a := testApp(t)
-	a.ss.page = "appearance"
+	a.Ss.page = "appearance"
 	tt := ui.NewTester(a.settingsView, 820, 900)
 	tt.Frame()
-	sc := a.ss.scrolls["appearance"]
+	sc := a.Ss.scrolls["appearance"]
 	if sc == nil {
 		t.Skip("no scroll")
 	}

@@ -51,7 +51,7 @@ func (a *App) browse(h *host, r *proto.BrowserRequest, answer func(*proto.Browse
 	}
 	// A pane never shown has no page yet: it gets one now, on the page
 	// hylad has, which loads though no one sees it, before it is used.
-	_, had := a.webs[p.ID]
+	_, had := a.Webs[p.ID]
 	e := a.ensureWeb(p)
 	if e.view == nil {
 		if e.err != "" {

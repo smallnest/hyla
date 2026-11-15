@@ -49,8 +49,8 @@ type State struct {
 // Hosts is what the state reads of the app: whether its state came, and
 // what it does with a message and with settings a pull brought.
 type Hosts interface {
-	// Loaded reports whether a state came from hylad.
-	Loaded() bool
+	// StateCame reports whether a state came from hylad.
+	StateCame() bool
 	// Update runs fn on the main thread, and draws.
 	Update(fn func())
 	// Toast shows a line to the user.
@@ -75,7 +75,7 @@ func (st *State) Tick(h Hosts) {
 	if !hylasync.Configured(st.Cfg) || st.Busy {
 		return
 	}
-	if !st.Pulled && h.Loaded() {
+	if !st.Pulled && h.StateCame() {
 		st.Pulled = true
 		st.Run(h, "")
 		return

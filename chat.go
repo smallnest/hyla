@@ -42,13 +42,13 @@ type chatState struct {
 // toolOpen tells that a conversation's tool, at a line, shows its
 // details: a click on its line folds or opens them.
 func (a *App) toolOpen(session string, at int, open bool) bool {
-	if a.side.chat.tools == nil {
-		a.side.chat.tools = map[string]map[string]bool{}
+	if a.Side.chat.tools == nil {
+		a.Side.chat.tools = map[string]map[string]bool{}
 	}
-	t := a.side.chat.tools[session]
+	t := a.Side.chat.tools[session]
 	if t == nil {
 		t = map[string]bool{}
-		a.side.chat.tools[session] = t
+		a.Side.chat.tools[session] = t
 	}
 	key := strconv.Itoa(at)
 	if open {
@@ -71,13 +71,13 @@ type chatFeed struct {
 
 // chatOf is a session's chat window.
 func (a *App) chatOf(id string) *chatFeed {
-	if a.side.chat.feeds == nil {
-		a.side.chat.feeds = map[string]*chatFeed{}
+	if a.Side.chat.feeds == nil {
+		a.Side.chat.feeds = map[string]*chatFeed{}
 	}
-	f := a.side.chat.feeds[id]
+	f := a.Side.chat.feeds[id]
 	if f == nil {
 		f = &chatFeed{}
-		a.side.chat.feeds[id] = f
+		a.Side.chat.feeds[id] = f
 		f.got = true // a read at once
 	}
 	return f
@@ -86,7 +86,7 @@ func (a *App) chatOf(id string) *chatFeed {
 // chatChanged tells the view that a host shows a new state: the hosts'
 // chat windows read their turns again, as a chat's turn ends.
 func (a *App) chatChanged(h *host) {
-	for id, f := range a.side.chat.feeds {
+	for id, f := range a.Side.chat.feeds {
 		if a.hostOf(id) == h {
 			f.got = false
 		}
@@ -114,7 +114,7 @@ func (a *App) readChat(s *proto.Session) {
 		var out proto.FeishuFeed
 		err := cl.Call("feishu.feed", params, &out)
 		a.main(func() {
-			if a.side.chat.feeds[s.ID] != f {
+			if a.Side.chat.feeds[s.ID] != f {
 				return
 			}
 			f.busy, f.at = false, time.Now()

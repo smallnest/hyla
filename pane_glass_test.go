@@ -46,14 +46,14 @@ func TestPaneGlassKeepsTheTerminal(t *testing.T) {
 	}
 	for _, opacity := range []float32{settings.DefaultPaneOpacity, 0} {
 		a := testApp(t)
-		a.prefs.Side = ""
+		a.Prefs.Side = ""
 		term, err := terminal.New(terminal.Options{Conn: idleConn{make(chan struct{})}})
 		if err != nil {
 			t.Fatal(err)
 		}
 		term.Feed([]byte("ready\r\n"))
-		a.terms["a"], a.terms["b"] = &termEntry{term: term}, &termEntry{}
-		a.set.PaneOpacity = opacity
+		a.Terms["a"], a.Terms["b"] = &termEntry{term: term}, &termEntry{}
+		a.Settings.PaneOpacity = opacity
 		tt := ui.NewTester(a.view, 1100, 640)
 		tt.Advance(time.Second)
 		tt.Frame()
@@ -65,7 +65,7 @@ func TestPaneGlassKeepsTheTerminal(t *testing.T) {
 		}
 		tt.ClickAt(b.X+b.W/2, b.Y+b.H/2)
 		tt.Frame()
-		if f := a.focusOf(&a.st.Sessions[0]); f != "a" {
+		if f := a.focusOf(&a.St.Sessions[0]); f != "a" {
 			t.Errorf("opacity %v: a press on the terminal focused %q", opacity, f)
 		}
 		shot(t, tt, fmt.Sprintf("pane-glass-%.2f", opacity))
@@ -138,14 +138,14 @@ func TestPanePicture(t *testing.T) {
 	// The card shows it in place of the window's background: a picture
 	// ready, and none when it comes or the user chose none.
 	a := testApp(t)
-	a.set.PaneImage, a.set.PaneImageOpacity = s.PaneImage, 1
-	a.paneArt = sidebarArt{path: a.set.PaneImage, bm: ui.NewBitmap(pic)}
-	if p := a.paneBackground(pal, pal.Card, &a.st.Sessions[0].Panes[0]).(*wash.PanePicture); p.Bitmap == nil || p.Base != pal.Card {
+	a.Settings.PaneImage, a.Settings.PaneImageOpacity = s.PaneImage, 1
+	a.PaneArt = sidebarArt{path: a.Settings.PaneImage, bm: ui.NewBitmap(pic)}
+	if p := a.paneBackground(pal, pal.Card, &a.St.Sessions[0].Panes[0]).(*wash.PanePicture); p.Bitmap == nil || p.Base != pal.Card {
 		t.Errorf("the pane's card: %#v", p)
 	}
 	// A window that is not translucent: the card's color alone.
-	a.set.PaneImage, a.set.Vibrancy = "", false
-	if m := a.paneBackground(pal, pal.Card, &a.st.Sessions[0].Panes[0]); m != nil {
+	a.Settings.PaneImage, a.Settings.Vibrancy = "", false
+	if m := a.paneBackground(pal, pal.Card, &a.St.Sessions[0].Panes[0]); m != nil {
 		t.Errorf("no picture, and an opaque window: %T", m)
 	}
 }

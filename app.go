@@ -118,131 +118,131 @@ type termEntry struct {
 type App struct {
 	// win is the main window, and winOpen whether it is open: closed, it
 	// still takes the updates of Window.Update, which run without it.
-	win     *mygo.Window
-	winOpen bool
-	tray    *mygo.Tray // the icon in the menu bar or notification area, while it shows
+	Win     *mygo.Window
+	WinOpen bool
+	Tray    *mygo.Tray // the icon in the menu bar or notification area, while it shows
 
 	// hosts are the hylads the app shows, this machine's first; st is
 	// what they hold, each host's sessions and projects after the one's
 	// before, and owner the host of each session, pane and project.
-	hosts  []*host
-	owner  map[string]*host
-	st     proto.State
-	loaded bool // a state came
+	Hosts  []*host
+	Owner  map[string]*host
+	St     proto.State
+	Loaded bool // a state came
 
-	prefs      prefs
-	set        settings.Settings // the user's settings: Settings' controls edit it
-	applied    settings.Settings // set, as last applied and saved
-	setWin     *mygo.Window      // the Settings window, while open
-	ss         settingsState
-	selected   string
-	terms      map[string]*termEntry
-	webs       map[string]*webEntry // browser panes' pages, by pane
-	files      filePaneStates       // file panes' files, by pane
-	ads        adblock.State        // what their pages block
-	icons      favicons             // and the icons they show
-	lru        []string
-	refs       map[string]*ui.Handle // panes' terminals, and splits, by id
-	focus      map[string]string     // the pane the user is in, by session
-	paneChat   map[string]bool       // the panes that show their session's chat, not its terminal
+	Prefs      prefs
+	Settings   settings.Settings // the user's settings: Settings' controls edit it
+	Applied    settings.Settings // set, as last applied and saved
+	SetWin     *mygo.Window      // the Settings window, while open
+	Ss         settingsState
+	Selected   string
+	Terms      map[string]*termEntry
+	Webs       map[string]*webEntry // browser panes' pages, by pane
+	Files      filePaneStates       // file panes' files, by pane
+	Ads        adblock.State        // what their pages block
+	Icons      favicons             // and the icons they show
+	Lru        []string
+	Refs       map[string]*ui.Handle // panes' terminals, and splits, by id
+	Focus      map[string]string     // the pane the user is in, by session
+	PaneChat   map[string]bool       // the panes that show their session's chat, not its terminal
 	layoutDrag struct {              // the split whose divider is dragged
 		session, split string
 		ratio          float64 // where the pointer puts it, past its bounds
 	}
 
-	active   bool
-	focused  bool
-	statuses map[string]proto.Status // as last seen, for notifications
-	pet      petState                // Hyla the frog, on the window's top edge
-	petSet   *petSet                 // the Codex pet it shows where it is no frog
+	Active   bool
+	Focused  bool
+	Statuses map[string]proto.Status // as last seen, for notifications
+	Pet      petState                // Hyla the frog, on the window's top edge
+	PetSet   *petSet                 // the Codex pet it shows where it is no frog
 	// petList is the pets the settings may show, read for the pet chosen
 	// in petListFor, as petsGen counted installations.
-	petList    []pets.Builtin
-	petListFor string
-	petListGen int
+	PetList    []pets.Builtin
+	PetListFor string
+	PetListGen int
 	// idleTime tells how long the user has not used the machine's keyboard
 	// or mouse (mygo.Power.IdleTime), 0 when the system does not tell; nil
 	// in tests.
-	idleTime func() time.Duration
+	IdleTime func() time.Duration
 
-	renaming         string
-	renamingProject  string
-	renameBuf        string
+	Renaming         string
+	RenamingProject  string
+	RenameBuf        string
 	configsync.State // this machine's configuration, kept with the others'
 
-	renameFrames int
-	chrome       chrome // where the sidebar's animation puts things
+	RenameFrames int
+	Chrome       chrome // where the sidebar's animation puts things
 
-	pal     paletteState
-	find    findState
-	confirm *confirmation
-	wtAsk   *worktreeAsk
-	sshAsk  *sshAsk // the sidebar's add-a-host-over-SSH dialog
-	k8sAsk  *k8sAsk // the sidebar's add-a-kubectl-exec-pod dialog
+	Pal     paletteState
+	Find    findState
+	Confirm *confirmation
+	WtAsk   *worktreeAsk
+	SshAsk  *sshAsk // the sidebar's add-a-host-over-SSH dialog
+	K8sAsk  *k8sAsk // the sidebar's add-a-kubectl-exec-pod dialog
 	// endedAll shows all of the sidebar's Ended; skillMissing tells, as
 	// of skillsAt, that no kind of agent has Hyla's skill (ended.go).
 	// This fork has no Ended (session history): the fields stay for
 	// ended.go's view, which nothing shows.
-	endedAll     bool
-	skillMissing bool
-	skillsAt     time.Time
-	sideDrag     float32 // the width as a drag of the sidebar's edge began
-	pendingToast string
+	EndedAll     bool
+	SkillMissing bool
+	SkillsAt     time.Time
+	SideDrag     float32 // the width as a drag of the sidebar's edge began
+	PendingToast string
 	// undoMessage and undoAction are the last removal's words, and what puts
 	// back what it took away, as the toast's Undo does: a host, an SSH
 	// machine or a pod.
-	undoMessage string
-	undoAction  func()
+	UndoMessage string
+	UndoAction  func()
 	// later are actions that change what the view is building, run once
 	// it is built.
-	later []func()
+	Later []func()
 
 	// Focus follows the mouse: the pane the pointer went into, and where
 	// the pointer was last over a pane, in the window.
-	hoverPane string
-	hoverAt   [2]float32
+	HoverPane string
+	HoverAt   [2]float32
 	// claims are the wheel's rests in each pane, of which the last tells
 	// its host the user is there (claimWhenRest). claimMu guards them: the
 	// wheel's callback and the frame that drops a pane both reach them, on
 	// their own goroutines.
 	claimMu sync.Mutex
-	claims  map[string]*claimWait
+	Claims  map[string]*claimWait
 
 	// Panes dragged: the zone last under the pointer, the pane whose
 	// drop preview shows and since when, and the panes just moved, which
 	// spring in.
-	lastZone   dropZone
-	previewKey string
+	LastZone   dropZone
+	PreviewKey string
 	// dragAt is the row a drag last hovered, and dragAfter the side of it
 	// a drop lands on: a project's, a session's, a machine's or a pod's.
-	dragAt       string
-	dragAfter    bool
-	previewSince time.Time
-	previewShown bool
-	arrived      map[string]bool
-	copyText     string
-	peek         peek       // the image a path Command hovers shows
-	art          sidebarArt // the picture behind the sidebar
-	paneArt      sidebarArt // the picture in the terminals
+	DragAt       string
+	DragAfter    bool
+	PreviewSince time.Time
+	PreviewShown bool
+	Arrived      map[string]bool
+	CopyText     string
+	Peek         peek       // the image a path Command hovers shows
+	Art          sidebarArt // the picture behind the sidebar
+	PaneArt      sidebarArt // the picture in the terminals
 	// shownSession is the session whose panes the last frame showed: one
 	// shown in place of another comes in as sessionSwitch says.
-	shownSession string
+	ShownSession string
 	// switchIn tells that the frame about to build shows a session that
 	// switchFrom posed, on its way in: the one after, posing its place.
-	switchIn   bool
-	switchFrom ui.Motion
+	SwitchIn   bool
+	SwitchFrom ui.Motion
 	// switchAt is when a switch came in, which lands switchLand after.
-	switchAt time.Time
+	SwitchAt time.Time
 	// from is the host whose program asked for the action being run (hyla
 	// do), nil for the user's.
-	from   *host
-	picker folderPicker // the folders of a host, to open a project in
-	side   sideState    // the side panel, beside a session's panes
+	From   *host
+	Picker folderPicker // the folders of a host, to open a project in
+	Side   sideState    // the side panel, beside a session's panes
 	// info is what the Info views read, by pane (info.go).
-	info map[string]*paneInfo
+	Info map[string]*paneInfo
 	// magpie is what Magpie shows of itself (magpie.go), nil until the
 	// Info view shows.
-	magpie *magpieInfo
+	Magpie *magpieInfo
 
 	// quitting is set while the quit quit-ends-sessions makes ends the
 	// sessions, either while it asks or once its answer does.
@@ -274,18 +274,18 @@ type confirmation struct {
 }
 
 func newApp() *App {
-	a := &App{terms: map[string]*termEntry{}, webs: map[string]*webEntry{}, statuses: map[string]proto.Status{}, active: true, focused: true,
-		refs: map[string]*ui.Handle{}, focus: map[string]string{}, arrived: map[string]bool{}}
+	a := &App{Terms: map[string]*termEntry{}, Webs: map[string]*webEntry{}, Statuses: map[string]proto.Status{}, Active: true, Focused: true,
+		Refs: map[string]*ui.Handle{}, Focus: map[string]string{}, Arrived: map[string]bool{}}
 	a.loadPrefs()
-	a.set = settings.Load()
-	remote.SetRelay(a.set.TailcatRelay)
+	a.Settings = settings.Load()
+	remote.SetRelay(a.Settings.TailcatRelay)
 	applied.Lock()
-	applied.s = a.set
+	applied.s = a.Settings
 	applied.Unlock()
-	a.ss.problems = settings.Problems()
-	a.applied = a.set.Clone()
-	a.selected = a.prefs.Selected
-	a.hosts = []*host{{conn: connConnecting}}
+	a.Ss.problems = settings.Problems()
+	a.Applied = a.Settings.Clone()
+	a.Selected = a.Prefs.Selected
+	a.Hosts = []*host{{conn: connConnecting}}
 	return a
 }
 
@@ -293,23 +293,23 @@ func prefsPath() string { return filepath.Join(proto.Dir(), "app.json") }
 
 func (a *App) loadPrefs() {
 	if b, err := os.ReadFile(prefsPath()); err == nil {
-		json.Unmarshal(b, &a.prefs)
+		json.Unmarshal(b, &a.Prefs)
 	}
-	if a.prefs.SidebarWidth == 0 {
-		a.prefs.SidebarWidth = defaultSidebar
+	if a.Prefs.SidebarWidth == 0 {
+		a.Prefs.SidebarWidth = defaultSidebar
 	}
-	a.prefs.SidebarWidth = min(max(a.prefs.SidebarWidth, minSidebar), maxSidebar)
-	if a.prefs.FontSize == 0 {
-		a.prefs.FontSize = defaultFont
+	a.Prefs.SidebarWidth = min(max(a.Prefs.SidebarWidth, minSidebar), maxSidebar)
+	if a.Prefs.FontSize == 0 {
+		a.Prefs.FontSize = defaultFont
 	}
-	if a.prefs.Collapsed == nil {
-		a.prefs.Collapsed = map[string]bool{}
+	if a.Prefs.Collapsed == nil {
+		a.Prefs.Collapsed = map[string]bool{}
 	}
 }
 
 func (a *App) savePrefs() {
-	a.prefs.Selected = a.selected
-	b, err := json.MarshalIndent(a.prefs, "", "  ")
+	a.Prefs.Selected = a.Selected
+	b, err := json.MarshalIndent(a.Prefs, "", "  ")
 	if err != nil {
 		return
 	}
@@ -322,15 +322,15 @@ func (a *App) savePrefs() {
 
 // update runs fn on the main thread, and draws.
 func (a *App) update(fn func()) {
-	if a.win != nil {
-		a.win.Update(fn)
+	if a.Win != nil {
+		a.Win.Update(fn)
 	}
 }
 
 // main runs fn on the main thread, and draws: a test's app, which has no
 // window's loop, runs it as it comes.
 func (a *App) main(fn func()) {
-	if a.win == nil {
+	if a.Win == nil {
 		fn()
 		return
 	}
@@ -357,10 +357,10 @@ func (a *App) event(h *host, cl *client.Client, m proto.Message) {
 		// In the pane hylad has it focus, as hyla focus <pane> asks: the
 		// state with it came just before.
 		if s := a.session(m.Select); s != nil && s.PaneByID(s.Focus) != nil {
-			a.focus[s.ID] = s.Focus
+			a.Focus[s.ID] = s.Focus
 		}
 		a.selectSession(m.Select)
-		if a.win != nil {
+		if a.Win != nil {
 			a.showWindow()
 		}
 	case "action":
@@ -368,9 +368,9 @@ func (a *App) event(h *host, cl *client.Client, m proto.Message) {
 			return
 		}
 		if act, ok := actions.Find(m.Action); ok && act.Remote {
-			a.from = h
+			a.From = h
 			a.run(act.ID, m.Args)
-			a.from = nil
+			a.From = nil
 		}
 	case "browser":
 		// hyla browser waits on the answer, which refuses when Remote
@@ -394,7 +394,7 @@ func (a *App) event(h *host, cl *client.Client, m proto.Message) {
 		}
 		title := n.Title
 		if title == "" {
-			title = s.DisplayName(a.set.SessionName)
+			title = s.DisplayName(a.Settings.SessionName)
 		}
 		a.showNotification(n.Session, title, n.Body)
 	}
@@ -402,7 +402,7 @@ func (a *App) event(h *host, cl *client.Client, m proto.Message) {
 
 // setState takes a host's state.
 func (a *App) setState(h *host, st proto.State) {
-	first, hostFirst := !a.loaded, !h.loaded
+	first, hostFirst := !a.Loaded, !h.loaded
 	h.loaded = true
 	// A divider dragged keeps the ratios it set, which the daemon hears of
 	// only once it is let go.
@@ -411,36 +411,36 @@ func (a *App) setState(h *host, st proto.State) {
 		dragged = s.Layout
 	}
 	a.mergeState(h, st)
-	a.loaded = true
+	a.Loaded = true
 	if s := a.session(a.layoutDrag.session); s != nil && s.Layout.SameShape(dragged) {
 		s.Layout = dragged
 	}
 	// Terminals of panes gone go too.
 	live := map[string]bool{}
-	for _, s := range a.st.Sessions {
+	for _, s := range a.St.Sessions {
 		for _, p := range s.Panes {
 			live[p.ID] = true
 		}
 	}
-	for id := range a.terms {
+	for id := range a.Terms {
 		if !live[id] {
 			a.dropTerm(id)
 		}
 	}
-	for id := range a.webs {
+	for id := range a.Webs {
 		if !live[id] {
 			a.dropWeb(id)
 		}
 	}
-	for id := range a.files {
+	for id := range a.Files {
 		if !live[id] {
-			delete(a.files, id)
+			delete(a.Files, id)
 		}
 	}
-	if a.set.SessionHistory {
+	if a.Settings.SessionHistory {
 		a.syncEnded()
 	} else {
-		for _, h := range a.hosts {
+		for _, h := range a.Hosts {
 			h.convs, h.convKnown, h.convAsked = nil, false, false
 		}
 	}
@@ -450,10 +450,10 @@ func (a *App) setState(h *host, st proto.State) {
 		// started for it.
 		a.openDefaultProject()
 	}
-	if a.session(a.selected) == nil {
+	if a.session(a.Selected) == nil {
 		a.reselect()
-	} else if first || hostFirst && a.hostOf(a.selected) == h {
-		a.selectSession(a.selected)
+	} else if first || hostFirst && a.hostOf(a.Selected) == h {
+		a.selectSession(a.Selected)
 	}
 	a.notify(first)
 	a.updateTitle()
@@ -462,13 +462,13 @@ func (a *App) setState(h *host, st proto.State) {
 // openDefaultProject shows the default project's latest session, and starts
 // one in the home folder when it has none.
 func (a *App) openDefaultProject() {
-	for _, p := range a.st.Projects {
+	for _, p := range a.St.Projects {
 		if !p.Default {
 			continue
 		}
 		var best *proto.Session
-		for i := range a.st.Sessions {
-			s := &a.st.Sessions[i]
+		for i := range a.St.Sessions {
+			s := &a.St.Sessions[i]
 			if s.Project != p.ID {
 				continue
 			}
@@ -491,7 +491,7 @@ func (a *App) showNotification(id, title, body string) {
 	if !mygo.NotificationsSupported() {
 		return
 	}
-	n := mygo.NewNotification(mygo.NotificationOptions{ID: "session/" + id, Group: id, Title: title, Body: body, Silent: !a.set.NotifySound})
+	n := mygo.NewNotification(mygo.NotificationOptions{ID: "session/" + id, Group: id, Title: title, Body: body, Silent: !a.Settings.NotifySound})
 	n.OnClick(func() {
 		a.update(func() {
 			a.selectSession(id)
@@ -506,10 +506,10 @@ func (a *App) showNotification(id, title, body string) {
 // while the user was elsewhere: a notification, and the Dock's badge.
 func (a *App) notify(first bool) {
 	waiting := 0
-	for i := range a.st.Sessions {
-		s := &a.st.Sessions[i]
-		prev, seen := a.statuses[s.ID]
-		a.statuses[s.ID] = s.Status
+	for i := range a.St.Sessions {
+		s := &a.St.Sessions[i]
+		prev, seen := a.Statuses[s.ID]
+		a.Statuses[s.ID] = s.Status
 		if s.Status == proto.Waiting {
 			waiting++
 		}
@@ -518,17 +518,17 @@ func (a *App) notify(first bool) {
 		}
 		var title, body string
 		switch {
-		case s.Status == proto.Waiting && a.set.NotifyWaiting:
+		case s.Status == proto.Waiting && a.Settings.NotifyWaiting:
 			title, body = locales.NotifyNeedsYouTitle(a.hostedName(s)), s.Message
 			if body == "" {
 				body = locales.NotifyWaitingBody()
 			}
-		case s.Status == proto.Failed && a.set.NotifyFailed:
+		case s.Status == proto.Failed && a.Settings.NotifyFailed:
 			title, body = locales.NotifyFailedTitle(a.hostedName(s)), s.Message
 			if body == "" {
 				body = locales.NotifyFailedBody(s.PaneName())
 			}
-		case s.Status == proto.Idle && prev == proto.Working && s.Unread && a.set.NotifyDone && (s.Agent != "" || s.Message != ""):
+		case s.Status == proto.Idle && prev == proto.Working && s.Unread && a.Settings.NotifyDone && (s.Agent != "" || s.Message != ""):
 			title, body = locales.NotifyDoneTitle(a.hostedName(s)), s.Message
 			if body == "" {
 				body = locales.NotifyDoneBody(s.Agent, a.hostOf(s.ID).shortDir(s.WorkDir()))
@@ -536,49 +536,49 @@ func (a *App) notify(first bool) {
 		default:
 			continue
 		}
-		if a.set.BounceDock && (s.Status == proto.Waiting || s.Status == proto.Failed) {
+		if a.Settings.BounceDock && (s.Status == proto.Waiting || s.Status == proto.Failed) {
 			mygo.App.Dock.Bounce(false)
 		}
 		a.showNotification(s.ID, title, body)
 	}
-	for id := range a.statuses {
+	for id := range a.Statuses {
 		if a.session(id) == nil {
-			delete(a.statuses, id)
+			delete(a.Statuses, id)
 		}
 	}
-	if !a.set.DockBadge {
+	if !a.Settings.DockBadge {
 		waiting = 0
 	}
 	mygo.App.SetBadgeCount(waiting)
 }
 
 func (a *App) updateTitle() {
-	if a.win == nil {
+	if a.Win == nil {
 		return
 	}
 	title := "Hyla"
-	if s := a.session(a.selected); s != nil {
+	if s := a.session(a.Selected); s != nil {
 		title = a.hostedName(s)
 	}
-	a.win.SetTitle(title)
+	a.Win.SetTitle(title)
 }
 
 func (a *App) session(id string) *proto.Session {
 	if id == "" {
 		return nil
 	}
-	for i := range a.st.Sessions {
-		if a.st.Sessions[i].ID == id {
-			return &a.st.Sessions[i]
+	for i := range a.St.Sessions {
+		if a.St.Sessions[i].ID == id {
+			return &a.St.Sessions[i]
 		}
 	}
 	return nil
 }
 
 func (a *App) project(id string) *proto.Project {
-	for i := range a.st.Projects {
-		if a.st.Projects[i].ID == id {
-			return &a.st.Projects[i]
+	for i := range a.St.Projects {
+		if a.St.Projects[i].ID == id {
+			return &a.St.Projects[i]
 		}
 	}
 	return nil
@@ -609,7 +609,7 @@ func (g group) dragKey() string {
 // groups returns the projects of every host, as the sidebar lists them.
 func (a *App) groups() []group {
 	var gs []group
-	for _, h := range a.hosts {
+	for _, h := range a.Hosts {
 		gs = append(gs, a.hostGroups(h)...)
 	}
 	return gs
@@ -618,7 +618,7 @@ func (a *App) groups() []group {
 // hostGroups returns a host's projects, with their sessions.
 func (a *App) hostGroups(h *host) []group {
 	var projects []proto.Project
-	for _, p := range a.st.Projects {
+	for _, p := range a.St.Projects {
 		if a.hostOf(p.ID) == h {
 			projects = append(projects, p)
 		}
@@ -632,9 +632,9 @@ func (a *App) hostGroups(h *host) []group {
 			p.Name = locales.DefaultProject()
 		}
 		g := group{host: h, project: p}
-		for i := range a.st.Sessions {
-			if a.st.Sessions[i].Project == p.ID {
-				g.sessions = append(g.sessions, &a.st.Sessions[i])
+		for i := range a.St.Sessions {
+			if a.St.Sessions[i].Project == p.ID {
+				g.sessions = append(g.sessions, &a.St.Sessions[i])
 			}
 		}
 		a.sortSessions(g.sessions)
@@ -642,8 +642,8 @@ func (a *App) hostGroups(h *host) []group {
 		gs = append(gs, g)
 	}
 	other := group{host: h, project: proto.Project{ID: "", Name: locales.SidebarOtherProject()}}
-	for i := range a.st.Sessions {
-		if s := &a.st.Sessions[i]; !known[s.Project] && a.hostOf(s.ID) == h {
+	for i := range a.St.Sessions {
+		if s := &a.St.Sessions[i]; !known[s.Project] && a.hostOf(s.ID) == h {
 			other.sessions = append(other.sessions, s)
 		}
 	}
@@ -661,11 +661,11 @@ func (a *App) hostGroups(h *host) []group {
 func (a *App) orderProjects(ps []proto.Project) {
 	// The default project comes first, whatever the order says.
 	sort.SliceStable(ps, func(i, j int) bool { return ps[i].Default && !ps[j].Default })
-	if len(a.prefs.ProjectOrder) == 0 {
+	if len(a.Prefs.ProjectOrder) == 0 {
 		return
 	}
 	at := map[string]int{}
-	for i, id := range a.prefs.ProjectOrder {
+	for i, id := range a.Prefs.ProjectOrder {
 		if _, ok := at[id]; !ok {
 			at[id] = i
 		}
@@ -693,11 +693,11 @@ func (a *App) orderProjects(ps []proto.Project) {
 // follow them, in the order the sidebar's Order By gave them, as the
 // projects ProjectOrder does not name follow the ones it does.
 func (a *App) orderSessions(ss []*proto.Session) {
-	if len(a.prefs.SessionOrder) == 0 {
+	if len(a.Prefs.SessionOrder) == 0 {
 		return
 	}
 	at := map[string]int{}
-	for i, id := range a.prefs.SessionOrder {
+	for i, id := range a.Prefs.SessionOrder {
 		if _, ok := at[id]; !ok {
 			at[id] = i
 		}
@@ -755,13 +755,13 @@ func (a *App) moveProject(d projectDrag, target string, after bool) {
 			hostIDs[g.project.ID] = true
 		}
 	}
-	kept := a.prefs.ProjectOrder[:0]
-	for _, id := range a.prefs.ProjectOrder {
+	kept := a.Prefs.ProjectOrder[:0]
+	for _, id := range a.Prefs.ProjectOrder {
 		if !hostIDs[id] {
 			kept = append(kept, id)
 		}
 	}
-	a.prefs.ProjectOrder = append(kept, order...)
+	a.Prefs.ProjectOrder = append(kept, order...)
 	a.savePrefs()
 }
 
@@ -805,20 +805,20 @@ func (a *App) reorderSession(d sessionDrag, target string, after bool) {
 	for _, s := range sessions {
 		ids[s.ID] = true
 	}
-	kept := a.prefs.SessionOrder[:0]
-	for _, id := range a.prefs.SessionOrder {
+	kept := a.Prefs.SessionOrder[:0]
+	for _, id := range a.Prefs.SessionOrder {
 		if !ids[id] {
 			kept = append(kept, id)
 		}
 	}
-	a.prefs.SessionOrder = append(kept, order...)
+	a.Prefs.SessionOrder = append(kept, order...)
 	a.savePrefs()
 }
 
 // sortSessions orders sessions as the sidebar's Order says: the ones
 // created first, or the ones updated last.
 func (a *App) sortSessions(ss []*proto.Session) {
-	order := a.prefs.SidebarOrder
+	order := a.Prefs.SidebarOrder
 	if order == "" {
 		order = "created"
 	}
@@ -847,9 +847,9 @@ func sessionUpdated(s *proto.Session) int64 {
 // not group them by project.
 func (a *App) flatSessions(h *host) []*proto.Session {
 	var out []*proto.Session
-	for i := range a.st.Sessions {
-		if a.hostOf(a.st.Sessions[i].ID) == h {
-			out = append(out, &a.st.Sessions[i])
+	for i := range a.St.Sessions {
+		if a.hostOf(a.St.Sessions[i].ID) == h {
+			out = append(out, &a.St.Sessions[i])
 		}
 	}
 	a.sortSessions(out)
@@ -866,9 +866,9 @@ type dateGroup struct {
 // newest day first, with each day's sessions in the chosen order.
 func (a *App) dateGroups(h *host) []dateGroup {
 	var all []*proto.Session
-	for i := range a.st.Sessions {
-		if a.hostOf(a.st.Sessions[i].ID) == h {
-			all = append(all, &a.st.Sessions[i])
+	for i := range a.St.Sessions {
+		if a.hostOf(a.St.Sessions[i].ID) == h {
+			all = append(all, &a.St.Sessions[i])
 		}
 	}
 	sort.SliceStable(all, func(i, j int) bool { return all[i].Created > all[j].Created })
@@ -903,7 +903,7 @@ func dateLabel(day, now time.Time) string {
 
 // projectName returns a project's name, or "".
 func (a *App) projectName(id string) string {
-	for _, p := range a.st.Projects {
+	for _, p := range a.St.Projects {
 		if p.ID == id {
 			return p.Name
 		}
@@ -912,22 +912,22 @@ func (a *App) projectName(id string) string {
 }
 
 // collapsed reports whether a group's sessions are hidden in the sidebar.
-func (a *App) collapsed(g group) bool { return a.prefs.Collapsed[g.key()] }
+func (a *App) collapsed(g group) bool { return a.Prefs.Collapsed[g.key()] }
 
 // visibleOrder returns the sessions in the sidebar's order, those of
 // collapsed projects left out unless selected.
 func (a *App) visibleOrder() []string {
 	var ids []string
-	switch a.prefs.SidebarGroup {
+	switch a.Prefs.SidebarGroup {
 	case "none":
-		for _, h := range a.hosts {
+		for _, h := range a.Hosts {
 			for _, s := range a.flatSessions(h) {
 				ids = append(ids, s.ID)
 			}
 		}
 		return ids
 	case "date":
-		for _, h := range a.hosts {
+		for _, h := range a.Hosts {
 			for _, dg := range a.dateGroups(h) {
 				for _, s := range dg.sessions {
 					ids = append(ids, s.ID)
@@ -938,7 +938,7 @@ func (a *App) visibleOrder() []string {
 	}
 	for _, g := range a.groups() {
 		for _, s := range g.sessions {
-			if !a.collapsed(g) || s.ID == a.selected {
+			if !a.collapsed(g) || s.ID == a.Selected {
 				ids = append(ids, s.ID)
 			}
 		}
@@ -950,13 +950,13 @@ func (a *App) selectSession(id string) {
 	if a.session(id) == nil {
 		return
 	}
-	changed := a.selected != id
-	a.selected = id
+	changed := a.Selected != id
+	a.Selected = id
 	s := a.session(id)
 	// The session shows: its project unfolds to it, chosen from the
 	// palette or as the one that needs the user, with its row in sight.
 	if s.Project != "" {
-		delete(a.prefs.Collapsed, s.Project)
+		delete(a.Prefs.Collapsed, s.Project)
 	}
 	for _, p := range s.Panes {
 		a.ensureTerm(p.ID)
@@ -977,23 +977,23 @@ func (a *App) selectSession(id string) {
 // stops being the active one, so the window's focus has to tell
 // elsewhere.
 func (a *App) watching(id string) bool {
-	return id != "" && id == a.selected && a.active && a.focused
+	return id != "" && id == a.Selected && a.Active && a.Focused
 }
 
 // reportView tells each host's hylad which of its sessions the user looks
 // at, which it then never marks unread.
 func (a *App) reportView() {
 	shown := a.selectedHost()
-	for _, h := range a.hosts {
+	for _, h := range a.Hosts {
 		if h.cl == nil {
 			continue
 		}
 		id := ""
 		switch {
 		case a.quick.shown && h == a.local():
-			id = a.prefs.QuickSession
-		case a.watching(a.selected) && h == shown:
-			id = a.selected
+			id = a.Prefs.QuickSession
+		case a.watching(a.Selected) && h == shown:
+			id = a.Selected
 		}
 		if h.viewSent != nil && *h.viewSent == id {
 			continue
@@ -1006,34 +1006,34 @@ func (a *App) reportView() {
 // touch moves a terminal to the front of those kept attached, dropping
 // the one shown longest ago past the limit.
 func (a *App) touch(id string) {
-	a.lru = slices.DeleteFunc(a.lru, func(x string) bool { return x == id })
-	a.lru = append(a.lru, id)
-	for len(a.lru) > maxTerms {
-		a.dropTerm(a.lru[0])
+	a.Lru = slices.DeleteFunc(a.Lru, func(x string) bool { return x == id })
+	a.Lru = append(a.Lru, id)
+	for len(a.Lru) > maxTerms {
+		a.dropTerm(a.Lru[0])
 	}
 }
 
 func (a *App) dropTerm(id string) {
 	a.claimMu.Lock()
-	cw := a.claims[id]
-	delete(a.claims, id)
+	cw := a.Claims[id]
+	delete(a.Claims, id)
 	a.claimMu.Unlock()
 	if cw != nil {
 		cw.t.Stop()
 	}
-	if e := a.terms[id]; e != nil {
+	if e := a.Terms[id]; e != nil {
 		if e.term != nil {
 			e.term.Close()
 		}
 		if e.stream != nil {
 			e.stream.Close()
 		}
-		delete(a.terms, id)
+		delete(a.Terms, id)
 	}
-	if a.find.pane == id {
-		a.find.pane = ""
+	if a.Find.pane == id {
+		a.Find.pane = ""
 	}
-	a.lru = slices.DeleteFunc(a.lru, func(x string) bool { return x == id })
+	a.Lru = slices.DeleteFunc(a.Lru, func(x string) bool { return x == id })
 }
 
 // gated holds back the stream's frames until the terminal takes the size
@@ -1051,17 +1051,17 @@ func (g *gated) Read(p []byte) (int, error) {
 // ensureTerm attaches a terminal to a session, unless one is.
 func (a *App) ensureTerm(id string) {
 	h := a.hostOf(id)
-	if a.terms[id] != nil || h.conn != connReady || a.shows(id) {
+	if a.Terms[id] != nil || h.conn != connReady || a.shows(id) {
 		return
 	}
 	e := &termEntry{started: time.Now()}
-	a.terms[id] = e
+	a.Terms[id] = e
 	dialer := h.dialer()
 	go func() {
 		stream, err := client.AttachVia(dialer, id)
 		if err != nil {
 			a.update(func() {
-				if a.terms[id] == e {
+				if a.Terms[id] == e {
 					e.err = err.Error()
 				}
 			})
@@ -1078,7 +1078,7 @@ func (a *App) ensureTerm(id string) {
 		if err != nil {
 			stream.Close()
 			a.update(func() {
-				if a.terms[id] == e {
+				if a.Terms[id] == e {
 					e.err = err.Error()
 				}
 			})
@@ -1088,17 +1088,17 @@ func (a *App) ensureTerm(id string) {
 		stream.OnResized = term.Resize
 		close(g.ready)
 		a.update(func() {
-			if a.terms[id] != e {
+			if a.Terms[id] != e {
 				term.Close()
 				stream.Close()
 				return
 			}
 			e.term, e.stream = term, stream
 			// Shown, it takes the window's size (claimShown).
-			if s := a.session(a.selected); s != nil && a.here() && slices.Contains(shownPanes(s), id) {
+			if s := a.session(a.Selected); s != nil && a.here() && slices.Contains(shownPanes(s), id) {
 				go stream.Claim()
 			}
-			if a.selected == id {
+			if a.Selected == id {
 				a.focusTerminal()
 			}
 		})
@@ -1119,22 +1119,22 @@ const (
 // session it showed closed: the idle time the system tells says they
 // left. A system that tells none leaves it to the window's focus.
 func (a *App) here() bool {
-	if !a.focused {
+	if !a.Focused {
 		return false
 	}
-	return a.idleTime == nil || a.idleTime() < hereIdle
+	return a.IdleTime == nil || a.IdleTime() < hereIdle
 }
 
 // claimShown gives the panes the window shows the window's sizes, which
 // another machine's app may have taken (client.Stream.Claim), while the
 // user is here.
 func (a *App) claimShown() {
-	s := a.session(a.selected)
+	s := a.session(a.Selected)
 	if s == nil || !a.here() {
 		return
 	}
 	for _, id := range shownPanes(s) {
-		if e := a.terms[id]; e != nil && e.stream != nil {
+		if e := a.Terms[id]; e != nil && e.stream != nil {
 			go e.stream.Claim()
 		}
 	}
@@ -1147,7 +1147,7 @@ func (a *App) claimShown() {
 func (a *App) watchReturn() {
 	away := false
 	for range time.Tick(time.Second) {
-		switch idle := a.idleTime(); {
+		switch idle := a.IdleTime(); {
 		case idle >= awayIdle:
 			away = true
 		case away && idle < hereIdle:
@@ -1158,8 +1158,8 @@ func (a *App) watchReturn() {
 }
 
 func (a *App) termFont() terminal.Font {
-	f := terminal.Font{Family: a.termFamily(), Size: a.set.FontSize, Weight: a.set.FontWeight,
-		CellWidth: a.set.CellWidth, LineHeight: a.set.LineHeight, Thicken: a.set.Thicken}
+	f := terminal.Font{Family: a.termFamily(), Size: a.Settings.FontSize, Weight: a.Settings.FontWeight,
+		CellWidth: a.Settings.CellWidth, LineHeight: a.Settings.LineHeight, Thicken: a.Settings.Thicken}
 	f.Features = a.fontFeatures()
 	return f
 }
@@ -1169,14 +1169,14 @@ func (a *App) termFont() terminal.Font {
 // font-feature, which win over them for the tags they name.
 func (a *App) fontFeatures() []string {
 	var fs []string
-	if !a.set.Ligatures {
+	if !a.Settings.Ligatures {
 		for _, tag := range []string{"calt", "liga", "dlig"} {
-			if !slices.ContainsFunc(a.set.FontFeatures, func(f string) bool { return featureTag(f) == tag }) {
+			if !slices.ContainsFunc(a.Settings.FontFeatures, func(f string) bool { return featureTag(f) == tag }) {
 				fs = append(fs, "-"+tag)
 			}
 		}
 	}
-	return append(fs, a.set.FontFeatures...)
+	return append(fs, a.Settings.FontFeatures...)
 }
 
 // featureTag is the tag of a feature as terminal.Font takes it.
@@ -1212,7 +1212,7 @@ func (a *App) termThemes() (light, dark *terminal.Theme) {
 		}
 		return def
 	}
-	return pick(a.set.LightTheme, theme.LightTerm()), pick(a.set.DarkTheme, theme.DarkTerm())
+	return pick(a.Settings.LightTheme, theme.LightTerm()), pick(a.Settings.DarkTheme, theme.DarkTerm())
 }
 
 // commandKeys are the keys that, with ⌘ alone on a Mac, send the program a
@@ -1230,11 +1230,11 @@ func (a *App) termOptions(id string, conn *gated) terminal.Options {
 		Font:          a.termFont(),
 		Theme:         light,
 		DarkTheme:     dark,
-		Cursor:        map[string]terminal.CursorStyle{"block": terminal.CursorBlock, "bar": terminal.CursorBar, "underline": terminal.CursorUnderline}[a.set.Cursor],
-		NoBlink:       !a.set.CursorBlink,
-		OptionAsAlt:   a.set.OptionAsAlt,
-		ClipboardRead: map[string]terminal.ClipboardAccess{"ask": terminal.ClipboardAsk, "allow": terminal.ClipboardAllow, "deny": terminal.ClipboardDeny}[a.set.Clipboard],
-		RightClick:    map[string]terminal.RightClickAction{"menu": terminal.RightClickContextMenu, "paste": terminal.RightClickPaste, "copyOrPaste": terminal.RightClickCopyOrPaste}[a.set.RightClick],
+		Cursor:        map[string]terminal.CursorStyle{"block": terminal.CursorBlock, "bar": terminal.CursorBar, "underline": terminal.CursorUnderline}[a.Settings.Cursor],
+		NoBlink:       !a.Settings.CursorBlink,
+		OptionAsAlt:   a.Settings.OptionAsAlt,
+		ClipboardRead: map[string]terminal.ClipboardAccess{"ask": terminal.ClipboardAsk, "allow": terminal.ClipboardAllow, "deny": terminal.ClipboardDeny}[a.Settings.Clipboard],
+		RightClick:    map[string]terminal.RightClickAction{"menu": terminal.RightClickContextMenu, "paste": terminal.RightClickPaste, "copyOrPaste": terminal.RightClickCopyOrPaste}[a.Settings.RightClick],
 		// The pane's card shows under it, dimmed when the user is in
 		// another pane.
 		Transparent: true,
@@ -1244,11 +1244,11 @@ func (a *App) termOptions(id string, conn *gated) terminal.Options {
 		PaddingColor: terminal.PaddingExtend,
 		// Text a program colored for the other appearance, as a dark
 		// theme's light grays on a light one, stays legible.
-		MinimumContrast:  a.set.MinContrast,
-		ScrollMultiplier: terminal.ScrollMultiplier{Precision: a.set.ScrollPrecision, Discrete: a.set.ScrollDiscrete},
+		MinimumContrast:  a.Settings.MinContrast,
+		ScrollMultiplier: terminal.ScrollMultiplier{Precision: a.Settings.ScrollPrecision, Discrete: a.Settings.ScrollDiscrete},
 		// The scrollback-limit hylad's copy keeps, never the terminal's
 		// default, 10 MB, which would keep more here than there.
-		Scrollback: a.set.ScrollbackBytes(),
+		Scrollback: a.Settings.ScrollbackBytes(),
 		// Every terminal zooms together, and the size is remembered.
 		OnZoom: func(z terminal.Zoom) bool {
 			a.zoom(z.Steps, z.Reset)
@@ -1298,13 +1298,13 @@ func (a *App) termOptions(id string, conn *gated) terminal.Options {
 		OnCopy: func(_ string, by terminal.CopySource) {
 			if by == terminal.CopySelect {
 				a.toast(locales.ToastCopiedToClipboard())
-				if a.win != nil {
-					a.win.Invalidate()
+				if a.Win != nil {
+					a.Win.Invalidate()
 				}
 			}
 		},
 	}
-	if a.set.CopyOnSelect {
+	if a.Settings.CopyOnSelect {
 		o.CopyOnSelect = terminal.CopyOnSelectClipboard
 	}
 	return o
@@ -1318,16 +1318,16 @@ func (a *App) termOptions(id string, conn *gated) terminal.Options {
 func (a *App) claimWhenRest(id string, conn claimer) {
 	a.claimMu.Lock()
 	defer a.claimMu.Unlock()
-	if a.claims == nil {
-		a.claims = map[string]*claimWait{}
+	if a.Claims == nil {
+		a.Claims = map[string]*claimWait{}
 	}
-	if cw := a.claims[id]; cw != nil {
+	if cw := a.Claims[id]; cw != nil {
 		cw.t.Reset(claimRest)
 		return
 	}
 	cw := &claimWait{}
 	cw.t = time.AfterFunc(claimRest, func() { a.claimAtRest(id, cw, conn) })
-	a.claims[id] = cw
+	a.Claims[id] = cw
 }
 
 // claimAtRest claims the pane id for the wheel's rest cw, if it is still
@@ -1335,12 +1335,12 @@ func (a *App) claimWhenRest(id string, conn claimer) {
 func (a *App) claimAtRest(id string, cw *claimWait, conn claimer) {
 	a.main(func() {
 		a.claimMu.Lock()
-		last := a.claims[id] == cw
+		last := a.Claims[id] == cw
 		if last {
-			delete(a.claims, id)
+			delete(a.Claims, id)
 		}
 		a.claimMu.Unlock()
-		if !last || a.terms[id] == nil {
+		if !last || a.Terms[id] == nil {
 			return
 		}
 		conn.Claim()
@@ -1361,12 +1361,12 @@ const claimRest = 150 * time.Millisecond
 // zoom makes every terminal's text bigger or smaller, which Settings
 // remembers as the font's size.
 func (a *App) zoom(steps int, reset bool) {
-	s := a.set
+	s := a.Settings
 	s.FontSize = min(max(s.FontSize+float32(steps), 8), 36)
 	if reset {
 		s.FontSize = settings.Default().FontSize
 	}
-	if s.FontSize != a.set.FontSize {
+	if s.FontSize != a.Settings.FontSize {
 		a.applySettings(s)
 	}
 }
@@ -1403,7 +1403,7 @@ func (a *App) rememberEnv() {
 // apply makes settings the app's, saving them to the configuration when
 // they come from the app rather than from the file.
 func (a *App) apply(s settings.Settings, save bool) {
-	old := a.applied
+	old := a.Applied
 	if save {
 		if err := settings.Save(s); err != nil {
 			a.toast(locales.ToastSaveSettingsFailed(err.Error()))
@@ -1412,9 +1412,9 @@ func (a *App) apply(s settings.Settings, save bool) {
 		// reads as another, is one the app shows as saved.
 		s = settings.Load()
 	}
-	a.set, a.applied = s, s.Clone()
+	a.Settings, a.Applied = s, s.Clone()
 	applied.Lock()
-	applied.s = a.set
+	applied.s = a.Settings
 	applied.Unlock()
 	font := old.FontFamily != s.FontFamily || old.FontFallback != s.FontFallback || old.FontSize != s.FontSize || old.FontWeight != s.FontWeight ||
 		old.CellWidth != s.CellWidth || old.LineHeight != s.LineHeight || old.Ligatures != s.Ligatures || old.Thicken != s.Thicken ||
@@ -1444,7 +1444,7 @@ func (a *App) apply(s settings.Settings, save bool) {
 			t.SetCopyOnSelect(mode)
 		}
 	}
-	for id, e := range a.terms {
+	for id, e := range a.Terms {
 		if e.term == nil {
 			continue
 		}
@@ -1464,63 +1464,63 @@ func (a *App) apply(s settings.Settings, save bool) {
 			retune(t)
 		}
 	}
-	if old.Appearance != s.Appearance && a.win != nil {
+	if old.Appearance != s.Appearance && a.Win != nil {
 		// Only in the running app: before it runs, the call waits for it.
 		mygo.Theme.SetSource(mygo.ThemeSource(s.Appearance))
 	}
-	if old.Language != s.Language && a.win != nil {
+	if old.Language != s.Language && a.Win != nil {
 		mygo.App.SetLocale(localeTag(s.Language))
 	}
 	// The wash changes with the material or its blur, which a change of
 	// opacity too, its alpha only, would leave as it was.
 	if old.Vibrancy != s.Vibrancy || old.WindowBlur != s.WindowBlur || old.WindowOpacity != s.WindowOpacity || old.WindowMaterial != s.WindowMaterial {
-		if a.win != nil {
-			a.win.SetVibrancy(vibrancyFor(s))
+		if a.Win != nil {
+			a.Win.SetVibrancy(vibrancyFor(s))
 		}
-		if a.setWin != nil {
-			a.setWin.SetVibrancy(vibrancyFor(s))
+		if a.SetWin != nil {
+			a.SetWin.SetVibrancy(vibrancyFor(s))
 		}
 	}
-	if !maps.Equal(old.Shortcuts, s.Shortcuts) && a.win != nil {
+	if !maps.Equal(old.Shortcuts, s.Shortcuts) && a.Win != nil {
 		mygo.App.SetMenu(a.menu())
 		a.applyGlobalShortcuts()
 	}
 	if old.DockBadge != s.DockBadge {
 		a.notify(true)
 	}
-	if old.Pet != s.Pet && a.win != nil {
+	if old.Pet != s.Pet && a.Win != nil {
 		// Not from inside a view's build: the pet's window opens, or
 		// goes, once this frame is done.
 		a.update(a.syncPet)
 	}
-	if (old.PetOffset != s.PetOffset || old.PetSize != s.PetSize) && a.pet.win != nil {
+	if (old.PetOffset != s.PetOffset || old.PetSize != s.PetSize) && a.Pet.win != nil {
 		a.update(a.petPlace)
 	}
-	if old.PetSet != s.PetSet && a.pet.win != nil {
+	if old.PetSet != s.PetSet && a.Pet.win != nil {
 		a.update(a.petSetReload)
 	}
-	if old.AppIcon != s.AppIcon && a.win != nil {
+	if old.AppIcon != s.AppIcon && a.Win != nil {
 		a.changeAppIcon()
 	}
 	// Only once a browser pane showed a page: until then, no lists are
 	// downloaded.
-	if (old.BlockAds != s.BlockAds || !slices.Equal(old.AdLists, s.AdLists)) && (a.ads.Started() || len(a.webs) > 0) {
+	if (old.BlockAds != s.BlockAds || !slices.Equal(old.AdLists, s.AdLists)) && (a.Ads.Started() || len(a.Webs) > 0) {
 		a.applyAdBlock()
 	}
 	// The bot's commands run in this window's environment, which a token
 	// or a variable read at each login changes: the bot connects again
 	// as the window reads settings again.
-	if a.win != nil {
+	if a.Win != nil {
 		a.restartFeishu()
 	}
-	if a.win != nil {
-		a.win.Invalidate()
+	if a.Win != nil {
+		a.Win.Invalidate()
 	}
-	if a.pet.win != nil {
-		a.pet.win.Invalidate()
+	if a.Pet.win != nil {
+		a.Pet.win.Invalidate()
 	}
-	if a.setWin != nil {
-		a.setWin.Invalidate()
+	if a.SetWin != nil {
+		a.SetWin.Invalidate()
 	}
 	if a.quick.win != nil {
 		a.quick.win.Invalidate()
@@ -1588,16 +1588,16 @@ func (a *App) reloadConfig() {
 	cur := settings.Load()
 	problems := settings.Problems()
 	a.update(func() {
-		changed := strings.Join(problems, "\n") != strings.Join(a.ss.problems, "\n")
-		a.ss.problems = problems
-		if !reflect.DeepEqual(cur, a.applied) {
+		changed := strings.Join(problems, "\n") != strings.Join(a.Ss.problems, "\n")
+		a.Ss.problems = problems
+		if !reflect.DeepEqual(cur, a.Applied) {
 			a.apply(cur, false)
 		}
 		if changed && len(problems) > 0 {
 			a.toast(locales.ToastConfigProblems(len(problems)))
 		}
-		if a.setWin != nil {
-			a.setWin.Invalidate()
+		if a.SetWin != nil {
+			a.SetWin.Invalidate()
 		}
 	})
 }
@@ -1664,8 +1664,8 @@ func (a *App) resolvePath(id, link string) string {
 // workDir returns the working directory of the pane, or of the session's
 // pane in front, by id.
 func (a *App) workDir(id string) string {
-	for i := range a.st.Sessions {
-		if p := a.st.Sessions[i].PaneByID(id); p != nil {
+	for i := range a.St.Sessions {
+		if p := a.St.Sessions[i].PaneByID(id); p != nil {
 			return p.WorkDir()
 		}
 	}
@@ -1708,12 +1708,12 @@ func (a *App) callOn(h *host, method string, params any, done func(err error)) {
 	})
 }
 
-func (a *App) toast(msg string) { a.pendingToast = msg }
+func (a *App) toast(msg string) { a.PendingToast = msg }
 
 // undoSays says what a removal took away, and offers undo, which puts it
 // back.
 func (a *App) undoSays(msg string, undo func()) {
-	a.undoMessage, a.undoAction = msg, undo
+	a.UndoMessage, a.UndoAction = msg, undo
 	a.toast(msg)
 }
 
@@ -1729,12 +1729,12 @@ func (a *App) newSession(projectID string) {
 	// its terminal, as the project's own New Session does; a shell there
 	// is no machine's.
 	if projectID == "" && h == a.local() {
-		if cur := a.session(a.selected); cur != nil && cur.Project != "" {
-			if cur.Project == a.prefs.SSHProject {
+		if cur := a.session(a.Selected); cur != nil && cur.Project != "" {
+			if cur.Project == a.Prefs.SSHProject {
 				a.askSSHHost()
 				return
 			}
-			if cur.Project == a.prefs.K8sProject {
+			if cur.Project == a.Prefs.K8sProject {
 				a.askK8sPod()
 				return
 			}
@@ -1751,26 +1751,26 @@ func (a *App) newSessionOn(h *host, projectID string) {
 	}
 	// The SSH and K8s projects' New Session adds a machine or a pod,
 	// which opens its terminal.
-	if projectID != "" && projectID == a.prefs.SSHProject {
+	if projectID != "" && projectID == a.Prefs.SSHProject {
 		a.askSSHHost()
 		return
 	}
-	if projectID != "" && projectID == a.prefs.K8sProject {
+	if projectID != "" && projectID == a.Prefs.K8sProject {
 		a.askK8sPod()
 		return
 	}
 	p := proto.CreateParams{Project: projectID}
-	if cur := a.session(a.selected); cur != nil && a.hostOf(cur.ID) == h {
+	if cur := a.session(a.Selected); cur != nil && a.hostOf(cur.ID) == h {
 		if projectID == "" || cur.Project == projectID {
 			p.Project, p.After = cur.Project, cur.ID
-			if a.set.NewSessionDir == "current" {
+			if a.Settings.NewSessionDir == "current" {
 				p.Dir = cur.FocusPane().WorkDir()
 			}
 		}
 		p.Cols, p.Rows = cur.Cols, cur.Rows
 	}
 	home := proto.Home()
-	if a.set.NewSessionDir == "home" {
+	if a.Settings.NewSessionDir == "home" {
 		p.Dir = home
 	}
 	if p.Project == "" && len(a.projectsOf(h)) == 0 {
@@ -1795,7 +1795,7 @@ func (a *App) create(h *host, p proto.CreateParams, expand string) {
 				return
 			}
 			if expand != "" {
-				delete(a.prefs.Collapsed, expand)
+				delete(a.Prefs.Collapsed, expand)
 			}
 			// The state with it may come after the answer.
 			a.addPending(h, s)
@@ -1810,9 +1810,9 @@ func (a *App) addPending(h *host, s proto.Session) {
 	if a.session(s.ID) != nil {
 		return
 	}
-	a.st.Sessions = append(a.st.Sessions, s)
+	a.St.Sessions = append(a.St.Sessions, s)
 	if a.project(s.Project) == nil {
-		a.st.Projects = append(a.st.Projects, proto.Project{ID: s.Project, Name: proto.DirName(s.Dir), Dir: s.Dir})
+		a.St.Projects = append(a.St.Projects, proto.Project{ID: s.Project, Name: proto.DirName(s.Dir), Dir: s.Dir})
 	}
 }
 
@@ -1824,7 +1824,7 @@ func (a *App) openProject() {
 	if h.cl == nil {
 		return
 	}
-	win := a.win
+	win := a.Win
 	go func() {
 		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{
 			Parent: win, Title: locales.OpenProjectTitle(), Directory: true, ButtonLabel: locales.CommonOpen(),
@@ -1874,9 +1874,9 @@ func (a *App) openProjectDirs(h *host, cl *client.Client, dirs []string, local b
 			if h.cl != cl {
 				return
 			}
-			delete(a.prefs.Collapsed, p.ID)
+			delete(a.Prefs.Collapsed, p.ID)
 			if a.project(p.ID) == nil {
-				a.st.Projects = append(a.st.Projects, p)
+				a.St.Projects = append(a.St.Projects, p)
 			}
 			a.addPending(h, s)
 			a.selectSession(s.ID)
@@ -1906,9 +1906,9 @@ func (a *App) closeSession(id string, ask bool) {
 		a.askCloseWorktree(id)
 		return
 	}
-	if ask && a.set.ConfirmClose && busy(s) {
-		name := s.DisplayName(a.set.SessionName)
-		a.confirm = &confirmation{
+	if ask && a.Settings.ConfirmClose && busy(s) {
+		name := s.DisplayName(a.Settings.SessionName)
+		a.Confirm = &confirmation{
 			open:    true,
 			title:   locales.ConfirmCloseTitle(name),
 			detail:  locales.ConfirmCloseSessionDetail(s.Process),
@@ -1928,7 +1928,7 @@ func (a *App) endSession(id string, p proto.CloseParams) {
 		return
 	}
 	h := a.hostOf(id)
-	if id == a.selected {
+	if id == a.Selected {
 		// The next session takes its place, else the one before.
 		ids := a.visibleOrder()
 		i := slices.Index(ids, id)
@@ -1938,7 +1938,7 @@ func (a *App) endSession(id string, p proto.CloseParams) {
 		} else if i > 0 {
 			next = ids[i-1]
 		}
-		a.selected = next
+		a.Selected = next
 		if next != "" {
 			a.selectSession(next)
 		}
@@ -1946,7 +1946,7 @@ func (a *App) endSession(id string, p proto.CloseParams) {
 	for _, p := range s.Panes {
 		a.dropTerm(p.ID)
 	}
-	a.st.Sessions = slices.DeleteFunc(a.st.Sessions, func(x proto.Session) bool { return x.ID == id })
+	a.St.Sessions = slices.DeleteFunc(a.St.Sessions, func(x proto.Session) bool { return x.ID == id })
 	a.callOn(h, "close", p, nil)
 }
 
@@ -1973,14 +1973,14 @@ func (a *App) startRename(id string) {
 	if s == nil {
 		return
 	}
-	a.renaming, a.renamingProject, a.renameBuf, a.renameFrames = id, "", s.DisplayName(a.set.SessionName), 0
+	a.Renaming, a.RenamingProject, a.RenameBuf, a.RenameFrames = id, "", s.DisplayName(a.Settings.SessionName), 0
 }
 
 func (a *App) commitRename() {
-	id, name := a.renaming, strings.TrimSpace(a.renameBuf)
-	a.renaming = ""
+	id, name := a.Renaming, strings.TrimSpace(a.RenameBuf)
+	a.Renaming = ""
 	s := a.session(id)
-	if s == nil || name == s.DisplayName(a.set.SessionName) {
+	if s == nil || name == s.DisplayName(a.Settings.SessionName) {
 		a.focusTerminal()
 		return
 	}
@@ -1991,18 +1991,18 @@ func (a *App) commitRename() {
 }
 
 func (a *App) startProjectRename(id string) {
-	for _, p := range a.st.Projects {
+	for _, p := range a.St.Projects {
 		if p.ID == id {
-			a.renaming, a.renamingProject, a.renameBuf, a.renameFrames = "", id, p.Name, 0
+			a.Renaming, a.RenamingProject, a.RenameBuf, a.RenameFrames = "", id, p.Name, 0
 		}
 	}
 }
 
 func (a *App) commitProjectRename() {
-	id, name := a.renamingProject, strings.TrimSpace(a.renameBuf)
-	a.renamingProject = ""
-	for i := range a.st.Projects {
-		if p := &a.st.Projects[i]; p.ID == id && name != "" && name != p.Name {
+	id, name := a.RenamingProject, strings.TrimSpace(a.RenameBuf)
+	a.RenamingProject = ""
+	for i := range a.St.Projects {
+		if p := &a.St.Projects[i]; p.ID == id && name != "" && name != p.Name {
 			p.Name = name // at once; the daemon's state follows
 			a.call(id, "project.rename", proto.ProjectParams{ID: id, Name: name}, nil)
 		}
@@ -2022,7 +2022,7 @@ func (a *App) selectOffset(d int) {
 	if len(ids) == 0 {
 		return
 	}
-	i := slices.Index(ids, a.selected)
+	i := slices.Index(ids, a.Selected)
 	if i < 0 {
 		i = 0
 	} else {
@@ -2041,11 +2041,11 @@ func (a *App) jumpTo(want func(*proto.Session) bool) bool {
 			ids = append(ids, s.ID)
 		}
 	}
-	i := slices.Index(ids, a.selected)
+	i := slices.Index(ids, a.Selected)
 	for k := 1; k <= len(ids); k++ {
 		id := ids[(i+k+len(ids))%len(ids)]
-		if s := a.session(id); s != nil && id != a.selected && want(s) {
-			delete(a.prefs.Collapsed, s.Project)
+		if s := a.session(id); s != nil && id != a.Selected && want(s) {
+			delete(a.Prefs.Collapsed, s.Project)
 			a.selectSession(id)
 			return true
 		}
@@ -2064,14 +2064,14 @@ func (a *App) jumpToAttention() {
 }
 
 func (a *App) toggleSidebar() {
-	a.prefs.SidebarHidden = !a.prefs.SidebarHidden
+	a.Prefs.SidebarHidden = !a.Prefs.SidebarHidden
 	a.savePrefs()
 }
 
 func (a *App) toggleProject(id string) {
-	a.prefs.Collapsed[id] = !a.prefs.Collapsed[id]
-	if !a.prefs.Collapsed[id] {
-		delete(a.prefs.Collapsed, id)
+	a.Prefs.Collapsed[id] = !a.Prefs.Collapsed[id]
+	if !a.Prefs.Collapsed[id] {
+		delete(a.Prefs.Collapsed, id)
 	}
 	a.savePrefs()
 }
@@ -2098,10 +2098,10 @@ func (a *App) toggleAllProjects() {
 	collapse := !a.allProjectsCollapsed()
 	for _, g := range a.groups() {
 		if collapse {
-			a.prefs.Collapsed[g.key()] = true
+			a.Prefs.Collapsed[g.key()] = true
 			continue
 		}
-		delete(a.prefs.Collapsed, g.key())
+		delete(a.Prefs.Collapsed, g.key())
 	}
 	a.savePrefs()
 }
@@ -2113,7 +2113,7 @@ func (a *App) toggleAllProjects() {
 // while a program runs, and closes nothing until the answer says so.
 func (a *App) quitRequested() bool {
 	a.savePrefs()
-	if !a.set.QuitEndsSessions || a.quitting {
+	if !a.Settings.QuitEndsSessions || a.quitting {
 		// A quit taken back before, or the one its answer makes: either
 		// way it is over.
 		a.quitting = false
@@ -2121,12 +2121,12 @@ func (a *App) quitRequested() bool {
 	}
 	busy := a.busyCount(a.local())
 	switch {
-	case busy > 0 && a.set.ConfirmClose:
+	case busy > 0 && a.Settings.ConfirmClose:
 		a.quitting = true
-		a.confirm = &confirmation{
+		a.Confirm = &confirmation{
 			open:    true,
 			title:   locales.ConfirmQuitAllTitle(),
-			detail:  quitAllDetail(busy, len(a.hosts) > 1),
+			detail:  quitAllDetail(busy, len(a.Hosts) > 1),
 			action:  locales.ConfirmQuitAllAction(),
 			destroy: true,
 			ends:    true, // Return may be a program's to read
@@ -2167,7 +2167,7 @@ func (a *App) allowQuit() bool {
 
 // armQuitTimer leaves the app after quitGrace, whatever holds the quit.
 func (a *App) armQuitTimer() {
-	if a.win == nil || a.quitTimer != nil {
+	if a.Win == nil || a.quitTimer != nil {
 		return
 	}
 	a.quitTimer = time.AfterFunc(quitGrace, func() { os.Exit(0) })
@@ -2176,12 +2176,12 @@ func (a *App) armQuitTimer() {
 // bringToFront shows the window, and brings it forward, so that the user
 // sees what the app asks, or ends.
 func (a *App) bringToFront() {
-	if a.win == nil {
+	if a.Win == nil {
 		return
 	}
-	a.win.Show() // it has no native window, as in tests
-	a.win.Restore()
-	a.win.Focus()
+	a.Win.Show() // it has no native window, as in tests
+	a.Win.Restore()
+	a.Win.Focus()
 }
 
 // quitEndsSession ends this machine's sessions without hylad to ask, as
@@ -2199,7 +2199,7 @@ func (a *App) quitEndsSession() {
 // hostsLoaded reports whether every host has shown its sessions, as the
 // app asks before it ends this machine's.
 func (a *App) hostsLoaded() bool {
-	for _, h := range a.hosts {
+	for _, h := range a.Hosts {
 		if h.conn == connConnecting || (h.cl != nil && !h.loaded) {
 			return false
 		}
@@ -2225,7 +2225,7 @@ func (a *App) offerRestart() {
 	if h.daemonApp != "" {
 		was = h.daemonApp
 	}
-	a.confirm = &confirmation{
+	a.Confirm = &confirmation{
 		open:    true,
 		title:   locales.ConfirmRestartServiceTitle(),
 		detail:  locales.RestartStaleDetail(was, mygo.App.Version(), locales.RestartRunning(n)),
@@ -2278,10 +2278,10 @@ func (a *App) restartDaemon() {
 // quits: other machines' keep running.
 func (a *App) quitAndEnd() {
 	n := len(a.sessionsOf(a.local()))
-	a.confirm = &confirmation{
+	a.Confirm = &confirmation{
 		open:    true,
 		title:   locales.ConfirmQuitAllTitle(),
-		detail:  quitAllDetail(n, len(a.hosts) > 1),
+		detail:  quitAllDetail(n, len(a.Hosts) > 1),
 		action:  locales.ConfirmQuitAllAction(),
 		destroy: true,
 		ends:    true,

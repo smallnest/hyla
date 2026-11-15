@@ -56,19 +56,19 @@ func loadFonts() {
 func (a *App) termFamily() string {
 	f := "monospace" // the system's
 	switch {
-	case a.set.FontFamily != "":
-		f = a.set.FontFamily
+	case a.Settings.FontFamily != "":
+		f = a.Settings.FontFamily
 	case fontsLoaded:
 		f = bundledFont
 	}
-	return a.set.FallbackFamilies(f)
+	return a.Settings.FallbackFamilies(f)
 }
 
 // fallbackFonts are the families of font-fallback, less those the
 // terminal's font has already.
 func (a *App) fallbackFonts() []string {
 	var out []string
-	for _, f := range settings.ParseFontFallback(a.set.FontFallback) {
+	for _, f := range settings.ParseFontFallback(a.Settings.FontFallback) {
 		// The terminal's own font is not a fallback, whichever field names it.
 		if strings.EqualFold(f, a.termFamily()) {
 			continue
@@ -87,5 +87,5 @@ func (a *App) addFallback(family string, i int) {
 	} else {
 		f = slices.Insert(f, i, family)
 	}
-	a.set.FontFallback = strings.Join(f, ", ")
+	a.Settings.FontFallback = strings.Join(f, ", ")
 }

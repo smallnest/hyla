@@ -161,7 +161,7 @@ func (a *App) filesRoot(s *proto.Session) (*proto.Pane, string) {
 // filesSide is the Files tab: the root's tree, a folder listed as it
 // unfolds, and again as the worktree changes.
 func (a *App) filesSide(c *ui.Context, pal *theme.Palette, s *proto.Session) {
-	fs := &a.side.files
+	fs := &a.Side.files
 	if !fs.showed {
 		fs.gen++
 	}
@@ -369,7 +369,7 @@ func (a *App) treeEntry(c *ui.Context, pal *theme.Palette, it fileItem, current 
 
 // fetchDir asks hylad for a folder's entries, dotfiles too.
 func (a *App) fetchDir(h *host, dir string, stamp string) *dirList {
-	fs := &a.side.files
+	fs := &a.Side.files
 	key := filesKey(h, dir)
 	l := fs.dirs[key]
 	if l == nil {
@@ -449,7 +449,7 @@ func (a *App) fileViewer(c *ui.Context, pal *theme.Palette, s *proto.Session, fv
 		sid := s.ID
 		iconButton(c, "files-close", glyph.Close, locales.SideClose(), pal, func() {
 			a.defer_(func() {
-				if fv := a.side.files.views[sid]; fv != nil {
+				if fv := a.Side.files.views[sid]; fv != nil {
 					fv.open = false
 				}
 			})
@@ -472,7 +472,7 @@ func (a *App) fileViewer(c *ui.Context, pal *theme.Palette, s *proto.Session, fv
 		case fv.st == nil:
 			ui.Column(c).Grow(1).Center().Children(func() { ui.Spinner(c) })
 		default:
-			fv.st.Font = ui.Font{Family: a.termFamily(), Size: max(a.set.FontSize-1, 10)}
+			fv.st.Font = ui.Font{Family: a.termFamily(), Size: max(a.Settings.FontSize-1, 10)}
 			fv.st.Theme = a.codeTheme(c, pal)
 			fv.st.ReadOnly = true
 			fv.st.NoActiveLine = true
@@ -584,9 +584,9 @@ func (a *App) filesItems(m *ui.Menu, s *proto.Session) {
 	}
 	if m.Item(locales.FilesCollapseFolders()).Chosen() {
 		prefix := filesKey(a.hostOf(pane.ID), root)
-		for k := range a.side.files.open {
+		for k := range a.Side.files.open {
 			if strings.HasPrefix(k, prefix) {
-				delete(a.side.files.open, k)
+				delete(a.Side.files.open, k)
 			}
 		}
 	}

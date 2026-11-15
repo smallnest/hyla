@@ -106,7 +106,7 @@ func pasteApp(t *testing.T) (*App, *sinkConn, string) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { term.Close() })
-	a.terms["a"] = &termEntry{term: term}
+	a.Terms["a"] = &termEntry{term: term}
 	return a, sink, dir
 }
 
@@ -141,8 +141,8 @@ func TestPasteImageAsPath(t *testing.T) {
 	if got := sink.written(t); got != files[0] {
 		t.Errorf("the program got %q, want the path %q", got, files[0])
 	}
-	if a.pendingToast != "" {
-		t.Errorf("toast %q", a.pendingToast)
+	if a.PendingToast != "" {
+		t.Errorf("toast %q", a.PendingToast)
 	}
 }
 
@@ -150,7 +150,7 @@ func TestPasteImageAsPath(t *testing.T) {
 // as a paste, which they take for a file dropped.
 func TestPasteImageBracketed(t *testing.T) {
 	a, sink, dir := pasteApp(t)
-	a.terms["a"].term.Feed([]byte("\x1b[?2004h"))
+	a.Terms["a"].term.Feed([]byte("\x1b[?2004h"))
 	if !a.pasteImage("a", imageData()) {
 		t.Fatal("the paste of an image was left to the terminal")
 	}
@@ -245,7 +245,7 @@ func TestPasteImageNoTerminal(t *testing.T) {
 	if a.pasteImage("b", imageData()) {
 		t.Error("a pane without a terminal took the paste")
 	}
-	a.terms["b"] = &termEntry{err: "no session"}
+	a.Terms["b"] = &termEntry{err: "no session"}
 	if a.pasteImage("b", imageData()) {
 		t.Error("a pane that failed to attach took the paste")
 	}
@@ -266,8 +266,8 @@ func TestPasteImageWriteFails(t *testing.T) {
 	if !a.pasteImage("a", imageData()) {
 		t.Fatal("the paste was left to the terminal")
 	}
-	if !strings.HasPrefix(a.pendingToast, "Couldn’t paste the image: ") || !strings.Contains(a.pendingToast, "drop the image file") {
-		t.Errorf("toast %q", a.pendingToast)
+	if !strings.HasPrefix(a.PendingToast, "Couldn’t paste the image: ") || !strings.Contains(a.PendingToast, "drop the image file") {
+		t.Errorf("toast %q", a.PendingToast)
 	}
 	if got := sink.quiet(); got != "" {
 		t.Errorf("the program got %q", got)
@@ -324,7 +324,7 @@ func TestPasteImageEachItsOwnFile(t *testing.T) {
 // image is not offered to the program, nor pasted as nothing.
 func TestPasteImageByKeys(t *testing.T) {
 	a, sink, dir := pasteApp(t)
-	term := a.terms["a"].term
+	term := a.Terms["a"].term
 	// A terminal of the app's options, as the app makes them.
 	term.Close()
 	sink = newSink()
@@ -337,7 +337,7 @@ func TestPasteImageByKeys(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer term.Close()
-	a.terms["a"] = &termEntry{term: term}
+	a.Terms["a"] = &termEntry{term: term}
 	tt := ui.NewTester(func(c *ui.Context) { terminal.View(c, term).Fill().AutoFocus() }, 400, 200)
 	tt.Frame()
 	term.Feed([]byte("\x1b[?2004h"))
@@ -488,8 +488,8 @@ func TestPasteImageOtherTypes(t *testing.T) {
 	if got := pastedFiles(t, dir); len(got) != 2 || !slices.ContainsFunc(got, func(p string) bool { return filepath.Ext(p) == ".png" }) {
 		t.Errorf("pasted files %q, want the PNG too", got)
 	}
-	if a.pendingToast != "" {
-		t.Errorf("toast %q", a.pendingToast)
+	if a.PendingToast != "" {
+		t.Errorf("toast %q", a.PendingToast)
 	}
 }
 
@@ -510,12 +510,12 @@ func TestPasteImageSaysWhyNot(t *testing.T) {
 		{"an empty image", transfer.New(transfer.NewItem(transfer.Bytes(transfer.PNG, nil))), "the image is empty"},
 	}
 	for _, c := range cases {
-		a.pendingToast = ""
+		a.PendingToast = ""
 		if !a.pasteImage("a", c.d) {
 			t.Errorf("%s: the paste was left to the terminal", c.name)
 		}
-		if !strings.Contains(a.pendingToast, c.want) {
-			t.Errorf("%s: toast %q lacks %q", c.name, a.pendingToast, c.want)
+		if !strings.Contains(a.PendingToast, c.want) {
+			t.Errorf("%s: toast %q lacks %q", c.name, a.PendingToast, c.want)
 		}
 	}
 	if got := pastedFiles(t, dir); len(got) != 0 {

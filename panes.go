@@ -26,20 +26,20 @@ const sideGap = paneGap / 2
 // paneRef returns the handle a pane's terminal binds, which its focus
 // follows.
 func (a *App) paneRef(id string) *ui.Handle {
-	if a.refs == nil {
-		a.refs = map[string]*ui.Handle{}
+	if a.Refs == nil {
+		a.Refs = map[string]*ui.Handle{}
 	}
-	h := a.refs[id]
+	h := a.Refs[id]
 	if h == nil {
 		h = &ui.Handle{}
-		a.refs[id] = h
+		a.Refs[id] = h
 	}
 	return h
 }
 
 // focusOf returns the pane of a session the user is in.
 func (a *App) focusOf(s *proto.Session) string {
-	if id := a.focus[s.ID]; id != "" && s.PaneByID(id) != nil {
+	if id := a.Focus[s.ID]; id != "" && s.PaneByID(id) != nil {
 		return id
 	}
 	if p := s.FocusPane(); p != nil {
@@ -71,13 +71,13 @@ func shownPanes(s *proto.Session) []string {
 
 // setFocus moves the user into a pane, and tells hylad, which remembers it.
 func (a *App) setFocus(s *proto.Session, pane string) {
-	if a.focus == nil {
-		a.focus = map[string]string{}
+	if a.Focus == nil {
+		a.Focus = map[string]string{}
 	}
-	if a.focus[s.ID] == pane && s.Focus == pane {
+	if a.Focus[s.ID] == pane && s.Focus == pane {
 		return
 	}
-	a.focus[s.ID] = pane
+	a.Focus[s.ID] = pane
 	s.Focus = pane
 	if s.Zoomed != "" {
 		s.Zoomed = pane
@@ -89,7 +89,7 @@ func (a *App) setFocus(s *proto.Session, pane string) {
 
 // focusTerminal gives the keyboard to the pane the user is in.
 func (a *App) focusTerminal() {
-	if s := a.session(a.selected); s != nil {
+	if s := a.session(a.Selected); s != nil {
 		if id := a.focusOf(s); id != "" {
 			a.paneRef(id).Focus()
 		}
@@ -106,28 +106,28 @@ func (a *App) panes(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown fl
 	// place in the frames that come after: it shows at their place as soon
 	// as it built, on the frame after the one that brings it in.
 	switched := false
-	if a.shownSession != "" && a.shownSession != s.ID {
+	if a.ShownSession != "" && a.ShownSession != s.ID {
 		a.switchTo(c)
 		switched = true
 	}
 	a.settle()
-	a.shownSession = s.ID
+	a.ShownSession = s.ID
 	sw := a.sessionSwitch()
 	slot := ui.Box(c.Key("slot-" + s.ID)).Absolute().Left(0).Top(0).Right(0).Bottom(0)
 	// The frames that move a session of the view build it, as those of a
 	// Transition: frames that only paint would show the panes back at
 	// their place, with a copy of their Transition.
-	if a.switchIn {
+	if a.SwitchIn {
 		c.AnimationFrame()
 	}
-	slot.AnimatePose(sw.pose(a.switchFrom, a.switchIn), switchSpring)
+	slot.AnimatePose(sw.pose(a.SwitchFrom, a.SwitchIn), switchSpring)
 	// A session that a switch brings in shows as a new element, where it
 	// comes, as one built for the first time does, and moves from there as
 	// poses do: one that the frames build before has the place its poses
 	// had, and would jump there.
 	from := ui.Motion{}
 	if switched {
-		from = a.switchFrom
+		from = a.SwitchFrom
 	}
 	slot.Children(func() {
 		show := ui.Box(c.Key("show-" + s.ID)).Absolute().Left(0).Top(0).Right(0).Bottom(0)
@@ -148,12 +148,12 @@ func (a *App) panes(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown fl
 // build.
 func (a *App) switchTo(c *ui.Context) {
 	sw := a.sessionSwitch()
-	a.switchIn = false
+	a.SwitchIn = false
 	if sw == switchNone {
 		return
 	}
-	a.switchFrom, a.switchIn = sw.motion(), true
-	a.switchAt = c.Now()
+	a.SwitchFrom, a.SwitchIn = sw.motion(), true
+	a.SwitchAt = c.Now()
 	c.After(switchLand)
 }
 
@@ -170,10 +170,10 @@ const switchLand = 400 * time.Millisecond
 // what the user asks, as a key, shows the panes at their place, and not
 // back where they came from.
 func (a *App) settle() {
-	if !a.switchIn || time.Since(a.switchAt) < switchLand {
+	if !a.SwitchIn || time.Since(a.SwitchAt) < switchLand {
 		return
 	}
-	a.switchIn, a.switchFrom = false, ui.Motion{}
+	a.SwitchIn, a.SwitchFrom = false, ui.Motion{}
 }
 
 // sessionPanes lays out a session's panes.
@@ -181,7 +181,7 @@ func (a *App) sessionPanes(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, s
 	// One pane shows its chat in place of its terminal, alone, so that
 	// the chat has the room side by side would leave it.
 	if len(s.Zoomed) == 0 || s.Zoomed == a.focusOf(s) {
-		if p0 := s.PaneByID(a.focusOf(s)); p0 != nil && a.paneChat[p0.ID] && a.feishuOn() {
+		if p0 := s.PaneByID(a.focusOf(s)); p0 != nil && a.PaneChat[p0.ID] && a.feishuOn() {
 			a.paneCard(c, pal, bar, shown, s, p0, true, true, right, false)
 			return
 		}
@@ -294,11 +294,11 @@ func (a *App) paneCard(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown
 	// one, shows the chat in its terminal's place, which panes lays out
 	// the one card for. Feishu being on alone says nothing: without the
 	// pane's own choice, its session keeps its terminal.
-	chat := focused && a.feishuOn() && a.paneChat[p.ID] && (len(s.Zoomed) == 0 || s.Zoomed == p.ID)
+	chat := focused && a.feishuOn() && a.PaneChat[p.ID] && (len(s.Zoomed) == 0 || s.Zoomed == p.ID)
 	bg := pal.Card
 	// A browser's page stays opaque, so its toolbar does too, and neither
 	// fades: a page is read, not typed into, from beside it.
-	if multi && !focused && !p.Shown() && a.set.DimUnfocused {
+	if multi && !focused && !p.Shown() && a.Settings.DimUnfocused {
 		bg = pal.CardDim
 	}
 	card := ui.Column(c.Key("pane-" + p.ID)).Grow(1).Basis(0).MinWidth(0).MinHeight(0).Radius(14).Clip().Bind(a.paneRef("card-" + p.ID))
@@ -323,7 +323,7 @@ func (a *App) paneCard(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown
 	if chat {
 		card.Background(bgNow)
 	}
-	if a.set.FocusFollowsMouse && multi {
+	if a.Settings.FocusFollowsMouse && multi {
 		a.followMouse(c, s, p, card, hovered, focused)
 	}
 	// The card takes presses: one on its padding, beside the terminal,
@@ -344,12 +344,12 @@ func (a *App) paneCard(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown
 		}
 		if d, ok := ui.Drop[paneDrag](card); ok && d.session == s.ID && d.pane != p.ID {
 			sid, target := s.ID, p.ID
-			drop := a.lastZone
+			drop := a.LastZone
 			a.defer_(func() { a.movePane(sid, d.pane, target, drop) })
 		}
 	}
 	if zone != zoneNone {
-		a.lastZone = zone
+		a.LastZone = zone
 	}
 
 	dragging := false
@@ -377,7 +377,7 @@ func (a *App) paneCard(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown
 				a.paneTerminal(c, pal, s, p)
 			}
 		}
-		if multi && !p.Shown() && a.set.DimUnfocused {
+		if multi && !p.Shown() && a.Settings.DimUnfocused {
 			// The terminals the user is not in fade, text and all.
 			v := ui.Box(c.Key("veil")).Absolute().Top(0).Left(0).Right(0).Bottom(0).PassThrough().Background(pal.Veil)
 			v.Opacity(v.Animate("on", b2f(!focused), 160*time.Millisecond))
@@ -393,9 +393,9 @@ func (a *App) paneCard(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown
 	switch {
 	case dragging:
 		pose = ui.Pose{Scale: 0.985, Fade: 0.45}
-	case a.arrived[p.ID]:
+	case a.Arrived[p.ID]:
 		pose = ui.Pose{Scale: 0.94, Fade: 0.7}
-		delete(a.arrived, p.ID)
+		delete(a.Arrived, p.ID)
 		c.Invalidate()
 	}
 	card.AnimatePose(pose, ui.Animation{Spring: ui.SpringOptions{Duration: 420 * time.Millisecond, Bounce: 0.18}})
@@ -415,13 +415,13 @@ func (a *App) paneBackground(pal *theme.Palette, bg ui.Color, p *proto.Pane) ui.
 	if p.Browser() || p.FilePane() {
 		return nil
 	}
-	if a.set.PaneImage != "" {
-		if a.paneArt.path != a.set.PaneImage {
-			a.loadPaneArt(a.set.PaneImage)
+	if a.Settings.PaneImage != "" {
+		if a.PaneArt.path != a.Settings.PaneImage {
+			a.loadPaneArt(a.Settings.PaneImage)
 		}
-		return theme.PaneGlass(pal, a.set, a.paneArt.bm, &bg)
+		return theme.PaneGlass(pal, a.Settings, a.PaneArt.bm, &bg)
 	}
-	return theme.PaneGlass(pal, a.set, nil, nil)
+	return theme.PaneGlass(pal, a.Settings, nil, nil)
 }
 
 // followMouse focuses the pane the pointer moves into. Only the pointer
@@ -432,21 +432,21 @@ func (a *App) paneBackground(pal *theme.Palette, bg ui.Color, p *proto.Pane) ui.
 func (a *App) followMouse(c *ui.Context, s *proto.Session, p *proto.Pane, card ui.Element, hovered, focused bool) {
 	x, y, over := card.PointerPosition()
 	if !over {
-		if a.hoverPane == p.ID {
-			a.hoverPane = ""
+		if a.HoverPane == p.ID {
+			a.HoverPane = ""
 		}
 		return
 	}
 	b := a.paneRef("card-" + p.ID).Bounds(c)
 	at := [2]float32{b.X + x, b.Y + y}
-	moved := at != a.hoverAt
-	a.hoverAt = at
+	moved := at != a.HoverAt
+	a.HoverAt = at
 	// A press begun in another pane, as a selection dragged on past its
 	// edge, does not hover this one.
-	if !hovered || a.hoverPane == p.ID {
+	if !hovered || a.HoverPane == p.ID {
 		return
 	}
-	a.hoverPane = p.ID
+	a.HoverPane = p.ID
 	if moved && !focused {
 		a.setFocus(s, p.ID)
 		a.paneRef(p.ID).Focus()
@@ -510,9 +510,9 @@ func (a *App) dropFiles(c *ui.Context, pal *theme.Palette, s *proto.Session, p *
 // does.
 func (a *App) dropPreview(c *ui.Context, pal *theme.Palette, target string, zone dropZone) {
 	key := target
-	a.previewShown = true
-	if a.previewKey != key {
-		a.previewKey, a.previewSince = key, c.Now()
+	a.PreviewShown = true
+	if a.PreviewKey != key {
+		a.PreviewKey, a.PreviewSince = key, c.Now()
 	}
 	// left, top, width, height in percent of the pane
 	r := [...][4]float32{
@@ -532,7 +532,7 @@ func (a *App) dropPreview(c *ui.Context, pal *theme.Palette, target string, zone
 	if zone == zoneSwap {
 		dropIcon = glyph.Swap
 	}
-	fadeIn := min(float32(c.Now().Sub(a.previewSince))/float32(140*time.Millisecond), 1)
+	fadeIn := min(float32(c.Now().Sub(a.PreviewSince))/float32(140*time.Millisecond), 1)
 	if fadeIn < 1 {
 		c.AnimationFrame()
 	}
@@ -566,11 +566,11 @@ func (a *App) movePane(sid, pane, target string, zone dropZone) {
 	}
 	if zone == zoneSwap {
 		s.Layout = s.Layout.Swap(pane, target)
-		a.arrived[target] = true
+		a.Arrived[target] = true
 	} else {
 		s.Layout = s.Layout.Move(pane, target, zone.side())
 	}
-	a.arrived[pane] = true
+	a.Arrived[pane] = true
 	s.Zoomed = ""
 	a.setFocus(s, pane)
 	a.paneRef(pane).Focus()
@@ -585,7 +585,7 @@ func (a *App) paneHeader(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, sho
 		// With the sidebar hidden, the header at the window's top left
 		// starts after the traffic lights and the sidebar's buttons,
 		// which come here.
-		pad = a.chrome.headerPad
+		pad = a.Chrome.headerPad
 	}
 	h := ui.Row(c.Key("hdr")).Height(headerH).Shrink(0).AlignItems(ui.Center).Padding(0, 10, 0, pad).Gap(8)
 	if h.Pressed() && !focused {
@@ -620,7 +620,7 @@ func (a *App) paneHeader(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, sho
 			}
 			title, size := p.PaneName(), float32(13.5)
 			if !multi {
-				title, size = s.DisplayName(a.set.SessionName), 14
+				title, size = s.DisplayName(a.Settings.SessionName), 14
 			}
 			name := ui.Text(c, title).FontSize(size).FontWeight(600).TextColor(pal.Text).SingleLine().Ellipsis("…").Shrink(1).MinWidth(30)
 			if multi && !focused && !dragging {
@@ -648,7 +648,7 @@ func (a *App) paneHeader(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, sho
 		a.paneChips(c, pal, p, !multi)
 		a.paneControls(c, pal, s, p, (hovered || focused && multi) && !dragging, multi)
 		if top && right {
-			windowControls(c, pal, a.win)
+			windowControls(c, pal, a.Win)
 		}
 	})
 	return dragging
@@ -660,7 +660,7 @@ func (a *App) sidebarButtons(c *ui.Context, pal *theme.Palette, bar ui.TitleBar,
 	if shown >= 0.5 {
 		return
 	}
-	ui.Row(c).Absolute().Left(a.chrome.buttonsLeft(bar)).Top(0).Bottom(0).AlignItems(ui.Center).Gap(2).Opacity(1 - 2*shown).Children(func() {
+	ui.Row(c).Absolute().Left(a.Chrome.buttonsLeft(bar)).Top(0).Bottom(0).AlignItems(ui.Center).Gap(2).Opacity(1 - 2*shown).Children(func() {
 		iconButton(c, "show-sidebar", glyph.Sidebar, a.tip(locales.SidebarShow(), "sidebar.toggle"), pal, a.toggleSidebar)
 		iconButton(c, "new-session-2", glyph.Plus, a.tip(locales.ActionNewSession(), "session.new"), pal, func() { a.newSession("") })
 	})
@@ -675,7 +675,7 @@ func (a *App) paneControls(c *ui.Context, pal *theme.Palette, s *proto.Session, 
 			return
 		}
 		if a.feishuOn() {
-			if a.paneChat[p.ID] {
+			if a.PaneChat[p.ID] {
 				iconButton(c, "chat-toggle", glyph.Terminal, a.tip(locales.ActionShowTerminal(), "pane.chat"), pal, func() { a.hidePaneChat(s, p.ID) })
 			} else {
 				iconButton(c, "chat-toggle", glyph.Chat, a.tip(locales.SideChat(), "pane.chat"), pal, func() { a.showPaneChat(s, p.ID) })
@@ -698,15 +698,15 @@ func (a *App) paneControls(c *ui.Context, pal *theme.Palette, s *proto.Session, 
 
 // feishuOn tells that an app of Feishu is configured, whose chats the
 // panes show (chat.go).
-func (a *App) feishuOn() bool { return a.set.Feishu != nil && a.set.Feishu.App != "" }
+func (a *App) feishuOn() bool { return a.Settings.Feishu != nil && a.Settings.Feishu.App != "" }
 
 // showPaneChat shows the focused pane's chat in its terminal's place:
 // the window shows the pane alone, so that the chat has its place.
 func (a *App) showPaneChat(s *proto.Session, id string) {
-	if a.paneChat == nil {
-		a.paneChat = map[string]bool{}
+	if a.PaneChat == nil {
+		a.PaneChat = map[string]bool{}
 	}
-	a.paneChat[id] = true
+	a.PaneChat[id] = true
 	// Zoomed is its own zoom, so the call is the pane's place, not a
 	// toggle of it.
 	if s.Zoomed == "" && (len(s.Panes) > 1 || s.Layout != nil) {
@@ -719,7 +719,7 @@ func (a *App) showPaneChat(s *proto.Session, id string) {
 // hidePaneChat shows the focused pane's terminal again, and the panes
 // side by side, zoomed only for the chat.
 func (a *App) hidePaneChat(s *proto.Session, id string) {
-	delete(a.paneChat, id)
+	delete(a.PaneChat, id)
 	if s.Zoomed == id {
 		a.zoomPane(s, id)
 	}
@@ -793,10 +793,10 @@ func (a *App) paneChips(c *ui.Context, pal *theme.Palette, p *proto.Pane, icon b
 }
 
 func (a *App) paneTerminal(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane) {
-	e := a.terms[p.ID]
+	e := a.Terms[p.ID]
 	if e == nil {
 		a.ensureTerm(p.ID)
-		e = a.terms[p.ID]
+		e = a.Terms[p.ID]
 	}
 	// The terminal fills the card under the header: its own padding
 	// takes the colors of the cells beside it, so that a full-screen
@@ -812,7 +812,7 @@ func (a *App) paneTerminal(c *ui.Context, pal *theme.Palette, s *proto.Session, 
 			if ref.Focused(c) && a.focusOf(s) != p.ID {
 				a.setFocus(s, p.ID)
 			}
-			if a.find.pane == p.ID {
+			if a.Find.pane == p.ID {
 				a.findBar(c, pal, p, e.term)
 			}
 		case e != nil && e.err != "":
@@ -873,10 +873,10 @@ func (a *App) split(s *proto.Session, p proto.CreateParams) {
 			}
 			a.replaceSession(h, ns)
 			if cur := a.session(ns.ID); cur != nil {
-				if a.focus == nil {
-					a.focus = map[string]string{}
+				if a.Focus == nil {
+					a.Focus = map[string]string{}
 				}
-				a.focus[ns.ID] = ns.Focus
+				a.Focus[ns.ID] = ns.Focus
 				a.ensureTerm(ns.Focus)
 				a.touch(ns.Focus)
 				if !a.shows(ns.Focus) {
@@ -892,9 +892,9 @@ func (a *App) split(s *proto.Session, p proto.CreateParams) {
 // replaceSession puts a session as hylad answered into the state, before
 // the state that has it comes.
 func (a *App) replaceSession(h *host, ns proto.Session) {
-	for i := range a.st.Sessions {
-		if a.st.Sessions[i].ID == ns.ID {
-			a.st.Sessions[i] = ns
+	for i := range a.St.Sessions {
+		if a.St.Sessions[i].ID == ns.ID {
+			a.St.Sessions[i] = ns
 			return
 		}
 	}
@@ -913,9 +913,9 @@ func (a *App) closePane(s *proto.Session, pane string, ask bool) {
 	if p == nil {
 		return
 	}
-	if ask && a.set.ConfirmClose && p.Status != proto.Exited && p.Process != "" {
+	if ask && a.Settings.ConfirmClose && p.Status != proto.Exited && p.Process != "" {
 		sid := s.ID
-		a.confirm = &confirmation{
+		a.Confirm = &confirmation{
 			open:    true,
 			title:   locales.ConfirmClosePaneTitle(),
 			detail:  locales.ConfirmClosePaneDetail(p.Process),
@@ -933,7 +933,7 @@ func (a *App) closePane(s *proto.Session, pane string, ask bool) {
 	if a.focusOf(s) == pane && s.Layout != nil {
 		for _, dir := range []string{"left", "up", "right", "down"} {
 			if n := s.Layout.Neighbor(pane, dir); n != "" {
-				a.focus[s.ID] = n
+				a.Focus[s.ID] = n
 				break
 			}
 		}
@@ -976,7 +976,7 @@ func (a *App) zoomPane(s *proto.Session, pane string) {
 
 // focusDirection moves into the pane next to the focused one.
 func (a *App) focusDirection(dir string) {
-	s := a.session(a.selected)
+	s := a.session(a.Selected)
 	if s == nil || s.Layout == nil || s.Zoomed != "" {
 		return
 	}
@@ -988,7 +988,7 @@ func (a *App) focusDirection(dir string) {
 
 // cyclePane moves to the next or previous pane, in the layout's order.
 func (a *App) cyclePane(d int) {
-	s := a.session(a.selected)
+	s := a.session(a.Selected)
 	if s == nil || len(s.Panes) < 2 {
 		return
 	}
@@ -1016,7 +1016,7 @@ func itoa(n int) string {
 
 // defer_ runs fn once the view is built: for actions that change the
 // panes or sessions being built.
-func (a *App) defer_(fn func()) { a.later = append(a.later, fn) }
+func (a *App) defer_(fn func()) { a.Later = append(a.Later, fn) }
 
 func chip(c *ui.Context, pal *theme.Palette, bg, fg ui.Color, fn func()) ui.Element {
 	return ui.Row(c).Height(22).Padding(0, 9).Gap(6).Radius(11).AlignItems(ui.Center).Background(bg).TextColor(fg).Children(fn)
@@ -1025,7 +1025,7 @@ func chip(c *ui.Context, pal *theme.Palette, bg, fg ui.Color, fn func()) ui.Elem
 // closeFocused closes the pane the user is in, or the session with its
 // last pane.
 func (a *App) closeFocused() {
-	if s := a.session(a.selected); s != nil {
+	if s := a.session(a.Selected); s != nil {
 		a.closePane(s, a.focusOf(s), true)
 	}
 }

@@ -52,7 +52,7 @@ type tailcatDraft struct {
 // the hosts Hyla adds and this machine as a host.
 func (a *App) tailcatGroup(c *ui.Context, pal *theme.Palette) {
 	settingsGroup(c, pal, locales.SetTailcatTitle(), "", func() {
-		d := &a.ss.tailcat
+		d := &a.Ss.tailcat
 		if d.listenPort == "" {
 			a.resetTailcat()
 		}
@@ -82,8 +82,8 @@ func (a *App) tailcatGroup(c *ui.Context, pal *theme.Palette) {
 // resetTailcat reads the Tailcat group's fields again from the settings,
 // and this machine's pair code with them.
 func (a *App) resetTailcat() {
-	s := a.set
-	d := &a.ss.tailcat
+	s := a.Settings
+	d := &a.Ss.tailcat
 	*d = tailcatDraft{
 		relay:      s.TailcatRelay,
 		listenPort: settings.TailcatListenPortDefault(),
@@ -109,7 +109,7 @@ func tailcatSettingRow(c *ui.Context, pal *theme.Palette, label, detail string, 
 // hylad's tailcat listener here, its port, and the pair code Hyla on
 // other machines adds with.
 func (a *App) tailcatListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) {
-	on := hasTailcatListener(&a.set)
+	on := hasTailcatListener(&a.Settings)
 	detail := locales.SetTailcatListenDetail()
 	if on {
 		detail = locales.SetTailcatOn()
@@ -124,7 +124,7 @@ func (a *App) tailcatListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) 
 			})
 			ui.Row(c).Shrink(0).AlignItems(ui.Center).Children(func() {
 				style.Toggle(c.Key("tailcat-listen"), &on, pal).OnClick(func() {
-					s := a.set.Clone()
+					s := a.Settings.Clone()
 					if on {
 						port := strings.TrimSpace(d.listenPort)
 						if !settings.ValidListenPort(port) {
@@ -134,7 +134,7 @@ func (a *App) tailcatListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) 
 					} else {
 						s.SetTailcatListen("")
 					}
-					a.set = s
+					a.Settings = s
 					a.resetTailcat()
 				})
 			})
@@ -191,7 +191,7 @@ func (a *App) tailcatListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) 
 				}()
 			})
 			iconButton(c, "change-tailcat", glyph.Reload, locales.SetTailcatChange(), pal, func() {
-				a.ss.confirm = &confirmation{
+				a.Ss.confirm = &confirmation{
 					open:    true,
 					title:   locales.SetTailcatChange(),
 					action:  locales.SetTailcatChange(),
@@ -211,7 +211,7 @@ func tailcatFieldErr(c *ui.Context, pal *theme.Palette, d *tailcatDraft, key str
 }
 
 func (a *App) tailcatCode() {
-	d := &a.ss.tailcat
+	d := &a.Ss.tailcat
 	if d.looking || !d.at.IsZero() {
 		return
 	}
@@ -239,7 +239,7 @@ func (a *App) rotateTailcatCode() {
 		a.toast(err.Error())
 		return
 	}
-	d := &a.ss.tailcat
+	d := &a.Ss.tailcat
 	*d = tailcatDraft{relay: d.relay, listenPort: d.listenPort}
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
@@ -258,9 +258,9 @@ func (a *App) rotateTailcatCode() {
 	}()
 	a.toast(locales.SetTailcatChanged())
 	// hylad starts its listener with the key again, which follow finds.
-	s := a.set.Clone()
+	s := a.Settings.Clone()
 	s.TailcatRotate = !s.TailcatRotate
-	a.set = s
+	a.Settings = s
 }
 
 // hasTailcatListener reports whether s makes this machine a tailcat host.
@@ -279,7 +279,7 @@ func errorText(err error) string {
 // tcpListen is this machine on its own network: a tcp:// listener, whose
 // address and password a client of Hyla, or of HylaPocket, takes.
 func (a *App) tcpListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) {
-	on := hasTCPListener(&a.set)
+	on := hasTCPListener(&a.Settings)
 	detail := locales.SetTCPListenDetail()
 	ui.Column(c).Padding(11, 0).Gap(8).Children(func() {
 		ui.Row(c).Gap(16).AlignItems(ui.Center).Children(func() {
@@ -291,7 +291,7 @@ func (a *App) tcpListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) {
 			})
 			ui.Row(c).Shrink(0).AlignItems(ui.Center).Children(func() {
 				style.Toggle(c.Key("tcp-listen"), &on, pal).OnClick(func() {
-					s := a.set.Clone()
+					s := a.Settings.Clone()
 					if on {
 						addr := strings.TrimSpace(d.tcpAddr)
 						if addr == "" {
@@ -315,7 +315,7 @@ func (a *App) tcpListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) {
 							return err == nil && o.Kind == "tcp"
 						})
 					}
-					a.set = s
+					a.Settings = s
 					a.resetTailcat()
 				})
 			})
@@ -362,16 +362,16 @@ func (a *App) tcpListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) {
 					a.toast(err.Error())
 					return
 				}
-				s := a.set.Clone()
+				s := a.Settings.Clone()
 				s.ListenToken = token
-				a.set = s
+				a.Settings = s
 				a.resetTailcat()
 			})
 		})
 		// Where a client of another machine reaches this one: its own
 		// addresses, which the listener's port follows, and the code a
 		// phone scans to take the first of them.
-		addrs := tcpAddrs(&a.set)
+		addrs := tcpAddrs(&a.Settings)
 		if len(addrs) == 0 {
 			return
 		}
@@ -380,7 +380,7 @@ func (a *App) tcpListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) {
 		})
 		// The code carries the address and the password together, as a
 		// client of the listener takes them: tcp://host:port?token=….
-		code := tcpCode(addrs[0], a.set.ListenToken)
+		code := tcpCode(addrs[0], a.Settings.ListenToken)
 		ui.Row(c).Gap(16).AlignItems(ui.Center).Children(func() {
 			if q, err := qrcode.Encode(code, qrcode.L); err == nil {
 				qrcode.View(c, q).Size(140, 140).Shrink(0)
@@ -478,27 +478,27 @@ func (d *tailcatDraft) save(a *App, key string) {
 			d.err = tailcatField{key, err.Error()}
 			return
 		}
-		s := a.set.Clone()
+		s := a.Settings.Clone()
 		s.Listen = slices.DeleteFunc(s.Listen, func(l string) bool {
 			o, err := remote.ParseListen(l)
 			return err == nil && o.Kind == "tcp"
 		})
 		s.Listen = append(s.Listen, spec.String())
-		a.set, d.err = s, tailcatField{}
+		a.Settings, d.err = s, tailcatField{}
 		return
 	case "tailcat-listen-port":
 		if v = strings.TrimSpace(d.listenPort); !settings.ValidListenPort(v) {
 			d.err = tailcatField{key, v + ": a port is 1 to 65535"}
 			return
 		}
-		s := a.set.Clone()
+		s := a.Settings.Clone()
 		s.SetTailcatListen(v)
-		a.set, d.err = s, tailcatField{}
+		a.Settings, d.err = s, tailcatField{}
 		return
 	}
-	s := a.set.Clone()
+	s := a.Settings.Clone()
 	if key == "tailcat-relay" {
 		s.TailcatRelay = v
 	}
-	a.set, d.err = s, tailcatField{}
+	a.Settings, d.err = s, tailcatField{}
 }

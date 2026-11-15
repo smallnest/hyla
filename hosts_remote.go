@@ -68,7 +68,7 @@ func (d tcpDialer) Dial() (net.Conn, error) {
 // those added, and lets go of those removed or changed.
 func (a *App) syncRemoteHosts() {
 	keep := []*host{a.local()}
-	for _, r := range a.prefs.RemoteHosts {
+	for _, r := range a.Prefs.RemoteHosts {
 		addr := strings.TrimSpace(r.Addr)
 		if addr == "" || r.Name == "" {
 			continue
@@ -91,16 +91,16 @@ func (a *App) syncRemoteHosts() {
 	}
 	added := []*host{}
 	for _, h := range keep[1:] {
-		if !slices.Contains(a.hosts, h) {
+		if !slices.Contains(a.Hosts, h) {
 			added = append(added, h)
 		}
 	}
-	for _, h := range a.hosts[1:] {
+	for _, h := range a.Hosts[1:] {
 		if !slices.Contains(keep, h) {
 			a.closeHost(h)
 		}
 	}
-	a.hosts = keep
+	a.Hosts = keep
 	a.mergeState(a.local(), proto.State{Projects: a.projectsOf(a.local()), Sessions: a.sessionsOf(a.local())})
 	for _, h := range added {
 		a.connectHost(h)
@@ -174,12 +174,12 @@ func (a *App) addRemoteHost(name, addr, token, port string) error {
 			return errNoHostToken
 		}
 	}
-	for _, r := range a.prefs.RemoteHosts {
+	for _, r := range a.Prefs.RemoteHosts {
 		if strings.EqualFold(r.Name, name) {
 			return errHostNamed(name)
 		}
 	}
-	a.prefs.RemoteHosts = append(a.prefs.RemoteHosts, remoteHost{Name: name, Addr: addr, Token: token, Port: port})
+	a.Prefs.RemoteHosts = append(a.Prefs.RemoteHosts, remoteHost{Name: name, Addr: addr, Token: token, Port: port})
 	a.savePrefs()
 	a.syncRemoteHosts()
 	return nil
@@ -204,7 +204,7 @@ func pairOf(s string) (code, name string, ok bool) {
 
 // removeRemoteHost forgets a machine, and its sessions.
 func (a *App) removeRemoteHost(name string) {
-	a.prefs.RemoteHosts = slices.DeleteFunc(a.prefs.RemoteHosts, func(r remoteHost) bool {
+	a.Prefs.RemoteHosts = slices.DeleteFunc(a.Prefs.RemoteHosts, func(r remoteHost) bool {
 		return strings.EqualFold(r.Name, name)
 	})
 	a.savePrefs()
@@ -227,7 +227,7 @@ func (e errString) Error() string { return string(e) }
 // reaches by an address and a password, and this machine's own listener,
 // which a client of them reaches.
 func (a *App) p2pGroup(c *ui.Context, pal *theme.Palette) {
-	d := &a.ss.tailcat
+	d := &a.Ss.tailcat
 	settingsGroup(c, pal, locales.SetTCPTitle(), "", func() {
 		a.remoteHosts(c, pal)
 		if groupRows++; groupRows > 1 {
@@ -246,11 +246,11 @@ type tcHostDraft struct {
 // tailcatHosts are the machines reached by a pair code: the head of the
 // Tailcat group.
 func (a *App) tailcatHosts(c *ui.Context, pal *theme.Palette) {
-	d := &a.ss.tcHost
+	d := &a.Ss.tcHost
 	ui.Column(c).Padding(11, 0).Gap(8).Children(func() {
 		ui.Text(c, locales.SetTailcatHostsTitle()).FontSize(13.5).TextColor(pal.Text)
 		n := 0
-		for _, r := range a.prefs.RemoteHosts {
+		for _, r := range a.Prefs.RemoteHosts {
 			if !r.tailcat() {
 				continue
 			}
@@ -325,10 +325,10 @@ func (a *App) remoteHosts(c *ui.Context, pal *theme.Palette) {
 				ui.Text(c, d).FontSize(12).TextColor(pal.TextMuted).LineHeight(1.35)
 			}
 		})
-		if len(a.prefs.RemoteHosts) == 0 {
+		if len(a.Prefs.RemoteHosts) == 0 {
 			ui.Text(c, locales.SetRemoteHostsNone()).FontSize(12.5).TextColor(pal.TextFaint).Padding(2, 4)
 		}
-		for _, r := range a.prefs.RemoteHosts {
+		for _, r := range a.Prefs.RemoteHosts {
 			if r.tailcat() {
 				continue
 			}
@@ -344,7 +344,7 @@ func (a *App) remoteHosts(c *ui.Context, pal *theme.Palette) {
 				})
 			})
 		}
-		d := &a.ss.remote
+		d := &a.Ss.remote
 		add := func() {
 			if err := a.addRemoteHost(d.name, d.addr, d.token, ""); err != nil {
 				d.err = err.Error()
@@ -386,7 +386,7 @@ func (a *App) remoteHostHeader(c *ui.Context, pal *theme.Palette, h *host, top f
 		m.Separator()
 		if m.Item(locales.HostRemove()).Chosen() {
 			name := h.name
-			a.confirm = &confirmation{
+			a.Confirm = &confirmation{
 				open:    true,
 				title:   locales.HostRemoveTitle(name),
 				detail:  locales.HostRemoveDetail(name),

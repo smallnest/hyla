@@ -9,10 +9,10 @@ import (
 // adRules returns the rules browser panes' pages apply: none while the
 // setting is off or the rules are not compiled yet.
 func (a *App) adRules() []*mygo.ContentRules {
-	if !a.set.BlockAds {
+	if !a.Settings.BlockAds {
 		return nil
 	}
-	return a.ads.Rules(a.set.BlockAds, a.set.AdLists, proto.Dir(), a.main, a.showAdBlock)
+	return a.Ads.Rules(a.Settings.BlockAds, a.Settings.AdLists, proto.Dir(), a.main, a.showAdBlock)
 }
 
 // applyAdBlock gives the open browser panes' pages the rules, or takes
@@ -23,7 +23,7 @@ func (a *App) applyAdBlock() {
 
 // showAdBlock gives the pages rules.
 func (a *App) showAdBlock(rules []*mygo.ContentRules) {
-	for _, e := range a.webs {
+	for _, e := range a.Webs {
 		if e.view != nil && !e.view.IsDestroyed() {
 			e.view.Page().SetContentRules(rules...)
 		}

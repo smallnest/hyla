@@ -45,7 +45,7 @@ func attachTerm(t *testing.T, a *App, id string) chan byte {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { s.Close() })
-	a.terms[id] = &termEntry{stream: s}
+	a.Terms[id] = &termEntry{stream: s}
 	return d.frames
 }
 
@@ -71,14 +71,14 @@ func TestClaimShownWhileHere(t *testing.T) {
 	a := testApp(t)
 	fa, fb := attachTerm(t, a, "a"), attachTerm(t, a, "b")
 	idle := time.Duration(0)
-	a.idleTime = func() time.Duration { return idle }
+	a.IdleTime = func() time.Duration { return idle }
 
-	a.focused = false
+	a.Focused = false
 	a.claimShown()
 	if n := claims(fa) + claims(fb); n != 0 {
 		t.Errorf("window not focused: %d claims", n)
 	}
-	a.focused = true
+	a.Focused = true
 	a.claimShown()
 	if claims(fa) != 1 || claims(fb) != 1 {
 		t.Error("the user here: not every pane shown claimed")
@@ -96,7 +96,7 @@ func TestClaimShownWhileHere(t *testing.T) {
 func TestClaimShownZoomed(t *testing.T) {
 	a := testApp(t)
 	fa, fb := attachTerm(t, a, "a"), attachTerm(t, a, "b")
-	a.focused = true
+	a.Focused = true
 	a.session("s1").Zoomed = "b"
 	a.claimShown()
 	if claims(fa) != 0 || claims(fb) != 1 {
@@ -125,15 +125,15 @@ func TestShownPanes(t *testing.T) {
 // its agent finishing there still tells.
 func TestWatchingNeedsFocus(t *testing.T) {
 	a := testApp(t)
-	a.selected = "s1"
-	a.active, a.focused = true, true
+	a.Selected = "s1"
+	a.Active, a.Focused = true, true
 	if !a.watching("s1") {
 		t.Error("the selected session, window focused: not watched")
 	}
 	if a.watching("s2") {
 		t.Error("another session: watched")
 	}
-	a.focused = false
+	a.Focused = false
 	if a.watching("s1") {
 		t.Error("window not focused: watched")
 	}

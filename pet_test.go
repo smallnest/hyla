@@ -19,8 +19,8 @@ import (
 // of failures, which beat finishes, which beat work.
 func TestPetMood(t *testing.T) {
 	a := testApp(t)
-	a.pet.lastActive = time.Now()
-	s := &a.st.Sessions[0]
+	a.Pet.lastActive = time.Now()
+	s := &a.St.Sessions[0]
 	cases := []struct {
 		name   string
 		status proto.Status
@@ -42,8 +42,8 @@ func TestPetMood(t *testing.T) {
 	}
 	// A session that needs the user counts.
 	s.Status, s.Unread = proto.Waiting, true
-	a.st.Sessions = append(a.st.Sessions, proto.Session{ID: "s2", Project: "p1"})
-	a.st.Sessions[1].Status, a.st.Sessions[1].Unread = proto.Waiting, true
+	a.St.Sessions = append(a.St.Sessions, proto.Session{ID: "s2", Project: "p1"})
+	a.St.Sessions[1].Status, a.St.Sessions[1].Unread = proto.Waiting, true
 	if got, n := a.petCurrent(time.Now()); got != petWaiting || n != 2 {
 		t.Errorf("two waiting: %v, %d", got, n)
 	}
@@ -76,7 +76,7 @@ func TestPetSetState(t *testing.T) {
 func TestPetClickWaves(t *testing.T) {
 	a := testApp(t)
 	now := time.Now()
-	a.pet.since, a.pet.lastActive = now, now
+	a.Pet.since, a.Pet.lastActive = now, now
 	if got, _ := a.petSetStateAt(petIdle, now); got != pets.Idle {
 		t.Fatalf("at rest %v, want idle", got)
 	}
@@ -96,11 +96,11 @@ func TestPetClickWaves(t *testing.T) {
 func TestPetDozes(t *testing.T) {
 	a := testApp(t)
 	now := time.Now()
-	a.pet.lastActive = now.Add(-petDoze - time.Second)
+	a.Pet.lastActive = now.Add(-petDoze - time.Second)
 	if got, _ := a.petCurrent(now); got != petAsleep {
 		t.Fatalf("mood %v, want asleep", got)
 	}
-	a.st.Sessions[0].Status = proto.Working
+	a.St.Sessions[0].Status = proto.Working
 	a.petNote(now)
 	if got, _ := a.petCurrent(now); got != petWorking {
 		t.Errorf("work woke it to %v", got)
@@ -114,13 +114,13 @@ func TestPetSpot(t *testing.T) {
 	a := testApp(t)
 	// The room a Codex pet takes above the edge at its default size: 1.5
 	// times the Codex app's 82 DIPs, and a little.
-	a.set.PetSize = settings.DefaultPetSize
+	a.Settings.PetSize = settings.DefaultPetSize
 	setH := petSetBodyH(a)
 	if setH != 123+8 {
 		t.Fatalf("petSetBodyH = %v, want %d", setH, 131)
 	}
 	for _, size := range []float32{0.5, 1, 1.5, 2, 3} {
-		a.set.PetSize = size
+		a.Settings.PetSize = size
 		if h := petSetBodyH(a); h != float32(math.Round(float64(82*size)))+8 {
 			t.Errorf("size %v: petSetBodyH = %v", size, h)
 		}
@@ -204,12 +204,12 @@ func TestPetOffsetAt(t *testing.T) {
 // A press on the frog pets it, even when it has nothing to jump to.
 func TestPetClickWinks(t *testing.T) {
 	a := testApp(t)
-	a.pet.since, a.pet.lastActive = time.Now(), time.Now()
+	a.Pet.since, a.Pet.lastActive = time.Now(), time.Now()
 	tt := ui.NewTester(a.petView, petW, petH)
 	tt.Frame()
 	tt.ClickAt(petW/2, petH-30)
 	tt.Frame()
-	if a.pet.wink.IsZero() {
+	if a.Pet.wink.IsZero() {
 		t.Fatal("a click on the frog did not pet it")
 	}
 }
@@ -218,8 +218,8 @@ func TestPetClickWinks(t *testing.T) {
 // no half a bubble shows.
 func TestPetShortWindow(t *testing.T) {
 	a := testApp(t)
-	a.st.Sessions[0].Status, a.st.Sessions[0].Unread = proto.Waiting, true
-	a.pet.since, a.pet.lastActive = time.Now(), time.Now()
+	a.St.Sessions[0].Status, a.St.Sessions[0].Unread = proto.Waiting, true
+	a.Pet.since, a.Pet.lastActive = time.Now(), time.Now()
 	tt := ui.NewTester(a.petView, petW, petH-20)
 	tt.Advance(400 * time.Millisecond)
 	tt.Frame()
@@ -246,12 +246,12 @@ func TestPetLooks(t *testing.T) {
 		{"asleep", petAsleep, proto.Idle, false, 0},
 	} {
 		a := testApp(t)
-		a.st.Sessions[0].Status, a.st.Sessions[0].Unread = c.status, c.unread
-		a.pet.lastActive = time.Now().Add(-c.since - time.Second)
+		a.St.Sessions[0].Status, a.St.Sessions[0].Unread = c.status, c.unread
+		a.Pet.lastActive = time.Now().Add(-c.since - time.Second)
 		if c.mood == petAsleep {
-			a.pet.lastActive = time.Now().Add(-petDoze - 2*time.Second)
+			a.Pet.lastActive = time.Now().Add(-petDoze - 2*time.Second)
 		}
-		a.pet.since = time.Now().Add(-c.since)
+		a.Pet.since = time.Now().Add(-c.since)
 		tt := ui.NewTester(a.petView, petW, petH)
 		tt.Advance(c.since + 100*time.Millisecond)
 		tt.Frame()
@@ -265,8 +265,8 @@ func TestPetLooks(t *testing.T) {
 // The Appearance page's switch, for a look: HYLA_SHOTS=dir writes it.
 func TestPetSettingRow(t *testing.T) {
 	a := testApp(t)
-	a.ss.draft = map[string]string{}
-	a.ss.page = "appearance"
+	a.Ss.draft = map[string]string{}
+	a.Ss.page = "appearance"
 	tt := ui.NewTester(a.settingsView, 820, 640)
 	tt.Frame()
 	shot(t, tt, "settings-pet")
@@ -282,15 +282,15 @@ func TestPetToggleAction(t *testing.T) {
 		t.Fatal("no pet.toggle action, or no shortcut for it")
 	}
 	a := testApp(t)
-	if !a.set.Pet {
+	if !a.Settings.Pet {
 		t.Fatal("the pet starts off")
 	}
 	a.run("pet.toggle", nil)
-	if a.set.Pet || a.applied.Pet {
+	if a.Settings.Pet || a.Applied.Pet {
 		t.Error("the action left the pet on")
 	}
 	a.run("pet.toggle", nil)
-	if !a.set.Pet || !a.applied.Pet {
+	if !a.Settings.Pet || !a.Applied.Pet {
 		t.Error("the action did not turn the pet back on")
 	}
 }

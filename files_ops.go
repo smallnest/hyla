@@ -56,8 +56,8 @@ func (a *App) startCreate(s *proto.Session, pane, dir, rel string, folder bool) 
 	if folder {
 		op = editNewFolder
 	}
-	a.side.files.edit = &nameEdit{op: op, session: s.ID, pane: pane, host: h.name, dir: dir, rel: rel}
-	a.side.files.open[filesKey(h, dir)] = true
+	a.Side.files.edit = &nameEdit{op: op, session: s.ID, pane: pane, host: h.name, dir: dir, rel: rel}
+	a.Side.files.open[filesKey(h, dir)] = true
 	// The field shows at once, as its click came in a button, which the
 	// tree then shows without; it takes the focus, and the row clicked
 	// doesn't.
@@ -66,13 +66,13 @@ func (a *App) startCreate(s *proto.Session, pane, dir, rel string, folder bool) 
 
 // startRenameEntry puts the field for an entry's new name in its place.
 func (a *App) startRenameEntry(s *proto.Session, pane string, it fileItem) {
-	a.side.files.edit = &nameEdit{op: editRename, session: s.ID, pane: pane, host: a.hostOf(pane).name, dir: it.parent, rel: it.parentRel,
+	a.Side.files.edit = &nameEdit{op: editRename, session: s.ID, pane: pane, host: a.hostOf(pane).name, dir: it.parent, rel: it.parentRel,
 		path: it.path, oldRel: it.rel, dirEnt: it.Dir, name: it.Name}
 }
 
 // nameRow is the field the user types a name in, in the tree.
 func (a *App) nameRow(c *ui.Context, pal *theme.Palette, it fileItem) {
-	fs := &a.side.files
+	fs := &a.Side.files
 	e := fs.edit
 	row := treeRow(c, pal, it.depth, true)
 	row.Children(func() {
@@ -105,7 +105,7 @@ func (a *App) nameRow(c *ui.Context, pal *theme.Palette, it fileItem) {
 
 // commitName makes the file or folder named, or renames the entry.
 func (a *App) commitName() {
-	fs := &a.side.files
+	fs := &a.Side.files
 	e := fs.edit
 	fs.edit = nil
 	if e == nil {
@@ -184,7 +184,7 @@ func (a *App) renamed(h *host, from, to, fromRel, toRel string) {
 		}
 		return p, false
 	}
-	for _, fv := range a.side.files.views {
+	for _, fv := range a.Side.files.views {
 		if fv == nil || a.hostOf(fv.pane) != h {
 			continue
 		}
@@ -193,7 +193,7 @@ func (a *App) renamed(h *host, from, to, fromRel, toRel string) {
 			fv.rel = toRel + strings.TrimPrefix(fv.rel, fromRel)
 		}
 	}
-	fs := &a.side.files
+	fs := &a.Side.files
 	prefix := filesKey(h, "")
 	for k := range fs.open {
 		if p, ok := moved(strings.TrimPrefix(k, prefix)); ok && strings.HasPrefix(k, prefix) {
@@ -212,7 +212,7 @@ func (a *App) askDelete(pane string, it fileItem) {
 		title = locales.FilesDeleteFolderTitle(it.Name)
 	}
 	detail, action := locales.FilesDeleteTrashDetail(), locales.FilesMoveToTrash()
-	a.confirm = &confirmation{
+	a.Confirm = &confirmation{
 		open:    true,
 		title:   title,
 		detail:  detail,
@@ -238,9 +238,9 @@ func (a *App) deleteEntry(h *host, it fileItem) {
 				a.toast(locales.FilesDeleteFailed(it.Name, remoteError(err)))
 				return
 			}
-			a.side.files.gen++
+			a.Side.files.gen++
 			// A file a viewer shows is gone: read anew, it says so.
-			for _, fv := range a.side.files.views {
+			for _, fv := range a.Side.files.views {
 				if fv != nil && a.hostOf(fv.pane) == h && (fv.path == it.path || withinDir(fv.path, it.path)) {
 					fv.fetched = time.Time{}
 				}

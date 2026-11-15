@@ -46,7 +46,7 @@ func TestInfoMagpieDemo(t *testing.T) {
 		{PID: 88130, Name: "claude", Age: "01:12:05"},
 	}
 	st.procsAt, st.listedAt = true, time.Now()
-	a.magpie = &magpieInfo{ran: true, readAt: time.Now(), usage: &magpieUsage{
+	a.Magpie = &magpieInfo{ran: true, readAt: time.Now(), usage: &magpieUsage{
 		Today:   magpieBucket{Calls: 2081, Input: 1488819, Output: 359513, CacheRead: 246954880, Reasoning: 333, Cost: 1.1799},
 		Session: 412, SessionCost: 0.214,
 		Latest: magpieCall{Status: 200, Served: "deepseek-flash", Ms: 1446},
@@ -59,7 +59,7 @@ func TestInfoMagpieDemo(t *testing.T) {
 	}}
 	a.showSide(sideInfo)
 	st.readAt, st.busy, st.listedAt = time.Now(), true, time.Now()
-	a.magpie.readAt, a.magpie.busy = time.Now(), true
+	a.Magpie.readAt, a.Magpie.busy = time.Now(), true
 	tt := ui.NewTester(a.view, 1100, 900)
 	for i := 0; i < 60 && tt.FramePending(); i++ {
 		tt.Frame()

@@ -96,32 +96,32 @@ func runApp() {
 	mygo.Use(native.Plugin)
 	a := newApp()
 	loadFonts()
-	mygo.Theme.SetSource(mygo.ThemeSource(a.set.Appearance))
-	mygo.App.SetLocale(localeTag(a.set.Language))
+	mygo.Theme.SetSource(mygo.ThemeSource(a.Settings.Appearance))
+	mygo.App.SetLocale(localeTag(a.Settings.Language))
 	mygo.App.SetMenu(a.menu())
 	// Windows draw anew in another language; the menu and the titles,
 	// set once, are made again in it.
 	mygo.App.OnLocaleChanged(func(string) {
 		a.update(func() {
 			mygo.App.SetMenu(a.menu())
-			if a.setWin != nil {
-				a.setWin.SetTitle(locales.SettingsTitle())
+			if a.SetWin != nil {
+				a.SetWin.SetTitle(locales.SettingsTitle())
 			}
-			if a.pet.win != nil {
-				a.pet.win.SetTitle(locales.PetName())
+			if a.Pet.win != nil {
+				a.Pet.win.SetTitle(locales.PetName())
 			}
-			if a.tray != nil {
-				a.tray.SetMenu(a.trayMenu())
+			if a.Tray != nil {
+				a.Tray.SetMenu(a.trayMenu())
 			}
 		})
 	})
 	mygo.App.OnSecondInstance(func([]string, string) { a.showWindow() })
 	mygo.App.OnDidBecomeActive(func() {
 		mygo.ClearNotifications()
-		a.update(func() { a.active = true; a.reportView() })
+		a.update(func() { a.Active = true; a.reportView() })
 	})
 	mygo.App.OnDidResignActive(func() {
-		a.update(func() { a.active = false; a.reportView() })
+		a.update(func() { a.Active = false; a.reportView() })
 	})
 	mygo.App.OnActivate(func(hasVisible bool) {
 		if !hasVisible {
@@ -140,19 +140,19 @@ func runApp() {
 	// Windows leaves an icon in the notification area after its app until
 	// the pointer passes over it.
 	mygo.App.OnWillQuit(func(*mygo.QuitEvent) {
-		if a.tray != nil {
-			a.tray.Destroy()
+		if a.Tray != nil {
+			a.Tray.Destroy()
 		}
 	})
 	// No Dock icon from the start for the menu bar alone.
 	if runtime.GOOS == "darwin" {
-		mygo.App.SetActivationPolicy(activationPolicy(a.set))
+		mygo.App.SetActivationPolicy(activationPolicy(a.Settings))
 	}
 	mygo.App.WhenReady(func() {
 		a.openWindow()
 		a.applyTray()
 		a.applyGlobalShortcuts()
-		a.idleTime = mygo.Power.IdleTime
+		a.IdleTime = mygo.Power.IdleTime
 		a.syncPet()
 		go a.watchReturn()
 		a.connect()
@@ -167,21 +167,21 @@ func runApp() {
 // openWindow makes the main window: as Hyla starts, and again after
 // closing it left Hyla running in the menu bar or the notification area.
 func (a *App) openWindow() {
-	a.win = mygo.NewWindow(framed(mygo.WindowOptions{
+	a.Win = mygo.NewWindow(framed(mygo.WindowOptions{
 		Title:     "Hyla",
 		Width:     1180,
 		Height:    760,
 		MinWidth:  560,
 		MinHeight: 360,
 		StateKey:  "main",
-		Vibrancy:  vibrancyFor(a.set),
+		Vibrancy:  vibrancyFor(a.Settings),
 		Content:   ui.View(a.view),
 	}))
-	a.winOpen = true
+	a.WinOpen = true
 	a.updateTitle()
-	a.win.OnFocus(func() { a.update(func() { a.focused = true; a.claimShown(); a.reportView() }) })
-	a.win.OnBlur(func() { a.update(func() { a.focused = false; a.reportView() }) })
-	a.win.OnClosed(a.windowClosed)
+	a.Win.OnFocus(func() { a.update(func() { a.Focused = true; a.claimShown(); a.reportView() }) })
+	a.Win.OnBlur(func() { a.update(func() { a.Focused = false; a.reportView() }) })
+	a.Win.OnClosed(a.windowClosed)
 }
 
 // newSessionIn starts a session in a directory of a host, in its project.

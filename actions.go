@@ -20,7 +20,7 @@ func (a *App) run(id string, args map[string]string) {
 	if !a.fromMay(id, args) {
 		return
 	}
-	s := a.session(a.selected)
+	s := a.session(a.Selected)
 	switch id {
 	case "settings.open":
 		a.openSettings("")
@@ -33,8 +33,8 @@ func (a *App) run(id string, args map[string]string) {
 		switch dir := args["dir"]; {
 		case dir != "":
 			a.newSessionIn(a.actionHost(), dir)
-		case a.from != nil:
-			a.newSessionOn(a.from, args["project"])
+		case a.From != nil:
+			a.newSessionOn(a.From, args["project"])
 		default:
 			a.newSession(args["project"])
 		}
@@ -51,7 +51,7 @@ func (a *App) run(id string, args map[string]string) {
 	case "session.previous":
 		a.selectOffset(-1)
 	case "session.rename":
-		a.startRename(a.selected)
+		a.startRename(a.Selected)
 	case "pane.restart":
 		if s != nil {
 			a.restartSession(a.focusOf(s))
@@ -59,10 +59,10 @@ func (a *App) run(id string, args map[string]string) {
 	case "pane.close":
 		a.closeFocused()
 	case "session.close":
-		a.closeSession(a.selected, true)
+		a.closeSession(a.Selected, true)
 	case "find.open":
 		// In the changes panel, its diff's find bar.
-		if f := a.side.changes.focus; a.side.focused && f != nil && f.d != nil {
+		if f := a.Side.changes.focus; a.Side.focused && f != nil && f.d != nil {
 			f.d.Find("")
 			break
 		}
@@ -102,8 +102,8 @@ func (a *App) run(id string, args map[string]string) {
 	case "info.toggle":
 		a.toggleSide(sideInfo)
 	case "pet.toggle":
-		a.set.Pet = !a.set.Pet
-		a.applySettings(a.set)
+		a.Settings.Pet = !a.Settings.Pet
+		a.applySettings(a.Settings)
 	case "text.bigger":
 		a.zoom(1, false)
 	case "text.smaller":
@@ -113,8 +113,8 @@ func (a *App) run(id string, args map[string]string) {
 	case quickAction:
 		a.toggleQuick()
 	}
-	if a.win != nil {
-		a.win.Invalidate()
+	if a.Win != nil {
+		a.Win.Invalidate()
 	}
 }
 
@@ -126,8 +126,8 @@ func (a *App) item(id string) *mygo.MenuItem {
 		Accelerator: a.accelerator(act),
 		Click: func(*mygo.MenuItem, *mygo.Window) {
 			// Closing is the window's in front: Settings closes itself.
-			if (id == "pane.close" || id == "session.close") && a.setWin != nil && mygo.FocusedWindow() == a.setWin {
-				a.setWin.Close()
+			if (id == "pane.close" || id == "session.close") && a.SetWin != nil && mygo.FocusedWindow() == a.SetWin {
+				a.SetWin.Close()
 				return
 			}
 			a.update(func() { a.run(id, nil) })
@@ -194,10 +194,10 @@ func actionTitle(id string) string {
 // types a new one in Settings, and none of a global one, which the system
 // takes before the menus.
 func (a *App) accelerator(act actions.Action) string {
-	if a.ss.recording != "" || act.Global {
+	if a.Ss.recording != "" || act.Global {
 		return ""
 	}
-	return actions.Keys(act, a.set.Shortcuts)
+	return actions.Keys(act, a.Settings.Shortcuts)
 }
 
 // items returns the items of a menu's actions, in their order, with
@@ -259,7 +259,7 @@ func (a *App) menu() *mygo.Menu {
 // keys is an action's shortcut as the menus show it, "" when it has none.
 func (a *App) keys(id string) string {
 	act, _ := actions.Find(id)
-	return actions.Glyphs(actions.Keys(act, a.set.Shortcuts))
+	return actions.Glyphs(actions.Keys(act, a.Settings.Shortcuts))
 }
 
 // tip is a button's tooltip: what it does, with its action's shortcut.
@@ -273,7 +273,7 @@ func (a *App) tip(title, id string) string {
 // menuShortcut shows an action's shortcut by a context menu's item.
 func (a *App) menuShortcut(it *ui.MenuItem, id string) *ui.MenuItem {
 	act, _ := actions.Find(id)
-	parts := strings.Split(actions.Keys(act, a.set.Shortcuts), "+")
+	parts := strings.Split(actions.Keys(act, a.Settings.Shortcuts), "+")
 	var mods ui.Modifiers
 	for _, p := range parts[:len(parts)-1] {
 		switch strings.ToLower(p) {

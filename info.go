@@ -57,7 +57,7 @@ type paneInfo struct {
 
 // paneInfoOf returns a pane's Info view, made for the pane as it is now.
 func (a *App) paneInfoOf(p *proto.Pane) *paneInfo {
-	st := a.info[p.ID]
+	st := a.Info[p.ID]
 	if st != nil && st.shell != p.PID {
 		st = nil
 	}
@@ -66,18 +66,18 @@ func (a *App) paneInfoOf(p *proto.Pane) *paneInfo {
 		st.shell, st.readAt, st.procsAt = p.PID, time.Time{}, false
 	}
 	if st == nil {
-		if a.info == nil {
-			a.info = map[string]*paneInfo{}
+		if a.Info == nil {
+			a.Info = map[string]*paneInfo{}
 		}
-		if len(a.info) >= infoCached {
-			for id := range a.info {
+		if len(a.Info) >= infoCached {
+			for id := range a.Info {
 				if id != p.ID {
-					delete(a.info, id)
+					delete(a.Info, id)
 				}
 			}
 		}
 		st = &paneInfo{shell: p.PID}
-		a.info[p.ID] = st
+		a.Info[p.ID] = st
 	}
 	return st
 }
@@ -113,7 +113,7 @@ func (a *App) readInfo(p *proto.Pane, st *paneInfo) {
 			abs = dir
 		}
 		a.update(func() {
-			if a.info[p.ID] != st {
+			if a.Info[p.ID] != st {
 				return
 			}
 			st.readAt, st.busy, st.dir = time.Now(), false, abs
@@ -144,7 +144,7 @@ func (a *App) readProcs(p *proto.Pane, st *paneInfo) {
 		var procs []proto.Process
 		err := cl.Call("pane.processes", proto.ProcessesParams{PID: p.PID}, &procs)
 		a.update(func() {
-			if a.info[p.ID] != st {
+			if a.Info[p.ID] != st {
 				return
 			}
 			if err != nil {
@@ -172,7 +172,7 @@ func (a *App) infoView(c *ui.Context, pal *theme.Palette, s *proto.Session) {
 		return
 	}
 	a.infoTick(c, p)
-	ui.Scroll(c.Key("info")).Grow(1).MinHeight(0).TrackScroll(&a.side.info.scroll).Children(func() {
+	ui.Scroll(c.Key("info")).Grow(1).MinHeight(0).TrackScroll(&a.Side.info.scroll).Children(func() {
 		a.infoBody(c, pal, s, p)
 	})
 }
@@ -196,7 +196,7 @@ func (a *App) infoBody(c *ui.Context, pal *theme.Palette, s *proto.Session, p *p
 // prefs.InfoFolded, or "" for a card that does not fold; a card folded
 // keeps its header, which a click unfolds.
 func (a *App) infoCard(c *ui.Context, pal *theme.Palette, fold string, svg *ui.SVG, title, aside string, body func()) {
-	collapsed := fold != "" && a.prefs.InfoFolded[fold]
+	collapsed := fold != "" && a.Prefs.InfoFolded[fold]
 	ui.Column(c).Radius(12).Background(pal.Chip).Clip().Children(func() {
 		a.infoHead(c, pal, fold, collapsed, title, func() {
 			infoTile(c, pal, svg)
@@ -249,13 +249,13 @@ func (a *App) infoHead(c *ui.Context, pal *theme.Palette, fold string, collapsed
 
 // toggleInfoCard folds a card of the Info view, or unfolds it.
 func (a *App) toggleInfoCard(fold string) {
-	if a.prefs.InfoFolded[fold] {
-		delete(a.prefs.InfoFolded, fold)
+	if a.Prefs.InfoFolded[fold] {
+		delete(a.Prefs.InfoFolded, fold)
 	} else {
-		if a.prefs.InfoFolded == nil {
-			a.prefs.InfoFolded = map[string]bool{}
+		if a.Prefs.InfoFolded == nil {
+			a.Prefs.InfoFolded = map[string]bool{}
 		}
-		a.prefs.InfoFolded[fold] = true
+		a.Prefs.InfoFolded[fold] = true
 	}
 	a.savePrefs()
 }
@@ -311,7 +311,7 @@ func (a *App) infoDir(c *ui.Context, pal *theme.Palette, s *proto.Session, h *ho
 		if cur := a.session(sid); cur != nil {
 			a.setFocus(cur, pid)
 		}
-		a.copyText = dir
+		a.CopyText = dir
 	}
 	_, name := splitDir(dir)
 	a.infoCard(c, pal, infoFoldDir, glyph.Folder, name, dir, func() {

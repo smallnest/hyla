@@ -61,21 +61,21 @@ type paletteItem struct {
 }
 
 func (a *App) openPalette() {
-	a.pal = paletteState{open: true, reveal: true, gen: a.pal.gen + 1}
+	a.Pal = paletteState{open: true, reveal: true, gen: a.Pal.gen + 1}
 	a.loadConversations()
 }
 
 // openConversations opens the palette on the conversations alone.
 func (a *App) openConversations() {
 	a.openPalette()
-	a.pal.only = true
+	a.Pal.only = true
 }
 
 // loadConversations asks every host's hylad for the conversations it
 // remembers. An older one knows of none.
 func (a *App) loadConversations() {
-	gen := a.pal.gen
-	for _, h := range a.hosts {
+	gen := a.Pal.gen
+	for _, h := range a.Hosts {
 		cl := h.cl
 		if cl == nil {
 			continue
@@ -86,13 +86,13 @@ func (a *App) loadConversations() {
 				return
 			}
 			a.update(func() {
-				if a.pal.gen != gen || !a.pal.open {
+				if a.Pal.gen != gen || !a.Pal.open {
 					return
 				}
 				for _, cv := range list {
-					a.pal.convs = append(a.pal.convs, hostConversation{h, cv})
+					a.Pal.convs = append(a.Pal.convs, hostConversation{h, cv})
 				}
-				slices.SortStableFunc(a.pal.convs, func(x, y hostConversation) int { return cmp.Compare(y.Updated, x.Updated) })
+				slices.SortStableFunc(a.Pal.convs, func(x, y hostConversation) int { return cmp.Compare(y.Updated, x.Updated) })
 			})
 		}()
 	}
@@ -103,13 +103,13 @@ func (a *App) loadConversations() {
 func (a *App) conversationItems() []paletteItem {
 	var items []paletteItem
 	names := map[string]string{}
-	for _, p := range a.st.Projects {
+	for _, p := range a.St.Projects {
 		names[p.ID] = p.Name
 	}
 	now := time.Now()
-	for i := range a.pal.convs {
-		cv := &a.pal.convs[i]
-		if cv.Session != "" && !a.pal.only {
+	for i := range a.Pal.convs {
+		cv := &a.Pal.convs[i]
+		if cv.Session != "" && !a.Pal.only {
 			continue
 		}
 		detail := cmp.Or(proto.AgentNames[cv.Agent], cv.Agent)
@@ -140,7 +140,7 @@ func (a *App) resumeConversation(h *host, cv proto.Conversation) {
 		return
 	}
 	p := proto.ConversationParams{Agent: cv.Agent, ID: cv.ID}
-	if cur := a.session(a.selected); cur != nil && a.hostOf(cur.ID) == h {
+	if cur := a.session(a.Selected); cur != nil && a.hostOf(cur.ID) == h {
 		p.Cols, p.Rows = cur.Cols, cur.Rows
 		if cur.Project == cv.Project {
 			p.After = cur.ID
@@ -154,7 +154,7 @@ func (a *App) resumeConversation(h *host, cv proto.Conversation) {
 				a.toast(err.Error())
 				return
 			}
-			delete(a.prefs.Collapsed, s.Project)
+			delete(a.Prefs.Collapsed, s.Project)
 			a.addPending(h, s)
 			a.selectSession(s.ID)
 		})
@@ -162,12 +162,12 @@ func (a *App) resumeConversation(h *host, cv proto.Conversation) {
 }
 
 func (a *App) paletteItems() []paletteItem {
-	if a.pal.only {
+	if a.Pal.only {
 		return a.conversationItems()
 	}
 	var items []paletteItem
 	names := map[string]string{}
-	for _, p := range a.st.Projects {
+	for _, p := range a.St.Projects {
 		names[p.ID] = p.Name
 	}
 	for _, g := range a.groups() {
@@ -178,15 +178,15 @@ func (a *App) paletteItems() []paletteItem {
 				detail += " · " + s.Process
 			}
 			h := a.hostOf(id)
-			items = append(items, paletteItem{session: s, title: s.DisplayName(a.set.SessionName), detail: detail + " · " + h.shortDir(s.WorkDir()),
-				run: func() { delete(a.prefs.Collapsed, s.Project); a.selectSession(id) }})
+			items = append(items, paletteItem{session: s, title: s.DisplayName(a.Settings.SessionName), detail: detail + " · " + h.shortDir(s.WorkDir()),
+				run: func() { delete(a.Prefs.Collapsed, s.Project); a.selectSession(id) }})
 		}
 	}
 	var cmds []paletteItem
 	// Commands are found by their English names too, in any language.
 	en := locales.In("en")
 	// An address typed opens in a browser beside the pane the user is in.
-	if q := strings.TrimSpace(a.pal.query); proto.IsAddress(q) && a.session(a.selected) != nil {
+	if q := strings.TrimSpace(a.Pal.query); proto.IsAddress(q) && a.session(a.Selected) != nil {
 		cmds = append(cmds, paletteItem{title: locales.PaletteOpenInBrowser(), detail: proto.BrowserURL(q), top: true,
 			run: func() { a.openBrowser(q) }})
 	}
@@ -194,7 +194,7 @@ func (a *App) paletteItems() []paletteItem {
 		id := act.ID
 		// A global shortcut shows too, marked, though the menus leave it to
 		// the system to take.
-		keys := actions.Glyphs(actions.Keys(act, a.set.Shortcuts))
+		keys := actions.Glyphs(actions.Keys(act, a.Settings.Shortcuts))
 		if keys != "" && act.Global {
 			keys += " " + locales.PaletteShortcutGlobal()
 		}
@@ -207,13 +207,13 @@ func (a *App) paletteItems() []paletteItem {
 	}
 	cmds = append(cmds, paletteItem{title: locales.PaletteRestartService(), detail: locales.PaletteRestartServiceDetail(),
 		words: en.PaletteRestartService() + " " + en.PaletteRestartServiceDetail(), run: a.restartDaemon})
-	for _, p := range a.st.Projects {
+	for _, p := range a.St.Projects {
 		id := p.ID
 		detail := a.local().shortDir(p.Dir)
 		cmds = append(cmds, paletteItem{title: locales.NewSessionIn(p.Name), detail: detail, words: en.NewSessionIn(p.Name), run: func() { a.newSession(id) }})
 	}
 	convs := a.conversationItems()
-	if a.pal.query == "" && len(convs) > recentConversations {
+	if a.Pal.query == "" && len(convs) > recentConversations {
 		convs = convs[:recentConversations]
 	}
 	items = append(items, convs...)
@@ -294,14 +294,14 @@ func keywords(query, words string) int {
 }
 
 func (a *App) paletteView(c *ui.Context, pal *theme.Palette) {
-	if !a.pal.open {
+	if !a.Pal.open {
 		return
 	}
 	var items []paletteItem
 	for _, it := range a.paletteItems() {
-		sc := fuzzy(a.pal.query, it.title+" "+it.detail)
-		sc = max(sc, keywords(a.pal.query, it.words))
-		if t := fuzzy(a.pal.query, it.title); t >= 0 {
+		sc := fuzzy(a.Pal.query, it.title+" "+it.detail)
+		sc = max(sc, keywords(a.Pal.query, it.words))
+		if t := fuzzy(a.Pal.query, it.title); t >= 0 {
 			sc = max(sc, t+50)
 		}
 		if it.top {
@@ -313,42 +313,42 @@ func (a *App) paletteView(c *ui.Context, pal *theme.Palette) {
 		it.score = sc
 		items = append(items, it)
 	}
-	if a.pal.query != "" {
+	if a.Pal.query != "" {
 		slices.SortStableFunc(items, func(x, y paletteItem) int { return y.score - x.score })
 	}
-	a.pal.index = min(max(a.pal.index, 0), max(len(items)-1, 0))
+	a.Pal.index = min(max(a.Pal.index, 0), max(len(items)-1, 0))
 
 	var chosen func()
 	label, placeholder, none := locales.PaletteLabel(), locales.PalettePlaceholder(), locales.PaletteNoMatches()
-	if a.pal.only {
+	if a.Pal.only {
 		label, placeholder = locales.PaletteConversationsLabel(), locales.PaletteConversationsPlaceholder()
-		if a.pal.query == "" {
+		if a.Pal.query == "" {
 			none = locales.PaletteNoConversations()
 		}
 	}
-	ui.DialogBase(c.Key("palette"), &a.pal.open, func(backdrop, panel ui.Element) {
+	ui.DialogBase(c.Key("palette"), &a.Pal.open, func(backdrop, panel ui.Element) {
 		backdrop.Background(pal.Overlay).Justify(ui.Start).Padding(84, 0, 0, 0)
 		style.Floating(panel.Width(600).MaxHeight(460).Radius(14).Background(pal.Popover), pal).Clip().
 			Label(label)
 		ui.Row(c).Height(50).Shrink(0).Padding(0, 16).Gap(10).AlignItems(ui.Center).Children(func() {
 			ui.Icon(c, glyph.Search).Size(16, 16).TextColor(pal.TextMuted)
-			in := ui.TextInputBase(c.Key("q"), &a.pal.query).Grow(1).FontSize(15).Placeholder(placeholder).AutoFocus()
+			in := ui.TextInputBase(c.Key("q"), &a.Pal.query).Grow(1).FontSize(15).Placeholder(placeholder).AutoFocus()
 			if in.Changed() {
-				a.pal.index, a.pal.reveal = 0, true
+				a.Pal.index, a.Pal.reveal = 0, true
 			}
 			if c.Shortcut(0, ui.KeyDown) || c.Shortcut(ui.Ctrl, ui.KeyN) {
-				a.pal.index, a.pal.reveal = min(a.pal.index+1, len(items)-1), true
+				a.Pal.index, a.Pal.reveal = min(a.Pal.index+1, len(items)-1), true
 			}
 			if c.Shortcut(0, ui.KeyUp) || c.Shortcut(ui.Ctrl, ui.KeyP) {
-				a.pal.index, a.pal.reveal = max(a.pal.index-1, 0), true
+				a.Pal.index, a.Pal.reveal = max(a.Pal.index-1, 0), true
 			}
 			if (in.Submitted() || c.Shortcut(0, ui.KeyEnter)) && len(items) > 0 {
-				chosen = items[a.pal.index].run
+				chosen = items[a.Pal.index].run
 			}
 		})
-		list := ui.Scroll(c.Key("results")).Grow(1).MinHeight(0).Padding(6).TrackScroll(&a.pal.scroll)
-		reveal := a.pal.reveal
-		a.pal.reveal = false
+		list := ui.Scroll(c.Key("results")).Grow(1).MinHeight(0).Padding(6).TrackScroll(&a.Pal.scroll)
+		reveal := a.Pal.reveal
+		a.Pal.reveal = false
 		list.Children(func() {
 			if len(items) == 0 {
 				ui.Text(c, none).FontSize(13).TextColor(pal.TextFaint).Padding(12, 12).LineHeight(1.4)
@@ -358,7 +358,7 @@ func (a *App) paletteView(c *ui.Context, pal *theme.Palette) {
 				kind := it.kind()
 				// Conversations head their group even first, as with no
 				// sessions, or they would read as sessions.
-				if (i > 0 || kind == paletteConversation) && kind != lastKind && a.pal.query == "" && !a.pal.only {
+				if (i > 0 || kind == paletteConversation) && kind != lastKind && a.Pal.query == "" && !a.Pal.only {
 					title := locales.PaletteCommands()
 					if kind == paletteConversation {
 						title = locales.PaletteConversations()
@@ -367,7 +367,7 @@ func (a *App) paletteView(c *ui.Context, pal *theme.Palette) {
 				}
 				lastKind = kind
 				row := ui.Row(c.Key(i)).Height(38).Padding(0, 10).Gap(10).AlignItems(ui.Center).Radius(8)
-				if i == a.pal.index {
+				if i == a.Pal.index {
 					row.Background(pal.Accent.Alpha(0.12))
 					if reveal {
 						row.ScrollIntoView()
@@ -397,16 +397,16 @@ func (a *App) paletteView(c *ui.Context, pal *theme.Palette) {
 		})
 	})
 	if chosen != nil {
-		a.pal.open = false
+		a.Pal.open = false
 		chosen()
 	}
-	if !a.pal.open && chosen == nil {
+	if !a.Pal.open && chosen == nil {
 		a.focusTerminal()
 	}
 }
 
 func (a *App) confirmView(c *ui.Context, pal *theme.Palette) {
-	if a.confirm != nil && confirmDialog(c, pal, &a.confirm) {
+	if a.Confirm != nil && confirmDialog(c, pal, &a.Confirm) {
 		a.focusTerminal()
 	}
 }
@@ -474,7 +474,7 @@ func confirmDialog(c *ui.Context, pal *theme.Palette, pending **confirmation) bo
 
 // shortcuts are the window's keys that no menu item has.
 func (a *App) shortcuts(c *ui.Context) {
-	if a.pal.open || a.picker.open || a.confirm != nil || a.wtAsk != nil || a.sshAsk != nil || a.k8sAsk != nil {
+	if a.Pal.open || a.Picker.open || a.Confirm != nil || a.WtAsk != nil || a.SshAsk != nil || a.K8sAsk != nil {
 		return
 	}
 	keys := []ui.Key{ui.Key1, ui.Key2, ui.Key3, ui.Key4, ui.Key5, ui.Key6, ui.Key7, ui.Key8, ui.Key9}
@@ -492,9 +492,9 @@ func (a *App) shortcuts(c *ui.Context) {
 	if c.Shortcut(ui.Ctrl|ui.Shift, ui.KeyTab) {
 		a.selectOffset(-1)
 	}
-	if a.copyText != "" {
-		c.WriteClipboard(a.copyText)
+	if a.CopyText != "" {
+		c.WriteClipboard(a.CopyText)
 		c.Toast(locales.ToastCopied())
-		a.copyText = ""
+		a.CopyText = ""
 	}
 }

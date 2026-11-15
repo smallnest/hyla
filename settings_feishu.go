@@ -60,7 +60,7 @@ func (a *App) feishuRead() {
 		}
 		a.update(func() {
 			if st, ok := a.feishuState(h.cl); ok {
-				a.ss.feishu.st, a.ss.feishu.known = st, true
+				a.Ss.feishu.st, a.Ss.feishu.known = st, true
 			}
 		})
 	})
@@ -78,7 +78,7 @@ func (a *App) feishuState(cl *client.Client) (proto.FeishuState, bool) {
 // feishuPage is Settings › Feishu.
 func (a *App) feishuPage(c *ui.Context, pal *theme.Palette) {
 	a.feishuGroup(c, pal)
-	if settings.FeishuSet(a.applied.Feishu) {
+	if settings.FeishuSet(a.Applied.Feishu) {
 		a.feishuYoloGroup(c, pal)
 	}
 }
@@ -87,7 +87,7 @@ func (a *App) feishuPage(c *ui.Context, pal *theme.Palette) {
 // without its permission prompts or sandbox, as feishu-yolo says, unless
 // an agent's switch turns it off.
 func (a *App) feishuYoloGroup(c *ui.Context, pal *theme.Palette) {
-	s := &a.set
+	s := &a.Settings
 	if s.Feishu == nil {
 		return
 	}
@@ -116,8 +116,8 @@ func (a *App) feishuYoloGroup(c *ui.Context, pal *theme.Palette) {
 // feishuGroup is Settings › Feishu: the app and its secret, who
 // may use the bot, how a prompt runs, and what its cards show.
 func (a *App) feishuGroup(c *ui.Context, pal *theme.Palette) {
-	d := &a.ss.feishu
-	set := a.applied.Feishu
+	d := &a.Ss.feishu
+	set := a.Applied.Feishu
 	setup := settings.FeishuSet(set)
 	if set == nil {
 		set = &settings.Feishu{}
@@ -140,7 +140,7 @@ func (a *App) feishuGroup(c *ui.Context, pal *theme.Palette) {
 	d.timeout = settings.FormatDuration(time.Duration(feishuTimeout(set)))
 	d.stream = settings.FormatDuration(time.Duration(feishuStream(set)))
 	note := locales.SetFeishuDetail()
-	if len(a.hosts) > 1 {
+	if len(a.Hosts) > 1 {
 		note += " " + locales.SetShellThisComputer()
 	}
 	settingsGroup(c, pal, locales.SetFeishu(), note, func() {
@@ -187,7 +187,7 @@ func (a *App) feishuGroup(c *ui.Context, pal *theme.Palette) {
 		if !slices.Contains(agents, set.Agent) {
 			agents = append(agents, set.Agent)
 		}
-		controls.Popup(c, "feishu-agent", &a.set.Feishu.Agent, agents, func(agent string) string {
+		controls.Popup(c, "feishu-agent", &a.Settings.Feishu.Agent, agents, func(agent string) string {
 			if agent == "default" {
 				return locales.SetFeishuAgentDefault()
 			}
@@ -212,7 +212,7 @@ func (a *App) feishuGroup(c *ui.Context, pal *theme.Palette) {
 // app applies and saves as the segment changes, as the pages' other
 // controls do, not a field of the form, which a submit saves.
 func (a *App) feishuRunRow(c *ui.Context, pal *theme.Palette) {
-	f := a.set.Feishu
+	f := a.Settings.Feishu
 	if f == nil {
 		return
 	}
@@ -310,10 +310,10 @@ func feishuStream(f *settings.Feishu) int64 {
 
 // feishu is the Feishu settings the group edits, and applies.
 func (a *App) feishu() *settings.Feishu {
-	if a.set.Feishu == nil {
-		a.set.Feishu = &settings.Feishu{}
+	if a.Settings.Feishu == nil {
+		a.Settings.Feishu = &settings.Feishu{}
 	}
-	return a.set.Feishu
+	return a.Settings.Feishu
 }
 
 // timeoutValue reads a time as a field types it, 30m or 1h30m: in

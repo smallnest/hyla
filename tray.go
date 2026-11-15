@@ -49,7 +49,7 @@ func activationPolicy(s settings.Settings) mygo.ActivationPolicy {
 // user chose another place for it.
 func (a *App) changeAppIcon() {
 	if runtime.GOOS == "darwin" {
-		mygo.App.SetActivationPolicy(activationPolicy(a.set))
+		mygo.App.SetActivationPolicy(activationPolicy(a.Settings))
 		// Without a Dock icon, macOS may leave the app inactive behind
 		// another's windows: the Settings window the user chose in stays
 		// in front.
@@ -61,8 +61,8 @@ func (a *App) changeAppIcon() {
 // applyTray adds or removes the icon in the menu bar or notification area,
 // as the settings say, in the running app.
 func (a *App) applyTray() {
-	switch show := showsTray(a.set); {
-	case show && a.tray == nil:
+	switch show := showsTray(a.Settings); {
+	case show && a.Tray == nil:
 		icon, template := trayColor, false
 		if runtime.GOOS == "darwin" {
 			icon, template = trayTemplate, true
@@ -74,10 +74,10 @@ func (a *App) applyTray() {
 		}
 		// Windows' left click, where the right one opens the menu.
 		t.OnClick(a.showWindow)
-		a.tray = t
-	case !show && a.tray != nil:
-		a.tray.Destroy()
-		a.tray = nil
+		a.Tray = t
+	case !show && a.Tray != nil:
+		a.Tray.Destroy()
+		a.Tray = nil
 	}
 }
 
@@ -109,28 +109,28 @@ func (a *App) trayMenu() *mygo.Menu {
 // showWindow brings the main window to the front, made anew if it was
 // closed.
 func (a *App) showWindow() {
-	if a.win == nil {
+	if a.Win == nil {
 		return
 	}
-	if !a.winOpen {
+	if !a.WinOpen {
 		a.openWindow()
 	}
-	if a.win.IsMinimized() {
-		a.win.Restore()
+	if a.Win.IsMinimized() {
+		a.Win.Restore()
 	}
-	a.win.Show()
-	a.win.Focus()
+	a.Win.Show()
+	a.Win.Focus()
 	mygo.App.Focus()
 }
 
 // windowClosed lets go of what the main window showed: its panes'
 // terminals and pages, which a window made anew attaches again.
 func (a *App) windowClosed() {
-	a.winOpen, a.focused = false, false
-	for id := range a.terms {
+	a.WinOpen, a.Focused = false, false
+	for id := range a.Terms {
 		a.dropTerm(id)
 	}
-	for id := range a.webs {
+	for id := range a.Webs {
 		a.dropWeb(id)
 	}
 	a.reportView()
@@ -140,7 +140,7 @@ func (a *App) windowClosed() {
 // the notification area, which opens the window again. A Linux desktop
 // without a tray has no icon.
 func (a *App) lastWindowClosed() {
-	if a.tray == nil {
+	if a.Tray == nil {
 		mygo.App.Quit()
 	}
 }

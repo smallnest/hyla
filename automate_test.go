@@ -12,7 +12,7 @@ import (
 // why the app can't, which hylad hands the caller.
 func TestBrowseRefuses(t *testing.T) {
 	a := testApp(t)
-	s := &a.st.Sessions[0]
+	s := &a.St.Sessions[0]
 	s.Panes[1] = proto.Pane{ID: "b", URL: "http://localhost:3000", Status: proto.Idle, Progress: -1}
 	ask := func(r proto.BrowserRequest) error {
 		t.Helper()
@@ -38,11 +38,11 @@ func TestBrowseRefuses(t *testing.T) {
 			t.Errorf("%+v: %v, want %q", tc.r, err, tc.want)
 		}
 	}
-	if a.webs["b"] == nil {
+	if a.Webs["b"] == nil {
 		t.Error("no page made for a pane never shown")
 	}
 	// Remote Control off, nothing the page does is let.
-	a.set.RemoteControl = false
+	a.Settings.RemoteControl = false
 	if err := ask(proto.BrowserRequest{Pane: "b", BrowserParams: proto.BrowserParams{Op: "text"}}); err == nil || !strings.Contains(err.Error(), "Remote Control") {
 		t.Errorf("with Remote Control off: %v", err)
 	}

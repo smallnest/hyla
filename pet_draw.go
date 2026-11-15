@@ -39,12 +39,12 @@ type petLook struct {
 // and the clock.
 func (a *App) petLookAt(mood petMood, now time.Time) petLook {
 	var l petLook
-	l.wink = now.Sub(a.pet.wink) >= 0 && now.Sub(a.pet.wink) < petWink
+	l.wink = now.Sub(a.Pet.wink) >= 0 && now.Sub(a.Pet.wink) < petWink
 	l.blink = petBlink(now, 0.9, 4.4)
 	if l.wink {
 		l.happy = true
 	}
-	if a.pet.calm {
+	if a.Pet.calm {
 		l.blink = petBlink(now, 1.3, 6)
 		if mood == petAsleep {
 			l.blink = 1
@@ -55,10 +55,10 @@ func (a *App) petLookAt(mood petMood, now time.Time) petLook {
 		l.sad = mood == petFailed
 		return l
 	}
-	t := float32(max(now.Sub(a.pet.since), 0).Seconds())
+	t := float32(max(now.Sub(a.Pet.since), 0).Seconds())
 	switch mood {
 	case petAsleep:
-		d := float32(max(now.Sub(a.pet.lastActive.Add(petDoze)), 0).Seconds())
+		d := float32(max(now.Sub(a.Pet.lastActive.Add(petDoze)), 0).Seconds())
 		l.doze = min(d/0.5, 1)
 		l.bob = petWave(t, 5.2) * 1.2
 		l.blink = 1
@@ -77,8 +77,8 @@ func (a *App) petLookAt(mood petMood, now time.Time) petLook {
 		l.wide = true
 		l.blink = petBlink(now, 3.3, 5.5) * 0.35
 		// Already answering it: it still waits, but stops insisting.
-		if a.focused {
-			if s := a.session(a.selected); s != nil && s.Status == proto.Waiting {
+		if a.Focused {
+			if s := a.session(a.Selected); s != nil && s.Status == proto.Waiting {
 				l.hop *= 0.3
 				l.wave *= 0.5
 			}
@@ -106,7 +106,7 @@ func (a *App) petLookAt(mood petMood, now time.Time) petLook {
 // petDraw draws the frog into its box, hands on the window's edge.
 func (a *App) petDraw(p *ui.Painter, r ui.Rect, mood petMood, hovered bool) {
 	l := a.petLookAt(mood, p.Now())
-	if hovered && mood == petAsleep && !a.pet.calm {
+	if hovered && mood == petAsleep && !a.Pet.calm {
 		l.blink = 0.35
 		l.doze = 0.4
 	}
@@ -133,11 +133,11 @@ func (a *App) petDraw(p *ui.Painter, r ui.Rect, mood petMood, hovered bool) {
 			rhx = cx + 45
 			rhy = bottom - 36 - 4*l.wave
 			rhand = -24 - 18*l.wave
-		case mood == petDone && p.Now().Sub(a.pet.since) < 1400*time.Millisecond:
+		case mood == petDone && p.Now().Sub(a.Pet.since) < 1400*time.Millisecond:
 			lhx, lhy = cx-43, bottom-31
 			rhx, rhy = cx+43, bottom-31
 		case mood == petWorking && l.tap:
-			lhy = bottom - 10.5 - 3*float32(math.Abs(float64(petWave(float32(p.Now().Sub(a.pet.since).Seconds()), 0.5))))
+			lhy = bottom - 10.5 - 3*float32(math.Abs(float64(petWave(float32(p.Now().Sub(a.Pet.since).Seconds()), 0.5))))
 		}
 		p.Line(cx-30, headY+23, lhx, lhy-4, 9.5, petLine)
 		p.Line(cx-30, headY+23, lhx, lhy-4, 9.5-petRim*2, petBody)
@@ -196,7 +196,7 @@ func (a *App) petDraw(p *ui.Painter, r ui.Rect, mood petMood, hovered bool) {
 			// The wink keeps the left eye open, and says so with a heart.
 			p.FillPath(petEllipse(ex-22, eyeY, 7.2, 8.8), petInk)
 			p.FillPath(petEllipse(ex-24.2, eyeY-2.6, 2.2, 2.6), ui.RGBA(255, 255, 255, 0.9))
-			petHeart(p, cx+38, headY-40, 7*min(float32(p.Now().Sub(a.pet.wink).Seconds())/0.18, 1))
+			petHeart(p, cx+38, headY-40, 7*min(float32(p.Now().Sub(a.Pet.wink).Seconds())/0.18, 1))
 		}
 		p.FillPath(petEllipse(cx-32, headY+9, 6.5, 3.2), petCheek.Alpha(0.55))
 		p.FillPath(petEllipse(cx+32, headY+9, 6.5, 3.2), petCheek.Alpha(0.55))

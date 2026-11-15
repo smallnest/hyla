@@ -123,32 +123,32 @@ func (a *App) toggleSide(view string) {
 		// Closed: it opens on view, or on the view seen last.
 		v := view
 		if v == "" {
-			v = a.side.view
+			v = a.Side.view
 		}
 		if v == "" {
 			v = sideChanges
 		}
-		a.side.view, a.prefs.Side, a.prefs.SideTab = v, v, v
+		a.Side.view, a.Prefs.Side, a.Prefs.SideTab = v, v, v
 		// Shown anyway, though the window crowds it.
-		a.side.forced = a.side.crowded
+		a.Side.forced = a.Side.crowded
 	case view == "" || a.sideTab() == view:
-		a.side.view, a.prefs.SideTab = a.sideTab(), a.sideTab()
-		a.prefs.Side = ""
-		a.side.forced = false
-		a.side.focused = false
+		a.Side.view, a.Prefs.SideTab = a.sideTab(), a.sideTab()
+		a.Prefs.Side = ""
+		a.Side.forced = false
+		a.Side.focused = false
 		a.focusTerminal()
 	default:
 		// Another view chosen: the panel turns to it.
-		a.side.view, a.prefs.Side, a.prefs.SideTab = view, view, view
+		a.Side.view, a.Prefs.Side, a.Prefs.SideTab = view, view, view
 	}
 	a.savePrefs()
 }
 
 // sideTab is the tab the panel shows, or showed last while it hides.
 func (a *App) sideTab() string {
-	tab := a.prefs.Side
+	tab := a.Prefs.Side
 	if tab == "" {
-		tab = a.prefs.SideTab
+		tab = a.Prefs.SideTab
 	}
 	if tab != sideFiles && tab != sideInfo {
 		tab = sideChanges
@@ -157,7 +157,7 @@ func (a *App) sideTab() string {
 }
 
 // rightShown tells that the panel shows.
-func (a *App) rightShown() bool { return a.prefs.Side != "" && (!a.side.crowded || a.side.forced) }
+func (a *App) rightShown() bool { return a.Prefs.Side != "" && (!a.Side.crowded || a.Side.forced) }
 
 // minCards is the room the panel leaves the panes: in a window narrower,
 // it gets out of their way (sideState.crowded).
@@ -169,19 +169,19 @@ const hiddenSideWidth = 24
 // sideView is the view the panel shows, or would show when opened: the
 // last it showed, Changes for none.
 func (a *App) sideView() string {
-	if a.prefs.Side != "" {
-		return a.prefs.Side
+	if a.Prefs.Side != "" {
+		return a.Prefs.Side
 	}
-	if a.side.view != "" {
-		return a.side.view
+	if a.Side.view != "" {
+		return a.Side.view
 	}
 	return sideChanges
 }
 
 // showSide shows a view of the panel, keeping it open when it shows it.
 func (a *App) showSide(view string) {
-	if a.prefs.Side != view || a.prefs.SideTab != view {
-		a.prefs.Side, a.prefs.SideTab = view, view
+	if a.Prefs.Side != view || a.Prefs.SideTab != view {
+		a.Prefs.Side, a.Prefs.SideTab = view, view
 		a.savePrefs()
 	}
 }
@@ -198,7 +198,7 @@ func sideRowW(winW float32, ch chrome) float32 {
 // sideWidth is the panel's width in a row of width w, leaving the panes
 // their room.
 func (a *App) sideWidth(w float32) float32 {
-	sw := a.prefs.SideWidth
+	sw := a.Prefs.SideWidth
 	if sw == 0 {
 		sw = defaultSide
 	}
@@ -221,17 +221,17 @@ func (a *App) sideEdge(c *ui.Context, pal *theme.Palette, row float32) {
 		})
 	}
 	if dx, _, ok := d.Dragged(); ok {
-		if a.side.drag == 0 {
-			a.side.drag = a.sideWidth(row)
+		if a.Side.drag == 0 {
+			a.Side.drag = a.sideWidth(row)
 		}
-		a.side.drag -= dx
-		a.prefs.SideWidth = min(max(a.side.drag, minSide), max(row-minPanes, minSide))
-	} else if a.side.drag != 0 && !d.Pressed() {
-		a.side.drag = 0
+		a.Side.drag -= dx
+		a.Prefs.SideWidth = min(max(a.Side.drag, minSide), max(row-minPanes, minSide))
+	} else if a.Side.drag != 0 && !d.Pressed() {
+		a.Side.drag = 0
 		a.savePrefs()
 	}
 	if d.DoubleClicked() {
-		a.prefs.SideWidth = defaultSide
+		a.Prefs.SideWidth = defaultSide
 		a.savePrefs()
 	}
 }
@@ -240,10 +240,10 @@ func (a *App) sideEdge(c *ui.Context, pal *theme.Palette, row float32) {
 // tell that it touches the window's top and right edges, where its header
 // drags the window and holds the window's controls (windowControls).
 func (a *App) sidePanel(c *ui.Context, pal *theme.Palette, s *proto.Session, width float32, right bool) {
-	card := ui.Column(c.Key("side")).Width(width).Shrink(0).MinHeight(0).Radius(14).Clip().Background(theme.TranslucentGlass(pal.Card, pal, a.set)).
+	card := ui.Column(c.Key("side")).Width(width).Shrink(0).MinHeight(0).Radius(14).Clip().Background(theme.TranslucentGlass(pal.Card, pal, a.Settings)).
 		Focusable().Bind(a.paneRef("side-card"))
 	style.Raised(card, pal)
-	a.side.focused = card.FocusWithin()
+	a.Side.focused = card.FocusWithin()
 	// It slides in from the window's edge, past which it starts, and
 	// fades as it comes, and out the same way as it closes, as the
 	// sidebar does.
@@ -266,10 +266,10 @@ func (a *App) sidePanel(c *ui.Context, pal *theme.Palette, s *proto.Session, wid
 			// view's worktree it lists; the tabs alone leave its buttons
 			// their room.
 			ui.Box(c.Key("drag")).Grow(1).AlignSelf(ui.Stretch).DragWindow()
-			if view == sideFiles && a.side.files.views[s.ID] != nil {
+			if view == sideFiles && a.Side.files.views[s.ID] != nil {
 				iconButton(c, "files-toggle-view", glyph.Doc, a.tip(locales.FilesCloseFile(), "files-close"), pal, func() {
 					a.defer_(func() {
-						if fv := a.side.files.views[s.ID]; fv != nil {
+						if fv := a.Side.files.views[s.ID]; fv != nil {
 							fv.open = false
 						}
 					})
@@ -277,7 +277,7 @@ func (a *App) sidePanel(c *ui.Context, pal *theme.Palette, s *proto.Session, wid
 			}
 			iconButton(c, "close-side", glyph.Close, a.tip(locales.SideClose(), "changes.toggle"), pal, func() { a.defer_(func() { a.toggleSide("") }) })
 			if right {
-				windowControls(c, pal, a.win)
+				windowControls(c, pal, a.Win)
 			}
 		})
 		ui.Column(c.Key("body")).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
@@ -293,7 +293,7 @@ func (a *App) sidePanel(c *ui.Context, pal *theme.Palette, s *proto.Session, wid
 		})
 		// The viewer of a file of Files, over the tab while its button in
 		// the header, its icon, tells so.
-		if fv := a.side.files.views[s.ID]; view == sideFiles && fv != nil && fv.open {
+		if fv := a.Side.files.views[s.ID]; view == sideFiles && fv != nil && fv.open {
 			ui.Column(c.Key("file")).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
 				a.fileViewer(c, pal, s, fv)
 			})
@@ -356,7 +356,7 @@ func (a *App) changesPanes(s *proto.Session) (here, turn *proto.Pane) {
 func (a *App) changesDir(s *proto.Session) string {
 	here, turn := a.changesPanes(s)
 	switch {
-	case turn != nil && (a.side.changes.base == git.BaseTurn || here.Git == nil):
+	case turn != nil && (a.Side.changes.base == git.BaseTurn || here.Git == nil):
 		return turn.Turn.Root
 	case here != nil && here.Git != nil:
 		return here.Git.Root
@@ -386,9 +386,9 @@ func gitStamp(g *proto.GitInfo) string {
 }
 
 func (a *App) changesView(c *ui.Context, pal *theme.Palette, s *proto.Session, width float32) {
-	ch := &a.side.changes
+	ch := &a.Side.changes
 	here, turn := a.changesPanes(s)
-	if !a.set.GitStatus {
+	if !a.Settings.GitStatus {
 		a.sideMessage(c, pal, locales.ChangesGitOff(), locales.ChangesGitOffDetail())
 		return
 	}
@@ -480,7 +480,7 @@ func (a *App) changesView(c *ui.Context, pal *theme.Palette, s *proto.Session, w
 				layoutIcon, layoutTip = glyph.SplitDown, locales.ChangesUnified()
 			}
 			iconButton(c, "layout", layoutIcon, layoutTip, pal, func() {
-				set := a.set
+				set := a.Settings
 				set.DiffLayout = "split"
 				if split {
 					set.DiffLayout = "unified"
@@ -553,7 +553,7 @@ func (a *App) changesView(c *ui.Context, pal *theme.Palette, s *proto.Session, w
 				if i+1 < len(rows) && rows[i+1].diff {
 					gap = 0
 				}
-				ui.Column(c).FillWidth().AlignItems(ui.Stretch).Padding(0, 0, gap, 0).Background(theme.TranslucentGlass(pal.Card, pal, a.set)).Children(func() {
+				ui.Column(c).FillWidth().AlignItems(ui.Stretch).Padding(0, 0, gap, 0).Background(theme.TranslucentGlass(pal.Card, pal, a.Settings)).Children(func() {
 					a.fileHeader(c, pal, scope, res.Root, r.f, func() {
 						// Folding it as the list pins it brings it back where
 						// it stays: at the top.
@@ -589,7 +589,7 @@ const (
 // whose change the list counts anew (Known, so that hylad sends only what
 // changed), or of every one as the worktree's HEAD moves.
 func (a *App) syncFiles(c *ui.Context, scope string, pane *proto.Pane, files []proto.GitFile) {
-	ch := &a.side.changes
+	ch := &a.Side.changes
 	if ch.files == nil || len(ch.files) > 400 {
 		ch.files = map[string]*sideFile{}
 	}
@@ -633,7 +633,7 @@ func (a *App) syncFiles(c *ui.Context, scope string, pane *proto.Pane, files []p
 // fileCollapsed tells whether a file's diff is folded: as the user left
 // it, else folded for a binary file or one of very many lines changed.
 func (a *App) fileCollapsed(scope string, f proto.GitFile) bool {
-	if v, ok := a.side.changes.collapsed[scope+"|"+f.Path]; ok {
+	if v, ok := a.Side.changes.collapsed[scope+"|"+f.Path]; ok {
 		return v
 	}
 	return f.Binary || f.Added+f.Removed > 600
@@ -642,7 +642,7 @@ func (a *App) fileCollapsed(scope string, f proto.GitFile) bool {
 // fileDiff is a changed file's diff, under its header, or why it shows
 // none.
 func (a *App) fileDiff(c *ui.Context, pal *theme.Palette, s *proto.Session, scope string, f proto.GitFile, width float32) {
-	ch := &a.side.changes
+	ch := &a.Side.changes
 	sf := ch.files[scope+"|"+f.Path]
 	ui.Column(c).FillWidth().AlignItems(ui.Stretch).Padding(4, 0, sectionGap, 0).Children(func() {
 		switch {
@@ -668,7 +668,7 @@ func (a *App) fileDiff(c *ui.Context, pal *theme.Palette, s *proto.Session, scop
 // and the lines it adds and removes, which a click folds or unfolds,
 // running folding first when set.
 func (a *App) fileHeader(c *ui.Context, pal *theme.Palette, scope, root string, f proto.GitFile, folding func()) {
-	ch := &a.side.changes
+	ch := &a.Side.changes
 	key := scope + "|" + f.Path
 	collapsed := a.fileCollapsed(scope, f)
 	// Across the panel, edge to edge, its content in line with the bases'.
@@ -720,7 +720,7 @@ func (a *App) sectionNote(c *ui.Context, pal *theme.Palette, text string) {
 
 // fetchChanges asks hylad for the list of a pane's changes since a base.
 func (a *App) fetchChanges(scope, stamp, pane, base string) {
-	ch := &a.side.changes
+	ch := &a.Side.changes
 	ch.busy, ch.since = true, time.Now()
 	if ch.scope != scope {
 		ch.err = ""
@@ -803,13 +803,13 @@ func (a *App) diffColors(pal *theme.Palette) (added, removed, modified ui.Color)
 func (a *App) codeTheme(c *ui.Context, pal *theme.Palette) *editor.Theme {
 	added, removed, modified := a.diffColors(pal)
 	key := fmt.Sprint(pal.Dark, added, removed, modified)
-	if a.side.theme == nil || a.side.themeKey != key {
+	if a.Side.theme == nil || a.Side.themeKey != key {
 		t := editor.DefaultTheme(c.Theme())
 		t.Background, t.Text = pal.Card, pal.Text
 		t.Added, t.Deleted, t.Modified = added, removed, modified
-		a.side.theme, a.side.themeKey = t, key
+		a.Side.theme, a.Side.themeKey = t, key
 	}
-	return a.side.theme
+	return a.Side.theme
 }
 
 // sideMessage says why the view shows nothing.
@@ -901,7 +901,7 @@ func replaceText(b *editor.Buffer, text string) {
 
 // diffSplit tells whether diffs show side by side in a panel this wide.
 func (a *App) diffSplit(width float32) bool {
-	switch a.set.DiffLayout {
+	switch a.Settings.DiffLayout {
 	case "split":
 		return true
 	case "unified":
@@ -916,7 +916,7 @@ func (a *App) diffSplit(width float32) bool {
 func (a *App) diffOptions(c *ui.Context, pal *theme.Palette, s *proto.Session, sf *sideFile, width float32) {
 	d := sf.d
 	d.FitContent = true
-	d.Font = ui.Font{Family: a.termFamily(), Size: max(a.set.FontSize-1, 10)}
+	d.Font = ui.Font{Family: a.termFamily(), Size: max(a.Settings.FontSize-1, 10)}
 	d.Theme = a.codeTheme(c, pal)
 	d.Layout = editor.DiffUnified
 	if a.diffSplit(width) {

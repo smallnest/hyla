@@ -52,7 +52,7 @@ func (a *App) loadHostConversations(h *host, gen uint64) {
 // syncEnded keeps the sidebar's ended conversations asking for those of
 // every host, while Session history is on.
 func (a *App) syncEnded() {
-	for _, h := range a.hosts {
+	for _, h := range a.Hosts {
 		if h.cl == nil || h.convAsked || h.convKnown {
 			continue
 		}
@@ -62,7 +62,7 @@ func (a *App) syncEnded() {
 
 func (a *App) endedSections(c *ui.Context, pal *theme.Palette) {
 	var ended, archived []hostEnded
-	for _, h := range a.hosts {
+	for _, h := range a.Hosts {
 		for _, cv := range h.convs {
 			// A conversation a pane runs is in the sidebar's sessions.
 			if cv.Session != "" {
@@ -82,8 +82,8 @@ func (a *App) endedSections(c *ui.Context, pal *theme.Palette) {
 		a.skillHint(c, pal)
 		return
 	}
-	a.endedSection(c, pal, "ended", locales.EndedTitle(), ended, &a.prefs.EndedOpen)
-	a.endedSection(c, pal, "archived", locales.EndedArchived(), archived, &a.prefs.ArchivedOpen)
+	a.endedSection(c, pal, "ended", locales.EndedTitle(), ended, &a.Prefs.EndedOpen)
+	a.endedSection(c, pal, "archived", locales.EndedArchived(), archived, &a.Prefs.ArchivedOpen)
 }
 
 func (a *App) endedSection(c *ui.Context, pal *theme.Palette, key, title string, list []hostEnded, open *bool) {
@@ -110,7 +110,7 @@ func (a *App) endedSection(c *ui.Context, pal *theme.Palette, key, title string,
 		return
 	}
 	shown := list
-	if key == "ended" && !a.endedAll && len(list) > endedShown {
+	if key == "ended" && !a.EndedAll && len(list) > endedShown {
 		shown = list[:endedShown]
 	}
 	now := c.Now()
@@ -123,7 +123,7 @@ func (a *App) endedSection(c *ui.Context, pal *theme.Palette, key, title string,
 			more.Background(pal.RowHover)
 		}
 		if more.Clicked() {
-			a.endedAll = true
+			a.EndedAll = true
 		}
 		more.Children(func() {
 			ui.Text(c, locales.EndedShowAll(len(list))).FontSize(12.5).TextColor(pal.TextFaint).SingleLine()
@@ -192,10 +192,10 @@ func (a *App) endedMenu(m *ui.Menu, h *host, cv proto.Conversation) {
 	}
 	m.Separator()
 	if m.Item(locales.SessionCopyId()).Chosen() {
-		a.copyText = cv.ID
+		a.CopyText = cv.ID
 	}
 	if m.Item(locales.SessionCopyDirectory()).Disabled(cv.Dir == "").Chosen() {
-		a.copyText = cv.Dir
+		a.CopyText = cv.Dir
 	}
 	if m.Item(locales.SessionRevealIn(fileManager())).Disabled(cv.Dir == "").Chosen() {
 		openPath(cv.Dir)
@@ -221,7 +221,7 @@ func (a *App) endedSectionMenu(m *ui.Menu, key string, list []hostEnded) {
 		return
 	}
 	if m.Item(locales.EndedDeleteAll()).Chosen() {
-		a.confirm = &confirmation{
+		a.Confirm = &confirmation{
 			open:    true,
 			title:   locales.EndedDeleteAllTitle(len(list)),
 			detail:  locales.EndedDeleteAllDetail(),
@@ -235,11 +235,11 @@ func (a *App) endedSectionMenu(m *ui.Menu, key string, list []hostEnded) {
 // skillHint tells, while nothing has ended, that ended sessions need
 // Hyla's skill, which tells hylad each conversation's id.
 func (a *App) skillHint(c *ui.Context, pal *theme.Palette) {
-	if now := c.Now(); now.Sub(a.skillsAt) > 5*time.Second {
-		a.skillsAt = now
-		a.skillMissing = slices.ContainsFunc(cli.SkillStates(), func(st cli.SkillState) bool { return st.State == "missing" })
+	if now := c.Now(); now.Sub(a.SkillsAt) > 5*time.Second {
+		a.SkillsAt = now
+		a.SkillMissing = slices.ContainsFunc(cli.SkillStates(), func(st cli.SkillState) bool { return st.State == "missing" })
 	}
-	if !a.skillMissing {
+	if !a.SkillMissing {
 		return
 	}
 	hint := ui.Row(c.Key("ended-hint")).Margin(18, 0, 3, 0).Padding(6, 6, 6, rowInset).Radius(6)

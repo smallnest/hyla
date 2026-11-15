@@ -38,21 +38,21 @@ type sidebarArt struct {
 // pickSidebarImage asks for a picture of this machine for the sidebar,
 // with the system's dialog, and keeps its path in the settings.
 func (a *App) pickSidebarImage() {
-	a.pickImage(&a.set.SidebarImage, locales.SetSidebarImage(), locales.SetSidebarImageDetail())
+	a.pickImage(&a.Settings.SidebarImage, locales.SetSidebarImage(), locales.SetSidebarImageDetail())
 }
 
 // pickPaneImage asks for a picture of this machine for the terminals,
 // with the system's dialog, and keeps its path in the settings.
 func (a *App) pickPaneImage() {
-	a.pickImage(&a.set.PaneImage, locales.SetPaneImage(), locales.SetPaneImageDetail())
+	a.pickImage(&a.Settings.PaneImage, locales.SetPaneImage(), locales.SetPaneImageDetail())
 }
 
 // pickImage asks for a picture of this machine with the system's dialog,
 // and keeps its path where set points.
 func (a *App) pickImage(set *string, title, detail string) {
-	win := a.setWin
+	win := a.SetWin
 	if win == nil {
-		win = a.win
+		win = a.Win
 	}
 	go func() {
 		paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{
@@ -65,8 +65,8 @@ func (a *App) pickImage(set *string, title, detail string) {
 		}
 		a.update(func() {
 			*set = paths[0]
-			if a.setWin != nil {
-				a.setWin.Invalidate()
+			if a.SetWin != nil {
+				a.SetWin.Invalidate()
 			}
 		})
 	}()
@@ -77,10 +77,10 @@ func (a *App) pickImage(set *string, title, detail string) {
 // as wide as its shape makes it, and cropped by the sidebar where that
 // is wider than the sidebar.
 func (a *App) sidebarArtView(c *ui.Context) {
-	if a.art.path != a.set.SidebarImage {
-		a.loadSidebarArt(a.set.SidebarImage)
+	if a.Art.path != a.Settings.SidebarImage {
+		a.loadSidebarArt(a.Settings.SidebarImage)
 	}
-	bm := a.art.bm
+	bm := a.Art.bm
 	if bm == nil {
 		return
 	}
@@ -92,7 +92,7 @@ func (a *App) sidebarArtView(c *ui.Context) {
 	}
 	// Under the sidebar's rows, which paint over the picture.
 	ui.Image(c, bm).Absolute().Left(x).Top(y).Size(w, h).ZIndex(-1).PassThrough().
-		Opacity(a.set.SidebarImageOpacity)
+		Opacity(a.Settings.SidebarImageOpacity)
 }
 
 // sidebarArtPlacement is where the picture goes in a window winH tall: as
@@ -110,23 +110,23 @@ func sidebarArtPlacement(winH, nw, nh float32) (x, y, w, h float32) {
 // loadSidebarArt reads and decodes the picture of a path off the main
 // thread, keeping the bitmap when it comes.
 func (a *App) loadSidebarArt(path string) {
-	s := &a.art
+	s := &a.Art
 	s.path, s.bm = path, nil
 	if path == "" {
 		return
 	}
 	// A test has no window to wait for, and decodes now.
-	if a.win == nil {
+	if a.Win == nil {
 		s.bm = decodeSidebarArt(path)
 		return
 	}
 	go func() {
 		bm := decodeSidebarArt(path)
 		a.update(func() {
-			if a.art.path != path {
+			if a.Art.path != path {
 				return // another picture chosen while this was read
 			}
-			a.art.bm = bm
+			a.Art.bm = bm
 		})
 	}()
 }
@@ -134,22 +134,22 @@ func (a *App) loadSidebarArt(path string) {
 // loadPaneArt reads and decodes a terminal's picture, as loadSidebarArt
 // does the sidebar's.
 func (a *App) loadPaneArt(path string) {
-	s := &a.paneArt
+	s := &a.PaneArt
 	s.path, s.bm = path, nil
 	if path == "" {
 		return
 	}
-	if a.win == nil {
+	if a.Win == nil {
 		s.bm = decodeSidebarArt(path)
 		return
 	}
 	go func() {
 		bm := decodeSidebarArt(path)
 		a.update(func() {
-			if a.paneArt.path != path {
+			if a.PaneArt.path != path {
 				return // another picture chosen while this was read
 			}
-			a.paneArt.bm = bm
+			a.PaneArt.bm = bm
 		})
 	}()
 }

@@ -25,7 +25,7 @@ const (
 // petSetGround is how tall a Codex pet's frame shows, in DIPs, from its
 // size setting: feet on the edge.
 func petSetGround(a *App) float32 {
-	n := float64(petSetFrame0) * float64(a.set.PetSize)
+	n := float64(petSetFrame0) * float64(a.Settings.PetSize)
 	return float32(math.Round(n))
 }
 
@@ -48,19 +48,19 @@ type petSet struct {
 // petSetLoad reads the pet the settings show, if it is no frog, and
 // says when it is not there, for the pet shows Hyla, the tree frog then.
 func (a *App) petSetLoad() *petSet {
-	if a.set.PetSet == settings.PetSetHyla {
+	if a.Settings.PetSet == settings.PetSetHyla {
 		return nil
 	}
-	p, err := pets.LoadID(a.set.PetSet)
+	p, err := pets.LoadID(a.Settings.PetSet)
 	if err != nil {
-		if !a.pet.setAgain {
+		if !a.Pet.setAgain {
 			// Once a window: the pet's view asks every frame.
-			a.pet.setAgain = true
-			a.toast(locales.SetPetMissing(a.set.PetSet, err.Error()))
+			a.Pet.setAgain = true
+			a.toast(locales.SetPetMissing(a.Settings.PetSet, err.Error()))
 		}
 		return nil
 	}
-	return &petSet{name: a.set.PetSet, pet: p}
+	return &petSet{name: a.Settings.PetSet, pet: p}
 }
 
 // petSetReload reads the pet again, as settings changed, or a pack
@@ -68,18 +68,18 @@ func (a *App) petSetLoad() *petSet {
 func (a *App) petSetReload() {
 	a.petListAgain()
 	petsGen++
-	a.petSet = a.petSetLoad()
-	if a.pet.win != nil {
-		a.pet.win.Invalidate()
+	a.PetSet = a.petSetLoad()
+	if a.Pet.win != nil {
+		a.Pet.win.Invalidate()
 	}
 }
 
 // petSetGrow reads the pet again at its new size, while the settings keep
 // the old one: no list of pets reads again until they do.
 func (a *App) petSetGrow() {
-	a.petSet = a.petSetLoad()
-	if a.pet.win != nil {
-		a.pet.win.Invalidate()
+	a.PetSet = a.petSetLoad()
+	if a.Pet.win != nil {
+		a.Pet.win.Invalidate()
 	}
 }
 
@@ -100,10 +100,10 @@ func (a *App) petListAgain() {
 // frame leaves empty above its art: the pet shows whole there while its
 // frame's top is under the screen's.
 func petSetHead(a *App) float32 {
-	if a.petSet == nil || a.petSet.pet.Top == 0 {
+	if a.PetSet == nil || a.PetSet.pet.Top == 0 {
 		return 0
 	}
-	return float32(a.petSet.pet.Top) * petSetGround(a) / pets.FrameH
+	return float32(a.PetSet.pet.Top) * petSetGround(a) / pets.FrameH
 }
 
 // petSetState is the spritesheet row of each mood: an agent that works is
@@ -126,10 +126,10 @@ func petSetState(mood petMood) pets.State {
 // petSetStateAt is the row the pet shows now, and when it began: the wave
 // it answers a pat with, for petPat, then its mood's row.
 func (a *App) petSetStateAt(mood petMood, now time.Time) (pets.State, time.Time) {
-	if now.Sub(a.pet.wave) < petPat {
-		return pets.Wave, a.pet.wave
+	if now.Sub(a.Pet.wave) < petPat {
+		return pets.Wave, a.Pet.wave
 	}
-	return petSetState(mood), a.pet.since
+	return petSetState(mood), a.Pet.since
 }
 
 // petSetBlinks is how often a pet at rest blinks, its idle row's last
@@ -151,7 +151,7 @@ func (a *App) petSetFrameAt(state pets.State, since, now time.Time) int {
 		}
 	}
 	period := petSetFrame
-	if a.pet.calm {
+	if a.Pet.calm {
 		period = petSetCalm
 	}
 	n := max(pets.Frames[state], 1)
@@ -160,10 +160,10 @@ func (a *App) petSetFrameAt(state pets.State, since, now time.Time) int {
 
 // petShows is the pet the window shows, read once.
 func (a *App) petShows() *petSet {
-	if a.petSet == nil {
-		a.petSet = a.petSetLoad()
+	if a.PetSet == nil {
+		a.PetSet = a.petSetLoad()
 	}
-	return a.petSet
+	return a.PetSet
 }
 
 // petSetDraw draws a Codex pet into its box, feet on the window's edge,

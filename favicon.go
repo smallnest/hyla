@@ -71,7 +71,7 @@ func siteOrigin(raw string) string {
 // favicon returns the icon of a browser pane's page: the one it told,
 // else its site's last, which it reads from the disk the first time.
 func (a *App) favicon(e *webEntry) ui.ImageSource {
-	f := &a.icons
+	f := &a.Icons
 	if f.icons == nil {
 		f.icons, f.sites = map[string]*favicon{}, map[string]string{}
 		f.reading, f.fetching = map[string]bool{}, map[string]bool{}
@@ -142,7 +142,7 @@ func (a *App) findFavicon(e *webEntry) {
 }
 
 func (a *App) useFavicon(e *webEntry, urls []string) {
-	f := &a.icons
+	f := &a.Icons
 	a.favicon(e) // makes the maps
 	origin := siteOrigin(e.url)
 	for _, u := range urls {

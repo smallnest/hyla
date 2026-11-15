@@ -37,13 +37,13 @@ type filePane struct {
 
 // filePane returns a pane's file state, made as the pane first shows.
 func (a *App) filePaneFor(p *proto.Pane) *filePane {
-	if a.files == nil {
-		a.files = filePaneStates{}
+	if a.Files == nil {
+		a.Files = filePaneStates{}
 	}
-	f := a.files[p.ID]
+	f := a.Files[p.ID]
 	if f == nil || f.path != p.File {
 		f = &filePane{path: p.File}
-		a.files[p.ID] = f
+		a.Files[p.ID] = f
 	}
 	return f
 }
@@ -72,7 +72,7 @@ func (a *App) filePane(c *ui.Context, pal *theme.Palette, s *proto.Session, p *p
 			st.ReadOnly = true
 			st.SoftWrap = true
 			st.LineNumbers = editor.LineNumbersOn
-			st.Font = ui.Font{Family: a.termFamily(), Size: max(a.set.FontSize-1, 10)}
+			st.Font = ui.Font{Family: a.termFamily(), Size: max(a.Settings.FontSize-1, 10)}
 			st.Theme = a.codeTheme(c, pal)
 			ed := editor.View(c.Key("file-"+p.ID), st).Fill()
 			if ed.FocusWithin() && a.focusOf(s) != p.ID {

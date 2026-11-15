@@ -19,11 +19,11 @@ import (
 // app has, then those hyla installed. It reads them once, and again when
 // a pet is installed, or another chosen.
 func (a *App) listPets() []pets.Builtin {
-	if a.petList != nil && a.petListFor == a.set.PetSet && a.petListGen == petsGen {
-		return a.petList
+	if a.PetList != nil && a.PetListFor == a.Settings.PetSet && a.PetListGen == petsGen {
+		return a.PetList
 	}
-	a.petList, a.petListFor, a.petListGen = a.readPets(), a.set.PetSet, petsGen
-	return a.petList
+	a.PetList, a.PetListFor, a.PetListGen = a.readPets(), a.Settings.PetSet, petsGen
+	return a.PetList
 }
 
 // petsGen counts the pets installed or removed, so that a list reads
@@ -65,23 +65,23 @@ func (a *App) readPets() []pets.Builtin {
 func (a *App) petChooser(c *ui.Context, pal *theme.Palette) {
 	ps := a.listPets()
 	names := make([]string, 1, len(ps)+1)
-	names[0] = a.set.PetSet
+	names[0] = a.Settings.PetSet
 	titles := make(map[string]string, len(ps))
 	for _, p := range ps {
 		titles[p.Name] = p.Title
-		if p.Name != a.set.PetSet {
+		if p.Name != a.Settings.PetSet {
 			names = append(names, p.Name)
 		}
 	}
-	t := a.set.PetSet
+	t := a.Settings.PetSet
 	controls.Popup(c, "pet-set", &t, names, func(n string) string {
 		if s, ok := titles[n]; ok {
 			return s
 		}
 		return n
 	}, 240, pal)
-	if t != a.set.PetSet {
-		setPet(&a.set, t)
+	if t != a.Settings.PetSet {
+		setPet(&a.Settings, t)
 	}
 }
 
@@ -94,12 +94,12 @@ func setPet(s *settings.Settings, name string) {
 // petGallery is the pet's setting's detail: what its description says,
 // or what went wrong with it.
 func (a *App) petGallery() string {
-	if a.set.PetSet == settings.PetSetHyla {
+	if a.Settings.PetSet == settings.PetSetHyla {
 		return ""
 	}
-	p, err := pets.NameID(a.set.PetSet)
+	p, err := pets.NameID(a.Settings.PetSet)
 	if err != nil {
-		return locales.SetPetMissing(a.set.PetSet, err.Error())
+		return locales.SetPetMissing(a.Settings.PetSet, err.Error())
 	}
 	desc := strings.TrimSpace(p.Description)
 	// A pet of the same name in both directories: say which one shows.

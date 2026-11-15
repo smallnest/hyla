@@ -21,7 +21,7 @@ import (
 // splits the selected session otherwise.
 func TestSplitRightWithoutSessionStartsOne(t *testing.T) {
 	a := testApp(t)
-	a.st.Sessions, a.selected = nil, ""
+	a.St.Sessions, a.Selected = nil, ""
 	a.local().conn = connReady
 	calls := make(chan string, 2)
 	cl, stop := projectClient(t, func(method string, raw json.RawMessage) (any, error) {
@@ -57,9 +57,9 @@ func TestSplitRightWithoutSessionStartsOne(t *testing.T) {
 		t.Fatal("Split Right did not create a session")
 	}
 
-	a.st.Sessions = []proto.Session{{ID: "s1"}}
-	a.selected = "s1"
-	a.focus["s1"] = "a"
+	a.St.Sessions = []proto.Session{{ID: "s1"}}
+	a.Selected = "s1"
+	a.Focus["s1"] = "a"
 	a.run("pane.split.right", nil)
 	select {
 	case got := <-calls:
@@ -211,7 +211,7 @@ func TestOpenProjectRemotePaths(t *testing.T) {
 				}
 			})
 			h := &host{name: "remote", cl: cl, conn: connReady}
-			a.hosts = append(a.hosts, h)
+			a.Hosts = append(a.Hosts, h)
 			a.openProjectDirs(h, cl, []string{dir}, false)
 			stop()
 			if !slices.Equal(opened, []string{dir}) {
@@ -226,7 +226,7 @@ func TestOpenProjectRemotePaths(t *testing.T) {
 func TestTermScrollback(t *testing.T) {
 	a := testApp(t)
 	for _, c := range []struct{ mb, want int }{{4, 4 << 20}, {16, 16 << 20}, {0, -1}} {
-		a.set.Scrollback = c.mb
+		a.Settings.Scrollback = c.mb
 		if got := a.termOptions("a", nil).Scrollback; got != c.want {
 			t.Errorf("scrollback-limit %d: the terminal keeps %d, want %d", c.mb, got, c.want)
 		}
@@ -249,7 +249,7 @@ func TestTermFontFeatures(t *testing.T) {
 		{false, []string{"+calt", "ss02"}, []string{"-liga", "-dlig", "+calt", "ss02"}, "liga=0,dlig=0,calt,ss02"},
 		{true, []string{"-calt"}, []string{"-calt"}, "calt=0"},
 	} {
-		a.set.Ligatures, a.set.FontFeatures = c.liga, c.user
+		a.Settings.Ligatures, a.Settings.FontFeatures = c.liga, c.user
 		got := a.termOptions("a", nil).Font.Features
 		if !slices.Equal(got, c.want) {
 			t.Errorf("ligatures %v, font-feature %q: the terminal has %q, want %q", c.liga, c.user, got, c.want)
@@ -270,8 +270,8 @@ func (w *wheelClaimer) Claim() error { w.claims.Add(1); return nil }
 // size once it rests, not once a scroll: each claim holds up the frames.
 func TestWheelClaimsWhenRest(t *testing.T) {
 	a := testApp(t)
-	id := a.st.Sessions[0].ID
-	a.terms[id] = &termEntry{started: time.Now()}
+	id := a.St.Sessions[0].ID
+	a.Terms[id] = &termEntry{started: time.Now()}
 	w := &wheelClaimer{}
 	for range 50 {
 		a.claimWhenRest(id, w)

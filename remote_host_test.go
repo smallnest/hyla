@@ -100,8 +100,8 @@ func TestRemoteHost(t *testing.T) {
 		t.Fatal(err)
 	}
 	h := a.hostNamed("studio")
-	if h == nil || len(a.hosts) != 2 {
-		t.Fatalf("hosts %+v", a.hosts)
+	if h == nil || len(a.Hosts) != 2 {
+		t.Fatalf("hosts %+v", a.Hosts)
 	}
 	// The app connects, as its window's loop would: the test drives it.
 	cl, err := client.ConnectVia(h.dialer())
@@ -145,8 +145,8 @@ func TestRemoteHost(t *testing.T) {
 	}
 	// It goes as the user removes it.
 	a.removeRemoteHost("studio")
-	if len(a.hosts) != 1 || a.hostNamed("studio") != nil {
-		t.Errorf("hosts %+v", a.hosts)
+	if len(a.Hosts) != 1 || a.hostNamed("studio") != nil {
+		t.Errorf("hosts %+v", a.Hosts)
 	}
 	if a.hostOf("rs") != a.local() {
 		t.Error("a session of the machine stayed")
@@ -174,8 +174,8 @@ func TestRemoteHostWrongPassword(t *testing.T) {
 // address and password.
 func TestRemoteHostsSettings(t *testing.T) {
 	a := testApp(t)
-	a.prefs.RemoteHosts = []remoteHost{{Name: "studio", Addr: "192.168.1.5:7297", Token: "s3cret-pass"}}
-	a.ss.page = "hosts"
+	a.Prefs.RemoteHosts = []remoteHost{{Name: "studio", Addr: "192.168.1.5:7297", Token: "s3cret-pass"}}
+	a.Ss.page = "hosts"
 	tt := ui.NewTester(a.settingsView, 820, 900)
 	tt.Frame()
 	for _, want := range []string{"studio", "192.168.1.5:7297"} {
@@ -193,11 +193,11 @@ func TestAddRemoteHost(t *testing.T) {
 		t.Fatal(err)
 	}
 	if h := a.hostNamed("192.168.1.5"); h == nil {
-		t.Fatalf("hosts %+v", a.prefs.RemoteHosts)
+		t.Fatalf("hosts %+v", a.Prefs.RemoteHosts)
 	}
 	// A Tailcat machine comes as its pair code, or as the code a phone
 	// scans, and its port is the listener's; Tailcat off reaches none.
-	a.set.Tailcat = true
+	a.Settings.Tailcat = true
 	k, err := remote.NewTailcatKey()
 	if err != nil {
 		t.Fatal(err)

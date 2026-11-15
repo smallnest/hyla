@@ -74,10 +74,10 @@ func (f *fakeHylad) answer(req proto.Request) proto.Message {
 	case "state":
 		st := proto.State{}
 		if f.a != nil {
-			for _, s := range f.a.st.Sessions {
+			for _, s := range f.a.St.Sessions {
 				st.Sessions = append(st.Sessions, *f.a.session(s.ID))
 			}
-			st.Projects = f.a.st.Projects
+			st.Projects = f.a.St.Projects
 		}
 		// A state event's, as the app merges it.
 		a := f.a
@@ -144,7 +144,7 @@ func chatApp(t *testing.T) (*App, *fakeHylad) {
 	}
 	t.Setenv("HYLA_CONFIG", path)
 	set := settings.Load()
-	a.set.Feishu = set.Feishu
+	a.Settings.Feishu = set.Feishu
 	f := &fakeHylad{a: a}
 	f.feed = proto.FeishuFeed{ID: "s1", Chat: "oc_1", Name: "Hyla bot", Host: "mac", Pane: "a", Agent: "claude", Lines: []proto.FeishuLine{
 		{Kind: "note", Text: "Fix the build"},
@@ -179,7 +179,7 @@ func chatApp(t *testing.T) (*App, *fakeHylad) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { trm.Close() })
-	a.terms["a"] = &termEntry{term: trm, started: time.Now()}
+	a.Terms["a"] = &termEntry{term: trm, started: time.Now()}
 	return a, f
 }
 
@@ -209,7 +209,7 @@ func TestChatView(t *testing.T) {
 	tt := ui.NewTester(a.view, 1600, 800)
 	tt.Frame()
 	chatSettle(tt, func() bool { return tt.HasText("Fix the build") })
-	if !a.paneChat["a"] {
+	if !a.PaneChat["a"] {
 		t.Fatal("the pane shows no chat")
 	}
 	// The agent's Markdown reads as it is written: no ** or ` about.

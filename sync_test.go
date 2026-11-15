@@ -23,7 +23,7 @@ func TestSyncSettingsPage(t *testing.T) {
 		Last:       hylasync.State{Hash: "abcdef0123456789", Host: "desk", At: time.Now().Add(-2 * time.Minute).UnixMilli()},
 	}
 	a.State.Saved, a.State.Loaded, a.State.Action, a.State.Host = a.State.Cfg, true, "pulled", "desk"
-	a.ss.page = "sync"
+	a.Ss.page = "sync"
 	tt := ui.NewTester(a.settingsView, 900, 900)
 	for i := 0; i < 30 && tt.FramePending(); i++ {
 		tt.Frame()

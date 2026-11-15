@@ -37,7 +37,7 @@ func testApp(t *testing.T) *App {
 	t.Setenv("HYLA_CONFIG", filepath.Join(home, "config"))
 	a := newApp()
 	var l *proto.Layout
-	a.st = proto.State{
+	a.St = proto.State{
 		Projects: []proto.Project{{ID: "p1", Name: "demo", Dir: "/tmp"}},
 		Sessions: []proto.Session{{
 			ID: "s1", Project: "p1", Name: "demo",
@@ -49,7 +49,7 @@ func testApp(t *testing.T) *App {
 			Focus:  "a",
 		}},
 	}
-	a.loaded, a.selected = true, "s1"
+	a.Loaded, a.Selected = true, "s1"
 	a.local().loaded = true
 	return a
 }
@@ -83,7 +83,7 @@ func testDropApp(t *testing.T) *App {
 	t.Helper()
 	a := testApp(t)
 	a.local().conn = connReady
-	a.terms["a"], a.terms["b"] = &termEntry{}, &termEntry{}
+	a.Terms["a"], a.Terms["b"] = &termEntry{}, &termEntry{}
 	a.local().cl, _ = projectClient(t, func(method string, _ json.RawMessage) (any, error) {
 		return nil, fmt.Errorf("test daemon rejected %s", method)
 	})
@@ -99,7 +99,7 @@ func TestSidebarReceivesFolderDrops(t *testing.T) {
 			t.Errorf("sidebar drop at %v was not received", at)
 		}
 	}
-	if tt.DropFiles(a.prefs.SidebarWidth+3, 400, t.TempDir()) {
+	if tt.DropFiles(a.Prefs.SidebarWidth+3, 400, t.TempDir()) {
 		t.Error("sidebar received a drop outside its visible bounds")
 	}
 	shot(t, tt, "sidebar-folder-drop-light")
@@ -115,19 +115,19 @@ func TestSidebarRejectsUnavailableDrops(t *testing.T) {
 		name string
 		set  func(*App)
 	}{
-		{"hidden", func(a *App) { a.prefs.SidebarHidden = true }},
+		{"hidden", func(a *App) { a.Prefs.SidebarHidden = true }},
 		{"connecting", func(a *App) { a.local().conn = connConnecting }},
 		{"disconnected", func(a *App) { a.local().conn = connFailed }},
 		{"no client", func(a *App) { a.local().cl = nil }},
-		{"palette", func(a *App) { a.pal.open = true }},
-		{"folder picker", func(a *App) { a.picker = folderPicker{open: true, host: a.local()} }},
+		{"palette", func(a *App) { a.Pal.open = true }},
+		{"folder picker", func(a *App) { a.Picker = folderPicker{open: true, host: a.local()} }},
 		{"only remote connected", func(a *App) {
 			h := &host{name: "remote", conn: connReady, cl: a.local().cl, loaded: true}
-			a.hosts = append(a.hosts, h)
-			a.owner = map[string]*host{"s1": h, "p1": h, "a": h, "b": h}
+			a.Hosts = append(a.Hosts, h)
+			a.Owner = map[string]*host{"s1": h, "p1": h, "a": h, "b": h}
 			a.local().conn, a.local().cl = connFailed, nil
 		}},
-		{"confirmation", func(a *App) { a.confirm = &confirmation{open: true, title: "Confirm", action: "Close"} }},
+		{"confirmation", func(a *App) { a.Confirm = &confirmation{open: true, title: "Confirm", action: "Close"} }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			a := testDropApp(t)
@@ -145,8 +145,8 @@ func TestSidebarRejectsUnavailableDrops(t *testing.T) {
 func TestSidebarLocalDropWithRemoteSelected(t *testing.T) {
 	a := testDropApp(t)
 	h := &host{name: "remote", conn: connFailed, loaded: true}
-	a.hosts = append(a.hosts, h)
-	a.owner = map[string]*host{"s1": h, "p1": h, "a": h, "b": h}
+	a.Hosts = append(a.Hosts, h)
+	a.Owner = map[string]*host{"s1": h, "p1": h, "a": h, "b": h}
 	tt := ui.NewTester(a.view, 1100, 640)
 	tt.Frame()
 	if !tt.DropFiles(30, 400, t.TempDir()) {
@@ -161,7 +161,7 @@ func TestSidebarKeepsTerminalDrops(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { term.Close() })
-	a.terms["a"] = &termEntry{term: term}
+	a.Terms["a"] = &termEntry{term: term}
 	tt := ui.NewTester(a.view, 1100, 640)
 	tt.Frame()
 	if !tt.DropFiles(400, 340, filepath.Join(t.TempDir(), "image.png")) {
@@ -172,7 +172,7 @@ func TestSidebarKeepsTerminalDrops(t *testing.T) {
 func TestDragPaneToSide(t *testing.T) {
 	a := testDropApp(t)
 	// The side panel closes: the panes take the window's width here.
-	a.prefs.Side = ""
+	a.Prefs.Side = ""
 	tt := ui.NewTester(a.view, 1300, 640)
 	tt.Frame()
 	grip, ok := tt.Find("zsh")
@@ -211,10 +211,10 @@ func TestDragPaneToSide(t *testing.T) {
 	shot(t, tt, "switch-slide-in")
 	tt.Advance(time.Second)
 	tt.Frame()
-	if got := a.st.Sessions[0].Layout.Panes(); !slices.Equal(got, []string{"b", "a"}) {
+	if got := a.St.Sessions[0].Layout.Panes(); !slices.Equal(got, []string{"b", "a"}) {
 		t.Fatalf("after the drop, panes %v, want b then a", got)
 	}
-	if a.focusOf(&a.st.Sessions[0]) != "b" {
+	if a.focusOf(&a.St.Sessions[0]) != "b" {
 		t.Errorf("the pane moved has not the focus")
 	}
 	shot(t, tt, "dropped")
@@ -273,9 +273,9 @@ func TestSidebarAnimationNoHolds(t *testing.T) {
 // where any card does.
 func TestHeaderPadBelowTopLeft(t *testing.T) {
 	a := testApp(t)
-	a.prefs.SidebarHidden = true
+	a.Prefs.SidebarHidden = true
 	var l *proto.Layout
-	a.st.Sessions[0].Layout = l.Split("a", "b", "down", 0)
+	a.St.Sessions[0].Layout = l.Split("a", "b", "down", 0)
 	tt := ui.NewTester(a.view, 1100, 640)
 	tt.Frame()
 	shot(t, tt, "switch-slide-in")
@@ -300,7 +300,7 @@ func TestHeaderPadBelowTopLeft(t *testing.T) {
 func TestWindowDragRegions(t *testing.T) {
 	a := testApp(t)
 	// The side panel closes: the panes take the window's width here.
-	a.prefs.Side = ""
+	a.Prefs.Side = ""
 	tt := ui.NewTester(a.view, 1300, 640)
 	tt.Frame()
 	// Pane b's header, past its title: it moves the window, and leaves
@@ -308,13 +308,13 @@ func TestWindowDragRegions(t *testing.T) {
 	b, _ := tt.Find("zsh")
 	tt.ClickAt(b.X+200, b.Y+b.H/2)
 	tt.Frame()
-	if f := a.focusOf(&a.st.Sessions[0]); f != "a" {
+	if f := a.focusOf(&a.St.Sessions[0]); f != "a" {
 		t.Errorf("a press on a header's empty stretch moved the focus to %q", f)
 	}
 	// Pane b's body: it takes the press, and the focus.
 	tt.ClickAt(b.X+200, 400)
 	tt.Frame()
-	if f := a.focusOf(&a.st.Sessions[0]); f != "b" {
+	if f := a.focusOf(&a.St.Sessions[0]); f != "b" {
 		t.Errorf("a press on pane b left the focus on %q", f)
 	}
 }
@@ -326,12 +326,12 @@ func TestCopyOnSelectToast(t *testing.T) {
 	o := a.termOptions("a", nil)
 	o.OnCopy("x", terminal.CopyUser)
 	o.OnCopy("x", terminal.CopyProgram)
-	if a.pendingToast != "" {
-		t.Errorf("toast %q for a copy that shows itself", a.pendingToast)
+	if a.PendingToast != "" {
+		t.Errorf("toast %q for a copy that shows itself", a.PendingToast)
 	}
 	o.OnCopy("x", terminal.CopySelect)
-	if a.pendingToast != "Copied to clipboard" {
-		t.Errorf("toast %q after copying a selection", a.pendingToast)
+	if a.PendingToast != "Copied to clipboard" {
+		t.Errorf("toast %q after copying a selection", a.PendingToast)
 	}
 }
 
@@ -368,11 +368,11 @@ func TestSidebarFooter(t *testing.T) {
 			t.Errorf("the foot still says %q", txt)
 		}
 	}
-	base := a.st.Sessions[0]
+	base := a.St.Sessions[0]
 	add := func(id, name string, st proto.Status, unread bool) {
 		s := base
 		s.ID, s.Name, s.Status, s.Unread = id, name, st, unread
-		a.st.Sessions = append(a.st.Sessions, s)
+		a.St.Sessions = append(a.St.Sessions, s)
 	}
 	add("s2", "deploy", proto.Waiting, true)
 	add("s3", "refactor", proto.Working, false)
@@ -384,15 +384,15 @@ func TestSidebarFooter(t *testing.T) {
 	tt.Frame()
 	shot(t, tt, "sidebar-footer")
 	for label, want := range map[string]string{"1 session needs you": "s2", "2 sessions working": "s3", "1 session done, unseen": "s5"} {
-		a.selected = "s1"
+		a.Selected = "s1"
 		tt.Frame()
 		if err := tt.Click(label); err != nil {
 			t.Errorf("no %q in the foot: %v", label, err)
 			continue
 		}
 		tt.Frame()
-		if a.selected != want {
-			t.Errorf("%q went to %s, want %s", label, a.selected, want)
+		if a.Selected != want {
+			t.Errorf("%q went to %s, want %s", label, a.Selected, want)
 		}
 	}
 }
@@ -406,12 +406,12 @@ func TestSessionHoverClose(t *testing.T) {
 		for _, selected := range []bool{false, true} {
 			t.Run(fmt.Sprintf("%s/selected=%t", mode, selected), func(t *testing.T) {
 				a := testApp(t)
-				a.set.SidebarRows, a.set.ConfirmClose = mode, true
-				other := a.st.Sessions[0]
+				a.Settings.SidebarRows, a.Settings.ConfirmClose = mode, true
+				other := a.St.Sessions[0]
 				other.ID, other.Name = "s2", "other session"
 				other.Panes = []proto.Pane{{ID: "c", Shell: "fish", Progress: -1}}
 				other.Layout, other.Focus = nil, "c"
-				a.st.Sessions = append(a.st.Sessions, other)
+				a.St.Sessions = append(a.St.Sessions, other)
 				id, remaining := "s2", "s1"
 				if selected {
 					id, remaining = remaining, id
@@ -460,16 +460,16 @@ func TestSessionHoverClose(t *testing.T) {
 				tt.Frame()
 				// A busy session asks first, as the menu does: one wrong
 				// click must not end a working program.
-				if a.confirm == nil || !a.confirm.open {
+				if a.Confirm == nil || !a.Confirm.open {
 					t.Fatal("closing a busy session from the row did not ask")
 				}
 				if a.session(id) == nil {
 					t.Fatalf("the session closed before the answer")
 				}
-				a.confirm.run()
-				a.confirm = nil
-				if a.session(id) != nil || len(a.st.Sessions) != 1 || a.selected != remaining {
-					t.Fatalf("wrong session closed: selected=%q sessions=%v", a.selected, a.st.Sessions)
+				a.Confirm.run()
+				a.Confirm = nil
+				if a.session(id) != nil || len(a.St.Sessions) != 1 || a.Selected != remaining {
+					t.Fatalf("wrong session closed: selected=%q sessions=%v", a.Selected, a.St.Sessions)
 				}
 			})
 		}
@@ -481,8 +481,8 @@ func TestSessionHoverClose(t *testing.T) {
 func TestSessionTooltipAtPointer(t *testing.T) {
 	for _, dx := range []float32{20, 160} {
 		a := testApp(t)
-		a.st.Sessions[0].Process = "claude"
-		a.st.Sessions[0].Dir = "/Users/someone/dev/hyla"
+		a.St.Sessions[0].Process = "claude"
+		a.St.Sessions[0].Dir = "/Users/someone/dev/hyla"
 		tt := ui.NewTester(a.view, 1100, 700)
 		tt.Frame()
 		r, ok := tt.Find("1") // the project header's count, above the row
@@ -518,18 +518,18 @@ func TestSessionTooltipAtPointer(t *testing.T) {
 func TestRestartStaleDaemon(t *testing.T) {
 	a := testApp(t)
 	a.local().conn, a.local().daemonApp = connReady, "1.9.0"
-	a.st.Sessions[0].Process = "claude"
+	a.St.Sessions[0].Process = "claude"
 	tt := ui.NewTester(a.view, 1100, 640)
 	tt.Frame()
 	if err := tt.Click("Restart Service"); err != nil {
 		t.Fatalf("no chip to restart hylad: %v; texts %q", err, tt.Texts())
 	}
 	tt.Frame()
-	if a.confirm == nil || !strings.Contains(a.confirm.detail, "Hyla 1.9.0") {
-		t.Fatalf("no question before the restart: %+v", a.confirm)
+	if a.Confirm == nil || !strings.Contains(a.Confirm.detail, "Hyla 1.9.0") {
+		t.Fatalf("no question before the restart: %+v", a.Confirm)
 	}
 
-	a.confirm, a.local().daemonApp = nil, mygo.App.Version()
+	a.Confirm, a.local().daemonApp = nil, mygo.App.Version()
 	tt.Frame()
 	if tt.HasText("Restart Service") {
 		t.Error("a chip to restart a hylad of this version")
@@ -579,7 +579,7 @@ func TestFindBar(t *testing.T) {
 		}
 	}
 	term.Feed([]byte(b.String()))
-	a.terms["a"] = &termEntry{term: term}
+	a.Terms["a"] = &termEntry{term: term}
 	tt := ui.NewTester(a.view, 1100, 640)
 	tt.Frame()
 	a.run("find.open", nil)
@@ -616,14 +616,14 @@ func TestFindBar(t *testing.T) {
 	tt.Key(0, ui.KeyEscape)
 	tt.Frame()
 	tt.Frame()
-	if a.find.pane != "" || tt.HasText("3 of 4") || term.SearchStatus().Text != "" {
+	if a.Find.pane != "" || tt.HasText("3 of 4") || term.SearchStatus().Text != "" {
 		t.Errorf("Escape left the bar open or the search on: %+v; texts %q", term.SearchStatus(), tt.Texts())
 	}
 	a.run("find.next", nil)
 	tt.Frame()
 	tt.Frame()
-	if a.find.pane != "a" || a.find.query != "ERROR" || term.SearchStatus().Text != "ERROR" {
-		t.Errorf("Find Next did not search again: %+v, %+v", a.find.query, term.SearchStatus())
+	if a.Find.pane != "a" || a.Find.query != "ERROR" || term.SearchStatus().Text != "ERROR" {
+		t.Errorf("Find Next did not search again: %+v, %+v", a.Find.query, term.SearchStatus())
 	}
 }
 
@@ -639,7 +639,7 @@ func TestImagePeek(t *testing.T) {
 	}
 	a := testApp(t)
 	dir := t.TempDir()
-	a.st.Sessions[0].Panes[0].Dir = dir
+	a.St.Sessions[0].Panes[0].Dir = dir
 	f, err := os.Create(filepath.Join(dir, "shot.png"))
 	if err != nil {
 		t.Fatal(err)
@@ -654,7 +654,7 @@ func TestImagePeek(t *testing.T) {
 	}
 	defer term.Close()
 	term.Feed([]byte("saved shot.png:3 and notes.txt\r\n"))
-	a.terms["a"] = &termEntry{term: term}
+	a.Terms["a"] = &termEntry{term: term}
 	tt := ui.NewTester(a.view, 1100, 640)
 	tt.Frame()
 	b, ok := tt.Find("Terminal")
@@ -677,13 +677,13 @@ find:
 	if link, path, _ := term.HoveredLink(); link != "shot.png:3" || !path {
 		t.Fatalf("hovered %q, %v; text %q", link, path, term.Text())
 	}
-	if want := filepath.Join(dir, "shot.png"); a.peek.path != want {
-		t.Fatalf("peeks at %q, want %q", a.peek.path, want)
+	if want := filepath.Join(dir, "shot.png"); a.Peek.path != want {
+		t.Fatalf("peeks at %q, want %q", a.Peek.path, want)
 	}
 	// The decoded image lands, as the window's update would bring it, and
 	// shows in the flyout.
-	data, _ := os.ReadFile(a.peek.path)
-	a.peek.bm, _ = ui.DecodeBitmap(data)
+	data, _ := os.ReadFile(a.Peek.path)
+	a.Peek.bm, _ = ui.DecodeBitmap(data)
 	tt.Frame()
 	ft := ui.NewTester(a.peekView, peekMinW, 20+peekPad+peekCaption)
 	ft.Frame()
@@ -693,8 +693,8 @@ find:
 	shot(t, ft, "peek")
 	tt.HoldModifiers(0)
 	tt.Frame()
-	if a.peek.bm != nil || a.peek.path != "" {
-		t.Errorf("the preview stays once Command is let go of: %+v", a.peek)
+	if a.Peek.bm != nil || a.Peek.path != "" {
+		t.Errorf("the preview stays once Command is let go of: %+v", a.Peek)
 	}
 }
 
@@ -703,7 +703,7 @@ find:
 // under one parent, as when a column split made a Row before its Column.
 func TestNestedSplitKeys(t *testing.T) {
 	a := testApp(t)
-	s := &a.st.Sessions[0]
+	s := &a.St.Sessions[0]
 	s.Panes = append(s.Panes, proto.Pane{ID: "c", Shell: "bash", Dir: "/tmp", Status: proto.Idle, Progress: -1})
 	s.Layout = &proto.Layout{Ratio: 0.5, A: &proto.Layout{Pane: "a"},
 		B: &proto.Layout{Row: true, Ratio: 0.5, A: &proto.Layout{Pane: "b"}, B: &proto.Layout{Pane: "c"}}}
@@ -722,7 +722,7 @@ func TestNestedSplitKeys(t *testing.T) {
 // the keyboard; it attaches no terminal.
 func TestBrowserPane(t *testing.T) {
 	a := testApp(t)
-	s := &a.st.Sessions[0]
+	s := &a.St.Sessions[0]
 	s.Panes[1] = proto.Pane{ID: "b", Dir: "/tmp", URL: proto.BlankURL, Status: proto.Idle, Progress: -1}
 	tt := ui.NewTester(a.view, 1100, 640)
 	tt.Frame()
@@ -732,10 +732,10 @@ func TestBrowserPane(t *testing.T) {
 			t.Errorf("no %q; texts %q", text, tt.Texts())
 		}
 	}
-	if a.terms["b"] != nil {
+	if a.Terms["b"] != nil {
 		t.Error("a browser pane attached a terminal")
 	}
-	e := a.webs["b"]
+	e := a.Webs["b"]
 	if e == nil {
 		t.Fatal("no browser for pane b")
 	}
@@ -753,7 +753,7 @@ func TestBrowserPane(t *testing.T) {
 	}
 
 	// Its toolbar is its header: no title over it, page's or other.
-	s = &a.st.Sessions[0]
+	s = &a.St.Sessions[0]
 	s.Panes[1].Title = "Vite App"
 	tt.Frame()
 	if tt.HasText("Vite App") || tt.HasText("browser") || !tt.HasText(locales.BrowserAddress()) {
@@ -788,7 +788,7 @@ func TestPaletteOpensAddress(t *testing.T) {
 	if len(rows) < 2 || rows[0] != locales.PaletteOpenInBrowser() || rows[1] != "http://localhost:5173" {
 		t.Fatalf("the address is not the first item; rows %q", rows)
 	}
-	a.pal.query = ""
+	a.Pal.query = ""
 	tt.Frame()
 	tt.Type("web")
 	tt.Frame()
@@ -801,8 +801,8 @@ func TestPaletteOpensAddress(t *testing.T) {
 // a pane that comes under a pointer standing still does not.
 func TestFocusFollowsMouse(t *testing.T) {
 	a := testApp(t)
-	a.set.FocusFollowsMouse = true
-	s := &a.st.Sessions[0]
+	a.Settings.FocusFollowsMouse = true
+	s := &a.St.Sessions[0]
 	tt := ui.NewTester(a.view, 1100, 640)
 	tt.Frame()
 	ar, _ := tt.Find("fish") // pane a's title
@@ -845,7 +845,7 @@ func TestFocusFollowsMouse(t *testing.T) {
 	}
 
 	// Off, the pointer leaves the focus be.
-	a.set.FocusFollowsMouse = false
+	a.Settings.FocusFollowsMouse = false
 	move(ar.X + 40)
 	move(br.X + 40)
 	if got := a.focusOf(s); got != "a" {
@@ -881,7 +881,7 @@ func TestCommandKeysEditLine(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer term.Close()
-	a.terms["a"] = &termEntry{term: term}
+	a.Terms["a"] = &termEntry{term: term}
 	o := a.termOptions("a", nil)
 	for _, k := range []struct {
 		key  ui.Key
@@ -920,10 +920,10 @@ func TestCommandKeysEditLine(t *testing.T) {
 func TestSidebarRowKeepsTime(t *testing.T) {
 	widths := func(name string) (ago, key float32) {
 		a := testApp(t)
-		a.prefs.SidebarWidth = minSidebar
+		a.Prefs.SidebarWidth = minSidebar
 		tt := ui.NewTester(a.view, 1100, 640)
-		a.st.Sessions[0].Name = name
-		a.st.Sessions[0].Since = tt.Now().Add(-3 * time.Hour).UnixMilli()
+		a.St.Sessions[0].Name = name
+		a.St.Sessions[0].Since = tt.Now().Add(-3 * time.Hour).UnixMilli()
 		tt.Frame()
 		r, ok := tt.Find(locales.AgoHours(3))
 		if !ok {
@@ -947,8 +947,8 @@ func TestSidebarRowKeepsTime(t *testing.T) {
 // A session's name starts where its project's does, past the badge.
 func TestSessionAlign(t *testing.T) {
 	a := testApp(t)
-	a.st.Projects[0].Name = "proj"
-	a.st.Sessions[0].Name = "sess"
+	a.St.Projects[0].Name = "proj"
+	a.St.Sessions[0].Name = "sess"
 	tt := ui.NewTester(a.view, 1100, 640)
 	tt.Frame()
 	p, ok := tt.Find("proj")
@@ -968,10 +968,10 @@ func TestSessionAlign(t *testing.T) {
 // or after the project it is dropped on.
 func TestProjectOrder(t *testing.T) {
 	a := testApp(t)
-	a.st.Projects = append(a.st.Projects,
+	a.St.Projects = append(a.St.Projects,
 		proto.Project{ID: "p2", Name: "two"},
 		proto.Project{ID: "p3", Name: "three"})
-	a.prefs.ProjectOrder = []string{"p3", "p1", "p2"}
+	a.Prefs.ProjectOrder = []string{"p3", "p1", "p2"}
 	ids := func() []string {
 		var out []string
 		for _, g := range a.hostGroups(a.local()) {
@@ -997,11 +997,11 @@ func TestProjectOrder(t *testing.T) {
 // while it has none, it keeps its own color.
 func TestProjectBadgeAttention(t *testing.T) {
 	a := testApp(t)
-	a.st.Projects = append(a.st.Projects, proto.Project{ID: "p2", Name: "two"})
-	base := a.st.Sessions[0]
+	a.St.Projects = append(a.St.Projects, proto.Project{ID: "p2", Name: "two"})
+	base := a.St.Sessions[0]
 	waiting := base
 	waiting.ID, waiting.Name, waiting.Project, waiting.Status, waiting.Unread = "s2", "deploy", "p2", proto.Waiting, false
-	a.st.Sessions = append(a.st.Sessions, waiting)
+	a.St.Sessions = append(a.St.Sessions, waiting)
 	// The sidebar's width, and its first rows below the header.
 	tt := ui.NewTester(a.view, 1100, 640)
 	tt.Frame()
@@ -1024,7 +1024,7 @@ func TestProjectBadgeAttention(t *testing.T) {
 		t.Fatalf("the badge of the project that needs you is %v, as the other's", attention)
 	}
 	// Folded, it keeps attention's color: its sessions are out of sight.
-	a.prefs.Collapsed["demo"] = true
+	a.Prefs.Collapsed["demo"] = true
 	tt.Frame()
 	if folded := badge("two"); folded != attention {
 		t.Errorf("the folded badge is %v, was %v", folded, attention)
@@ -1032,12 +1032,12 @@ func TestProjectBadgeAttention(t *testing.T) {
 	// Its color was its place among the projects, which the waiting
 	// takes: answered, it takes it back.
 	own := color.RGBA{79, 138, 106, 255} // projectBadges[1], p2's place
-	for i := range a.st.Sessions {
-		if a.st.Sessions[i].ID == "s2" {
-			a.st.Sessions[i].Status = proto.Working
+	for i := range a.St.Sessions {
+		if a.St.Sessions[i].ID == "s2" {
+			a.St.Sessions[i].Status = proto.Working
 		}
 	}
-	a.prefs.Collapsed = map[string]bool{}
+	a.Prefs.Collapsed = map[string]bool{}
 	tt.Frame()
 	if got := badge("two"); got != own {
 		t.Errorf("the badge of the project answered is %v, its own %v", got, own)
@@ -1048,7 +1048,7 @@ func TestProjectBadgeAttention(t *testing.T) {
 // after that project.
 func TestProjectDrag(t *testing.T) {
 	a := testApp(t)
-	a.st.Projects = append(a.st.Projects, proto.Project{ID: "p2", Name: "two"})
+	a.St.Projects = append(a.St.Projects, proto.Project{ID: "p2", Name: "two"})
 	tt := ui.NewTester(a.view, 1100, 640)
 	tt.Frame()
 	src, ok := tt.Find("demo")
@@ -1072,8 +1072,8 @@ func TestProjectDrag(t *testing.T) {
 	tt.Frame()
 	tt.Advance(50 * time.Millisecond)
 	tt.Frame()
-	if !slices.Equal(a.prefs.ProjectOrder, []string{"p2", "p1"}) {
-		t.Errorf("order %v, want p2 then p1", a.prefs.ProjectOrder)
+	if !slices.Equal(a.Prefs.ProjectOrder, []string{"p2", "p1"}) {
+		t.Errorf("order %v, want p2 then p1", a.Prefs.ProjectOrder)
 	}
 }
 
@@ -1114,8 +1114,8 @@ func dragRow(t *testing.T, tt *ui.Tester, from, to string, below bool) {
 // or below the row it is let go on, and the sidebar keeps that order.
 func TestSessionDrag(t *testing.T) {
 	a := testApp(t)
-	a.st.Sessions[0].Name = "one"
-	a.st.Sessions = append(a.st.Sessions,
+	a.St.Sessions[0].Name = "one"
+	a.St.Sessions = append(a.St.Sessions,
 		proto.Session{ID: "s2", Project: "p1", Name: "two", Created: 200},
 		proto.Session{ID: "s3", Project: "p1", Name: "three", Created: 300})
 	tt := ui.NewTester(a.view, 1100, 640)
@@ -1134,8 +1134,8 @@ func TestSessionDrag(t *testing.T) {
 	if got := ids(); !slices.Equal(got, []string{"s3", "s1", "s2"}) {
 		t.Errorf("three before one: %v", got)
 	}
-	if !slices.Equal(a.prefs.SessionOrder, []string{"s3", "s1", "s2"}) {
-		t.Errorf("kept %v, want s3 s1 s2", a.prefs.SessionOrder)
+	if !slices.Equal(a.Prefs.SessionOrder, []string{"s3", "s1", "s2"}) {
+		t.Errorf("kept %v, want s3 s1 s2", a.Prefs.SessionOrder)
 	}
 	// one, let go on two's lower half, goes after it.
 	dragRow(t, tt, "one", "two", true)
@@ -1152,8 +1152,8 @@ func TestSessionDrag(t *testing.T) {
 // own too.
 func TestReorderSession(t *testing.T) {
 	a := testApp(t)
-	a.st.Projects = append(a.st.Projects, proto.Project{ID: "p2", Name: "two"})
-	a.st.Sessions = append(a.st.Sessions,
+	a.St.Projects = append(a.St.Projects, proto.Project{ID: "p2", Name: "two"})
+	a.St.Sessions = append(a.St.Sessions,
 		proto.Session{ID: "s2", Project: "p1", Created: 200},
 		proto.Session{ID: "s3", Project: "p2", Created: 300},
 		proto.Session{ID: "s4", Project: "", Created: 400},
@@ -1190,8 +1190,8 @@ func TestReorderSession(t *testing.T) {
 // The Order choice sorts a project's sessions by created or updated time.
 func TestSidebarOrder(t *testing.T) {
 	a := testApp(t)
-	a.st.Sessions[0].Created, a.st.Sessions[0].Activity = 100, 200
-	a.st.Sessions = append(a.st.Sessions,
+	a.St.Sessions[0].Created, a.St.Sessions[0].Activity = 100, 200
+	a.St.Sessions = append(a.St.Sessions,
 		proto.Session{ID: "s2", Project: "p1", Created: 200, Activity: 100},
 		proto.Session{ID: "s3", Project: "p1", Created: 300, Activity: 400})
 	ids := func() []string {
@@ -1203,15 +1203,15 @@ func TestSidebarOrder(t *testing.T) {
 		}
 		return out
 	}
-	a.prefs.SidebarOrder = "created"
+	a.Prefs.SidebarOrder = "created"
 	if got := ids(); !slices.Equal(got, []string{"s1", "s2", "s3"}) {
 		t.Errorf("created: %v", got)
 	}
-	a.prefs.SidebarOrder = "updated"
+	a.Prefs.SidebarOrder = "updated"
 	if got := ids(); !slices.Equal(got, []string{"s3", "s1", "s2"}) {
 		t.Errorf("updated: %v", got)
 	}
-	a.prefs.SidebarGroup = "none"
+	a.Prefs.SidebarGroup = "none"
 	if got := a.visibleOrder(); !slices.Equal(got, []string{"s3", "s1", "s2"}) {
 		t.Errorf("flat updated: %v", got)
 	}
@@ -1222,8 +1222,8 @@ func TestSidebarOrder(t *testing.T) {
 func TestSidebarDateGroups(t *testing.T) {
 	a := testApp(t)
 	now := time.Now()
-	a.st.Sessions[0].Created = now.UnixMilli()
-	a.st.Sessions = append(a.st.Sessions,
+	a.St.Sessions[0].Created = now.UnixMilli()
+	a.St.Sessions = append(a.St.Sessions,
 		proto.Session{ID: "s2", Project: "p1", Created: now.Add(-24 * time.Hour).UnixMilli()})
 	dgs := a.dateGroups(a.local())
 	if len(dgs) != 2 {
@@ -1235,7 +1235,7 @@ func TestSidebarDateGroups(t *testing.T) {
 	if got := dgs[0].sessions[0].ID; got != "s1" {
 		t.Errorf("today's first session %s", got)
 	}
-	a.prefs.SidebarGroup = "date"
+	a.Prefs.SidebarGroup = "date"
 	if got := a.visibleOrder(); !slices.Equal(got, []string{"s1", "s2"}) {
 		t.Errorf("date order: %v", got)
 	}
@@ -1250,7 +1250,7 @@ func TestProjectBadge(t *testing.T) {
 		}
 	}
 	a := testApp(t)
-	a.st.Projects = append(a.st.Projects,
+	a.St.Projects = append(a.St.Projects,
 		proto.Project{ID: "p2", Name: "two"},
 		proto.Project{ID: "p3", Name: "three"})
 	p1 := proto.Project{ID: "p1", Name: "one"}
@@ -1274,8 +1274,8 @@ func TestProjectBadge(t *testing.T) {
 // badge and the chevron still tell which project it is.
 func TestCollapseSelectedProject(t *testing.T) {
 	a := testApp(t)
-	a.st.Projects[0].Name = "proj"
-	a.st.Sessions[0].Name = "sess"
+	a.St.Projects[0].Name = "proj"
+	a.St.Sessions[0].Name = "sess"
 	tt := ui.NewTester(a.view, 1100, 640)
 	tt.Frame()
 	p, ok := tt.Find("proj")
@@ -1294,7 +1294,7 @@ func TestCollapseSelectedProject(t *testing.T) {
 	}
 	tt.ClickAt(p.X+20, p.Y+p.H/2)
 	tt.Frame()
-	if !a.prefs.Collapsed["p1"] {
+	if !a.Prefs.Collapsed["p1"] {
 		t.Fatal("the project did not collapse")
 	}
 	if tt.HasText("sess") {
@@ -1305,7 +1305,7 @@ func TestCollapseSelectedProject(t *testing.T) {
 	}
 	tt.ClickAt(p.X+20, p.Y+p.H/2)
 	tt.Frame()
-	if a.prefs.Collapsed["p1"] || !tt.HasText("sess") {
+	if a.Prefs.Collapsed["p1"] || !tt.HasText("sess") {
 		t.Error("the project did not open again")
 	}
 	if red(dot()) {
@@ -1318,16 +1318,16 @@ func TestCollapseSelectedProject(t *testing.T) {
 func TestSidebarRows(t *testing.T) {
 	a := testApp(t)
 	a.local().conn = connReady
-	a.st.Sessions[0].Dir = "/Users/someone/dev/demo"
-	base := a.st.Sessions[0]
+	a.St.Sessions[0].Dir = "/Users/someone/dev/demo"
+	base := a.St.Sessions[0]
 	add := func(id, name string, st proto.Status, msg string, g *proto.GitInfo) {
 		s := base
 		s.ID, s.Name, s.Status, s.Message, s.Git = id, name, st, msg, g
-		a.st.Sessions = append(a.st.Sessions, s)
+		a.St.Sessions = append(a.St.Sessions, s)
 	}
 	add("s2", "migrate", proto.Working, "Migrating the\ndatabase", nil)
 	add("s3", "login", proto.Idle, "", &proto.GitInfo{Root: "/tmp/demo", Branch: "fix-login-redirect-after-oauth", Default: "main", Ahead: 2, Files: 3, Added: 40, Removed: 2})
-	a.st.Sessions[1].Progress = 40
+	a.St.Sessions[1].Progress = 40
 	tt := ui.NewTester(a.view, 1100, 700)
 	tt.Frame()
 	shot(t, tt, "sidebar-rows-detailed")
@@ -1337,7 +1337,7 @@ func TestSidebarRows(t *testing.T) {
 			t.Errorf("detailed rows have no %q; texts %q", want, tt.Texts())
 		}
 	}
-	a.set.SidebarRows = "compact"
+	a.Settings.SidebarRows = "compact"
 	tt.Frame()
 	shot(t, tt, "sidebar-rows-compact")
 	texts = strings.Join(tt.Texts(), "\n")
@@ -1354,14 +1354,14 @@ func TestSidebarRows(t *testing.T) {
 // done, the session left is gone.
 func TestSessionSwitchAnimates(t *testing.T) {
 	a := testApp(t)
-	second := a.st.Sessions[0]
+	second := a.St.Sessions[0]
 	second.ID, second.Name, second.Panes, second.Layout = "s2", "second", second.Panes[:1], nil
-	a.st.Sessions = append(a.st.Sessions, second)
+	a.St.Sessions = append(a.St.Sessions, second)
 	tt := ui.NewTester(a.view, 1100, 640)
 	tt.Frame()
 	tt.Frame()
-	if a.shownSession != "s1" {
-		t.Fatalf("shown %q", a.shownSession)
+	if a.ShownSession != "s1" {
+		t.Fatalf("shown %q", a.ShownSession)
 	}
 	// What the first shows, right of the second's only card: the session
 	// left stays there while it goes.
@@ -1369,8 +1369,8 @@ func TestSessionSwitchAnimates(t *testing.T) {
 	before := at(tt.Image())
 	a.selectSession("s2")
 	tt.Frame()
-	if a.shownSession != "s2" {
-		t.Fatalf("switched: shown %q", a.shownSession)
+	if a.ShownSession != "s2" {
+		t.Fatalf("switched: shown %q", a.ShownSession)
 	}
 	if on := at(tt.Image()); on == before {
 		t.Errorf("the session left goes at once: %v, as before", on)
@@ -1393,7 +1393,7 @@ func TestSessionSwitchAnimates(t *testing.T) {
 func TestSessionSwitchStyles(t *testing.T) {
 	a := testApp(t)
 	for _, style := range settings.SessionSwitches {
-		a.set.SessionSwitch = style
+		a.Settings.SessionSwitch = style
 		sw := a.sessionSwitch()
 		if style == "none" {
 			if sw != switchNone || sw.transition().Duration >= 0 || sw.transition().Exit != nil {

@@ -115,10 +115,10 @@ func magpieURL() string {
 
 // magpieOf returns Magpie's Info view, made the first time.
 func (a *App) magpieOf() *magpieInfo {
-	if a.magpie == nil {
-		a.magpie = &magpieInfo{}
+	if a.Magpie == nil {
+		a.Magpie = &magpieInfo{}
 	}
-	return a.magpie
+	return a.Magpie
 }
 
 // magpieTick reads Magpie as it falls due, and looks for it while it ran,
@@ -152,7 +152,7 @@ func (a *App) readMagpie(st *magpieInfo) {
 		session := a.paneSession()
 		u, err := fetchMagpie(base, session)
 		a.update(func() {
-			if a.magpie != st {
+			if a.Magpie != st {
 				return
 			}
 			st.busy = false
@@ -170,7 +170,7 @@ func (a *App) readMagpie(st *magpieInfo) {
 // paneSession is the coding agent's session of the pane the user is in, as
 // its hooks told hylad: "" while it told of none.
 func (a *App) paneSession() string {
-	s := a.session(a.selected)
+	s := a.session(a.Selected)
 	if s == nil {
 		return ""
 	}

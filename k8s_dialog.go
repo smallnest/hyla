@@ -47,15 +47,15 @@ var (
 
 // askK8sPod opens the dialog.
 func (a *App) askK8sPod() {
-	if a.k8sAsk == nil {
-		a.k8sAsk = &k8sAsk{open: true}
+	if a.K8sAsk == nil {
+		a.K8sAsk = &k8sAsk{open: true}
 	}
 }
 
 // k8sView draws the dialog while it is open, and opens the terminal once
 // the user says so.
 func (a *App) k8sView(c *ui.Context, pal *theme.Palette) {
-	d := a.k8sAsk
+	d := a.K8sAsk
 	if d == nil {
 		return
 	}
@@ -88,7 +88,7 @@ func (a *App) k8sView(c *ui.Context, pal *theme.Palette) {
 		a.addK8sPod()
 	}
 	if !d.open {
-		a.k8sAsk = nil
+		a.K8sAsk = nil
 		a.focusTerminal()
 	}
 }
@@ -99,16 +99,16 @@ func k8sProjectName() string { return locales.K8sPodsProject() }
 
 // k8sProjectOf is the sidebar's K8s project, nil while there is none.
 func (a *App) k8sProjectOf() *proto.Project {
-	if a.prefs.K8sProject == "" {
+	if a.Prefs.K8sProject == "" {
 		return nil
 	}
-	return a.project(a.prefs.K8sProject)
+	return a.project(a.Prefs.K8sProject)
 }
 
 // addK8sPod adds the pod the dialog names to the K8s project, which it
 // makes if there is none, and opens a terminal that enters it.
 func (a *App) addK8sPod() {
-	d := a.k8sAsk
+	d := a.K8sAsk
 	if d == nil {
 		return
 	}
@@ -132,8 +132,8 @@ func (a *App) addK8sPod() {
 	}
 	// The command the project lists already: its terminal comes, rather
 	// than a second row for the same pod.
-	for i := range a.prefs.K8sPods {
-		if a.prefs.K8sPods[i].Command == cmd {
+	for i := range a.Prefs.K8sPods {
+		if a.Prefs.K8sPods[i].Command == cmd {
 			d.open = false
 			a.connectK8s(i)
 			return
@@ -163,10 +163,10 @@ func (a *App) withK8sProject(fn func(proto.Project)) {
 				a.toast(err.Error())
 				return
 			}
-			a.prefs.K8sProject = p.ID
+			a.Prefs.K8sProject = p.ID
 			a.savePrefs()
 			if a.project(p.ID) == nil {
-				a.st.Projects = append(a.st.Projects, p)
+				a.St.Projects = append(a.St.Projects, p)
 			}
 			fn(p)
 		})
@@ -184,18 +184,18 @@ func k8sProject(cl *client.Client, name string) (proto.Project, error) {
 // addK8sPodTo adds a pod to the K8s project and opens a terminal that
 // enters it.
 func (a *App) addK8sPodTo(p proto.Project, name, cmd string) {
-	a.prefs.K8sPods = append(a.prefs.K8sPods, k8sPod{Name: name, Command: cmd})
+	a.Prefs.K8sPods = append(a.Prefs.K8sPods, k8sPod{Name: name, Command: cmd})
 	a.savePrefs()
-	a.connectK8s(len(a.prefs.K8sPods) - 1)
+	a.connectK8s(len(a.Prefs.K8sPods) - 1)
 }
 
 // connectK8s shows a pod's terminal, starting one in the K8s project if
 // it has none.
 func (a *App) connectK8s(i int) {
-	if i < 0 || i >= len(a.prefs.K8sPods) {
+	if i < 0 || i >= len(a.Prefs.K8sPods) {
 		return
 	}
-	a.showOrStartK8s(a.prefs.K8sPods[i])
+	a.showOrStartK8s(a.Prefs.K8sPods[i])
 }
 
 // showOrStartK8s shows the terminal a pod's row has, if it still runs,
@@ -242,13 +242,13 @@ func (a *App) startK8s(pod k8sPod) {
 				}
 				// The row may have gone as the terminal came, and another
 				// may have taken its place: the command finds it.
-				i := slices.IndexFunc(a.prefs.K8sPods, func(p k8sPod) bool { return p.Command == pod.Command })
+				i := slices.IndexFunc(a.Prefs.K8sPods, func(p k8sPod) bool { return p.Command == pod.Command })
 				if i < 0 {
 					return
 				}
-				a.prefs.K8sPods[i].Session = s.ID
+				a.Prefs.K8sPods[i].Session = s.ID
 				a.savePrefs()
-				delete(a.prefs.Collapsed, p.ID)
+				delete(a.Prefs.Collapsed, p.ID)
 				a.addPending(h, s)
 				a.selectSession(s.ID)
 			})
@@ -261,9 +261,9 @@ func (a *App) k8sPodOfSession(id string) *k8sPod {
 	if id == "" {
 		return nil
 	}
-	for i := range a.prefs.K8sPods {
-		if a.prefs.K8sPods[i].Session == id {
-			return &a.prefs.K8sPods[i]
+	for i := range a.Prefs.K8sPods {
+		if a.Prefs.K8sPods[i].Session == id {
+			return &a.Prefs.K8sPods[i]
 		}
 	}
 	return nil
@@ -280,33 +280,33 @@ type k8sDrag struct {
 // preferences.
 func (a *App) moveK8sPod(from, to string, after bool) {
 	at := func(cmd string) int {
-		return slices.IndexFunc(a.prefs.K8sPods, func(p k8sPod) bool { return p.Command == cmd })
+		return slices.IndexFunc(a.Prefs.K8sPods, func(p k8sPod) bool { return p.Command == cmd })
 	}
 	i, j := at(from), at(to)
 	if from == "" || from == to || i < 0 || j < 0 {
 		return
 	}
-	pod := a.prefs.K8sPods[i]
-	a.prefs.K8sPods = slices.Delete(a.prefs.K8sPods, i, i+1)
+	pod := a.Prefs.K8sPods[i]
+	a.Prefs.K8sPods = slices.Delete(a.Prefs.K8sPods, i, i+1)
 	j = at(to)
 	if after {
 		j++
 	}
-	a.prefs.K8sPods = slices.Insert(a.prefs.K8sPods, j, pod)
+	a.Prefs.K8sPods = slices.Insert(a.Prefs.K8sPods, j, pod)
 	a.savePrefs()
 }
 
 // removeK8sPod removes a pod from the K8s project, ending its terminal
 // as closing one does.
 func (a *App) removeK8sPod(cmd string) {
-	for i, pod := range a.prefs.K8sPods {
+	for i, pod := range a.Prefs.K8sPods {
 		if pod.Command != cmd {
 			continue
 		}
-		a.prefs.K8sPods = slices.Delete(a.prefs.K8sPods, i, i+1)
+		a.Prefs.K8sPods = slices.Delete(a.Prefs.K8sPods, i, i+1)
 		a.savePrefs()
 		a.undoSays(locales.K8sPodRemoved(pod.Name), func() {
-			a.prefs.K8sPods = slices.Insert(a.prefs.K8sPods, min(i, len(a.prefs.K8sPods)), pod)
+			a.Prefs.K8sPods = slices.Insert(a.Prefs.K8sPods, min(i, len(a.Prefs.K8sPods)), pod)
 			a.savePrefs()
 		})
 		if pod.Session != "" {
@@ -319,7 +319,7 @@ func (a *App) removeK8sPod(cmd string) {
 
 // clearK8sProject forgets the K8s project, whose terminals go with it.
 func (a *App) clearK8sProject() {
-	a.prefs.K8sProject, a.prefs.K8sPods = "", nil
+	a.Prefs.K8sProject, a.Prefs.K8sPods = "", nil
 	a.savePrefs()
 }
 
@@ -384,14 +384,14 @@ func k8sFlagValue(flag string) bool {
 // k8sPodRow is a pod in the K8s project: its name over the command that
 // enters it, a click showing its terminal or starting one.
 func (a *App) k8sPodRow(c *ui.Context, pal *theme.Palette, i int) {
-	pod := a.prefs.K8sPods[i]
+	pod := a.Prefs.K8sPods[i]
 	s := a.session(pod.Session)
-	if s != nil && s.Project != a.prefs.K8sProject {
+	if s != nil && s.Project != a.Prefs.K8sProject {
 		s = nil
 	}
-	selected := s != nil && s.ID == a.selected
+	selected := s != nil && s.ID == a.Selected
 	inset := float32(rowInset)
-	detailed := a.set.SidebarRows != "compact"
+	detailed := a.Settings.SidebarRows != "compact"
 	height := float32(rowH)
 	if detailed {
 		height = rowH2
@@ -401,10 +401,10 @@ func (a *App) k8sPodRow(c *ui.Context, pal *theme.Palette, i int) {
 	bg := ui.Transparent
 	switch {
 	case selected:
-		bg = theme.TranslucentGlass(pal.RowSelected, pal, a.set)
+		bg = theme.TranslucentGlass(pal.RowSelected, pal, a.Settings)
 		style.Chosen(row, pal)
 	case row.Hovered():
-		bg = theme.TranslucentGlass(pal.RowHover, pal, a.set)
+		bg = theme.TranslucentGlass(pal.RowHover, pal, a.Settings)
 	}
 	row.Background(row.AnimateColor("bg", bg, ui.Animation{Duration: 110 * time.Millisecond}))
 	// The row is its pod's handle: dragged, it moves the pod to another
@@ -416,16 +416,16 @@ func (a *App) k8sPodRow(c *ui.Context, pal *theme.Palette, i int) {
 	if d, over := ui.DragOver[k8sDrag](row); over && d.command != pod.Command {
 		_, y, _ := row.PointerPosition()
 		after := y > height/2
-		a.dragAt, a.dragAfter = pod.Command, after
+		a.DragAt, a.DragAfter = pod.Command, after
 		row.Background(pal.RowHover)
 		dragLine(row, pal, after)
 	}
 	if d, ok := ui.Drop[k8sDrag](row); ok && d.command != pod.Command {
 		_, y, _ := row.PointerPosition()
 		after := y > height/2
-		if a.dragAt == pod.Command {
+		if a.DragAt == pod.Command {
 			// The side the insertion line last showed.
-			after = a.dragAfter
+			after = a.DragAfter
 		}
 		to := pod.Command
 		a.defer_(func() { a.moveK8sPod(d.command, to, after) })
@@ -441,11 +441,11 @@ func (a *App) k8sPodRow(c *ui.Context, pal *theme.Palette, i int) {
 		}
 		m.Separator()
 		if m.Item(locales.K8sCopyCommand()).Chosen() {
-			a.copyText = pod.Command
+			a.CopyText = pod.Command
 		}
 		if m.Item(locales.HostRemove()).Chosen() {
 			name, cmd := pod.Name, pod.Command
-			a.confirm = &confirmation{
+			a.Confirm = &confirmation{
 				open:    true,
 				title:   locales.K8sRemoveTitle(name),
 				detail:  locales.K8sRemoveDetail(),

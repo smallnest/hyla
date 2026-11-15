@@ -22,7 +22,7 @@ const feishuStatusTick = 5 * time.Second
 // feishu-app names one. While the bot connects, the view reads the state
 // again, for the connection to drop.
 func (a *App) infoFeishu(c *ui.Context, pal *theme.Palette, p *proto.Pane) {
-	set := a.set.Feishu
+	set := a.Settings.Feishu
 	if set == nil || set.App == "" {
 		return
 	}
@@ -38,7 +38,7 @@ func (a *App) infoFeishu(c *ui.Context, pal *theme.Palette, p *proto.Pane) {
 		st.feishuGot = true
 		a.callOn(a.hostOf(p.ID), "feishu.status", nil, func(err error) {
 			a.update(func() {
-				if a.info[p.ID] == st {
+				if a.Info[p.ID] == st {
 					st.feishuGot = false
 				}
 			})

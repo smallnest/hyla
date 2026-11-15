@@ -26,18 +26,18 @@ func TestSidebarMarks(t *testing.T) {
 		p := proto.Pane{ID: fmt.Sprintf("p%d", i), Dir: "/Users/smallnest/ai/hyla", Status: proto.Idle, Progress: -1, Agent: agent, Process: agent}
 		ss = append(ss, proto.Session{ID: fmt.Sprintf("s%d", i), Project: "p1", Name: names[agent], Pane: p, Panes: []proto.Pane{p}})
 	}
-	a.st.Projects = []proto.Project{{ID: "p1", Name: "hyla", Dir: "/Users/smallnest/ai/hyla"}}
-	a.st.Sessions = ss
-	a.loaded, a.selected = true, "s0"
+	a.St.Projects = []proto.Project{{ID: "p1", Name: "hyla", Dir: "/Users/smallnest/ai/hyla"}}
+	a.St.Sessions = ss
+	a.Loaded, a.Selected = true, "s0"
 	for i, c := range []struct {
 		dark    bool
 		compact bool
 	}{{false, false}, {true, false}, {false, true}} {
 		name := []string{"sidebar-marks", "sidebar-marks-dark", "sidebar-marks-compact"}[i]
 		dark := c.dark
-		a.set.SidebarRows = "detailed"
+		a.Settings.SidebarRows = "detailed"
 		if c.compact {
-			a.set.SidebarRows = "compact"
+			a.Settings.SidebarRows = "compact"
 		}
 		tt := ui.NewTesterWith(a.view, 420, 620, ui.TesterOptions{Dark: dark})
 		for i := 0; i < 60 && tt.FramePending(); i++ {
