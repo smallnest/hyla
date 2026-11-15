@@ -41,17 +41,17 @@ func (a *App) RunAction(id string, args map[string]string) { a.run(id, args) }
 func (a *App) order() sidebar.App { return order{a} }
 
 // Root is the app as the sidebar's order asks it.
-func (a *App) Root() sidebarview.Rooter { return root{a} }
+func (a *App) Root() sidebarview.Rooter { return orderRoot{a} }
 
-type root struct{ *App }
+type orderRoot struct{ *App }
 
-func (r root) PrefsNowAll() sidebarview.Prefs   { return r.App.PrefsNowAll() }
-func (r root) PrefsNow() sidebar.Prefs          { return r.App.PrefsNowAll().Prefs }
-func (r root) MachinesNow() []*host.Host        { return r.App.Machines }
-func (r root) SessionsNow() []proto.Session     { return r.App.St.Sessions }
-func (r root) ProjectsNow() []proto.Project     { return r.App.St.Projects }
-func (r root) Session(id string) *proto.Session { return r.App.session(id) }
-func (r root) SelectedID() string               { return r.App.Selected }
+func (r orderRoot) PrefsNowAll() sidebarview.Prefs   { return r.App.PrefsNowAll() }
+func (r orderRoot) PrefsNow() sidebar.Prefs          { return r.App.PrefsNowAll().Prefs }
+func (r orderRoot) MachinesNow() []*host.Host        { return r.App.Machines }
+func (r orderRoot) SessionsNow() []proto.Session     { return r.App.St.Sessions }
+func (r orderRoot) ProjectsNow() []proto.Project     { return r.App.St.Projects }
+func (r orderRoot) Session(id string) *proto.Session { return r.App.session(id) }
+func (r orderRoot) SelectedID() string               { return r.App.Selected }
 
 // HostList are the hosts the app holds, this machine's first.
 func (a *App) HostList() []*host.Host { return a.Machines }

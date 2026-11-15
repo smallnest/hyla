@@ -284,6 +284,13 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     settings through `Glass`. The root keeps `card_adapters.go`. The
     root's `sessionSwitch` is `panes.SessionSwitch`, which `panes.Switch`
     names; its ids are the settings' strings.
+  - Also: the window's row is `internal/ui/root` — the sidebar's slide,
+    the sidebar's picture and its drops, the card, the pages a screenshot
+    stages, the dialogs, and the frame's end with its toasts, its peek
+    and the actions the view asked for. The root keeps `root_adapters.go`
+    and `view.go`'s sidebar handle; the settings' window and the
+    machines' pages share a name with some of these, which take another
+    (`AppSettings`, `PickerView`).
   - The guard now fails on a package of `internal/` that no layer's
     names hold. It found `buildinfo`, `fileicons` and `profiling` never
     listed.
