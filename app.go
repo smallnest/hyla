@@ -1762,28 +1762,8 @@ func (a *App) hostsLoaded() bool {
 // of before until it restarts.
 func (a *App) daemonStale() bool { return a.local().Stale() }
 
-// offerRestart restarts hylad into this version of Hyla, asking first
-// while programs run in sessions, as the restart ends them.
-func (a *App) offerRestart() {
-	h := a.local()
-	n := a.busyCount(h)
-	if n == 0 {
-		a.restartDaemon()
-		return
-	}
-	was := locales.RestartEarlierVersion()
-	if h.DaemonApp != "" {
-		was = h.DaemonApp
-	}
-	a.Confirm = &confirm.Ask{
-		Open:    true,
-		Title:   locales.ConfirmRestartServiceTitle(),
-		Detail:  locales.RestartStaleDetail(was, mygo.App.Version(), locales.RestartRunning(n)),
-		Action:  locales.CommonRestartService(),
-		Destroy: true,
-		Run:     a.restartDaemon,
-	}
-}
+// offerRestart restarts hylad into this version of Hyla.
+func (a *App) offerRestart() { quit.Offer(a) }
 
 // busyCount counts a host's sessions whose programs a restart of its
 // hylad would end.

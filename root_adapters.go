@@ -3,6 +3,8 @@ package main
 import (
 	"slices"
 
+	"github.com/egoist/mygo"
+
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/app/host"
@@ -183,3 +185,8 @@ func (a *App) RestartEnded(err error) {
 	}
 	a.connect()
 }
+
+// The restart's versions, as offering one asks them.
+func (a *App) Version() string { return mygo.App.Version() }
+
+func (a *App) DaemonApp() string { return a.local().DaemonApp }

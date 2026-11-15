@@ -59,7 +59,34 @@ type App interface {
 	// RestartEnded says how it went: the host connects again, or shows why
 	// it did not.
 	RestartEnded(err error)
+	// Version is the app's version, which a restart brings to hylad, and
+	// DaemonApp the version hylad runs: the earlier one, until it
+	// restarts.
+	Version() string
+	DaemonApp() string
 	UpdateNow(fn func())
+}
+
+// Offer restarts hylad into this version of Hyla, asking first while
+// programs run in sessions, as the restart ends them.
+func Offer(a App) {
+	n := a.Busy(a.Local())
+	if n == 0 {
+		Daemon(a)
+		return
+	}
+	was := locales.RestartEarlierVersion()
+	if app := a.DaemonApp(); app != "" {
+		was = app
+	}
+	a.ConfirmAsk(&confirm.Ask{
+		Open:    true,
+		Title:   locales.ConfirmRestartServiceTitle(),
+		Detail:  locales.RestartStaleDetail(was, a.Version(), locales.RestartRunning(n)),
+		Action:  locales.CommonRestartService(),
+		Destroy: true,
+		Run:     func() { Daemon(a) },
+	})
 }
 
 // Requested answers a quit: true lets it go, false takes it back. It ends
