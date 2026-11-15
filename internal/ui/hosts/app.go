@@ -5,6 +5,7 @@ import (
 
 	"hyla/internal/app/host"
 	"hyla/internal/proto"
+	"hyla/internal/settings"
 	"hyla/internal/ui/confirm"
 	"hyla/internal/ui/settings/draft"
 	"hyla/internal/ui/theme"
@@ -43,7 +44,12 @@ type App interface {
 	// SetConfirm asks the app's confirmation.
 	SetConfirm(a *confirm.Ask)
 	// HostDraft, PairCodeDraft and P2PDraft are the forms' drafts, and
-	// TCPListen is this machine's listener.
+	// SettingsNow are the settings the pages change.
+	SettingsNow() *settings.Settings
+	SetSettingsNow(s settings.Settings)
+	// Update runs fn on the main thread, and Toast tells a failure.
+	Update(fn func())
+	Toast(msg string)
 	HostDraft() *draft.HostDraft
 	PairCodeDraft() *draft.TCHostDraft
 	P2PDraft() *draft.TailcatDraft

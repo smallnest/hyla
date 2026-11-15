@@ -148,6 +148,10 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     take (`PaletteLocal`, `PaletteSelectSession`), as `DropTerms` does
     (`DropHostTerms`). The forms' drafts moved to
     `internal/ui/settings/draft`, which the pages and the machines' read.
+  - Also: the Tailcat and network listeners' group — its forms, the
+    machine's pair code, its rotation and what a phone scans — joined
+    `internal/ui/hosts`, which changes the settings through
+    `App.SettingsNow`.
   - Also: the pet is `internal/ui/petme` — its mood and the words it
     says, the frog it draws, the Codex pets' spritesheets, the pets it
     lists and the window that follows the main one. Its state is the
