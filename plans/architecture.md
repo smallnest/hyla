@@ -307,6 +307,10 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     with it, asked off the main thread through the app's call. Its `Sess`
     asks more than the dialog's `App`: `AskNew`, `AskClose`, `Create`,
     `EndSession` and `UpdateNow`. `root_adapters.go` answers them.
+  - Also: a quit's decision is `internal/app/quit` — whether it goes, or
+    asks while a program runs, ends this machine's sessions without hylad
+    to ask, and the grace before the app leaves anyway. It is of the cli
+    layer, as it asks with the confirmation the views draw.
   - The guard now fails on a package of `internal/` that no layer's
     names hold. It found `buildinfo`, `fileicons` and `profiling` never
     listed.

@@ -8,6 +8,7 @@ import (
 	"hyla/internal/app/favicon"
 	"hyla/internal/app/host"
 	"hyla/internal/app/paneinfo"
+	"hyla/internal/app/quit"
 	"hyla/internal/platform"
 	"hyla/internal/ui/layout"
 	"maps"
@@ -1724,66 +1725,14 @@ func (a *App) toggleAllProjects() {
 // quit-ends-sessions, a quit ends this machine's sessions as
 // endSessionsAndQuit does, so it asks what Quit and End All Sessions asks
 // while a program runs, and closes nothing until the answer says so.
-func (a *App) quitRequested() bool {
-	a.savePrefs()
-	if !a.settingsIn.QuitEndsSessions || a.quitting {
-		// A quit taken back before, or the one its answer makes: either
-		// way it is over.
-		a.quitting = false
-		return a.allowQuit()
-	}
-	busy := a.busyCount(a.local())
-	switch {
-	case busy > 0 && a.settingsIn.ConfirmClose:
-		a.quitting = true
-		a.Confirm = &confirm.Ask{
-			Open:    true,
-			Title:   locales.ConfirmQuitAllTitle(),
-			Detail:  quitAllDetail(busy, len(a.Machines) > 1),
-			Action:  locales.ConfirmQuitAllAction(),
-			Destroy: true,
-			Ends:    true, // Return may be a program's to read
-			Run:     a.endSessionsAndQuit,
-		}
-		return false
-	case busy == 0 && a.hostsLoaded():
-		// Nothing runs that the user could lose: the quit ends the
-		// sessions itself, as it goes.
-		return a.allowQuit()
-	case !a.hostsLoaded():
-		// The sessions have not come yet, and with them what runs: take
-		// the quit back while the app shows them, and ask again when the
-		// user quits after.
-		a.quitting = true
-		a.bringToFront()
-		return false
-	default:
-		// Nothing runs, and the sessions are not all in sight, as when
-		// the app quits from the Dock while hidden: let it end them.
-		return a.allowQuit()
-	}
-}
+func (a *App) quitRequested() bool { return quit.Requested(a) }
 
-// quitGrace is how long a quit may take before the app leaves without it:
-// a window that will not close, or a loop that will not stop, must not
-// keep the user waiting on it.
-const quitGrace = 2 * time.Second
-
-// allowQuit lets a quit go, and makes sure it goes: the quick terminal's
-// window closes with it rather than hiding itself, and if the app is still
-// here after quitGrace it exits anyway.
-func (a *App) allowQuit() bool {
-	a.quittingApp = true
-	a.armQuitTimer()
-	return true
-}
-
-// armQuitTimer leaves the app after quitGrace, whatever holds the quit.
+// armQuitTimer leaves the app after quit.Grace, whatever holds the quit.
 func (a *App) armQuitTimer() {
 	if a.Win == nil || a.quitTimer != nil {
 		return
 	}
-	a.quitTimer = time.AfterFunc(quitGrace, func() { os.Exit(0) })
+	a.quitTimer = time.AfterFunc(quit.Grace, func() { os.Exit(0) })
 }
 
 // bringToFront shows the window, and brings it forward, so that the user
@@ -1795,18 +1744,6 @@ func (a *App) bringToFront() {
 	a.Win.Show() // it has no native window, as in tests
 	a.Win.Restore()
 	a.Win.Focus()
-}
-
-// quitEndsSession ends this machine's sessions without hylad to ask, as
-// when the app quits before it connects: the quit-ends-sessions the user
-// chose then takes the sessions' state, so that none starts again.
-func (a *App) quitEndsSession() {
-	for _, s := range a.SessionsOf(a.local()) {
-		if cl, err := client.Connect(true); err == nil {
-			cl.Call("close", proto.IDParams{ID: s.ID}, nil)
-			cl.Close()
-		}
-	}
 }
 
 // hostsLoaded reports whether every host has shown its sessions, as the
@@ -1894,7 +1831,7 @@ func (a *App) quitAndEnd() {
 	a.Confirm = &confirm.Ask{
 		Open:    true,
 		Title:   locales.ConfirmQuitAllTitle(),
-		Detail:  quitAllDetail(n, len(a.Machines) > 1),
+		Detail:  quit.Detail(n, len(a.Machines) > 1),
 		Action:  locales.ConfirmQuitAllAction(),
 		Destroy: true,
 		Ends:    true,
@@ -1910,11 +1847,11 @@ func (a *App) endSessionsAndQuit() {
 	h := a.local()
 	cl := h.Client
 	// The daemon may take its time ending the sessions: the app leaves
-	// within quitGrace whatever it answers.
+	// within quit.Grace whatever it answers.
 	a.armQuitTimer()
 	go func() {
 		if cl == nil {
-			a.quitEndsSession()
+			quit.EndsSession(a)
 		} else if cl.Call("shutdown", nil, nil) != nil {
 			// hylad went before it answered, or speaks another version:
 			// stop the one this machine runs.
@@ -1922,17 +1859,6 @@ func (a *App) endSessionsAndQuit() {
 		}
 		mygo.App.Quit()
 	}()
-}
-
-// quitAllDetail says what Quit and End All ends: this machine's sessions,
-// as other machines' keep running.
-
-func quitAllDetail(n int, hosts bool) string {
-	d := locales.ConfirmQuitAllDetail(n)
-	if hosts {
-		d += " " + locales.ConfirmQuitAllHosts()
-	}
-	return d
 }
 
 // The app, as the sidebar's order asks it.

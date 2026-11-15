@@ -145,3 +145,26 @@ func (a *App) view(c *ui.Context) { root.View(a, c) }
 
 // Create starts a session, as the worktree dialog's.
 func (a *App) Create(h *host.Host, p proto.CreateParams, project string) { a.create(h, p, project) }
+
+// The quit's answers, as internal/app/quit asks them.
+func (a *App) Asking(on bool) { a.quitting = on }
+
+func (a *App) AskingNow() bool { return a.quitting }
+
+func (a *App) ConfirmAsk(cf *confirm.Ask) { a.Confirm = cf }
+
+func (a *App) Seen(h *host.Host) bool { return h.Loaded }
+
+func (a *App) Busy(h *host.Host) int { return a.busyCount(h) }
+
+func (a *App) Hosts() []*host.Host { return a.Machines }
+
+func (a *App) BringToFront() { a.bringToFront() }
+
+func (a *App) Leaving() { a.quittingApp = true }
+
+func (a *App) ArmQuitTimer() { a.armQuitTimer() }
+
+func (a *App) EndSessionsAndQuit() { a.endSessionsAndQuit() }
+
+func (a *App) SessionsOn(h *host.Host) []proto.Session { return a.sessionsOn(h) }
