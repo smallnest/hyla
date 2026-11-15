@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/egoist/mygo/ui"
-	"hyla/internal/client"
 	"hyla/internal/ui/theme"
 
+	"hyla/internal/app/paneinfo"
 	"hyla/internal/proto"
 
 	"hyla/locales"
@@ -24,140 +24,22 @@ import (
 // The Info view is the side panel's first: where the pane in the session
 // works, the processes of its terminal and the ports they listen on.
 
-const (
-	// infoIdle is the time between the reads of a pane's Info view whose
-	// shell ran nothing yet.
-	infoIdle = 3 * time.Second
-
-	// infoTick is the time between the reads of a pane's working
-	// directory; infoProcsTick the time between two listings of its
-	// processes, which carry their ports, from as slow a tool as lsof.
-	// infoCached bounds the views kept.
-	infoTick      = time.Second
-	infoProcsTick = 2 * time.Second
-	infoCached    = 32
-)
-
-// paneInfo is what the Info view shows of a pane, kept by the app across
-// the builds and read again as the view shows.
-type paneInfo struct {
-	readAt   time.Time
-	busy     bool   // a read is under way
-	shell    int    // the pane's shell, as it was read of
-	dir      string // the working directory, as the header shows it
-	procs    []proto.Process
-	procsAt  bool      // the processes were listed
-	listedAt time.Time // when they were
-	ports    int
-	listErr  string // why the processes did not list
-	// feishu is the bot's state, as hylad last told it (infoFeishu).
-	feishu    *proto.FeishuState
-	feishuAt  time.Time
-	feishuGot bool // a read of it is under way
-}
-
 // paneInfoOf returns a pane's Info view, made for the pane as it is now.
-func (a *App) paneInfoOf(p *proto.Pane) *paneInfo {
-	st := a.Info[p.ID]
-	if st != nil && st.shell != p.PID {
-		st = nil
-	}
-	if st != nil && st.shell <= 0 && p.PID > 0 {
-		// The shell starts as the view first shows: the reads look again.
-		st.shell, st.readAt, st.procsAt = p.PID, time.Time{}, false
-	}
-	if st == nil {
-		if a.Info == nil {
-			a.Info = map[string]*paneInfo{}
-		}
-		if len(a.Info) >= infoCached {
-			for id := range a.Info {
-				if id != p.ID {
-					delete(a.Info, id)
-				}
-			}
-		}
-		st = &paneInfo{shell: p.PID}
-		a.Info[p.ID] = st
-	}
-	return st
+func (a *App) paneInfoOf(p *proto.Pane) *paneinfo.State {
+	return a.Info.Of(p)
 }
 
 // infoTick starts a pane's reads as they fall due.
 func (a *App) infoTick(c *ui.Context, p *proto.Pane) {
 	st := a.paneInfoOf(p)
 	now := time.Now()
-	if now.Sub(st.readAt) >= infoTick {
-		a.readInfo(p, st)
+	if now.Sub(st.ReadAt) >= paneinfo.Tick {
+		paneinfo.Read(st, a.hostOf(p.ID).cl, a.workDir(p.ID), a.update)
 	}
-	if !st.procsAt || now.Sub(st.listedAt) >= infoProcsTick {
-		a.readProcs(p, st)
+	if !st.ProcsAt || now.Sub(st.ListedAt) >= paneinfo.ProcsTick {
+		paneinfo.ReadProcs(st, a.hostOf(p.ID).cl, p, a.update)
 	}
-	c.After(infoProcsTick / 2)
-}
-
-// readInfo reads a pane's working directory from this machine's files:
-// another machine's hold their own.
-func (a *App) readInfo(p *proto.Pane, st *paneInfo) {
-	cl := a.hostOf(p.ID).cl
-	if cl == nil || st.busy {
-		return
-	}
-	st.readAt, st.busy = time.Now(), true
-	dir, remote := a.workDir(p.ID), false
-	go func() {
-		abs := ""
-		if !remote {
-			abs = readDir(cl, dir)
-		}
-		if abs == "" {
-			abs = dir
-		}
-		a.update(func() {
-			if a.Info[p.ID] != st {
-				return
-			}
-			st.readAt, st.busy, st.dir = time.Now(), false, abs
-		})
-	}()
-}
-
-// readDir returns the working directory a host lists, as it is: a
-// directory gone is "".
-func readDir(cl *client.Client, dir string) string {
-	if dir == "" {
-		return ""
-	}
-	var l proto.FSList
-	if cl.Call("fs.list", proto.FSListParams{Dir: dir}, &l) != nil {
-		return ""
-	}
-	return l.Dir
-}
-
-// readProcs lists a pane's processes, and the ports they hold.
-func (a *App) readProcs(p *proto.Pane, st *paneInfo) {
-	cl := a.hostOf(p.ID).cl
-	if cl == nil || p.PID <= 0 {
-		return
-	}
-	go func() {
-		var procs []proto.Process
-		err := cl.Call("pane.processes", proto.ProcessesParams{PID: p.PID}, &procs)
-		a.update(func() {
-			if a.Info[p.ID] != st {
-				return
-			}
-			if err != nil {
-				st.procsAt, st.listedAt, st.listErr = true, time.Now(), err.Error()
-				return
-			}
-			st.procsAt, st.listedAt, st.procs, st.listErr, st.ports = true, time.Now(), procs, "", 0
-			for _, pr := range procs {
-				st.ports += len(pr.Ports)
-			}
-		})
-	}()
+	c.After(paneinfo.ProcsTick / 2)
 }
 
 // --- the views ---
@@ -300,8 +182,8 @@ func infoValue(c *ui.Context, pal *theme.Palette, value string) {
 // infoDir is the Info view's working directory, with what opens it: its
 // own name as the card's title, its parent after, and the ways to it,
 // each a button.
-func (a *App) infoDir(c *ui.Context, pal *theme.Palette, s *proto.Session, h *host, p *proto.Pane, st *paneInfo) {
-	dir := st.dir
+func (a *App) infoDir(c *ui.Context, pal *theme.Palette, s *proto.Session, h *host, p *proto.Pane, st *paneinfo.State) {
+	dir := st.Dir
 	if dir == "" {
 		dir = p.WorkDir()
 	}
@@ -422,26 +304,26 @@ func editorName(h *host) string {
 // infoProcs is the Info view's processes: those of the pane's terminal,
 // the parents first, each with how long it ran, its CPU and the ports it
 // listens on.
-func (a *App) infoProcs(c *ui.Context, pal *theme.Palette, p *proto.Pane, st *paneInfo) {
-	if st.shell <= 0 {
+func (a *App) infoProcs(c *ui.Context, pal *theme.Palette, p *proto.Pane, st *paneinfo.State) {
+	if st.Shell <= 0 {
 		// The shell has not started: the view looks again for it.
-		c.After(infoIdle)
+		c.After(paneinfo.Idle)
 	}
 	aside := ""
-	if len(st.procs) > 0 {
-		aside = itoa(len(st.procs))
+	if len(st.Procs) > 0 {
+		aside = itoa(len(st.Procs))
 	}
 	a.infoCard(c, pal, infoFoldProcs, glyph.CPU, locales.InfoProcess(), aside, func() {
 		switch {
-		case st.listErr != "":
-			ui.Text(c, st.listErr).FontSize(12).TextColor(pal.Danger).LineHeight(1.35).Padding(0, 12, 8, 12).Wrap()
+		case st.ListErr != "":
+			ui.Text(c, st.ListErr).FontSize(12).TextColor(pal.Danger).LineHeight(1.35).Padding(0, 12, 8, 12).Wrap()
 		case p.PID <= 0:
 			infoEmpty(c, pal, locales.InfoNoShell())
-		case !st.procsAt:
+		case !st.ProcsAt:
 			ui.Box(c).Height(34).Padding(0, 12).Center().Children(func() { ui.Spinner(c).Size(12, 12) })
 		default:
 			infoRows(c, func() {
-				for i, pr := range st.procs {
+				for i, pr := range st.Procs {
 					if i > 0 {
 						infoRule(c, pal)
 					}
@@ -484,27 +366,27 @@ func processRow(c *ui.Context, pal *theme.Palette, pr proto.Process) {
 
 // infoPorts is the Info view's ports: those the pane's processes listen on,
 // each opening in the browser.
-func (a *App) infoPorts(c *ui.Context, pal *theme.Palette, p *proto.Pane, st *paneInfo) {
-	if st.shell <= 0 {
+func (a *App) infoPorts(c *ui.Context, pal *theme.Palette, p *proto.Pane, st *paneinfo.State) {
+	if st.Shell <= 0 {
 		// The shell has not started: the ports come with its processes.
-		c.After(infoIdle)
+		c.After(paneinfo.Idle)
 	}
 	aside := ""
-	if st.ports > 0 {
-		aside = itoa(st.ports)
+	if st.Ports > 0 {
+		aside = itoa(st.Ports)
 	}
 	a.infoCard(c, pal, infoFoldPorts, glyph.Globe, locales.InfoPorts(), aside, func() {
 		switch {
-		case !st.procsAt && p.PID <= 0:
+		case !st.ProcsAt && p.PID <= 0:
 			infoEmpty(c, pal, locales.InfoNoShell())
-		case !st.procsAt:
+		case !st.ProcsAt:
 			ui.Box(c).Height(34).Padding(0, 12).Center().Children(func() { ui.Spinner(c).Size(12, 12) })
-		case st.ports == 0:
+		case st.Ports == 0:
 			infoEmpty(c, pal, locales.InfoNoPorts())
 		default:
 			infoRows(c, func() {
 				first := true
-				for _, pr := range st.procs {
+				for _, pr := range st.Procs {
 					for _, port := range pr.Ports {
 						if !first {
 							infoRule(c, pal)

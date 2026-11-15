@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hyla/internal/app/paneinfo"
 	"hyla/internal/platform"
 	"maps"
 	"os"
@@ -241,7 +242,7 @@ type App struct {
 	Picker folderPicker // the folders of a host, to open a project in
 	Side   sideState    // the side panel, beside a session's panes
 	// info is what the Info views read, by pane (info.go).
-	Info map[string]*paneInfo
+	Info paneinfo.Panes
 	// magpie is what Magpie shows of itself (magpie.go), nil until the
 	// Info view shows.
 	Magpie *magpieInfo

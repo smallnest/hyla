@@ -21,14 +21,14 @@ func TestInfoDemo(t *testing.T) {
 	a := testApp(t)
 	p := a.session("s1").FocusPane()
 	st := a.paneInfoOf(p)
-	st.dir = "/Users/smallnest/ai/hyla"
-	st.procs = []proto.Process{
+	st.Dir = "/Users/smallnest/ai/hyla"
+	st.Procs = []proto.Process{
 		{PID: 4211, Name: "zsh", Age: "2-03:11:40"},
 		{PID: 88130, Name: "claude", Age: "01:12:05", Ports: []int{3000}},
 		{PID: 88201, Name: "node", Age: "58:17", CPU: 3.2, Ports: []int{5173, 9229}},
 	}
-	st.procsAt, st.listedAt = true, time.Now()
-	st.ports = 3
+	st.ProcsAt, st.ListedAt = true, time.Now()
+	st.Ports = 3
 	a.showSide(sideInfo)
 	tt := ui.NewTester(a.view, 1100, 720)
 	tt.Frame()
@@ -41,12 +41,12 @@ func TestInfoMagpieDemo(t *testing.T) {
 	a := testApp(t)
 	p := a.session("s1").FocusPane()
 	st := a.paneInfoOf(p)
-	st.dir = "/Users/smallnest/ai/hyla"
-	st.procs = []proto.Process{
+	st.Dir = "/Users/smallnest/ai/hyla"
+	st.Procs = []proto.Process{
 		{PID: 4211, Name: "zsh", Age: "2-03:11:40"},
 		{PID: 88130, Name: "claude", Age: "01:12:05"},
 	}
-	st.procsAt, st.listedAt = true, time.Now()
+	st.ProcsAt, st.ListedAt = true, time.Now()
 	a.Magpie = &magpieInfo{ran: true, readAt: time.Now(), usage: &magpie.Usage{
 		Today:   magpie.Bucket{Calls: 2081, Input: 1488819, Output: 359513, CacheRead: 246954880, Reasoning: 333, Cost: 1.1799},
 		Session: 412, SessionCost: 0.214,
@@ -59,7 +59,7 @@ func TestInfoMagpieDemo(t *testing.T) {
 		},
 	}}
 	a.showSide(sideInfo)
-	st.readAt, st.busy, st.listedAt = time.Now(), true, time.Now()
+	st.ReadAt, st.Busy, st.ListedAt = time.Now(), true, time.Now()
 	a.Magpie.readAt, a.Magpie.busy = time.Now(), true
 	tt := ui.NewTester(a.view, 1100, 900)
 	for i := 0; i < 60 && tt.FramePending(); i++ {

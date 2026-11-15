@@ -27,24 +27,24 @@ func (a *App) infoFeishu(c *ui.Context, pal *theme.Palette, p *proto.Pane) {
 		return
 	}
 	st := a.paneInfoOf(p)
-	connected := st.feishu != nil && st.feishu.Connected
+	connected := st.Feishu != nil && st.Feishu.Connected
 	aside := locales.SetFeishuOff()
 	if connected {
 		aside = locales.SetFeishuOn()
 	}
 	// The state first, once, else the card would show off for a moment;
 	// then again as the bot connects, for the connection to drop.
-	if !st.feishuGot && (st.feishu == nil || connected && time.Since(st.feishuAt) > feishuStatusTick) {
-		st.feishuGot = true
+	if !st.FeishuGot && (st.Feishu == nil || connected && time.Since(st.FeishuAt) > feishuStatusTick) {
+		st.FeishuGot = true
 		a.callOn(a.hostOf(p.ID), "feishu.status", nil, func(err error) {
 			a.update(func() {
-				if a.Info[p.ID] == st {
-					st.feishuGot = false
+				if a.paneInfoOf(p) == st {
+					st.FeishuGot = false
 				}
 			})
 		})
 	}
-	if st.feishu == nil || st.feishuGot {
+	if st.Feishu == nil || st.FeishuGot {
 		// The state, once hylad answers; the card waits for it.
 		return
 	}
@@ -56,8 +56,8 @@ func (a *App) infoFeishu(c *ui.Context, pal *theme.Palette, p *proto.Pane) {
 		infoRows(c, func() {
 			ui.Column(c).Padding(4, 12, 10, 12).Gap(4).Children(func() {
 				ui.Text(c, who).FontSize(12).TextColor(pal.TextMuted).Wrap()
-				if st.feishu != nil && !st.feishu.Connected {
-					why := st.feishu.Error
+				if st.Feishu != nil && !st.Feishu.Connected {
+					why := st.Feishu.Error
 					if why == "" {
 						why = "not connected"
 					}
