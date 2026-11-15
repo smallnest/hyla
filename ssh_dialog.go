@@ -6,6 +6,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/remote"
 	"hyla/internal/ui/confirm"
+	"hyla/internal/ui/k8sdialog"
 	"hyla/internal/ui/sshdialog"
 	"hyla/internal/ui/theme"
 )
@@ -47,6 +48,10 @@ func (a *App) DragAt() string { return a.DragAtAddr }
 func (a *App) DragAfter() bool { return a.DragAfterSide }
 
 func (a *App) SetDragAt(addr string, after bool) { a.DragAtAddr, a.DragAfterSide = addr, after }
+
+func (a *App) K8sPrompt() *k8sdialog.Ask { return a.K8sAsk }
+
+func (a *App) SetK8sPrompt(d *k8sdialog.Ask) { a.K8sAsk = d }
 
 // askSSHHost opens the dialog.
 func (a *App) askSSHHost() {

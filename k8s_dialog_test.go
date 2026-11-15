@@ -125,7 +125,7 @@ func TestAddK8sPodOnce(t *testing.T) {
 
 	for i := range 2 {
 		a.K8sAsk = &k8sdialog.Ask{Open: true, Cmd: "kubectl exec -it web-0 -n prod -- /bin/bash"}
-		a.addK8sPod()
+		k8sdialog.Add(a)
 		deadline := time.Now().Add(2 * time.Second)
 		for len(a.Prefs.K8sPods) == 0 || a.Prefs.K8sPods[0].Session == "" {
 			if time.Now().After(deadline) {
@@ -187,10 +187,10 @@ func TestK8sCommand(t *testing.T) {
 		cmd  string
 		want error
 	}{
-		{"kubectl logs web-0", errK8sNotExec},
-		{"ssh devbox", errK8sNotExec},
-		{"kubectl exec -it -n prod -- sh", errK8sNoPod},
-		{"kubectl exec -it 'web-0 -- sh", errK8sNotExec},
+		{"kubectl logs web-0", k8sdialog.ErrNotExec},
+		{"ssh devbox", k8sdialog.ErrNotExec},
+		{"kubectl exec -it -n prod -- sh", k8sdialog.ErrNoPod},
+		{"kubectl exec -it 'web-0 -- sh", k8sdialog.ErrNotExec},
 	} {
 		if _, _, err := k8sCommand(c.cmd); !errors.Is(err, c.want) {
 			t.Errorf("k8sCommand(%q) = %v, want %v", c.cmd, err, c.want)

@@ -174,8 +174,13 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     adds one, the rows they show as, and their terminals — are
     `internal/ui/sshdialog`, beside the dialog's view. Its `Host` is the
     app's prefs' machine, and `ssh_dialog.go` is its adapters. The row's
-    drag and its insertion line are the machines' own, as the K8s rows
-    keep the app's `DragAtAddr` and `DragAfterSide`.
+    drag and its insertion line are the machines' own.
+  - Also: the pods of the sidebar's K8s project — the kubectl exec the
+    dialog reads, the rows they show as, and their terminals — are
+    `internal/ui/k8sdialog`, beside the dialog's view; its `Pod` is the
+    app's prefs' pod, and `k8s_adapters.go` is its adapters. The SSH and
+    K8s rows keep the app's `DragAtAddr` and `DragAfterSide` for their
+    insertion lines.
   - Also: the panes' drawing is `internal/ui/panes`, beside their
     actions: the card, the layout's nodes and its divider, the header and
     its controls, the terminal's body, the drop preview and the moves a

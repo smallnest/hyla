@@ -18,6 +18,7 @@ import (
 	"hyla/internal/ui/confirm"
 	"hyla/internal/ui/theme"
 
+	"hyla/internal/ui/k8sdialog"
 	"hyla/internal/ui/marks"
 	"hyla/internal/ui/paints"
 	"hyla/internal/ui/side"
@@ -629,12 +630,7 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g group, gi int, n *i
 		sshdialog.Rows(a, c, pal)
 	}
 	if k8s {
-		for i := range a.Prefs.K8sPods {
-			a.k8sPodRow(c, pal, i)
-		}
-		if len(a.Prefs.K8sPods) == 0 {
-			a.k8sEmpty(c, pal)
-		}
+		k8sdialog.Rows(a, c, pal)
 	}
 }
 
