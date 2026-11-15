@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"hyla/internal/platform"
 	"math"
 	"runtime"
 	"slices"
@@ -67,7 +68,7 @@ func (ch chrome) buttonsLeft(bar ui.TitleBar) float32 {
 // shown or not: after the traffic lights on macOS; elsewhere inside the
 // card's edge, which they come over as the sidebar hides.
 func lead(bar ui.TitleBar) float32 {
-	if ownControls {
+	if platform.OwnControls {
 		return bar.Left + 2*cardGap
 	}
 	return bar.Left + cardGap
@@ -1059,7 +1060,7 @@ func (a *App) sessionMenu(m *ui.Menu, s *proto.Session) {
 	if m.Item(locales.SessionCopyDirectory()).Disabled(s.WorkDir() == "").Chosen() {
 		a.CopyText = s.WorkDir()
 	}
-	if m.Item(locales.SessionRevealIn(fileManager())).Disabled(s.WorkDir() == "").Chosen() {
+	if m.Item(locales.SessionRevealIn(platform.FileManager())).Disabled(s.WorkDir() == "").Chosen() {
 		a.openLink(id, s.WorkDir())
 	}
 	m.Separator()

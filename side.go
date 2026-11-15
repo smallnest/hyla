@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"hyla/internal/platform"
 	"path"
 	"path/filepath"
 	"slices"
@@ -708,7 +709,7 @@ func (a *App) fileHeader(c *ui.Context, pal *theme.Palette, scope, root string, 
 		}
 		if f.Status != "deleted" {
 			full := filepath.Join(root, filepath.FromSlash(f.Path))
-			iconButton(c, "open", glyph.OpenFile, locales.ChangesOpenFile(), pal, func() { openPath(full) })
+			iconButton(c, "open", glyph.OpenFile, locales.ChangesOpenFile(), pal, func() { platform.OpenPath(full) })
 		}
 	})
 }

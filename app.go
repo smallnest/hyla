@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hyla/internal/platform"
 	"maps"
 	"os"
 	"path/filepath"
@@ -1638,7 +1639,7 @@ func (a *App) openLink(id, link string) bool {
 	if path == "" {
 		return false
 	}
-	openPath(path)
+	platform.OpenPath(path)
 	return true
 }
 

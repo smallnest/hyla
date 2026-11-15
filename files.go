@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"errors"
+	"hyla/internal/platform"
 	"path"
 	"path/filepath"
 	"strings"
@@ -444,7 +445,7 @@ func (a *App) fileViewer(c *ui.Context, pal *theme.Palette, s *proto.Session, fv
 		}
 		if !fv.gone {
 			full := fv.path
-			iconButton(c, "open", glyph.OpenFile, locales.ChangesOpenFile(), pal, func() { openPath(full) })
+			iconButton(c, "open", glyph.OpenFile, locales.ChangesOpenFile(), pal, func() { platform.OpenPath(full) })
 		}
 		sid := s.ID
 		iconButton(c, "files-close", glyph.Close, locales.SideClose(), pal, func() {

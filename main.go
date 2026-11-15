@@ -9,6 +9,7 @@ package main
 
 import (
 	"fmt"
+	"hyla/internal/platform"
 	"log"
 	"os"
 	"os/exec"
@@ -167,7 +168,7 @@ func runApp() {
 // openWindow makes the main window: as Hyla starts, and again after
 // closing it left Hyla running in the menu bar or the notification area.
 func (a *App) openWindow() {
-	a.Win = mygo.NewWindow(framed(mygo.WindowOptions{
+	a.Win = mygo.NewWindow(platform.Frame(mygo.WindowOptions{
 		Title:     "Hyla",
 		Width:     1180,
 		Height:    760,
@@ -176,7 +177,7 @@ func (a *App) openWindow() {
 		StateKey:  "main",
 		Vibrancy:  vibrancyFor(a.Settings),
 		Content:   ui.View(a.view),
-	}))
+	}, topBar, barMid))
 	a.WinOpen = true
 	a.updateTitle()
 	a.Win.OnFocus(func() { a.update(func() { a.Focused = true; a.claimShown(); a.reportView() }) })

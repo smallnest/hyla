@@ -2,6 +2,7 @@ package main
 
 import (
 	"cmp"
+	"hyla/internal/platform"
 	"slices"
 	"time"
 
@@ -197,8 +198,8 @@ func (a *App) endedMenu(m *ui.Menu, h *host, cv proto.Conversation) {
 	if m.Item(locales.SessionCopyDirectory()).Disabled(cv.Dir == "").Chosen() {
 		a.CopyText = cv.Dir
 	}
-	if m.Item(locales.SessionRevealIn(fileManager())).Disabled(cv.Dir == "").Chosen() {
-		openPath(cv.Dir)
+	if m.Item(locales.SessionRevealIn(platform.FileManager())).Disabled(cv.Dir == "").Chosen() {
+		platform.OpenPath(cv.Dir)
 	}
 	if !cv.Archived {
 		m.Separator()

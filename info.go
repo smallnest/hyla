@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"hyla/internal/platform"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -334,7 +335,7 @@ func (a *App) infoDir(c *ui.Context, pal *theme.Palette, s *proto.Session, h *ho
 				a.split(s, proto.CreateParams{Split: p.ID, Direction: "right", Command: editorCommand(h, dir)})
 			})
 			a.infoAction(c, pal, "copy-dir", locales.InfoCopyPath(), glyph.InfoCopy, copyDir)
-			a.infoAction(c, pal, "reveal", locales.InfoReveal(), glyph.Folder, func() { revealPath(dir) })
+			a.infoAction(c, pal, "reveal", locales.InfoReveal(), glyph.Folder, func() { platform.RevealPath(dir) })
 		})
 	})
 }
@@ -524,7 +525,7 @@ func portRow(c *ui.Context, pal *theme.Palette, name string, port int) {
 		row.Background(pal.RowHover)
 	}
 	if row.Clicked() {
-		openPath("http://localhost:" + itoa(port))
+		platform.OpenPath("http://localhost:" + itoa(port))
 	}
 	row.Children(func() {
 		ui.Text(c, "localhost:"+itoa(port)).FontSize(12.5).FontWeight(600).TextColor(pal.Accent).FontFeatures("tnum").SingleLine().Shrink(0)

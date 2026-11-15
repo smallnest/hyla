@@ -1,6 +1,7 @@
 package main
 
 import (
+	"hyla/internal/platform"
 	"math"
 	"os"
 	"path/filepath"
@@ -125,12 +126,12 @@ func (a *App) openSettings(page string) {
 	a.Ss.feishu = feishuDraft{}
 	a.refreshAgents()
 	a.refreshService()
-	a.SetWin = mygo.NewWindow(framed(mygo.WindowOptions{
+	a.SetWin = mygo.NewWindow(platform.Frame(mygo.WindowOptions{
 		Title: locales.SettingsTitle(), Width: 820, Height: 620, MinWidth: 700, MinHeight: 480,
 		StateKey: "settings",
 		Vibrancy: vibrancyFor(a.Settings),
 		Content:  ui.View(a.settingsView),
-	}))
+	}, topBar, barMid))
 	a.SetWin.OnClosed(func() {
 		offUpdates()
 		a.SetWin = nil
@@ -216,7 +217,7 @@ func (a *App) settingsView(c *ui.Context) {
 		// the sidebar, centered on barMid as the page's title and the
 		// window controls are.
 		top := float32(topBar)
-		if ownControls {
+		if platform.OwnControls {
 			top = barMid - (style.ControlH+2)/2
 		}
 		ui.Column(c).Width(212).Shrink(0).Padding(top, 10, 12, 10).Gap(2).DragWindow().Children(func() {
@@ -1365,9 +1366,9 @@ func codeBlock(c *ui.Context, pal *theme.Palette, code string) {
 func (a *App) advancedPage(c *ui.Context, pal *theme.Palette) {
 	settingsGroup(c, pal, locales.SetConfiguration(), locales.SetConfigurationDetail(), func() {
 		settingRow(c, pal, locales.SetConfigFile(), proto.ShortDir(settings.Path()), func() {
-			if style.Button(c, "reveal-config", locales.CommonShowIn(fileManager()), "", false, pal) {
+			if style.Button(c, "reveal-config", locales.CommonShowIn(platform.FileManager()), "", false, pal) {
 				a.ensureConfig()
-				revealPath(settings.Path())
+				platform.RevealPath(settings.Path())
 			}
 			if style.Button(c, "edit-config", locales.CommonOpen(), "", true, pal) {
 				a.openConfig()
@@ -1393,14 +1394,14 @@ func (a *App) advancedPage(c *ui.Context, pal *theme.Palette) {
 		})
 		settingRow(c, pal, locales.SetLog(), proto.ShortDir(filepath.Join(proto.Dir(), "hylad.log")), func() {
 			if style.Button(c, "log", locales.CommonShow(), "", false, pal) {
-				revealPath(filepath.Join(proto.Dir(), "hylad.log"))
+				platform.RevealPath(filepath.Join(proto.Dir(), "hylad.log"))
 			}
 		})
 	})
 	settingsGroup(c, pal, locales.SetData(), locales.SetDataDetail(), func() {
 		settingRow(c, pal, locales.SetFolder(), proto.ShortDir(proto.Dir()), func() {
-			if style.Button(c, "reveal", locales.CommonShowIn(fileManager()), "", false, pal) {
-				openPath(proto.Dir())
+			if style.Button(c, "reveal", locales.CommonShowIn(platform.FileManager()), "", false, pal) {
+				platform.OpenPath(proto.Dir())
 			}
 		})
 		settingRow(c, pal, locales.SetReset(), locales.SetResetDetail(), func() {
@@ -1425,7 +1426,7 @@ func (a *App) ensureConfig() {
 // openConfig opens the configuration in the user's text editor.
 func (a *App) openConfig() {
 	a.ensureConfig()
-	openTextFile(settings.Path())
+	platform.OpenTextFile(settings.Path())
 }
 
 // toastIn shows a short message in the window c is of.

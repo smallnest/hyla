@@ -48,6 +48,7 @@ var Layers = []Layer{
 		Package: []string{
 			"hyla/internal/actions",
 			"hyla/internal/adblock",
+			"hyla/internal/platform",
 			"hyla/internal/build",
 			"hyla/internal/claude",
 			"hyla/internal/clilink",
@@ -65,6 +66,7 @@ var Layers = []Layer{
 		Package: []string{
 			"hyla/internal/actions",
 			"hyla/internal/adblock",
+			"hyla/internal/platform",
 			"hyla/internal/build",
 			"hyla/internal/claude",
 			"hyla/internal/clilink",
@@ -85,6 +87,7 @@ var Layers = []Layer{
 		Package: []string{
 			"hyla/internal/actions",
 			"hyla/internal/adblock",
+			"hyla/internal/platform",
 			"hyla/internal/app/magpie",
 			"hyla/internal/app/sync",
 			"hyla/internal/build",
@@ -110,6 +113,7 @@ var Layers = []Layer{
 		Package: []string{
 			"hyla/internal/actions",
 			"hyla/internal/adblock",
+			"hyla/internal/platform",
 			"hyla/internal/app/magpie",
 			"hyla/internal/app/sync",
 			"hyla/internal/build",
@@ -137,6 +141,7 @@ var Layers = []Layer{
 		Package: []string{
 			"hyla/internal/actions",
 			"hyla/internal/adblock",
+			"hyla/internal/platform",
 			"hyla/internal/app/magpie",
 			"hyla/internal/app/sync",
 			"hyla/internal/build",
@@ -171,6 +176,7 @@ var Layers = []Layer{
 		Package: []string{
 			"hyla/internal/actions",
 			"hyla/internal/adblock",
+			"hyla/internal/platform",
 			"hyla/internal/app/magpie",
 			"hyla/internal/app/sync",
 			"hyla/internal/build",
@@ -217,6 +223,7 @@ var layerNames = map[string]string{
 	"hyla/internal/detach":      "base",
 	"hyla/internal/detect":      "base",
 	"hyla/internal/git":         "base",
+	"hyla/internal/platform":    "base",
 	"hyla/internal/proto":       "base",
 	"hyla/internal/shell":       "base",
 	"hyla/internal/update":      "base",
