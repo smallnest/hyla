@@ -87,7 +87,8 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     window and the pet's drawing read. The Settings search's entries and
     match are `internal/ui/settings/search`; the pages and the actions'
     titles stay in the root, as the views do. A worktree's git state in
-    words is `internal/app/gitinfo`.
+    words is `internal/app/gitinfo`; the palette's and the picker's
+    scoring is `internal/ui/fuzzy`.
   - The guard now fails on a package of `internal/` that no layer's
     names hold. It found `buildinfo`, `fileicons` and `profiling` never
     listed.
