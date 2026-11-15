@@ -89,6 +89,11 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     titles stay in the root, as the views do. A worktree's git state in
     words is `internal/app/gitinfo`; the palette's and the picker's
     scoring is `internal/ui/fuzzy`.
+  - Also: `host` is `internal/app/host`.Host — one hylad's address, its
+    connection's state and error, what it holds, and the dialers — which
+    the views read directly, as the root's field was. Its fields are
+    exported and its methods say what they do (`Remote`, `Label`,
+    `Dialer`).
   - The guard now fails on a package of `internal/` that no layer's
     names hold. It found `buildinfo`, `fileicons` and `profiling` never
     listed.
