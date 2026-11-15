@@ -248,6 +248,10 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     the views read directly, as the root's field was. Its fields are
     exported and its methods say what they do (`Remote`, `Label`,
     `Dialer`).
+  - Also: Magpie's card in the Info view is `internal/ui/magpieview` —
+    its state (`Info`, `Usage`), its reading, its tick and the pane's
+    agent session. The root keeps `magpie_adapters.go`, which holds the
+    app's `Magpie` field as `magpieview.Info`.
   - The guard now fails on a package of `internal/` that no layer's
     names hold. It found `buildinfo`, `fileicons` and `profiling` never
     listed.
