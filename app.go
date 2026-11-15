@@ -34,6 +34,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/remote"
 	"hyla/internal/settings"
+	"hyla/internal/ui/confirm"
 	"hyla/internal/ui/palette"
 	"hyla/internal/ui/picker"
 	"hyla/internal/ui/theme"
@@ -172,7 +173,7 @@ type App struct {
 
 	Pal     palette.State
 	Find    findState
-	Confirm *confirmation
+	Confirm *confirm.Ask
 	WtAsk   *worktreeAsk
 	SshAsk  *sshAsk // the sidebar's add-a-host-over-SSH dialog
 	K8sAsk  *k8sAsk // the sidebar's add-a-kubectl-exec-pod dialog
@@ -253,22 +254,6 @@ type App struct {
 }
 
 // confirmation is a question the app asks before something it cannot undo.
-type confirmation struct {
-	open    bool
-	title   string
-	detail  string
-	action  string
-	destroy bool
-	run     func()
-	// ends marks the question as one before a quit: Return may be what a
-	// program reads, so it takes a click or Escape.
-	ends bool
-	// alt is a second answer besides action and Cancel, which runs
-	// altRun; altDestroy marks it as one that destroys.
-	alt        string
-	altRun     func()
-	altDestroy bool
-}
 
 func newApp() *App {
 	a := &App{Terms: map[string]*termEntry{}, Webs: map[string]*webEntry{}, Statuses: map[string]proto.Status{}, Active: true, Focused: true,
@@ -1901,13 +1886,13 @@ func (a *App) closeSession(id string, ask bool) {
 	}
 	if ask && a.settingsIn.ConfirmClose && busy(s) {
 		name := s.DisplayName(a.settingsIn.SessionName)
-		a.Confirm = &confirmation{
-			open:    true,
-			title:   locales.ConfirmCloseTitle(name),
-			detail:  locales.ConfirmCloseSessionDetail(s.Process),
-			action:  locales.ActionCloseSession(),
-			destroy: true,
-			run:     func() { a.closeSession(id, false) },
+		a.Confirm = &confirm.Ask{
+			Open:    true,
+			Title:   locales.ConfirmCloseTitle(name),
+			Detail:  locales.ConfirmCloseSessionDetail(s.Process),
+			Action:  locales.ActionCloseSession(),
+			Destroy: true,
+			Run:     func() { a.closeSession(id, false) },
 		}
 		return
 	}
@@ -2116,14 +2101,14 @@ func (a *App) quitRequested() bool {
 	switch {
 	case busy > 0 && a.settingsIn.ConfirmClose:
 		a.quitting = true
-		a.Confirm = &confirmation{
-			open:    true,
-			title:   locales.ConfirmQuitAllTitle(),
-			detail:  quitAllDetail(busy, len(a.Hosts) > 1),
-			action:  locales.ConfirmQuitAllAction(),
-			destroy: true,
-			ends:    true, // Return may be a program's to read
-			run:     a.endSessionsAndQuit,
+		a.Confirm = &confirm.Ask{
+			Open:    true,
+			Title:   locales.ConfirmQuitAllTitle(),
+			Detail:  quitAllDetail(busy, len(a.Hosts) > 1),
+			Action:  locales.ConfirmQuitAllAction(),
+			Destroy: true,
+			Ends:    true, // Return may be a program's to read
+			Run:     a.endSessionsAndQuit,
 		}
 		return false
 	case busy == 0 && a.hostsLoaded():
@@ -2218,13 +2203,13 @@ func (a *App) offerRestart() {
 	if h.DaemonApp != "" {
 		was = h.DaemonApp
 	}
-	a.Confirm = &confirmation{
-		open:    true,
-		title:   locales.ConfirmRestartServiceTitle(),
-		detail:  locales.RestartStaleDetail(was, mygo.App.Version(), locales.RestartRunning(n)),
-		action:  locales.CommonRestartService(),
-		destroy: true,
-		run:     a.restartDaemon,
+	a.Confirm = &confirm.Ask{
+		Open:    true,
+		Title:   locales.ConfirmRestartServiceTitle(),
+		Detail:  locales.RestartStaleDetail(was, mygo.App.Version(), locales.RestartRunning(n)),
+		Action:  locales.CommonRestartService(),
+		Destroy: true,
+		Run:     a.restartDaemon,
 	}
 }
 
@@ -2271,14 +2256,14 @@ func (a *App) restartDaemon() {
 // quits: other machines' keep running.
 func (a *App) quitAndEnd() {
 	n := len(a.sessionsOf(a.local()))
-	a.Confirm = &confirmation{
-		open:    true,
-		title:   locales.ConfirmQuitAllTitle(),
-		detail:  quitAllDetail(n, len(a.Hosts) > 1),
-		action:  locales.ConfirmQuitAllAction(),
-		destroy: true,
-		ends:    true,
-		run:     a.endSessionsAndQuit,
+	a.Confirm = &confirm.Ask{
+		Open:    true,
+		Title:   locales.ConfirmQuitAllTitle(),
+		Detail:  quitAllDetail(n, len(a.Hosts) > 1),
+		Action:  locales.ConfirmQuitAllAction(),
+		Destroy: true,
+		Ends:    true,
+		Run:     a.endSessionsAndQuit,
 	}
 }
 

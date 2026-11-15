@@ -9,6 +9,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/proto"
+	"hyla/internal/ui/confirm"
 	"hyla/internal/ui/theme"
 
 	"hyla/internal/ui/paints"
@@ -918,13 +919,13 @@ func (a *App) closePane(s *proto.Session, pane string, ask bool) {
 	}
 	if ask && a.settingsIn.ConfirmClose && p.Status != proto.Exited && p.Process != "" {
 		sid := s.ID
-		a.Confirm = &confirmation{
-			open:    true,
-			title:   locales.ConfirmClosePaneTitle(),
-			detail:  locales.ConfirmClosePaneDetail(p.Process),
-			action:  locales.PaneClose(),
-			destroy: true,
-			run: func() {
+		a.Confirm = &confirm.Ask{
+			Open:    true,
+			Title:   locales.ConfirmClosePaneTitle(),
+			Detail:  locales.ConfirmClosePaneDetail(p.Process),
+			Action:  locales.PaneClose(),
+			Destroy: true,
+			Run: func() {
 				if s := a.session(sid); s != nil {
 					a.closePane(s, pane, false)
 				}

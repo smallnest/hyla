@@ -14,6 +14,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/remote"
 	"hyla/internal/settings"
+	"hyla/internal/ui/confirm"
 	"hyla/internal/ui/paints"
 	"hyla/internal/ui/settings/kit"
 	"hyla/internal/ui/theme"
@@ -389,13 +390,13 @@ func (a *App) remoteHostHeader(c *ui.Context, pal *theme.Palette, h *host.Host, 
 		m.Separator()
 		if m.Item(locales.HostRemove()).Chosen() {
 			name := h.Name
-			a.Confirm = &confirmation{
-				open:    true,
-				title:   locales.HostRemoveTitle(name),
-				detail:  locales.HostRemoveDetail(name),
-				action:  locales.CommonRemove(),
-				destroy: true,
-				run:     func() { a.removeRemoteHost(name) },
+			a.Confirm = &confirm.Ask{
+				Open:    true,
+				Title:   locales.HostRemoveTitle(name),
+				Detail:  locales.HostRemoveDetail(name),
+				Action:  locales.CommonRemove(),
+				Destroy: true,
+				Run:     func() { a.removeRemoteHost(name) },
 			}
 		}
 	})

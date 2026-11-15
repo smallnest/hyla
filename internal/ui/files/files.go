@@ -462,7 +462,6 @@ func openViewer(x App, fv *View) {
 	}
 }
 
-
 // fileViewer is the viewer of a file of Files: an image as an image, else
 // its text, read only, which it reads again as the worktree changes, and
 // every few seconds while an agent works.

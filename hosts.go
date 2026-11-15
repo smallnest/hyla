@@ -13,6 +13,7 @@ import (
 	"hyla/internal/client"
 	"hyla/internal/proto"
 	"hyla/internal/settings"
+	"hyla/internal/ui/confirm"
 	"hyla/internal/ui/theme"
 
 	"hyla/locales"
@@ -333,13 +334,13 @@ func (a *App) hostState(c *ui.Context, pal *theme.Palette, h *host.Host) {
 // offerHostRestart restarts hylad, asking first while programs run in its
 // sessions.
 func (a *App) offerHostRestart(h *host.Host) {
-	a.Confirm = &confirmation{
-		open:    true,
-		title:   locales.HostRestartTitle(h.Label()),
-		detail:  locales.HostRestartDetail(h.Label()),
-		action:  locales.CommonRestart(),
-		destroy: true,
-		run:     func() { a.restartDaemon() },
+	a.Confirm = &confirm.Ask{
+		Open:    true,
+		Title:   locales.HostRestartTitle(h.Label()),
+		Detail:  locales.HostRestartDetail(h.Label()),
+		Action:  locales.CommonRestart(),
+		Destroy: true,
+		Run:     func() { a.restartDaemon() },
 	}
 	if a.Win != nil {
 		a.Win.Focus()

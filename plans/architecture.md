@@ -94,8 +94,8 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     the restart), and its view, which take an `App` interface of what
     they ask. What they draw of a session — its status icon, a
     shortcut's keys and how long ago a time was — is `internal/ui/paints`,
-    which the sidebar and the panes read too. The confirmation and the
-    window's shortcuts stay in the root.
+    which the sidebar and the panes read too. The window's shortcuts
+    stay in the root.
   - Also: the folder picker is `internal/ui/picker` — its state, the
     listing of a host's folders (`fs.list`), the items and the view —
     over the same `App` shape; the root keeps `openProjectOn`,
@@ -114,6 +114,11 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     deleting of entries, over one state of exported fields. The icon
     button, the pointer tooltip, `Stamp` and `ReplaceText`, which the
     sidebar and the Changes view share, are `internal/ui/paints`.
+  - Also: the confirmation the app asks before it cannot undo
+    something is `internal/ui/confirm` — its question, its two
+    actions and the dialog that draws and keys it. The callers in the
+    root, the palette and the Files tab fill a `confirm.Ask` and leave
+    it to `App.Confirm`.
   - Also: the Settings window's groups, rows, segmented control and the
     search's marks are `internal/ui/settings/kit`, which the pages, the
     Sync page and the hosts' forms draw with.

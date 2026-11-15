@@ -28,6 +28,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/settings"
 	"hyla/internal/shell"
+	"hyla/internal/ui/confirm"
 	"hyla/internal/ui/paints"
 	"hyla/internal/ui/settings/kit"
 	"hyla/internal/ui/theme"
@@ -93,7 +94,7 @@ type settingsState struct {
 	remote          hostDraft                       // the other machines' form
 	tcHost          tcHostDraft                     // the Tailcat machines' form
 	feishu          feishuDraft                     // the Feishu page's form
-	confirm         *confirmation                   // a question, asked in this window
+	confirm         *confirm.Ask                    // a question, asked in this window
 }
 
 // checkUpdates asks the updater for a newer app, which none does where
@@ -322,7 +323,7 @@ func (a *App) settingsView(c *ui.Context) {
 		})
 	})
 	if a.Ss.confirm != nil {
-		confirmDialog(c, pal, &a.Ss.confirm)
+		confirm.Dialog(c, pal, &a.Ss.confirm)
 	}
 	// The controls edit a.settingsIn: what changed applies, and saves.
 	if !reflect.DeepEqual(a.settingsIn, a.Applied) {
@@ -1300,11 +1301,11 @@ func (a *App) advancedPage(c *ui.Context, pal *theme.Palette) {
 	kit.Group(c, pal, locales.SetBackgroundService(), locales.SetBackgroundServiceDetail(), func() {
 		kit.Row(c, pal, "hylad", a.Ss.service, func() {
 			if style.Button(c, "svc-restart", locales.CommonRestart(), "", false, pal) {
-				a.Ss.confirm = &confirmation{
-					open: true, title: locales.ConfirmRestartServiceTitle(),
-					detail: locales.RestartServiceDetail(),
-					action: locales.CommonRestart(), destroy: true,
-					run: func() { a.restartDaemon(); time.AfterFunc(2*time.Second, func() { a.update(a.refreshService) }) },
+				a.Ss.confirm = &confirm.Ask{
+					Open: true, Title: locales.ConfirmRestartServiceTitle(),
+					Detail: locales.RestartServiceDetail(),
+					Action: locales.CommonRestart(), Destroy: true,
+					Run: func() { a.restartDaemon(); time.AfterFunc(2*time.Second, func() { a.update(a.refreshService) }) },
 				}
 			}
 		})
@@ -1322,9 +1323,9 @@ func (a *App) advancedPage(c *ui.Context, pal *theme.Palette) {
 		})
 		kit.Row(c, pal, locales.SetReset(), locales.SetResetDetail(), func() {
 			if style.Button(c, "reset", locales.SetResetButton(), "", false, pal) {
-				a.Ss.confirm = &confirmation{
-					open: true, title: locales.SetResetTitle(), detail: locales.SetResetConfirmDetail(), action: locales.SetResetAction(), destroy: true,
-					run: func() { a.applySettings(settings.Default()) },
+				a.Ss.confirm = &confirm.Ask{
+					Open: true, Title: locales.SetResetTitle(), Detail: locales.SetResetConfirmDetail(), Action: locales.SetResetAction(), Destroy: true,
+					Run: func() { a.applySettings(settings.Default()) },
 				}
 			}
 		})

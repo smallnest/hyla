@@ -12,6 +12,7 @@ import (
 
 	"hyla/internal/client"
 	"hyla/internal/proto"
+	"hyla/internal/ui/confirm"
 	"hyla/internal/ui/paints"
 	"hyla/internal/ui/theme"
 
@@ -446,13 +447,13 @@ func (a *App) k8sPodRow(c *ui.Context, pal *theme.Palette, i int) {
 		}
 		if m.Item(locales.HostRemove()).Chosen() {
 			name, cmd := pod.Name, pod.Command
-			a.Confirm = &confirmation{
-				open:    true,
-				title:   locales.K8sRemoveTitle(name),
-				detail:  locales.K8sRemoveDetail(),
-				action:  locales.CommonRemove(),
-				destroy: true,
-				run:     func() { a.removeK8sPod(cmd) },
+			a.Confirm = &confirm.Ask{
+				Open:    true,
+				Title:   locales.K8sRemoveTitle(name),
+				Detail:  locales.K8sRemoveDetail(),
+				Action:  locales.CommonRemove(),
+				Destroy: true,
+				Run:     func() { a.removeK8sPod(cmd) },
 			}
 		}
 	})

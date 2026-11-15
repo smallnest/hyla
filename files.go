@@ -6,6 +6,7 @@ import (
 
 	"hyla/internal/app/host"
 	"hyla/internal/proto"
+	"hyla/internal/ui/confirm"
 	"hyla/internal/ui/files"
 	"hyla/internal/ui/theme"
 )
@@ -17,7 +18,7 @@ func (a *App) FilesState() *files.State { return &a.Side.files }
 
 // AskDelete asks to delete a file or folder, before the app does it.
 func (a *App) AskDelete(title, detail, action string, run func()) {
-	a.Confirm = &confirmation{open: true, title: title, detail: detail, action: action, destroy: true, run: run}
+	a.Confirm = &confirm.Ask{Open: true, Title: title, Detail: detail, Action: action, Destroy: true, Run: run}
 }
 
 func (a *App) SessionOfPane(id string) *proto.Session { return a.sessionOfPane(id) }

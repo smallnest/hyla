@@ -26,6 +26,7 @@ import (
 	"hyla/internal/settings"
 	"hyla/internal/ui/picker"
 
+	"hyla/internal/ui/confirm"
 	"hyla/locales"
 )
 
@@ -129,7 +130,7 @@ func TestSidebarRejectsUnavailableDrops(t *testing.T) {
 			a.Owner = map[string]*host.Host{"s1": h, "p1": h, "a": h, "b": h}
 			a.local().Conn, a.local().Client = host.StateFailed, nil
 		}},
-		{"confirmation", func(a *App) { a.Confirm = &confirmation{open: true, title: "Confirm", action: "Close"} }},
+		{"confirmation", func(a *App) { a.Confirm = &confirm.Ask{Open: true, Title: "Confirm", Action: "Close"} }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			a := testDropApp(t)
@@ -462,13 +463,13 @@ func TestSessionHoverClose(t *testing.T) {
 				tt.Frame()
 				// A busy session asks first, as the menu does: one wrong
 				// click must not end a working program.
-				if a.Confirm == nil || !a.Confirm.open {
+				if a.Confirm == nil || !a.Confirm.Open {
 					t.Fatal("closing a busy session from the row did not ask")
 				}
 				if a.session(id) == nil {
 					t.Fatalf("the session closed before the answer")
 				}
-				a.Confirm.run()
+				a.Confirm.Run()
 				a.Confirm = nil
 				if a.session(id) != nil || len(a.St.Sessions) != 1 || a.Selected != remaining {
 					t.Fatalf("wrong session closed: selected=%q sessions=%v", a.Selected, a.St.Sessions)
@@ -527,7 +528,7 @@ func TestRestartStaleDaemon(t *testing.T) {
 		t.Fatalf("no chip to restart hylad: %v; texts %q", err, tt.Texts())
 	}
 	tt.Frame()
-	if a.Confirm == nil || !strings.Contains(a.Confirm.detail, "Hyla 1.9.0") {
+	if a.Confirm == nil || !strings.Contains(a.Confirm.Detail, "Hyla 1.9.0") {
 		t.Fatalf("no question before the restart: %+v", a.Confirm)
 	}
 

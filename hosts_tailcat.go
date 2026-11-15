@@ -13,6 +13,7 @@ import (
 
 	"hyla/internal/remote"
 	"hyla/internal/settings"
+	"hyla/internal/ui/confirm"
 	"hyla/internal/ui/paints"
 	"hyla/internal/ui/settings/kit"
 	"hyla/internal/ui/theme"
@@ -193,12 +194,12 @@ func (a *App) tailcatListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) 
 				}()
 			})
 			paints.IconButton(c, "change-tailcat", glyph.Reload, locales.SetTailcatChange(), pal, func() {
-				a.Ss.confirm = &confirmation{
-					open:    true,
-					title:   locales.SetTailcatChange(),
-					action:  locales.SetTailcatChange(),
-					destroy: true,
-					run:     func() { a.rotateTailcatCode() },
+				a.Ss.confirm = &confirm.Ask{
+					Open:    true,
+					Title:   locales.SetTailcatChange(),
+					Action:  locales.SetTailcatChange(),
+					Destroy: true,
+					Run:     func() { a.rotateTailcatCode() },
 				}
 			})
 		})

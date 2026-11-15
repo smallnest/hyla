@@ -7,6 +7,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/proto"
+	"hyla/internal/ui/confirm"
 	"hyla/internal/ui/theme"
 
 	"hyla/internal/ui/controls"
@@ -113,17 +114,17 @@ func (a *App) askCloseWorktree(id string) {
 				return func() { a.endSession(id, proto.CloseParams{ID: id, RemoveWorktree: true, Force: force}) }
 			}
 			path := h.ShortDir(wc.Path)
-			cf := &confirmation{open: true, title: locales.WorktreeRemoveTitle(name),
-				action: locales.WorktreeRemove(), run: remove(false), alt: locales.WorktreeKeep(), altRun: keep}
+			cf := &confirm.Ask{Open: true, Title: locales.WorktreeRemoveTitle(name),
+				Action: locales.WorktreeRemove(), Run: remove(false), Alt: locales.WorktreeKeep(), AltRun: keep}
 			switch {
 			case wc.Files > 0:
-				cf.detail = locales.WorktreeRemoveDirty(wc.Files, path, wc.Branch)
-				cf.action, cf.run = locales.WorktreeKeep(), keep
-				cf.alt, cf.altRun, cf.altDestroy = locales.WorktreeRemoveAnyway(), remove(true), true
+				cf.Detail = locales.WorktreeRemoveDirty(wc.Files, path, wc.Branch)
+				cf.Action, cf.Run = locales.WorktreeKeep(), keep
+				cf.Alt, cf.AltRun, cf.AltDestroy = locales.WorktreeRemoveAnyway(), remove(true), true
 			case wc.Merged:
-				cf.detail = locales.WorktreeRemoveMerged(path, wc.Branch)
+				cf.Detail = locales.WorktreeRemoveMerged(path, wc.Branch)
 			default:
-				cf.detail = locales.WorktreeRemoveUnmerged(path, wc.Branch)
+				cf.Detail = locales.WorktreeRemoveUnmerged(path, wc.Branch)
 			}
 			a.Confirm = cf
 		})

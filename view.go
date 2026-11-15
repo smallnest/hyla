@@ -15,6 +15,7 @@ import (
 
 	"hyla/internal/actions"
 	"hyla/internal/proto"
+	"hyla/internal/ui/confirm"
 	"hyla/internal/ui/theme"
 
 	"hyla/internal/ui/marks"
@@ -138,7 +139,7 @@ func (a *App) view(c *ui.Context) {
 		a.Chrome = chromeFor(progress, a.Prefs.SidebarWidth, bar)
 		w := a.Chrome.sideW
 		side := ui.Row(c).Width(w).Shrink(0).AlignItems(ui.Stretch).ClipX()
-		if h := a.local(); h.Conn == host.StateReady && h.Client != nil && !a.Prefs.SidebarHidden && !a.Pal.Open && !a.Picker.Open && a.SshAsk == nil && a.K8sAsk == nil && (a.Confirm == nil || !a.Confirm.open) {
+		if h := a.local(); h.Conn == host.StateReady && h.Client != nil && !a.Prefs.SidebarHidden && !a.Pal.Open && !a.Picker.Open && a.SshAsk == nil && a.K8sAsk == nil && (a.Confirm == nil || !a.Confirm.Open) {
 			if files := side.DroppedFiles(); len(files) > 0 {
 				go a.openProjectDirs(h, h.Client, slices.Clone(files), true)
 			}
@@ -505,24 +506,24 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g group, gi int, n *i
 		// runs in them ends with them.
 		if m.Item(locales.SidebarCloseAllSessions()).Disabled(len(g.sessions) == 0).Chosen() {
 			name, count := g.project.Name, len(g.sessions)
-			a.Confirm = &confirmation{
-				open:    true,
-				title:   locales.ConfirmCloseAllSessionsTitle(count, name),
-				detail:  locales.ConfirmCloseAllSessionsDetail(count),
-				action:  locales.SidebarCloseAllSessions(),
-				destroy: true,
-				run:     func() { a.closeAllSessions(g) },
+			a.Confirm = &confirm.Ask{
+				Open:    true,
+				Title:   locales.ConfirmCloseAllSessionsTitle(count, name),
+				Detail:  locales.ConfirmCloseAllSessionsDetail(count),
+				Action:  locales.SidebarCloseAllSessions(),
+				Destroy: true,
+				Run:     func() { a.closeAllSessions(g) },
 			}
 		}
 		if m.Item(locales.SidebarCloseProjectMenu()).Disabled(id == "").Chosen() {
 			name, count := g.project.Name, len(g.sessions)
-			a.Confirm = &confirmation{
-				open:    true,
-				title:   locales.ConfirmCloseTitle(name),
-				detail:  locales.ConfirmCloseProjectDetail(count),
-				action:  locales.SidebarCloseProject(),
-				destroy: true,
-				run: func() {
+			a.Confirm = &confirm.Ask{
+				Open:    true,
+				Title:   locales.ConfirmCloseTitle(name),
+				Detail:  locales.ConfirmCloseProjectDetail(count),
+				Action:  locales.SidebarCloseProject(),
+				Destroy: true,
+				Run: func() {
 					// An SSH or K8s project closed is one the sidebar no
 					// longer opens: its rows and their terminals went
 					// with its project.

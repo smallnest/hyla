@@ -6,6 +6,7 @@ import (
 	"hyla/internal/app/history"
 	"hyla/internal/app/host"
 	"hyla/internal/cli"
+	"hyla/internal/ui/confirm"
 	"hyla/internal/ui/theme"
 )
 
@@ -27,8 +28,8 @@ func (a *App) CallOn(h *host.Host, method string, params any, done func(err erro
 }
 
 func (a *App) Ask(q history.Confirm) {
-	a.Confirm = &confirmation{
-		open: true, title: q.Title, detail: q.Detail, action: q.Action, destroy: q.Destroy, run: q.Run,
+	a.Confirm = &confirm.Ask{
+		Open: true, Title: q.Title, Detail: q.Detail, Action: q.Action, Destroy: q.Destroy, Run: q.Run,
 	}
 }
 

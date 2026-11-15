@@ -10,6 +10,7 @@ import (
 	"hyla/internal/client"
 	"hyla/internal/proto"
 	"hyla/internal/remote"
+	"hyla/internal/ui/confirm"
 	"hyla/internal/ui/paints"
 	"hyla/internal/ui/theme"
 
@@ -460,13 +461,13 @@ func (a *App) sshHostRow(c *ui.Context, pal *theme.Palette, i int) {
 		}
 		if m.Item(locales.HostRemove()).Chosen() {
 			name, addr := h.Name, h.Addr
-			a.Confirm = &confirmation{
-				open:    true,
-				title:   locales.SshRemoveTitle(name),
-				detail:  locales.SshRemoveDetail(),
-				action:  locales.CommonRemove(),
-				destroy: true,
-				run:     func() { a.removeSSHHost(addr) },
+			a.Confirm = &confirm.Ask{
+				Open:    true,
+				Title:   locales.SshRemoveTitle(name),
+				Detail:  locales.SshRemoveDetail(),
+				Action:  locales.CommonRemove(),
+				Destroy: true,
+				Run:     func() { a.removeSSHHost(addr) },
 			}
 		}
 	})

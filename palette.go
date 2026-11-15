@@ -6,8 +6,8 @@ import (
 	"hyla/internal/app/host"
 	"hyla/internal/proto"
 	"hyla/internal/settings"
+	"hyla/internal/ui/confirm"
 	"hyla/internal/ui/palette"
-	"hyla/internal/ui/style"
 	"hyla/internal/ui/theme"
 	"hyla/locales"
 )
@@ -106,70 +106,9 @@ func (a *App) paletteItems() []string { return palette.Titles(&a.Pal, a) }
 func (a *App) paletteView(c *ui.Context, pal *theme.Palette) { palette.View(c, &a.Pal, a, pal) }
 
 func (a *App) confirmView(c *ui.Context, pal *theme.Palette) {
-	if a.Confirm != nil && confirmDialog(c, pal, &a.Confirm) {
+	if a.Confirm != nil && confirm.Dialog(c, pal, &a.Confirm) {
 		a.focusTerminal()
 	}
-}
-
-// confirmDialog asks *pending's question in c's window, and clears it once
-// answered, which it reports.
-func confirmDialog(c *ui.Context, pal *theme.Palette, pending **confirmation) bool {
-	cf := *pending
-	run, alt := false, false
-	ui.DialogBase(c.Key("confirm"), &cf.open, func(backdrop, panel ui.Element) {
-		backdrop.Background(pal.Overlay)
-		width := float32(380)
-		if cf.alt != "" {
-			width = 460 // room for a third button
-		}
-		style.Floating(panel.Width(width).Padding(22).Gap(8).Radius(14).Background(pal.Popover), pal).Label(cf.title)
-		ui.Text(c, cf.title).FontSize(15).FontWeight(650).TextColor(pal.Text)
-		ui.Text(c, cf.detail).FontSize(13).TextColor(pal.TextMuted).LineHeight(1.4)
-		ui.Row(c).Gap(8).Justify(ui.End).Margin(14, 0, 0, 0).Children(func() {
-			if cf.ends {
-				// Return may be what a program reads, so this question
-				// takes a click, or Escape: the focus goes to the panel,
-				// not to Cancel, which a Return would press.
-				ui.Box(c).Focus()
-				if style.Button(c, "cancel", locales.CommonCancel(), "esc", false, pal) {
-					cf.open = false
-				}
-				if style.Button(c, "ok", cf.action, "", true, pal) {
-					run = true
-				}
-				return
-			}
-			if style.Button(c, "cancel", locales.CommonCancel(), "esc", false, pal) {
-				cf.open = false
-			}
-			if cf.alt != "" && style.Button(c, "alt", cf.alt, "", false, pal) {
-				alt = true
-			}
-			if style.DefaultButton(c, "ok", cf.action, "↩", true, pal) || c.Shortcut(0, ui.KeyEnter) {
-				run = true
-			}
-		})
-		if !cf.ends && c.Shortcut(0, ui.KeyEnter) {
-			run = true
-		}
-	})
-	if run {
-		cf.open = false
-		cf.run()
-	} else if alt {
-		cf.open = false
-		cf.altRun()
-	}
-	// Only once the answer came: what it runs may clear *pending itself,
-	// which removeHost does as the page, rebuilt, sees the host gone.
-	// Another question asked in its place, as the page's own, stays.
-	if cf.open {
-		return false
-	}
-	if *pending == cf {
-		*pending = nil
-	}
-	return true
 }
 
 // shortcuts are the window's keys that no menu item has.

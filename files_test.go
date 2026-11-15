@@ -281,7 +281,7 @@ func TestFilesIconsAndMenu(t *testing.T) {
 	if err := tt.ChooseMenuItem(locales.FilesDeleteItem()); err != nil {
 		t.Fatal(err)
 	}
-	if c := a.Confirm; c == nil || !c.open || c.title != locales.FilesDeleteFolderTitle("src") {
+	if c := a.Confirm; c == nil || !c.Open || c.Title != locales.FilesDeleteFolderTitle("src") {
 		t.Fatalf("Delete asked %+v", a.Confirm)
 	}
 	a.Confirm = nil

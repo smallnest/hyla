@@ -527,7 +527,7 @@ func TestSSHHostHoverClose(t *testing.T) {
 	tt.Frame()
 	tt.Release(button.X+button.W/2, button.Y+button.H/2)
 	tt.Frame()
-	if a.Confirm != nil && a.Confirm.open {
+	if a.Confirm != nil && a.Confirm.Open {
 		t.Fatal("closing from the row asked first")
 	}
 	if len(a.Prefs.SSHHosts) != 0 || a.session("ssh-s") != nil {

@@ -8,6 +8,7 @@ import (
 	"github.com/egoist/mygo/i18n"
 	"github.com/egoist/mygo/ui"
 
+	"hyla/internal/ui/confirm"
 	"hyla/locales"
 )
 
@@ -62,12 +63,12 @@ func TestConfirmReturnRunsAction(t *testing.T) {
 	a := testApp(t)
 	tt := ui.NewTester(a.view, 1100, 640)
 	ran := false
-	a.Confirm = &confirmation{
-		open:   true,
-		title:  "Close this pane?",
-		detail: "claude is still running in it.",
-		action: "Close Pane",
-		run:    func() { ran = true },
+	a.Confirm = &confirm.Ask{
+		Open:   true,
+		Title:  "Close this pane?",
+		Detail: "claude is still running in it.",
+		Action: "Close Pane",
+		Run:    func() { ran = true },
 	}
 	tt.Frame()
 	if !tt.Focused("Close Pane") {
@@ -84,12 +85,12 @@ func TestConfirmEscapeCancels(t *testing.T) {
 	a := testApp(t)
 	tt := ui.NewTester(a.view, 1100, 640)
 	ran := false
-	a.Confirm = &confirmation{
-		open:   true,
-		title:  "Close this pane?",
-		detail: "claude is still running in it.",
-		action: "Close Pane",
-		run:    func() { ran = true },
+	a.Confirm = &confirm.Ask{
+		Open:   true,
+		Title:  "Close this pane?",
+		Detail: "claude is still running in it.",
+		Action: "Close Pane",
+		Run:    func() { ran = true },
 	}
 	tt.Frame()
 	tt.Key(0, ui.KeyEscape)

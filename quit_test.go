@@ -32,7 +32,7 @@ func TestQuitEndsSessions(t *testing.T) {
 	if a.quitRequested() {
 		t.Fatal("a quit that ends a running program went ahead unasked")
 	}
-	if a.Confirm == nil || !a.Confirm.ends {
+	if a.Confirm == nil || !a.Confirm.Ends {
 		t.Fatalf("no question that ends programs before the quit: %+v", a.Confirm)
 	}
 	tt := ui.NewTester(a.view, 1100, 640)
@@ -40,7 +40,7 @@ func TestQuitEndsSessions(t *testing.T) {
 	// Return may be a program's to read: only a click answers it.
 	tt.Key(0, ui.KeyEnter)
 	tt.Frame()
-	if a.Confirm == nil || !a.Confirm.open {
+	if a.Confirm == nil || !a.Confirm.Open {
 		t.Fatalf("Return answered a question that ends programs: %+v", a.Confirm)
 	}
 	tt.Click("End Sessions and Quit")
