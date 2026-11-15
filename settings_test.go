@@ -16,6 +16,7 @@ import (
 	"hyla/internal/actions"
 	"hyla/internal/adblock"
 	"hyla/internal/settings"
+	"hyla/internal/ui/settings/kit"
 	"hyla/internal/ui/theme"
 
 	"hyla/internal/ui/controls"
@@ -326,8 +327,8 @@ func TestSettingsSearch(t *testing.T) {
 	if a.Ss.query != "font-size" {
 		t.Fatalf("⌘F then typing: query %q", a.Ss.query)
 	}
-	if a.Ss.page != "terminal" || !searchHits["Size"] || searchHits["Font"] {
-		t.Errorf("font-size: page %s, hits %v", a.Ss.page, searchHits)
+	if a.Ss.page != "terminal" || !kit.Hits["Size"] || kit.Hits["Font"] {
+		t.Errorf("font-size: page %s, hits %v", a.Ss.page, kit.Hits)
 	}
 	if tt.HasText("General") || !tt.HasText("Terminal") {
 		t.Errorf("sidebar of pages without finds; texts %q", tt.Texts())

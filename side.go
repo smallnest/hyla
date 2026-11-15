@@ -16,6 +16,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/ui/files"
 	"hyla/internal/ui/paints"
+	"hyla/internal/ui/settings/kit"
 	"hyla/internal/ui/theme"
 
 	"hyla/internal/ui/glyph"
@@ -450,7 +451,7 @@ func (a *App) changesView(c *ui.Context, pal *theme.Palette, s *proto.Session, w
 
 	ui.Column(c.Key("bases")).Shrink(0).Padding(2, 12, 6, 12).Gap(6).AlignItems(ui.Stretch).Children(func() {
 		if len(bases) > 1 {
-			ui.Row(c).Children(func() { segmented(c, "base", &ch.base, bases, labels) })
+			ui.Row(c).Children(func() { kit.Segmented(c, "base", &ch.base, bases, labels) })
 		}
 		i := slices.Index(bases, ch.base)
 		ui.Row(c).Height(28).Gap(8).AlignItems(ui.Center).Children(func() {

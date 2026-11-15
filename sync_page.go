@@ -7,6 +7,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/ui/paints"
+	"hyla/internal/ui/settings/kit"
 	"hyla/internal/ui/style"
 	"hyla/internal/ui/theme"
 	"hyla/locales"
@@ -67,9 +68,9 @@ func (a *App) syncPage(c *ui.Context, pal *theme.Palette) {
 	st.Ensure()
 	cfg := &st.Cfg
 	saved := func() { st.Save(a) }
-	settingsGroup(c, pal, locales.SetSyncServer(), locales.SetSyncServerDetail(), func() {
-		settingRow(c, pal, locales.SetSyncWhere(), locales.SetSyncWhereDetail(), func() {
-			segmented(c, "sync-backend", &cfg.Backend, []string{"", "webdav", "s3", "github"},
+	kit.Group(c, pal, locales.SetSyncServer(), locales.SetSyncServerDetail(), func() {
+		kit.Row(c, pal, locales.SetSyncWhere(), locales.SetSyncWhereDetail(), func() {
+			kit.Segmented(c, "sync-backend", &cfg.Backend, []string{"", "webdav", "s3", "github"},
 				[]string{locales.SetSyncOff(), "WebDAV", "S3", "GitHub"})
 		})
 		var fields []syncField
@@ -99,7 +100,7 @@ func (a *App) syncPage(c *ui.Context, pal *theme.Palette) {
 		}
 		for _, f := range fields {
 			f := f
-			settingRow(c, pal, f.label(), "", func() {
+			kit.Row(c, pal, f.label(), "", func() {
 				in := ui.TextInputBase(c.Key(f.key), f.value).Grow(1).MinWidth(0).AlignSelf(ui.Stretch).FontSize(13).
 					Placeholder(f.place).OnChange(saved)
 				if f.secret {
@@ -118,17 +119,17 @@ func (a *App) syncPage(c *ui.Context, pal *theme.Palette) {
 	if cfg.Backend == "" {
 		return
 	}
-	settingsGroup(c, pal, locales.SetSyncPassphrase(), locales.SetSyncPassphraseDetail(), func() {
-		settingRow(c, pal, locales.SetSyncPassphraseLabel(), "", func() {
+	kit.Group(c, pal, locales.SetSyncPassphrase(), locales.SetSyncPassphraseDetail(), func() {
+		kit.Row(c, pal, locales.SetSyncPassphraseLabel(), "", func() {
 			ui.TextInputBase(c.Key("sync-passphrase"), &cfg.Passphrase).Grow(1).MinWidth(0).AlignSelf(ui.Stretch).
 				FontSize(13).Password().Placeholder(locales.SetSyncPassphrasePlaceholder()).OnChange(saved)
 		})
 	})
-	settingsGroup(c, pal, locales.SetSyncNowGroup(), "", func() {
-		settingRow(c, pal, locales.SetSyncAuto(), locales.SetSyncAutoDetail(), func() {
+	kit.Group(c, pal, locales.SetSyncNowGroup(), "", func() {
+		kit.Row(c, pal, locales.SetSyncAuto(), locales.SetSyncAutoDetail(), func() {
 			style.Toggle(c.Key("sync-auto"), &cfg.Auto, pal).OnChange(saved)
 		})
-		settingRow(c, pal, locales.SetSyncNow(), a.syncLine(), func() {
+		kit.Row(c, pal, locales.SetSyncNow(), a.syncLine(), func() {
 			b := ui.Button(c.Key("sync-now"), locales.SetSyncNow()).Padding(5, 12).Radius(7).FontSize(12.5)
 			b.Background(pal.Card).TextColor(pal.Text)
 			if b.Clicked() && !st.Busy {

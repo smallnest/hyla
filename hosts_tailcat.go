@@ -14,6 +14,7 @@ import (
 	"hyla/internal/remote"
 	"hyla/internal/settings"
 	"hyla/internal/ui/paints"
+	"hyla/internal/ui/settings/kit"
 	"hyla/internal/ui/theme"
 
 	"hyla/internal/ui/controls"
@@ -52,12 +53,12 @@ type tailcatDraft struct {
 // tailcatGroup is Settings › Hosts › Tailcat: the switch, and with it on,
 // the hosts Hyla adds and this machine as a host.
 func (a *App) tailcatGroup(c *ui.Context, pal *theme.Palette) {
-	settingsGroup(c, pal, locales.SetTailcatTitle(), "", func() {
+	kit.Group(c, pal, locales.SetTailcatTitle(), "", func() {
 		d := &a.Ss.tailcat
 		if d.listenPort == "" {
 			a.resetTailcat()
 		}
-		if groupRows++; groupRows > 1 {
+		if kit.Rows++; kit.Rows > 1 {
 			ui.Box(c).Height(1).Shrink(0).Background(pal.Text.Alpha(0.07))
 		}
 		// The relay both ways: the machines added are found through it, and
@@ -69,11 +70,11 @@ func (a *App) tailcatGroup(c *ui.Context, pal *theme.Palette) {
 			}
 		})
 		tailcatFieldErr(c, pal, d, "tailcat-relay")
-		if groupRows++; groupRows > 1 {
+		if kit.Rows++; kit.Rows > 1 {
 			ui.Box(c).Height(1).Shrink(0).Background(pal.Text.Alpha(0.07))
 		}
 		a.tailcatHosts(c, pal)
-		if groupRows++; groupRows > 1 {
+		if kit.Rows++; kit.Rows > 1 {
 			ui.Box(c).Height(1).Shrink(0).Background(pal.Text.Alpha(0.07))
 		}
 		a.tailcatListen(c, pal, d)
@@ -101,9 +102,9 @@ func (a *App) resetTailcat() {
 
 // tailcatSettingRow is settingRow, which is no row of its group's, here.
 func tailcatSettingRow(c *ui.Context, pal *theme.Palette, label, detail string, control func()) {
-	n := groupRows
-	settingRow(c, pal, label, detail, control)
-	groupRows = n
+	n := kit.Rows
+	kit.Row(c, pal, label, detail, control)
+	kit.Rows = n
 }
 
 // tailcatListen is this machine as a host over Tailcat: the switch of

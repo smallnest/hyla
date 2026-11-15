@@ -114,6 +114,9 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     deleting of entries, over one state of exported fields. The icon
     button, the pointer tooltip, `Stamp` and `ReplaceText`, which the
     sidebar and the Changes view share, are `internal/ui/paints`.
+  - Also: the Settings window's groups, rows, segmented control and the
+    search's marks are `internal/ui/settings/kit`, which the pages, the
+    Sync page and the hosts' forms draw with.
   - Also: `host` is `internal/app/host`.Host — one hylad's address, its
     connection's state and error, what it holds, and the dialers — which
     the views read directly, as the root's field was. Its fields are

@@ -13,6 +13,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/settings"
 	"hyla/internal/ui/controls"
+	"hyla/internal/ui/settings/kit"
 	"hyla/internal/ui/style"
 	"hyla/internal/ui/theme"
 	"hyla/locales"
@@ -91,8 +92,8 @@ func (a *App) feishuYoloGroup(c *ui.Context, pal *theme.Palette) {
 	if s.Feishu == nil {
 		return
 	}
-	settingsGroup(c, pal, locales.SetFeishuYolo(), locales.SetFeishuYoloDetail(), func() {
-		settingRow(c, pal, locales.SetFeishuYoloEvery(), locales.SetFeishuYoloEveryDetail(), func() {
+	kit.Group(c, pal, locales.SetFeishuYolo(), locales.SetFeishuYoloDetail(), func() {
+		kit.Row(c, pal, locales.SetFeishuYoloEvery(), locales.SetFeishuYoloEveryDetail(), func() {
 			style.Toggle(c, &s.FeishuYolo, pal)
 		})
 		for _, agent := range feishuYoloAgents {
@@ -102,7 +103,7 @@ func (a *App) feishuYoloGroup(c *ui.Context, pal *theme.Palette) {
 				// agent's, offers the mode it names.
 				detail += " · " + locales.SetFeishuYoloCommand()
 			}
-			settingRow(c, pal, agent, detail, func() {
+			kit.Row(c, pal, agent, detail, func() {
 				on := settings.IsYolo(s.Feishu, s.FeishuYolo, agent)
 				style.Toggle(c, &on, pal)
 				if on != settings.IsYolo(s.Feishu, s.FeishuYolo, agent) {
@@ -143,8 +144,8 @@ func (a *App) feishuGroup(c *ui.Context, pal *theme.Palette) {
 	if len(a.Hosts) > 1 {
 		note += " " + locales.SetShellThisComputer()
 	}
-	settingsGroup(c, pal, locales.SetFeishu(), note, func() {
-		settingRow(c, pal, locales.SetFeishuAppId(), a.feishuStatusLine(d), func() {
+	kit.Group(c, pal, locales.SetFeishu(), note, func() {
+		kit.Row(c, pal, locales.SetFeishuAppId(), a.feishuStatusLine(d), func() {
 			controls.TextField(c, "feishu-app", &d.app, "cli_…", 200, pal)
 			if d.busy {
 				ui.Text(c, locales.SetFeishuConnecting()).FontSize(12.5).TextColor(pal.TextMuted).SingleLine()
@@ -156,8 +157,8 @@ func (a *App) feishuGroup(c *ui.Context, pal *theme.Palette) {
 			ui.Text(c, d.err).FontSize(12).TextColor(pal.Attention).LineHeight(1.35).Wrap().Padding(0, 0, 10, 0)
 		}
 	})
-	settingsGroup(c, pal, "", "", func() {
-		settingRow(c, pal, locales.SetFeishuSecret(), locales.SetFeishuSecretDetail(), func() {
+	kit.Group(c, pal, "", "", func() {
+		kit.Row(c, pal, locales.SetFeishuSecret(), locales.SetFeishuSecretDetail(), func() {
 			secret := controls.TextField(c, "feishu-secret", &d.secret, locales.SetFeishuSecretPlaceholder(), 200, pal)
 			if secret.Valid() {
 				secret.Password()
@@ -217,7 +218,7 @@ func (a *App) feishuRunRow(c *ui.Context, pal *theme.Palette) {
 		return
 	}
 	a.feishuRow(c, pal, locales.SetFeishuRun(), locales.SetFeishuRunDetail(), func() {
-		segmented(c, "feishu-run", &f.Run, []string{settings.FeishuRunSession, settings.FeishuRunCommand},
+		kit.Segmented(c, "feishu-run", &f.Run, []string{settings.FeishuRunSession, settings.FeishuRunCommand},
 			[]string{locales.SetFeishuRunSession(), locales.SetFeishuRunCommand()})
 	})
 }
@@ -226,8 +227,8 @@ func (a *App) feishuRunRow(c *ui.Context, pal *theme.Palette) {
 func (a *App) feishuRow(c *ui.Context, pal *theme.Palette, label, detail string, build func()) {
 	// The title, as its row reads it.
 	title := label
-	settingsGroup(c, pal, label, "", func() {
-		settingRow(c, pal, title, detail, build)
+	kit.Group(c, pal, label, "", func() {
+		kit.Row(c, pal, title, detail, build)
 	})
 }
 

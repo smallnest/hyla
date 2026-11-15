@@ -15,6 +15,7 @@ import (
 	"hyla/internal/remote"
 	"hyla/internal/settings"
 	"hyla/internal/ui/paints"
+	"hyla/internal/ui/settings/kit"
 	"hyla/internal/ui/theme"
 
 	"hyla/internal/ui/controls"
@@ -230,9 +231,9 @@ func (e errString) Error() string { return string(e) }
 // which a client of them reaches.
 func (a *App) p2pGroup(c *ui.Context, pal *theme.Palette) {
 	d := &a.Ss.tailcat
-	settingsGroup(c, pal, locales.SetTCPTitle(), "", func() {
+	kit.Group(c, pal, locales.SetTCPTitle(), "", func() {
 		a.remoteHosts(c, pal)
-		if groupRows++; groupRows > 1 {
+		if kit.Rows++; kit.Rows > 1 {
 			ui.Box(c).Height(1).Shrink(0).Background(pal.Text.Alpha(0.07))
 		}
 		a.tcpListen(c, pal, d)
