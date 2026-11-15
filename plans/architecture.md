@@ -262,6 +262,10 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     the system's dialog, decoding one off the main thread, and where the
     sidebar's goes. The root keeps the pickers' paths, the sidebar's
     view, and `pickImage`, which asks with the Settings' window.
+  - Also: the Settings › Sync page is `internal/ui/syncedit`, which
+    draws `internal/app/sync`'s `State`; the root keeps its page's
+    `SyncState`, `SyncSaved` and `SyncRun` as the callbacks, while
+    `App.Sync` stays the Settings window's page.
   - The guard now fails on a package of `internal/` that no layer's
     names hold. It found `buildinfo`, `fileicons` and `profiling` never
     listed.
