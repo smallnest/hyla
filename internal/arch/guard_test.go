@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"os/exec"
+	"strings"
 	"testing"
 )
 
@@ -17,6 +18,20 @@ func TestLayers(t *testing.T) {
 			for _, bad := range Check(pkg, imports) {
 				t.Errorf("%s: %s imports %s, which its layer does not allow", goos, pkg, bad)
 			}
+		}
+	}
+}
+
+// TestListed checks that every package of internal/ names its layer: a
+// package that is not listed is below every layer, and imports anything.
+func TestListed(t *testing.T) {
+	m := packages(t, "darwin")
+	for pkg := range m {
+		if !strings.HasPrefix(pkg, Module+"/internal/") {
+			continue
+		}
+		if _, ok := LayerOf(pkg); !ok {
+			t.Errorf("%s is of no layer: add it to layerNames", pkg)
 		}
 	}
 }
