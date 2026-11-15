@@ -10,6 +10,7 @@ import (
 	"hyla/internal/client"
 	"hyla/internal/proto"
 	"hyla/internal/remote"
+	"hyla/internal/ui/paints"
 	"hyla/internal/ui/theme"
 
 	"hyla/internal/ui/controls"
@@ -438,7 +439,7 @@ func (a *App) sshHostRow(c *ui.Context, pal *theme.Palette, i int) {
 		to := h.Addr
 		a.defer_(func() { a.moveSSHHost(d.addr, to, after) })
 	}
-	pointerTooltip(c, row, "tip-ssh-"+h.Addr, h.Addr)
+	paints.PointerTooltip(c, row, "tip-ssh-"+h.Addr, h.Addr)
 	row.ContextMenu(func(m *ui.Menu) {
 		// Reconnecting goes on a terminal that ended, as ssh's does when
 		// the connection drops, and starts the terminal anew, or replaces

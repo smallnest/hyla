@@ -43,7 +43,6 @@ func (a *App) Collapsed() map[string]bool {
 	return a.Prefs.Collapsed
 }
 
-
 func (a *App) Pages() []palette.Page {
 	pages := make([]palette.Page, len(settingsPages))
 	for i, p := range settingsPages {

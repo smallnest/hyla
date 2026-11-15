@@ -12,6 +12,7 @@ import (
 
 	"hyla/internal/client"
 	"hyla/internal/proto"
+	"hyla/internal/ui/paints"
 	"hyla/internal/ui/theme"
 
 	"hyla/internal/ui/controls"
@@ -430,7 +431,7 @@ func (a *App) k8sPodRow(c *ui.Context, pal *theme.Palette, i int) {
 		to := pod.Command
 		a.defer_(func() { a.moveK8sPod(d.command, to, after) })
 	}
-	pointerTooltip(c, row, "tip-k8s-"+pod.Command, pod.Command)
+	paints.PointerTooltip(c, row, "tip-k8s-"+pod.Command, pod.Command)
 	row.ContextMenu(func(m *ui.Menu) {
 		// Reconnecting goes on a terminal that ended, as kubectl's does
 		// when the pod goes, and starts the terminal anew, or replaces one

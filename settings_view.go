@@ -28,6 +28,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/settings"
 	"hyla/internal/shell"
+	"hyla/internal/ui/paints"
 	"hyla/internal/ui/theme"
 	"hyla/internal/ui/wash"
 
@@ -1122,7 +1123,7 @@ func (a *App) fontFallbackField(c *ui.Context, pal *theme.Palette) {
 		ui.Row(c.Key("fb-"+family)).Padding(8, 0).Gap(8).AlignItems(ui.Center).Children(func() {
 			ui.Textf(c, "%d", at+1).FontSize(12).TextColor(pal.TextFaint).Width(14).FontFeatures("tnum").Shrink(0)
 			ui.Text(c, family).FontSize(13).TextColor(pal.Text).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1).Grow(1)
-			iconButton(c, "fb-x-"+family, glyph.Close, locales.CommonRemove(), pal, func() {
+			paints.IconButton(c, "fb-x-"+family, glyph.Close, locales.CommonRemove(), pal, func() {
 				a.settingsIn.FontFallback = strings.Join(slices.Delete(slices.Clone(cur), at, at+1), ", ")
 			})
 		})
@@ -1248,7 +1249,7 @@ func (a *App) shellPage(c *ui.Context, pal *theme.Palette) {
 				ui.Text(c, k).Font("monospace").FontSize(12.5).FontWeight(600).TextColor(pal.Text)
 				ui.Text(c, v).Font("monospace").FontSize(12.5).TextColor(pal.TextMuted).Grow(1).SingleLine().Ellipsis("…").MinWidth(0)
 				idx := i
-				iconButton(c, "rm", glyph.Close, locales.CommonRemove(), pal, func() {
+				paints.IconButton(c, "rm", glyph.Close, locales.CommonRemove(), pal, func() {
 					a.settingsIn.Env = slices.Delete(slices.Clone(a.settingsIn.Env), idx, idx+1)
 				})
 			})

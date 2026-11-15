@@ -664,8 +664,8 @@ func (a *App) sidebarButtons(c *ui.Context, pal *theme.Palette, bar ui.TitleBar,
 		return
 	}
 	ui.Row(c).Absolute().Left(a.Chrome.buttonsLeft(bar)).Top(0).Bottom(0).AlignItems(ui.Center).Gap(2).Opacity(1 - 2*shown).Children(func() {
-		iconButton(c, "show-sidebar", glyph.Sidebar, a.tip(locales.SidebarShow(), "sidebar.toggle"), pal, a.toggleSidebar)
-		iconButton(c, "new-session-2", glyph.Plus, a.tip(locales.ActionNewSession(), "session.new"), pal, func() { a.newSession("") })
+		paints.IconButton(c, "show-sidebar", glyph.Sidebar, a.tip(locales.SidebarShow(), "sidebar.toggle"), pal, a.toggleSidebar)
+		paints.IconButton(c, "new-session-2", glyph.Plus, a.tip(locales.ActionNewSession(), "session.new"), pal, func() { a.newSession("") })
 	})
 }
 
@@ -679,22 +679,22 @@ func (a *App) paneControls(c *ui.Context, pal *theme.Palette, s *proto.Session, 
 		}
 		if a.feishuOn() {
 			if a.PaneChat[p.ID] {
-				iconButton(c, "chat-toggle", glyph.Terminal, a.tip(locales.ActionShowTerminal(), "pane.chat"), pal, func() { a.hidePaneChat(s, p.ID) })
+				paints.IconButton(c, "chat-toggle", glyph.Terminal, a.tip(locales.ActionShowTerminal(), "pane.chat"), pal, func() { a.hidePaneChat(s, p.ID) })
 			} else {
-				iconButton(c, "chat-toggle", glyph.Chat, a.tip(locales.SideChat(), "pane.chat"), pal, func() { a.showPaneChat(s, p.ID) })
+				paints.IconButton(c, "chat-toggle", glyph.Chat, a.tip(locales.SideChat(), "pane.chat"), pal, func() { a.showPaneChat(s, p.ID) })
 			}
 		}
-		iconButton(c, "split-r", glyph.SplitRight, a.tip(locales.ActionSplitRight(), "pane.split.right"), pal, func() { a.splitPane(s, p.ID, "right") })
-		iconButton(c, "split-d", glyph.SplitDown, a.tip(locales.ActionSplitDown(), "pane.split.down"), pal, func() { a.splitPane(s, p.ID, "down") })
+		paints.IconButton(c, "split-r", glyph.SplitRight, a.tip(locales.ActionSplitRight(), "pane.split.right"), pal, func() { a.splitPane(s, p.ID, "right") })
+		paints.IconButton(c, "split-d", glyph.SplitDown, a.tip(locales.ActionSplitDown(), "pane.split.down"), pal, func() { a.splitPane(s, p.ID, "down") })
 		if multi {
 			sid, pid := s.ID, p.ID
 			zoom := func() { a.defer_(func() { a.zoomPane(a.session(sid), pid) }) }
 			if s.Zoomed == p.ID {
-				iconButton(c, "zoom", glyph.Unzoom, a.tip(locales.PaneShowAll(), "pane.zoom"), pal, zoom)
+				paints.IconButton(c, "zoom", glyph.Unzoom, a.tip(locales.PaneShowAll(), "pane.zoom"), pal, zoom)
 			} else {
-				iconButton(c, "zoom", glyph.Zoom, a.tip(locales.ActionZoomPane(), "pane.zoom"), pal, zoom)
+				paints.IconButton(c, "zoom", glyph.Zoom, a.tip(locales.ActionZoomPane(), "pane.zoom"), pal, zoom)
 			}
-			iconButton(c, "close", glyph.Close, a.tip(locales.PaneClose(), "pane.close"), pal, func() { a.defer_(func() { a.closePane(a.session(sid), pid, true) }) })
+			paints.IconButton(c, "close", glyph.Close, a.tip(locales.PaneClose(), "pane.close"), pal, func() { a.defer_(func() { a.closePane(a.session(sid), pid, true) }) })
 		}
 	})
 }

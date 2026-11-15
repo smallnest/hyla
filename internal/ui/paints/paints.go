@@ -3,10 +3,13 @@
 package paints
 
 import (
+	"fmt"
 	"math"
 	"time"
+	"unicode/utf8"
 
 	"github.com/egoist/mygo/ui"
+	"github.com/egoist/mygo/ui/editor"
 
 	"hyla/internal/proto"
 	"hyla/internal/ui/theme"
@@ -130,4 +133,99 @@ func StatusP(c *ui.Context, pal *theme.Palette, st proto.Status, unread bool, pr
 		}
 	})
 	return box
+}
+
+// IconButton is a quiet square button with an icon, as in a toolbar.
+func IconButton(c *ui.Context, key string, svg *ui.SVG, label string, pal *theme.Palette, fn func()) {
+	b := ui.ButtonBase(c.Key(key)).Size(28, 26).Radius(6).Center().TextColor(pal.TextMuted).Label(label).Tooltip(label)
+	if b.Pressed() {
+		b.Background(pal.RowHover.Alpha(0.12))
+	} else if b.Hovered() {
+		b.Background(pal.RowHover)
+		b.TextColor(pal.Text)
+	}
+	b.Children(func() { ui.Icon(c, svg).Size(16, 16) })
+	if b.Clicked() {
+		fn()
+	}
+}
+
+// tipsAt are where PointerTooltip's tips show, by key: where the pointer
+// rested as each came, which they keep while they show.
+var tipsAt = map[string]ui.Point{}
+
+// PointerTooltip shows s as el's tooltip, as Element.Tooltip does, but
+// where macOS shows its tooltips: below the pointer where it came to rest,
+// clear of the arrow, rather than centered above el, which a long row
+// puts far from where the user looks.
+func PointerTooltip(c *ui.Context, el ui.Element, key, s string) {
+	el.Description(s)
+	const below = 18 // the arrow's height, from its tip
+	px, py, _ := el.PointerPosition()
+	at, showing := tipsAt[key]
+	if !showing {
+		b := el.Bounds()
+		at = ui.Point{X: b.X + px, Y: b.Y + py + below}
+	}
+	var spot ui.Element
+	ui.Overlay(c, func() {
+		spot = ui.Box(c.Key(key+"-at")).Absolute().Left(at.X).Top(at.Y).Size(0, 0).PassThrough()
+	})
+	shown := false
+	ui.TooltipBase(c, el, func(tip ui.Element) {
+		shown = true
+		th := c.Theme()
+		fill, text := th.Inverse, th.InverseText
+		if fill == ui.Transparent {
+			fill = th.Text
+		}
+		if text == ui.Transparent {
+			text = th.Background
+		}
+		tip.MaxWidth(th.Space(80)).Padding(th.Space(1.25), th.Space(2)).Radius(th.Space(1.25)).
+			Background(fill).TextColor(text).FontSize(th.FontSize-1).Shadow(0, 2, 8, 0, ui.RGBA(0, 0, 0, 0.2))
+		tip.Children(func() { ui.Text(c, s) })
+		// A box where the pointer came to rest, in the window, for the tip
+		// to attach to: a place in the row would be laid out a frame behind
+		// the row's, and the tip would show under the pointer, on the row
+		// after this one, while it keeps a place of its own.
+		tip.AttachTo(spot, ui.AnchorTopLeft, ui.AnchorTopLeft)
+	})
+	if shown {
+		tipsAt[key] = at
+	} else {
+		delete(tipsAt, key)
+	}
+}
+
+// Stamp is what of a worktree's status changes its changes.
+func Stamp(g *proto.GitInfo) string {
+	if g == nil {
+		return ""
+	}
+	return fmt.Sprint(g.Root, g.Head, g.Branch, g.Files, g.Added, g.Removed)
+}
+
+// ReplaceText makes a buffer's text text by one edit of what differs
+// between them, on whole characters.
+func ReplaceText(b *editor.Buffer, text string) {
+	cur := b.String()
+	if cur == text {
+		return
+	}
+	p := 0
+	for p < len(cur) && p < len(text) && cur[p] == text[p] {
+		p++
+	}
+	for p > 0 && p < len(cur) && !utf8.RuneStart(cur[p]) {
+		p--
+	}
+	q := 0
+	for q < len(cur)-p && q < len(text)-p && cur[len(cur)-1-q] == text[len(text)-1-q] {
+		q++
+	}
+	for q > 0 && !utf8.RuneStart(cur[len(cur)-q]) {
+		q--
+	}
+	b.Edit(editor.Edit{Start: p, End: len(cur) - q, Text: text[p : len(text)-q]})
 }

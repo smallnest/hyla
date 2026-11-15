@@ -14,6 +14,7 @@ import (
 
 	"hyla/internal/git"
 	"hyla/internal/proto"
+	"hyla/internal/ui/paints"
 )
 
 // A session in a worktree of its own shows its branch by its name, and
@@ -33,7 +34,7 @@ func TestSidePanel(t *testing.T) {
 	// What hylad would answer.
 	ch := &a.Side.changes
 	turnScope := changesScope(&s.Panes[0], git.BaseTurn)
-	ch.base, ch.scope, ch.stamp = git.BaseTurn, turnScope, gitStamp(g)+"|abc"
+	ch.base, ch.scope, ch.stamp = git.BaseTurn, turnScope, paints.Stamp(g)+"|abc"
 	ch.res = &proto.GitChanges{Root: "/tmp/demo", Files: []proto.GitFile{
 		{Path: "internal/auth/login.go", Status: "modified", Added: 30, Removed: 2},
 		{Path: "internal/auth/login_test.go", Status: "added", Added: 10},
@@ -158,7 +159,7 @@ func TestReplaceText(t *testing.T) {
 		{"abc", "abc"}, {"abc", "abXc"}, {"abc", ""}, {"", "x"}, {"héllo", "hállo"}, {"日本語", "日本人語"}, {"aaa", "aa"},
 	} {
 		b := editor.NewBuffer(c.from)
-		replaceText(b, c.to)
+		paints.ReplaceText(b, c.to)
 		if got := b.String(); got != c.to {
 			t.Errorf("%q → %q: got %q", c.from, c.to, got)
 		}
@@ -213,7 +214,7 @@ func TestChangesFollowWorktree(t *testing.T) {
 	if scope != changesScope(&s.Panes[1], git.BaseHead) {
 		t.Fatal("two panes of one worktree list different changes")
 	}
-	ch.base, ch.scope, ch.stamp = git.BaseHead, scope, gitStamp(g)
+	ch.base, ch.scope, ch.stamp = git.BaseHead, scope, paints.Stamp(g)
 	ch.res = &proto.GitChanges{Root: "/tmp/demo"}
 	for i := range 40 {
 		ch.res.Files = append(ch.res.Files, proto.GitFile{Path: fmt.Sprintf("f%02d.go", i), Status: "modified", Added: 10})
@@ -260,7 +261,7 @@ func TestStickyHeaderStaysInList(t *testing.T) {
 	a.Prefs.Side = sideChanges
 	ch := &a.Side.changes
 	scope := changesScope(&s.Panes[0], git.BaseHead)
-	ch.base, ch.scope, ch.stamp = git.BaseHead, scope, gitStamp(g)
+	ch.base, ch.scope, ch.stamp = git.BaseHead, scope, paints.Stamp(g)
 	ch.res = &proto.GitChanges{Root: "/tmp/demo"}
 	for _, n := range []string{"a.go", "b.go", "c.go"} {
 		ch.res.Files = append(ch.res.Files, proto.GitFile{Path: n, Status: "added", Added: 20})
@@ -323,7 +324,7 @@ func TestStickyHeaderAsFoldShortensList(t *testing.T) {
 	a.Prefs.Side = sideChanges
 	ch := &a.Side.changes
 	scope := changesScope(&s.Panes[0], git.BaseHead)
-	ch.base, ch.scope, ch.stamp = git.BaseHead, scope, gitStamp(g)
+	ch.base, ch.scope, ch.stamp = git.BaseHead, scope, paints.Stamp(g)
 	ch.res = &proto.GitChanges{Root: "/tmp/demo"}
 	names := []string{"a.go", "b.go", "c.go"}
 	for _, n := range names {

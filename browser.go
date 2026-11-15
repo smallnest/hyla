@@ -10,6 +10,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/proto"
+	"hyla/internal/ui/paints"
 	"hyla/internal/ui/theme"
 
 	"hyla/internal/ui/style"
@@ -447,7 +448,7 @@ func (a *App) browserError(c *ui.Context, pal *theme.Palette, e *webEntry) {
 		if style.Button(c, "retry", locales.CommonTryAgain(), "", false, pal) {
 			e.load(e.url)
 		}
-		iconButton(c, "dismiss", glyph.Close, locales.FindClose(), pal, func() { e.err = "" })
+		paints.IconButton(c, "dismiss", glyph.Close, locales.FindClose(), pal, func() { e.err = "" })
 	})
 }
 
@@ -478,9 +479,9 @@ func (a *App) browserFind(c *ui.Context, pal *theme.Palette, e *webEntry) {
 			count = locales.FindCount(itoa(e.found.Active), itoa(e.found.Matches))
 		}
 		ui.Text(c, count).FontSize(12).FontFeatures("tnum").TextColor(pal.TextFaint).SingleLine().MinWidth(56).TextAlign(ui.End).Margin(0, 4, 0, 0)
-		iconButton(c, "previous", glyph.ChevronUp, a.tip(locales.ActionFindPrevious(), "find.previous"), pal, func() { a.findInPage(e, true, true) })
-		iconButton(c, "next", glyph.ChevronDown, a.tip(locales.ActionFindNext(), "find.next"), pal, func() { a.findInPage(e, true, false) })
-		iconButton(c, "close", glyph.Close, locales.FindClose(), pal, func() { a.defer_(a.closeFind) })
+		paints.IconButton(c, "previous", glyph.ChevronUp, a.tip(locales.ActionFindPrevious(), "find.previous"), pal, func() { a.findInPage(e, true, true) })
+		paints.IconButton(c, "next", glyph.ChevronDown, a.tip(locales.ActionFindNext(), "find.next"), pal, func() { a.findInPage(e, true, false) })
+		paints.IconButton(c, "close", glyph.Close, locales.FindClose(), pal, func() { a.defer_(a.closeFind) })
 	})
 	if bar.Shortcut(0, ui.KeyEscape) {
 		a.defer_(a.closeFind)

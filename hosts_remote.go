@@ -14,6 +14,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/remote"
 	"hyla/internal/settings"
+	"hyla/internal/ui/paints"
 	"hyla/internal/ui/theme"
 
 	"hyla/internal/ui/controls"
@@ -264,7 +265,7 @@ func (a *App) tailcatHosts(c *ui.Context, pal *theme.Palette) {
 					ui.Text(c, strings.TrimPrefix(r.Addr, "tailcat://")[:min(12, len(strings.TrimPrefix(r.Addr, "tailcat://")))]+"… "+r.Port).
 						Font("monospace").FontSize(12).TextColor(pal.TextFaint).SingleLine().Ellipsis("…")
 				})
-				iconButton(c, "rm-tc-"+r.Name, glyph.Close, locales.HostRemove(), pal, func() {
+				paints.IconButton(c, "rm-tc-"+r.Name, glyph.Close, locales.HostRemove(), pal, func() {
 					a.removeRemoteHost(r.Name)
 				})
 			})
@@ -340,7 +341,7 @@ func (a *App) remoteHosts(c *ui.Context, pal *theme.Palette) {
 					ui.Text(c, r.Name).FontSize(13).TextColor(pal.Text).SingleLine().Ellipsis("…")
 					ui.Text(c, r.Addr).Font("monospace").FontSize(12).TextColor(pal.TextFaint).SingleLine().Ellipsis("…")
 				})
-				iconButton(c, "rm-"+r.Name, glyph.Close, locales.HostRemove(), pal, func() {
+				paints.IconButton(c, "rm-"+r.Name, glyph.Close, locales.HostRemove(), pal, func() {
 					a.removeRemoteHost(r.Name)
 				})
 			})
@@ -379,7 +380,7 @@ func (a *App) remoteHostHeader(c *ui.Context, pal *theme.Palette, h *host.Host, 
 	if hovered {
 		hdr.Background(pal.RowHover)
 	}
-	pointerTooltip(c, hdr, "tip-remote-"+h.Name, h.Name+" "+h.Addr)
+	paints.PointerTooltip(c, hdr, "tip-remote-"+h.Name, h.Name+" "+h.Addr)
 	hdr.ContextMenu(func(m *ui.Menu) {
 		if m.Item(locales.HostReconnect()).Chosen() {
 			a.reconnectHost(h)

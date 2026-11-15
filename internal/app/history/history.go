@@ -194,7 +194,7 @@ func section(c *ui.Context, x App, pal *theme.Palette, key, title string, list [
 func row(c *ui.Context, x App, pal *theme.Palette, h *host.Host, cv proto.Conversation, now time.Time) {
 	key := "e-" + h.Name + "-" + cv.Agent + "-" + cv.ID
 	row := ui.Row(c.Key(key)).Height(44).Padding(0, 6, 0, rowInset).Gap(10).Radius(8).AlignItems(ui.Center)
-	PointerTooltip(c, row, "tip-"+key, h.ShortDir(cv.Dir))
+	paints.PointerTooltip(c, row, "tip-"+key, h.ShortDir(cv.Dir))
 	hovered := row.Hovered()
 	if hovered {
 		row.Background(pal.RowHover)
@@ -216,7 +216,7 @@ func row(c *ui.Context, x App, pal *theme.Palette, h *host.Host, cv proto.Conver
 			ui.Text(c, proto.DirName(cv.Dir)).FontSize(12).TextColor(pal.TextFaint).SingleLine().Ellipsis("…")
 		})
 		if hovered && !cv.Archived {
-			IconButton(c, "archive", glyph.Archive, locales.EndedArchive(), pal, func() {
+			paints.IconButton(c, "archive", glyph.Archive, locales.EndedArchive(), pal, func() {
 				conversationCall(x, h, "conversation.archive", cv, nil)
 			})
 		} else {
@@ -320,109 +320,7 @@ func b2f(b bool) float32 {
 	return 0
 }
 
-// IconButton is a quiet square button with an icon, as in a toolbar.
-func IconButton(c *ui.Context, key string, svg *ui.SVG, label string, pal *theme.Palette, fn func()) {
-	b := ui.ButtonBase(c.Key(key)).Size(28, 26).Radius(6).Center().TextColor(pal.TextMuted).Label(label).Tooltip(label)
-	if b.Pressed() {
-		b.Background(pal.RowHover.Alpha(0.12))
-	} else if b.Hovered() {
-		b.Background(pal.RowHover)
-		b.TextColor(pal.Text)
-	}
-	b.Children(func() { ui.Icon(c, svg).Size(16, 16) })
-	if b.Clicked() {
-		fn()
-	}
-}
-
-// tipsAt are where PointerTooltip's tips show, by key: where the pointer
-// rested as each came, which they keep while they show.
-var tipsAt = map[string]ui.Point{}
-
-// pointerTooltip shows s as el's tooltip, as Element.Tooltip does, but
-// where macOS shows its tooltips: below the pointer where it came to rest,
-// clear of the arrow, rather than centered above el, which a long row
-// puts far from where the user looks.
+// pointerTooltip shows s as el's tooltip, where macOS shows its tooltips.
 func pointerTooltip(c *ui.Context, el ui.Element, key, s string) {
-	el.Description(s)
-	const below = 18 // the arrow's height, from its tip
-	px, py, _ := el.PointerPosition()
-	at, showing := tipsAt[key]
-	if !showing {
-		b := el.Bounds()
-		at = ui.Point{X: b.X + px, Y: b.Y + py + below}
-	}
-	var spot ui.Element
-	ui.Overlay(c, func() {
-		spot = ui.Box(c.Key(key+"-at")).Absolute().Left(at.X).Top(at.Y).Size(0, 0).PassThrough()
-	})
-	shown := false
-	ui.TooltipBase(c, el, func(tip ui.Element) {
-		shown = true
-		th := c.Theme()
-		fill, text := th.Inverse, th.InverseText
-		if fill == ui.Transparent {
-			fill = th.Text
-		}
-		if text == ui.Transparent {
-			text = th.Background
-		}
-		tip.MaxWidth(th.Space(80)).Padding(th.Space(1.25), th.Space(2)).Radius(th.Space(1.25)).
-			Background(fill).TextColor(text).FontSize(th.FontSize-1).Shadow(0, 2, 8, 0, ui.RGBA(0, 0, 0, 0.2))
-		tip.Children(func() { ui.Text(c, s) })
-		// A box where the pointer came to rest, in the window, for the tip
-		// to attach to: a place in the row would be laid out a frame behind
-		// the row's, and the tip would show under the pointer, on the row
-		// after this one, while it keeps a place of its own.
-		tip.AttachTo(spot, ui.AnchorTopLeft, ui.AnchorTopLeft)
-	})
-	if shown {
-		tipsAt[key] = at
-	} else {
-		delete(tipsAt, key)
-	}
-}
-
-// pointerTooltip shows s as el's tooltip, as Element.Tooltip does, but
-// where macOS shows its tooltips: below the pointer where it came to rest,
-// clear of the arrow, rather than centered above el, which a long row
-// puts far from where the user looks.
-func PointerTooltip(c *ui.Context, el ui.Element, key, s string) {
-	el.Description(s)
-	const below = 18 // the arrow's height, from its tip
-	px, py, _ := el.PointerPosition()
-	at, showing := tipsAt[key]
-	if !showing {
-		b := el.Bounds()
-		at = ui.Point{X: b.X + px, Y: b.Y + py + below}
-	}
-	var spot ui.Element
-	ui.Overlay(c, func() {
-		spot = ui.Box(c.Key(key+"-at")).Absolute().Left(at.X).Top(at.Y).Size(0, 0).PassThrough()
-	})
-	shown := false
-	ui.TooltipBase(c, el, func(tip ui.Element) {
-		shown = true
-		th := c.Theme()
-		fill, text := th.Inverse, th.InverseText
-		if fill == ui.Transparent {
-			fill = th.Text
-		}
-		if text == ui.Transparent {
-			text = th.Background
-		}
-		tip.MaxWidth(th.Space(80)).Padding(th.Space(1.25), th.Space(2)).Radius(th.Space(1.25)).
-			Background(fill).TextColor(text).FontSize(th.FontSize-1).Shadow(0, 2, 8, 0, ui.RGBA(0, 0, 0, 0.2))
-		tip.Children(func() { ui.Text(c, s) })
-		// A box where the pointer came to rest, in the window, for the tip
-		// to attach to: a place in the row would be laid out a frame behind
-		// the row's, and the tip would show under the pointer, on the row
-		// after this one, while it keeps a place of its own.
-		tip.AttachTo(spot, ui.AnchorTopLeft, ui.AnchorTopLeft)
-	})
-	if shown {
-		tipsAt[key] = at
-	} else {
-		delete(tipsAt, key)
-	}
+	paints.PointerTooltip(c, el, key, s)
 }

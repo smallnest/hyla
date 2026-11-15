@@ -109,6 +109,11 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
   - Also: the side panel's Info view is `internal/ui/info` — the pane's
     directory, processes and ports, each a card of `info.Card`, and the
     fold keys. Magpie's and Feishu's cards draw through it from the root.
+  - Also: the Files tab and its viewer are `internal/ui/files` — the
+    tree, the listing, the reading, and the making, renaming and
+    deleting of entries, over one state of exported fields. The icon
+    button, the pointer tooltip, `Stamp` and `ReplaceText`, which the
+    sidebar and the Changes view share, are `internal/ui/paints`.
   - Also: `host` is `internal/app/host`.Host — one hylad's address, its
     connection's state and error, what it holds, and the dialers — which
     the views read directly, as the root's field was. Its fields are

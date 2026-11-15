@@ -8,6 +8,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/proto"
+	"hyla/internal/ui/paints"
 	"hyla/internal/ui/theme"
 
 	"hyla/internal/ui/style"
@@ -131,9 +132,9 @@ func (a *App) findBar(c *ui.Context, pal *theme.Palette, p *proto.Pane, t *termi
 		}
 		ui.Text(c, count).FontSize(12).FontFeatures("tnum").TextColor(pal.TextFaint).SingleLine().MinWidth(56).TextAlign(ui.End).Margin(0, 4, 0, 0)
 		// Up goes back through the output, as Enter does, as in Ghostty.
-		iconButton(c, "next", glyph.ChevronUp, a.tip(locales.ActionFindNext(), "find.next"), pal, t.SearchNext)
-		iconButton(c, "previous", glyph.ChevronDown, a.tip(locales.ActionFindPrevious(), "find.previous"), pal, t.SearchPrevious)
-		iconButton(c, "close", glyph.Close, locales.FindClose(), pal, func() { a.defer_(a.closeFind) })
+		paints.IconButton(c, "next", glyph.ChevronUp, a.tip(locales.ActionFindNext(), "find.next"), pal, t.SearchNext)
+		paints.IconButton(c, "previous", glyph.ChevronDown, a.tip(locales.ActionFindPrevious(), "find.previous"), pal, t.SearchPrevious)
+		paints.IconButton(c, "close", glyph.Close, locales.FindClose(), pal, func() { a.defer_(a.closeFind) })
 	})
 	// Escape closes it from its field and its buttons alike.
 	if bar.Shortcut(0, ui.KeyEscape) {

@@ -6,6 +6,7 @@ import (
 
 	"hyla/internal/platform"
 	"hyla/internal/ui/glyph"
+	"hyla/internal/ui/paints"
 	"hyla/internal/ui/theme"
 	"hyla/locales"
 )
@@ -23,7 +24,7 @@ func windowControls(c *ui.Context, pal *theme.Palette, w *mygo.Window) {
 		return
 	}
 	ui.Row(c.Key("window-controls")).Gap(2).AlignItems(ui.Center).Shrink(0).Margin(0, 0, 0, 6).Children(func() {
-		iconButton(c, "minimize", minimizeIcon, locales.WindowMinimize(), pal, w.Minimize)
+		paints.IconButton(c, "minimize", minimizeIcon, locales.WindowMinimize(), pal, w.Minimize)
 		// The system's maximize button for the pointer, which brings
 		// Windows 11's snap layouts as it rests there: no tooltip over them.
 		maximized := w.IsMaximized()

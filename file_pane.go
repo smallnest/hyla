@@ -6,6 +6,7 @@ import (
 
 	"hyla/internal/app/filepane"
 	"hyla/internal/proto"
+	"hyla/internal/ui/files"
 	"hyla/internal/ui/theme"
 
 	"hyla/locales"
@@ -24,7 +25,7 @@ func (a *App) filePaneFor(p *proto.Pane) *filepane.State {
 // or changes on disk.
 func (a *App) filePane(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane) {
 	f := a.filePaneFor(p)
-	filepane.Read(f, a.hostOf(p.ID).Client, a.update, remoteError)
+	filepane.Read(f, a.hostOf(p.ID).Client, a.update, files.RemoteError)
 	ui.Box(c.Key("body")).Grow(1).MinHeight(0).Children(func() {
 		switch {
 		case f.Err != "":

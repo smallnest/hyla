@@ -219,69 +219,6 @@ func (a *App) resizeHandle(c *ui.Context, pal *theme.Palette) {
 	}
 }
 
-// iconButton is a quiet square button with an icon, as in a toolbar.
-func iconButton(c *ui.Context, key string, svg *ui.SVG, label string, pal *theme.Palette, fn func()) {
-	b := ui.ButtonBase(c.Key(key)).Size(28, 26).Radius(6).Center().TextColor(pal.TextMuted).Label(label).Tooltip(label)
-	if b.Pressed() {
-		b.Background(pal.RowHover.Alpha(0.12))
-	} else if b.Hovered() {
-		b.Background(pal.RowHover)
-		b.TextColor(pal.Text)
-	}
-	b.Children(func() { ui.Icon(c, svg).Size(16, 16) })
-	if b.Clicked() {
-		fn()
-	}
-}
-
-// tipsAt are where pointerTooltip's tips show, by key: where the pointer
-// rested as each came, which they keep while they show.
-var tipsAt = map[string]ui.Point{}
-
-// pointerTooltip shows s as el's tooltip, as Element.Tooltip does, but
-// where macOS shows its tooltips: below the pointer where it came to rest,
-// clear of the arrow, rather than centered above el, which a long row
-// puts far from where the user looks.
-func pointerTooltip(c *ui.Context, el ui.Element, key, s string) {
-	el.Description(s)
-	const below = 18 // the arrow's height, from its tip
-	px, py, _ := el.PointerPosition()
-	at, showing := tipsAt[key]
-	if !showing {
-		b := el.Bounds()
-		at = ui.Point{X: b.X + px, Y: b.Y + py + below}
-	}
-	var spot ui.Element
-	ui.Overlay(c, func() {
-		spot = ui.Box(c.Key(key+"-at")).Absolute().Left(at.X).Top(at.Y).Size(0, 0).PassThrough()
-	})
-	shown := false
-	ui.TooltipBase(c, el, func(tip ui.Element) {
-		shown = true
-		th := c.Theme()
-		fill, text := th.Inverse, th.InverseText
-		if fill == ui.Transparent {
-			fill = th.Text
-		}
-		if text == ui.Transparent {
-			text = th.Background
-		}
-		tip.MaxWidth(th.Space(80)).Padding(th.Space(1.25), th.Space(2)).Radius(th.Space(1.25)).
-			Background(fill).TextColor(text).FontSize(th.FontSize-1).Shadow(0, 2, 8, 0, ui.RGBA(0, 0, 0, 0.2))
-		tip.Children(func() { ui.Text(c, s) })
-		// A box where the pointer came to rest, in the window, for the tip
-		// to attach to: a place in the row would be laid out a frame behind
-		// the row's, and the tip would show under the pointer, on the row
-		// after this one, while it keeps a place of its own.
-		tip.AttachTo(spot, ui.AnchorTopLeft, ui.AnchorTopLeft)
-	})
-	if shown {
-		tipsAt[key] = at
-	} else {
-		delete(tipsAt, key)
-	}
-}
-
 // --- the sidebar ---
 
 func (a *App) sidebar(c *ui.Context, pal *theme.Palette, bar ui.TitleBar) {
@@ -292,7 +229,7 @@ func (a *App) sidebar(c *ui.Context, pal *theme.Palette, bar ui.TitleBar) {
 		if runtime.GOOS == "darwin" {
 			ui.Spacer(c)
 		}
-		iconButton(c, "hide-sidebar", glyph.Sidebar, a.tip(locales.SidebarHide(), "sidebar.toggle"), pal, a.toggleSidebar)
+		paints.IconButton(c, "hide-sidebar", glyph.Sidebar, a.tip(locales.SidebarHide(), "sidebar.toggle"), pal, a.toggleSidebar)
 		a.foldButton(c, pal)
 		a.sortButton(c, pal)
 		a.newSessionButton(c, pal)
@@ -349,7 +286,7 @@ func (a *App) foldButton(c *ui.Context, pal *theme.Palette) {
 	if a.allProjectsCollapsed() {
 		svg, label = glyph.UnfoldAll, locales.SidebarExpandAll()
 	}
-	iconButton(c, "fold-sidebar", svg, label, pal, a.toggleAllProjects)
+	paints.IconButton(c, "fold-sidebar", svg, label, pal, a.toggleAllProjects)
 }
 
 // sortButton opens the sidebar's Group and Order menu, as Otty's sort
@@ -547,7 +484,7 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g group, gi int, n *i
 	if hdr.Clicked() && !renaming {
 		a.toggleProject(key)
 	}
-	pointerTooltip(c, hdr, "tip-project-"+key, a.projectTip(g))
+	paints.PointerTooltip(c, hdr, "tip-project-"+key, a.projectTip(g))
 	hdr.ContextMenu(func(m *ui.Menu) {
 		if m.Item(locales.NewSessionIn(g.project.Name)).Chosen() {
 			a.newSessionOn(g.host, id)
@@ -839,7 +776,7 @@ func (a *App) sessionRow(c *ui.Context, pal *theme.Palette, s *proto.Session, n 
 	if g != nil {
 		tip += "\n" + gitinfo.Summary(g)
 	}
-	pointerTooltip(c, row, "tip-"+s.ID, tip)
+	paints.PointerTooltip(c, row, "tip-"+s.ID, tip)
 	// The mark of the agent the session runs, before its name, in the
 	// agent's own colour: the row says which agent it is at a glance. A
 	// session with no agent, or one whose agent Hyla has no mark for,
@@ -1073,8 +1010,8 @@ func (a *App) sessionMenu(m *ui.Menu, s *proto.Session) {
 // nothing does, or the connection to hylad while there is none.
 func (a *App) sidebarFooter(c *ui.Context, pal *theme.Palette) {
 	ui.Row(c).Height(36).Shrink(0).Padding(0, 12, 4, 12).Gap(2).AlignItems(ui.Center).DragWindow().Children(func() {
-		iconButton(c, "palette", glyph.Search, a.tip(locales.ActionGoToSession(), "palette.open"), pal, a.openPalette)
-		iconButton(c, "settings", glyph.Gear, a.tip(locales.SettingsTitle(), "settings.open"), pal, func() { a.openSettings("") })
+		paints.IconButton(c, "palette", glyph.Search, a.tip(locales.ActionGoToSession(), "palette.open"), pal, a.openPalette)
+		paints.IconButton(c, "settings", glyph.Gear, a.tip(locales.SettingsTitle(), "settings.open"), pal, func() { a.openSettings("") })
 		ui.Spacer(c)
 		switch a.local().Conn {
 		case host.StateReady:
@@ -1296,8 +1233,8 @@ func (a *App) cardFor(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown 
 		ui.Row(c).Height(headerH).Shrink(0).AlignItems(ui.Center).Padding(0, 10, 0, left).DragWindow().Children(func() {
 			if shown < 0.5 {
 				ui.Row(c).Absolute().Left(a.Chrome.buttonsLeft(bar)).Top(0).Bottom(0).AlignItems(ui.Center).Gap(2).Opacity(1 - 2*shown).Children(func() {
-					iconButton(c, "show-sidebar", glyph.Sidebar, a.tip(locales.SidebarShow(), "sidebar.toggle"), pal, a.toggleSidebar)
-					iconButton(c, "new-session-2", glyph.Plus, a.tip(locales.ActionNewSession(), "session.new"), pal, func() { a.newSession("") })
+					paints.IconButton(c, "show-sidebar", glyph.Sidebar, a.tip(locales.SidebarShow(), "sidebar.toggle"), pal, a.toggleSidebar)
+					paints.IconButton(c, "new-session-2", glyph.Plus, a.tip(locales.ActionNewSession(), "session.new"), pal, func() { a.newSession("") })
 				})
 			}
 			ui.Text(c, "Hyla").FontSize(14).FontWeight(600).TextColor(pal.Text)

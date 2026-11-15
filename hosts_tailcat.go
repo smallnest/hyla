@@ -13,6 +13,7 @@ import (
 
 	"hyla/internal/remote"
 	"hyla/internal/settings"
+	"hyla/internal/ui/paints"
 	"hyla/internal/ui/theme"
 
 	"hyla/internal/ui/controls"
@@ -182,7 +183,7 @@ func (a *App) tailcatListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) 
 			if time.Since(d.copied) < 1500*time.Millisecond {
 				icon, label = glyph.Of("lucide-check"), locales.ToastCopied()
 			}
-			iconButton(c, "copy-tailcat", icon, label, pal, func() {
+			paints.IconButton(c, "copy-tailcat", icon, label, pal, func() {
 				c.WriteClipboard(code)
 				d.copied = time.Now()
 				go func() {
@@ -190,7 +191,7 @@ func (a *App) tailcatListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) 
 					a.update(func() {})
 				}()
 			})
-			iconButton(c, "change-tailcat", glyph.Reload, locales.SetTailcatChange(), pal, func() {
+			paints.IconButton(c, "change-tailcat", glyph.Reload, locales.SetTailcatChange(), pal, func() {
 				a.Ss.confirm = &confirmation{
 					open:    true,
 					title:   locales.SetTailcatChange(),
@@ -348,7 +349,7 @@ func (a *App) tcpListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) {
 			if time.Since(d.copied) < 1500*time.Millisecond {
 				icon, label = glyph.Of("lucide-check"), locales.ToastCopied()
 			}
-			iconButton(c, "copy-token", icon, label, pal, func() {
+			paints.IconButton(c, "copy-token", icon, label, pal, func() {
 				c.WriteClipboard(d.tcpToken)
 				d.copied = time.Now()
 				go func() {
@@ -356,7 +357,7 @@ func (a *App) tcpListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) {
 					a.update(func() {})
 				}()
 			})
-			iconButton(c, "new-token", glyph.Reload, locales.SetTCPNew(), pal, func() {
+			paints.IconButton(c, "new-token", glyph.Reload, locales.SetTCPNew(), pal, func() {
 				token, err := remote.RandomToken()
 				if err != nil {
 					a.toast(err.Error())

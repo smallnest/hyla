@@ -15,6 +15,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/proto"
+	"hyla/internal/ui/files"
 	"hyla/locales"
 )
 
@@ -29,11 +30,11 @@ func TestFilesTab(t *testing.T) {
 	a.Prefs.Side = sideFiles
 	h := a.hostOf(s.ID)
 	fs := &a.Side.files
-	fs.dirs = map[string]*dirList{
-		filesKey(h, "/tmp/demo"): {entries: []proto.FSEntry{
+	fs.Dirs = map[string]*files.DirList{
+		filesKeyShim(h, "/tmp/demo"): {Entries: []proto.FSEntry{
 			{Name: ".git", Dir: true}, {Name: "internal", Dir: true}, {Name: "main.go"},
 		}},
-		filesKey(h, "/tmp/demo/internal"): {entries: []proto.FSEntry{{Name: "auth.go"}}},
+		filesKeyShim(h, "/tmp/demo/internal"): {Entries: []proto.FSEntry{{Name: "auth.go"}}},
 	}
 	tt := ui.NewTester(a.view, 1280, 720)
 	tt.Frame()
@@ -59,26 +60,26 @@ func TestFilesTab(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	fv := fs.views[s.ID]
-	if fv == nil || fv.path != "/tmp/demo/internal/auth.go" || fv.rel != "internal/auth.go" {
+	fv := fs.Views[s.ID]
+	if fv == nil || fv.Path != "/tmp/demo/internal/auth.go" || fv.Rel != "internal/auth.go" {
 		t.Fatalf("a click on auth.go opened %+v", fv)
 	}
-	fv.fetched = time.Now()
-	showFileText(fv, "package internal\r\n\r\nfunc Auth() {}\r\n")
+	fv.Fetched = time.Now()
+	showText(fv, "package internal\r\n\r\nfunc Auth() {}\r\n")
 	tt.Frame()
 	tt.Frame()
-	if got := fv.st.Buffer.String(); got != "package internal\n\nfunc Auth() {}\n" {
+	if got := fv.St.Buffer.String(); got != "package internal\n\nfunc Auth() {}\n" {
 		t.Errorf("the viewer shows %q", got)
 	}
-	if !fv.st.ReadOnly {
+	if !fv.St.ReadOnly {
 		t.Error("the file's text is editable")
 	}
 	shot(t, tt, "side-files")
 
 	// The file changing changes the text in place.
-	st := fv.st
-	showFileText(fv, "package internal\n\n// Auth signs in.\nfunc Auth() {}\n")
-	if fv.st != st || fv.st.Buffer.String() != "package internal\n\n// Auth signs in.\nfunc Auth() {}\n" {
+	st := fv.St
+	showText(fv, "package internal\n\n// Auth signs in.\nfunc Auth() {}\n")
+	if fv.St != st || fv.St.Buffer.String() != "package internal\n\n// Auth signs in.\nfunc Auth() {}\n" {
 		t.Error("the file's text didn't change in place")
 	}
 
@@ -88,14 +89,14 @@ func TestFilesTab(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if fv.open {
+	if fv.Open {
 		t.Error("the close left the viewer open")
 	}
 	if err := tt.Click("auth.go"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if !fv.open {
+	if !fv.Open {
 		t.Error("a click on the file didn't show the viewer again")
 	}
 }
@@ -139,14 +140,14 @@ func TestViewerImageAndOpen(t *testing.T) {
 	a.Prefs.Side = sideFiles
 	a.local().Client = cl
 	pane := s.Panes[0].ID
-	fv := &fileView{pane: pane, path: "/tmp/demo/logo.png", rel: "logo.png", bm: bm, open: true, fetched: time.Now()}
-	a.Side.files.views = map[string]*fileView{s.ID: fv}
+	fv := &files.View{Pane: pane, Path: "/tmp/demo/logo.png", Rel: "logo.png", BM: bm, Open: true, Fetched: time.Now()}
+	a.Side.files.Views = map[string]*files.View{s.ID: fv}
 	tt := ui.NewTester(a.view, 1280, 720)
 	tt.Frame()
 	if !tt.HasText("logo.png") {
 		t.Fatalf("no image in the viewer; texts %q", tt.Texts())
 	}
-	if fv.st != nil {
+	if fv.St != nil {
 		t.Error("an image shows as text")
 	}
 	for _, id := range []string{"files-edit", "files-editor"} {
@@ -179,8 +180,8 @@ func TestFilesIconsAndMenu(t *testing.T) {
 	s.Panes[1].Git = g
 	a.Prefs.Side = sideFiles
 	h := a.hostOf(s.ID)
-	a.Side.files.dirs = map[string]*dirList{
-		filesKey(h, "/tmp/demo"): {entries: []proto.FSEntry{{Name: "src", Dir: true}, {Name: "main.go"}}},
+	a.Side.files.Dirs = map[string]*files.DirList{
+		filesKeyShim(h, "/tmp/demo"): {Entries: []proto.FSEntry{{Name: "src", Dir: true}, {Name: "main.go"}}},
 	}
 	tt := ui.NewTester(a.view, 1280, 720)
 	tt.Frame()
@@ -204,19 +205,19 @@ func TestFilesIconsAndMenu(t *testing.T) {
 	})
 	defer stop()
 	a.local().Client = cl
-	a.Side.files.open[filesKey(h, "/tmp/demo/src")] = true
+	a.Side.files.Open[filesKeyShim(h, "/tmp/demo/src")] = true
 	for _, c := range []struct {
 		label, op, name string
 		dir             bool
-	}{{locales.FilesNewFile(), editNewFile, "new.go", false}, {locales.FilesNewFolder(), editNewFolder, "pkg", true}} {
+	}{{locales.FilesNewFile(), files.EditNewFile, "new.go", false}, {locales.FilesNewFolder(), files.EditNewFolder, "pkg", true}} {
 		if err := tt.Click(c.label); err != nil {
 			t.Fatalf("click %s: %v", c.label, err)
 		}
 		tt.Frame()
-		if e := a.Side.files.edit; e == nil || e.op != c.op || e.dir != "/tmp/demo" {
+		if e := a.Side.files.Edit; e == nil || e.Op != c.op || e.Dir != "/tmp/demo" {
 			t.Fatalf("%s put %+v", c.label, e)
 		}
-		if !a.Side.files.open[filesKey(h, "/tmp/demo")] {
+		if !a.Side.files.Open[filesKeyShim(h, "/tmp/demo")] {
 			t.Fatalf("%s didn't unfold the root", c.label)
 		}
 		// The field takes the focus, which settles in a frame or two,
@@ -224,12 +225,12 @@ func TestFilesIconsAndMenu(t *testing.T) {
 		time.Sleep(20 * time.Millisecond)
 		tt.TypeKey(0, ui.Key(c.name[0]), c.name)
 		tt.Frame()
-		if e := a.Side.files.edit; e == nil || e.name != c.name {
+		if e := a.Side.files.Edit; e == nil || e.Name != c.name {
 			t.Fatalf("%s: the field shows %+v after typing %q", c.label, e, c.name)
 		}
 		tt.Key(0, ui.KeyEnter)
 		tt.Frame()
-		if e := a.Side.files.edit; e != nil {
+		if e := a.Side.files.Edit; e != nil {
 			t.Fatalf("%s: Enter left %+v", c.label, e)
 		}
 	}
@@ -247,12 +248,12 @@ func TestFilesIconsAndMenu(t *testing.T) {
 		t.Errorf("the folder is %+v", p)
 	}
 	// Collapse folds the folders the tree has open.
-	a.Side.files.open[filesKey(h, "/tmp/demo/src")] = true
+	a.Side.files.Open[filesKeyShim(h, "/tmp/demo/src")] = true
 	if err := tt.Click(locales.FilesCollapseFolders()); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.Side.files.open[filesKey(h, "/tmp/demo/src")] {
+	if a.Side.files.Open[filesKeyShim(h, "/tmp/demo/src")] {
 		t.Error("Collapse Folders left src unfolded")
 	}
 
@@ -269,10 +270,10 @@ func TestFilesIconsAndMenu(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if e := a.Side.files.edit; e == nil || e.op != editRename || e.path != "/tmp/demo/main.go" {
-		t.Fatalf("Rename put %+v", a.Side.files.edit)
+	if e := a.Side.files.Edit; e == nil || e.Op != files.EditRename || e.Path != "/tmp/demo/main.go" {
+		t.Fatalf("Rename put %+v", a.Side.files.Edit)
 	}
-	a.Side.files.edit = nil
+	a.Side.files.Edit = nil
 	if err := tt.RightClick("src"); err != nil {
 		t.Fatal(err)
 	}

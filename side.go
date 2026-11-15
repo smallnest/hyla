@@ -8,13 +8,14 @@ import (
 	"slices"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"github.com/egoist/mygo/ui"
 	"github.com/egoist/mygo/ui/editor"
 
 	"hyla/internal/git"
 	"hyla/internal/proto"
+	"hyla/internal/ui/files"
+	"hyla/internal/ui/paints"
 	"hyla/internal/ui/theme"
 
 	"hyla/internal/ui/glyph"
@@ -56,7 +57,7 @@ type sideState struct {
 	// of which the panel's comes (sideRowW).
 	rowW    float32
 	changes changesState
-	files   filesState
+	files   files.State
 	// fileOpeners tells that the left control of the header is pressed,
 	// which shows the viewer, the file open, over the panel.
 	fileOpeners bool
@@ -267,16 +268,16 @@ func (a *App) sidePanel(c *ui.Context, pal *theme.Palette, s *proto.Session, wid
 			// view's worktree it lists; the tabs alone leave its buttons
 			// their room.
 			ui.Box(c.Key("drag")).Grow(1).AlignSelf(ui.Stretch).DragWindow()
-			if view == sideFiles && a.Side.files.views[s.ID] != nil {
-				iconButton(c, "files-toggle-view", glyph.Doc, a.tip(locales.FilesCloseFile(), "files-close"), pal, func() {
+			if view == sideFiles && a.Side.files.Views[s.ID] != nil {
+				paints.IconButton(c, "files-toggle-view", glyph.Doc, a.tip(locales.FilesCloseFile(), "files-close"), pal, func() {
 					a.defer_(func() {
-						if fv := a.Side.files.views[s.ID]; fv != nil {
-							fv.open = false
+						if fv := a.Side.files.Views[s.ID]; fv != nil {
+							fv.Open = false
 						}
 					})
 				})
 			}
-			iconButton(c, "close-side", glyph.Close, a.tip(locales.SideClose(), "changes.toggle"), pal, func() { a.defer_(func() { a.toggleSide("") }) })
+			paints.IconButton(c, "close-side", glyph.Close, a.tip(locales.SideClose(), "changes.toggle"), pal, func() { a.defer_(func() { a.toggleSide("") }) })
 			if right {
 				windowControls(c, pal, a.Win)
 			}
@@ -294,7 +295,7 @@ func (a *App) sidePanel(c *ui.Context, pal *theme.Palette, s *proto.Session, wid
 		})
 		// The viewer of a file of Files, over the tab while its button in
 		// the header, its icon, tells so.
-		if fv := a.Side.files.views[s.ID]; view == sideFiles && fv != nil && fv.open {
+		if fv := a.Side.files.Views[s.ID]; view == sideFiles && fv != nil && fv.Open {
 			ui.Column(c.Key("file")).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
 				a.fileViewer(c, pal, s, fv)
 			})
@@ -378,14 +379,6 @@ func changesScope(p *proto.Pane, base string) string {
 	return p.ID + "|" + base
 }
 
-// gitStamp is what of a worktree's status changes its changes.
-func gitStamp(g *proto.GitInfo) string {
-	if g == nil {
-		return ""
-	}
-	return fmt.Sprint(g.Root, g.Head, g.Branch, g.Files, g.Added, g.Removed)
-}
-
 func (a *App) changesView(c *ui.Context, pal *theme.Palette, s *proto.Session, width float32) {
 	ch := &a.Side.changes
 	here, turn := a.changesPanes(s)
@@ -421,7 +414,7 @@ func (a *App) changesView(c *ui.Context, pal *theme.Palette, s *proto.Session, w
 	// between in one show it as it was, scrolled where it was. A turn's is
 	// of its snapshot.
 	scope := changesScope(pane, ch.base)
-	stamp := gitStamp(pane.Git)
+	stamp := paints.Stamp(pane.Git)
 	if pane.Turn != nil && ch.base == git.BaseTurn {
 		stamp += "|" + pane.Turn.Tree
 	}
@@ -480,7 +473,7 @@ func (a *App) changesView(c *ui.Context, pal *theme.Palette, s *proto.Session, w
 			if split {
 				layoutIcon, layoutTip = glyph.SplitDown, locales.ChangesUnified()
 			}
-			iconButton(c, "layout", layoutIcon, layoutTip, pal, func() {
+			paints.IconButton(c, "layout", layoutIcon, layoutTip, pal, func() {
 				set := a.settingsIn
 				set.DiffLayout = "split"
 				if split {
@@ -594,7 +587,7 @@ func (a *App) syncFiles(c *ui.Context, scope string, pane *proto.Pane, files []p
 	if ch.files == nil || len(ch.files) > 400 {
 		ch.files = map[string]*sideFile{}
 	}
-	stamp := gitStamp(pane.Git)
+	stamp := paints.Stamp(pane.Git)
 	asking := 0
 	for _, sf := range ch.files {
 		if sf.busy {
@@ -709,7 +702,7 @@ func (a *App) fileHeader(c *ui.Context, pal *theme.Palette, scope, root string, 
 		}
 		if f.Status != "deleted" {
 			full := filepath.Join(root, filepath.FromSlash(f.Path))
-			iconButton(c, "open", glyph.OpenFile, locales.ChangesOpenFile(), pal, func() { platform.OpenPath(full) })
+			paints.IconButton(c, "open", glyph.OpenFile, locales.ChangesOpenFile(), pal, func() { platform.OpenPath(full) })
 		}
 	})
 }
@@ -871,33 +864,9 @@ func (a *App) showText(sf *sideFile, t proto.GitText) {
 		now.SetLanguage(lang)
 		sf.d, sf.patch = &editor.DiffState{Old: old, New: now}, false
 	default:
-		replaceText(sf.d.Old, t.Old)
-		replaceText(sf.d.New, t.New)
+		paints.ReplaceText(sf.d.Old, t.Old)
+		paints.ReplaceText(sf.d.New, t.New)
 	}
-}
-
-// replaceText makes a buffer's text text by one edit of what differs
-// between them, on whole characters.
-func replaceText(b *editor.Buffer, text string) {
-	cur := b.String()
-	if cur == text {
-		return
-	}
-	p := 0
-	for p < len(cur) && p < len(text) && cur[p] == text[p] {
-		p++
-	}
-	for p > 0 && p < len(cur) && !utf8.RuneStart(cur[p]) {
-		p--
-	}
-	q := 0
-	for q < len(cur)-p && q < len(text)-p && cur[len(cur)-1-q] == text[len(text)-1-q] {
-		q++
-	}
-	for q > 0 && !utf8.RuneStart(cur[len(cur)-q]) {
-		q--
-	}
-	b.Edit(editor.Edit{Start: p, End: len(cur) - q, Text: text[p : len(text)-q]})
 }
 
 // diffSplit tells whether diffs show side by side in a panel this wide.
