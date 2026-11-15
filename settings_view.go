@@ -31,6 +31,7 @@ import (
 	"hyla/internal/ui/wash"
 
 	"hyla/internal/ui/glyph"
+	"hyla/internal/ui/style"
 	"hyla/locales"
 )
 
@@ -215,7 +216,7 @@ func (a *App) settingsView(c *ui.Context) {
 		// window controls are.
 		top := float32(topBar)
 		if ownControls {
-			top = barMid - (controlH+2)/2
+			top = barMid - (style.ControlH+2)/2
 		}
 		ui.Column(c).Width(212).Shrink(0).Padding(top, 10, 12, 10).Gap(2).DragWindow().Children(func() {
 			a.settingsSearch(c, pal)
@@ -243,7 +244,7 @@ func (a *App) settingsView(c *ui.Context) {
 			}
 		})
 		ui.Column(c).Grow(1).MinWidth(0).Padding(cardGap, cardGap, cardGap, 0).Children(func() {
-			card := raised(ui.Column(c).Grow(1).MinHeight(0).Radius(14).Background(pal.Card), pal).Clip()
+			card := style.Raised(ui.Column(c).Grow(1).MinHeight(0).Radius(14).Background(pal.Card), pal).Clip()
 			card.Children(func() {
 				page := settingsPages[0]
 				for _, p := range settingsPages {
@@ -394,7 +395,7 @@ func (a *App) settingsNav(c *ui.Context, pal *theme.Palette, p settingsPage) {
 	switch {
 	case sel:
 		bg = pal.RowSelected
-		chosen(item, pal)
+		style.Chosen(item, pal)
 	case item.Hovered():
 		bg = pal.RowHover
 	}
@@ -513,26 +514,26 @@ func (a *App) generalPage(c *ui.Context, pal *theme.Palette) {
 			segmented(c, "sidebar-rows", &s.SidebarRows, []string{"detailed", "compact"}, []string{locales.SetRowsDetailed(), locales.SetRowsCompact()})
 		})
 		settingRow(c, pal, locales.SetFocusFollowsMouse(), locales.SetFocusFollowsMouseDetail(), func() {
-			toggle(c.Key("focusmouse"), &s.FocusFollowsMouse, pal)
+			style.Toggle(c.Key("focusmouse"), &s.FocusFollowsMouse, pal)
 		})
 		settingRow(c, pal, locales.SetAskBeforeClosing(), locales.SetAskBeforeClosingDetail(), func() {
-			toggle(c.Key("confirm"), &s.ConfirmClose, pal)
+			style.Toggle(c.Key("confirm"), &s.ConfirmClose, pal)
 		})
 		settingRow(c, pal, locales.SetQuitEndsSessions(), locales.SetQuitEndsSessionsDetail(), func() {
-			toggle(c.Key("quit-ends"), &s.QuitEndsSessions, pal)
+			style.Toggle(c.Key("quit-ends"), &s.QuitEndsSessions, pal)
 		})
 		settingRow(c, pal, locales.SetRestoreSessions(), locales.SetRestoreSessionsDetail(), func() {
-			toggle(c.Key("restore"), &s.RestoreSessions, pal)
+			style.Toggle(c.Key("restore"), &s.RestoreSessions, pal)
 		})
 		if s.RestoreSessions {
 			settingRow(c, pal, locales.SetResumeAgents(), locales.SetResumeAgentsDetail(), func() {
-				toggle(c.Key("resume"), &s.ResumeAgents, pal)
+				style.Toggle(c.Key("resume"), &s.ResumeAgents, pal)
 			})
 		}
 	})
 	settingsGroup(c, pal, locales.SetGit(), locales.SetGitDetail(), func() {
 		settingRow(c, pal, locales.SetGitStatus(), locales.SetGitStatusDetail(), func() {
-			toggle(c.Key("git-status"), &s.GitStatus, pal)
+			style.Toggle(c.Key("git-status"), &s.GitStatus, pal)
 		})
 		settingRow(c, pal, locales.SetDiffLayout(), locales.SetDiffLayoutDetail(), func() {
 			segmented(c, "diff-layout", &s.DiffLayout, []string{"auto", "unified", "split"},
@@ -553,7 +554,7 @@ func (a *App) generalPage(c *ui.Context, pal *theme.Palette) {
 	}
 	settingsGroup(c, pal, locales.SetStartup(), "", func() {
 		settingRow(c, pal, locales.SetOpenAtLogin(), "", func() {
-			toggle(c.Key("login"), &a.ss.loginOpen, pal).OnChange(func() {
+			style.Toggle(c.Key("login"), &a.ss.loginOpen, pal).OnChange(func() {
 				if err := mygo.App.SetOpenAtLogin(a.ss.loginOpen); err != nil {
 					a.ss.loginOpen = !a.ss.loginOpen
 					a.ss.toast = locales.SetLoginFailed(err.Error())
@@ -573,7 +574,7 @@ func (a *App) browserPage(c *ui.Context, pal *theme.Palette) {
 	}
 	settingsGroup(c, pal, locales.SetAdBlocking(), lists, func() {
 		settingRow(c, pal, locales.SetBlockAds(), locales.SetBlockAdsDetail(), func() {
-			toggle(c.Key("browser-block-ads"), &s.BlockAds, pal)
+			style.Toggle(c.Key("browser-block-ads"), &s.BlockAds, pal)
 		})
 		if s.BlockAds {
 			adListRows(c, pal, s)
@@ -593,7 +594,7 @@ func adListRows(c *ui.Context, pal *theme.Palette, s *settings.Settings) {
 	for _, src := range sources {
 		on := slices.Contains(s.AdLists, src.ID)
 		settingRow(c, pal, src.Name, adListDetail(src), func() {
-			toggle(c.Key("adlist-"+src.ID), &on, pal).OnChange(func() {
+			style.Toggle(c.Key("adlist-"+src.ID), &on, pal).OnChange(func() {
 				// In the order of the rows, whatever order the file had.
 				var lists []string
 				for _, other := range sources {
@@ -644,15 +645,15 @@ func (a *App) updatesGroup(c *ui.Context, pal *theme.Palette) {
 	}
 	settingsGroup(c, pal, locales.SetUpdates(), "", func() {
 		settingRow(c, pal, locales.SetVersion(), version, func() {
-			if button(c, "check-updates", locales.SetCheckForUpdates(), "", false, pal) {
+			if style.Button(c, "check-updates", locales.SetCheckForUpdates(), "", false, pal) {
 				a.checkUpdates()
 			}
 		})
 		settingRow(c, pal, locales.SetAutoCheck(), locales.SetAutoCheckDetail(), func() {
-			toggle(c.Key("auto-check"), &u.automatic, pal).OnChange(func() { updater.SetAutomaticChecks(u.automatic) })
+			style.Toggle(c.Key("auto-check"), &u.automatic, pal).OnChange(func() { updater.SetAutomaticChecks(u.automatic) })
 		})
 		settingRow(c, pal, locales.SetAutoInstall(), locales.SetAutoInstallDetail(), func() {
-			toggle(c.Key("auto-download"), &u.download, pal).OnChange(func() { updater.SetAutomaticDownloads(u.download) })
+			style.Toggle(c.Key("auto-download"), &u.download, pal).OnChange(func() { updater.SetAutomaticDownloads(u.download) })
 		})
 	})
 }
@@ -684,7 +685,7 @@ func (a *App) appearancePage(c *ui.Context, pal *theme.Palette) {
 			popup(c, "language", &s.Language, append([]string{"system"}, settings.Languages...), languageName, 180, pal)
 		})
 		settingRow(c, pal, locales.SetTranslucent(), locales.SetTranslucentDetail(), func() {
-			toggle(c.Key("vibrancy"), &s.Vibrancy, pal)
+			style.Toggle(c.Key("vibrancy"), &s.Vibrancy, pal)
 		})
 		settingRow(c, pal, locales.SetSessionSwitch(), locales.SetSessionSwitchDetail(), func() {
 			popup(c, "session-switch", &s.SessionSwitch, settings.SessionSwitches, sessionSwitchName, 160, pal)
@@ -697,7 +698,7 @@ func (a *App) appearancePage(c *ui.Context, pal *theme.Palette) {
 			ui.Textf(c, "%.0f%%", s.WindowOpacity*100).FontSize(12.5).TextColor(pal.TextMuted).Width(40).FontFeatures("tnum")
 		})
 		settingRow(c, pal, locales.SetWindowBlur(), locales.SetWindowBlurDetail(), func() {
-			toggle(c.Key("window-blur"), &s.WindowBlur, pal)
+			style.Toggle(c.Key("window-blur"), &s.WindowBlur, pal)
 		})
 		settingRow(c, pal, locales.SetWindowMaterial(), locales.SetWindowMaterialDetail(), func() {
 			popup(c, "window-material", &s.WindowMaterial, []string{"sidebar", "window", "popover", "plastic", "glass", "glass-clear"}, materialName, 200, pal)
@@ -707,10 +708,10 @@ func (a *App) appearancePage(c *ui.Context, pal *theme.Palette) {
 			detail = filepath.Base(s.SidebarImage)
 		}
 		settingRow(c, pal, locales.SetSidebarImage(), detail, func() {
-			if button(c, "sidebar-image", locales.SetSidebarImageChoose(), "", false, pal) {
+			if style.Button(c, "sidebar-image", locales.SetSidebarImageChoose(), "", false, pal) {
 				a.pickSidebarImage()
 			}
-			if s.SidebarImage != "" && button(c, "sidebar-image-clear", locales.CommonRemove(), "", false, pal) {
+			if s.SidebarImage != "" && style.Button(c, "sidebar-image-clear", locales.CommonRemove(), "", false, pal) {
 				s.SidebarImage = ""
 			}
 		})
@@ -728,10 +729,10 @@ func (a *App) appearancePage(c *ui.Context, pal *theme.Palette) {
 			detail = filepath.Base(s.PaneImage)
 		}
 		settingRow(c, pal, locales.SetPaneImage(), detail, func() {
-			if button(c, "pane-image", locales.SetSidebarImageChoose(), "", false, pal) {
+			if style.Button(c, "pane-image", locales.SetSidebarImageChoose(), "", false, pal) {
 				a.pickPaneImage()
 			}
-			if s.PaneImage != "" && button(c, "pane-image-clear", locales.CommonRemove(), "", false, pal) {
+			if s.PaneImage != "" && style.Button(c, "pane-image-clear", locales.CommonRemove(), "", false, pal) {
 				s.PaneImage = ""
 			}
 		})
@@ -750,7 +751,7 @@ func (a *App) appearancePage(c *ui.Context, pal *theme.Palette) {
 	})
 	settingsGroup(c, pal, locales.SetPetGroup(), "", func() {
 		settingRow(c, pal, locales.SetPet(), locales.SetPetDetail(), func() {
-			toggle(c.Key("pet"), &s.Pet, pal)
+			style.Toggle(c.Key("pet"), &s.Pet, pal)
 		})
 		settingRow(c, pal, locales.SetPetWhich(), a.petGallery(), func() {
 			a.petChooser(c, pal)
@@ -872,7 +873,7 @@ func (a *App) backgroundTile(c *ui.Context, pal *theme.Palette, id, name string)
 		}
 	}
 	tile.Children(func() {
-		sw := raised(ui.Box(c).Size(104, 68).Radius(12), pal).Clip()
+		sw := style.Raised(ui.Box(c).Size(104, 68).Radius(12), pal).Clip()
 		base, glow := wash.Washes(id, pal.Dark)
 		sw.LinearGradient(base)
 		sw.Children(func() {
@@ -992,13 +993,13 @@ func (a *App) terminalPage(c *ui.Context, pal *theme.Palette) {
 			}, 140, pal)
 		})
 		settingRow(c, pal, locales.SetLigatures(), locales.SetLigaturesDetail(), func() {
-			toggle(c.Key("liga"), &s.Ligatures, pal)
+			style.Toggle(c.Key("liga"), &s.Ligatures, pal)
 		})
 		settingRow(c, pal, locales.SetFontFeatures(), locales.SetFontFeaturesDetail(), func() {
 			a.fontFeaturesField(c, pal)
 		})
 		settingRow(c, pal, locales.SetThicken(), locales.SetThickenDetail(), func() {
-			toggle(c.Key("thicken"), &s.Thicken, pal)
+			style.Toggle(c.Key("thicken"), &s.Thicken, pal)
 		})
 	})
 	themes := append([]string{"hyla"}, terminal.GhosttyThemes()...)
@@ -1010,7 +1011,7 @@ func (a *App) terminalPage(c *ui.Context, pal *theme.Palette) {
 			a.searchPopup(c, "dark", s.DarkTheme, themes, 240, nil, pal, func(v string) { a.set.DarkTheme = v })
 		})
 		settingRow(c, pal, locales.SetDimUnfocused(), locales.SetDimUnfocusedDetail(), func() {
-			toggle(c.Key("dim-unfocused"), &s.DimUnfocused, pal)
+			style.Toggle(c.Key("dim-unfocused"), &s.DimUnfocused, pal)
 		})
 	})
 	// As the window's translucency: an opacity, and a blur or none.
@@ -1023,7 +1024,7 @@ func (a *App) terminalPage(c *ui.Context, pal *theme.Palette) {
 			ui.Textf(c, "%.0f%%", s.PaneOpacity*100).FontSize(12.5).TextColor(pal.TextMuted).Width(40).FontFeatures("tnum")
 		})
 		settingRow(c, pal, locales.SetPaneBlur(), locales.SetPaneBlurDetail(), func() {
-			toggle(c.Key("pane-blur"), &s.PaneBlur, pal)
+			style.Toggle(c.Key("pane-blur"), &s.PaneBlur, pal)
 		})
 		settingRow(c, pal, locales.SetPaneMaterial(), locales.SetPaneMaterialDetail(), func() {
 			popup(c, "pane-material", &s.PaneMaterial, []string{"glass", "plastic", "glass-clear"}, materialName, 200, pal)
@@ -1033,14 +1034,14 @@ func (a *App) terminalPage(c *ui.Context, pal *theme.Palette) {
 		settingRow(c, pal, locales.SetShape(), locales.SetShapeDetail(), func() {
 			segmented(c, "cursor", &s.Cursor, []string{"block", "bar", "underline"}, []string{locales.SetCursorBlock(), locales.SetCursorBar(), locales.SetCursorUnderline()})
 		})
-		settingRow(c, pal, locales.SetBlink(), "", func() { toggle(c.Key("blink"), &s.CursorBlink, pal) })
+		settingRow(c, pal, locales.SetBlink(), "", func() { style.Toggle(c.Key("blink"), &s.CursorBlink, pal) })
 	})
 	settingsGroup(c, pal, locales.SetInput(), "", func() {
 		settingRow(c, pal, locales.SetOptionMeta(), locales.SetOptionMetaDetail(), func() {
-			toggle(c.Key("optalt"), &s.OptionAsAlt, pal)
+			style.Toggle(c.Key("optalt"), &s.OptionAsAlt, pal)
 		})
 		settingRow(c, pal, locales.SetCopyOnSelect(), locales.SetCopyOnSelectDetail(), func() {
-			toggle(c.Key("cos"), &s.CopyOnSelect, pal)
+			style.Toggle(c.Key("cos"), &s.CopyOnSelect, pal)
 		})
 		settingRow(c, pal, locales.SetRightClick(), "", func() {
 			popup(c, "rc", &s.RightClick, []string{"menu", "paste", "copyOrPaste"}, func(id string) string {
@@ -1092,7 +1093,7 @@ func (a *App) terminalPreview(c *ui.Context, pal *theme.Palette) {
 		}
 		ui.RichText(c, spans...).LineHeight(a.set.LineHeight).SingleLine()
 	}
-	box := raised(ui.Column(c).Radius(12).Padding(16, 18).Gap(0).Background(th.Background), pal)
+	box := style.Raised(ui.Column(c).Radius(12).Padding(16, 18).Gap(0).Background(th.Background), pal)
 	box.Children(func() {
 		// Nerd Fonts' folder and branch icons: fonts without them show
 		// boxes, which is worth knowing before picking one.
@@ -1258,7 +1259,7 @@ func (a *App) shellPage(c *ui.Context, pal *theme.Palette) {
 				}
 			}
 			textField(c, "env-new", &a.ss.envDraft, "NAME=value", 0, pal).Font("monospace").OnSubmit(addEnv)
-			if fieldButton(c, "env-add", locales.CommonAdd(), false, pal) {
+			if style.FieldButton(c, "env-add", locales.CommonAdd(), false, pal) {
 				addEnv()
 			}
 		})
@@ -1273,21 +1274,21 @@ func (a *App) notificationsPage(c *ui.Context, pal *theme.Palette) {
 	}
 	settingsGroup(c, pal, locales.SetNotifyWhen(), note, func() {
 		settingRow(c, pal, locales.SetNotifyWaiting(), locales.SetNotifyWaitingDetail(), func() {
-			toggle(c.Key("nw"), &s.NotifyWaiting, pal)
+			style.Toggle(c.Key("nw"), &s.NotifyWaiting, pal)
 		})
 		settingRow(c, pal, locales.SetNotifyDone(), locales.SetNotifyDoneDetail(), func() {
-			toggle(c.Key("nd"), &s.NotifyDone, pal)
+			style.Toggle(c.Key("nd"), &s.NotifyDone, pal)
 		})
 		settingRow(c, pal, locales.SetNotifyFailed(), locales.SetNotifyFailedDetail(), func() {
-			toggle(c.Key("nf"), &s.NotifyFailed, pal)
+			style.Toggle(c.Key("nf"), &s.NotifyFailed, pal)
 		})
 	})
 	settingsGroup(c, pal, locales.SetHow(), "", func() {
-		settingRow(c, pal, locales.SetPlaySound(), "", func() { toggle(c.Key("ns"), &s.NotifySound, pal) })
-		settingRow(c, pal, locales.SetDockBadge(), locales.SetDockBadgeDetail(), func() { toggle(c.Key("nb"), &s.DockBadge, pal) })
-		settingRow(c, pal, locales.SetDockBounce(), locales.SetDockBounceDetail(), func() { toggle(c.Key("nbo"), &s.BounceDock, pal) })
+		settingRow(c, pal, locales.SetPlaySound(), "", func() { style.Toggle(c.Key("ns"), &s.NotifySound, pal) })
+		settingRow(c, pal, locales.SetDockBadge(), locales.SetDockBadgeDetail(), func() { style.Toggle(c.Key("nb"), &s.DockBadge, pal) })
+		settingRow(c, pal, locales.SetDockBounce(), locales.SetDockBounceDetail(), func() { style.Toggle(c.Key("nbo"), &s.BounceDock, pal) })
 	})
-	if button(c, "test-notif", locales.SetTestNotification(), "", false, pal) {
+	if style.Button(c, "test-notif", locales.SetTestNotification(), "", false, pal) {
 		n := mygo.NewNotification(mygo.NotificationOptions{Title: "Hyla", Body: locales.SetTestNotificationBody(), Silent: !s.NotifySound})
 		go func() {
 			if err := n.Show(); err != nil {
@@ -1306,7 +1307,7 @@ func (a *App) agentsPage(c *ui.Context, pal *theme.Palette) {
 	s := &a.set
 	settingsGroup(c, pal, locales.SetRemoteControl(), "", func() {
 		settingRow(c, pal, locales.SetRemoteControlRow(), locales.SetRemoteControlDetail(), func() {
-			toggle(c.Key("remote"), &s.RemoteControl, pal)
+			style.Toggle(c.Key("remote"), &s.RemoteControl, pal)
 		})
 	})
 	codeBlock(c, pal, "hyla do pane.split.down\nhyla do session.attention\nhyla actions        # what hyla do runs")
@@ -1320,7 +1321,7 @@ func (a *App) agentsPage(c *ui.Context, pal *theme.Palette) {
 			if a.ss.cliPath != "" {
 				label = locales.CommonReinstall()
 			}
-			if button(c, "cli", label, "", a.ss.cliPath == "", pal) {
+			if style.Button(c, "cli", label, "", a.ss.cliPath == "", pal) {
 				a.installCLI()
 				time.AfterFunc(1500*time.Millisecond, func() { a.update(a.refreshAgents) })
 			}
@@ -1332,7 +1333,7 @@ func (a *App) agentsPage(c *ui.Context, pal *theme.Palette) {
 			detail := map[string]string{"current": locales.SetSkillInstalled(), "outdated": locales.SetSkillOutdated(), "missing": locales.SetSkillMissing()}[st.State] + " · " + proto.ShortDir(st.Dir)
 			settingRow(c, pal, name, detail, func() {
 				agent := st.Agent
-				if st.State != "missing" && button(c, "rm-"+agent, locales.CommonRemove(), "", false, pal) {
+				if st.State != "missing" && style.Button(c, "rm-"+agent, locales.CommonRemove(), "", false, pal) {
 					if err := cli.RemoveSkill(agent); err != nil {
 						a.toastIn(c, err.Error())
 					}
@@ -1342,7 +1343,7 @@ func (a *App) agentsPage(c *ui.Context, pal *theme.Palette) {
 					if st.State == "outdated" {
 						label = locales.CommonUpdate()
 					}
-					if button(c, "in-"+agent, label, "", true, pal) {
+					if style.Button(c, "in-"+agent, label, "", true, pal) {
 						if err := cli.InstallSkill(agent); err != nil {
 							a.toastIn(c, err.Error())
 						}
@@ -1363,11 +1364,11 @@ func codeBlock(c *ui.Context, pal *theme.Palette, code string) {
 func (a *App) advancedPage(c *ui.Context, pal *theme.Palette) {
 	settingsGroup(c, pal, locales.SetConfiguration(), locales.SetConfigurationDetail(), func() {
 		settingRow(c, pal, locales.SetConfigFile(), proto.ShortDir(settings.Path()), func() {
-			if button(c, "reveal-config", locales.CommonShowIn(fileManager()), "", false, pal) {
+			if style.Button(c, "reveal-config", locales.CommonShowIn(fileManager()), "", false, pal) {
 				a.ensureConfig()
 				revealPath(settings.Path())
 			}
-			if button(c, "edit-config", locales.CommonOpen(), "", true, pal) {
+			if style.Button(c, "edit-config", locales.CommonOpen(), "", true, pal) {
 				a.openConfig()
 			}
 		})
@@ -1380,7 +1381,7 @@ func (a *App) advancedPage(c *ui.Context, pal *theme.Palette) {
 	})
 	settingsGroup(c, pal, locales.SetBackgroundService(), locales.SetBackgroundServiceDetail(), func() {
 		settingRow(c, pal, "hylad", a.ss.service, func() {
-			if button(c, "svc-restart", locales.CommonRestart(), "", false, pal) {
+			if style.Button(c, "svc-restart", locales.CommonRestart(), "", false, pal) {
 				a.ss.confirm = &confirmation{
 					open: true, title: locales.ConfirmRestartServiceTitle(),
 					detail: locales.RestartServiceDetail(),
@@ -1390,19 +1391,19 @@ func (a *App) advancedPage(c *ui.Context, pal *theme.Palette) {
 			}
 		})
 		settingRow(c, pal, locales.SetLog(), proto.ShortDir(filepath.Join(proto.Dir(), "hylad.log")), func() {
-			if button(c, "log", locales.CommonShow(), "", false, pal) {
+			if style.Button(c, "log", locales.CommonShow(), "", false, pal) {
 				revealPath(filepath.Join(proto.Dir(), "hylad.log"))
 			}
 		})
 	})
 	settingsGroup(c, pal, locales.SetData(), locales.SetDataDetail(), func() {
 		settingRow(c, pal, locales.SetFolder(), proto.ShortDir(proto.Dir()), func() {
-			if button(c, "reveal", locales.CommonShowIn(fileManager()), "", false, pal) {
+			if style.Button(c, "reveal", locales.CommonShowIn(fileManager()), "", false, pal) {
 				openPath(proto.Dir())
 			}
 		})
 		settingRow(c, pal, locales.SetReset(), locales.SetResetDetail(), func() {
-			if button(c, "reset", locales.SetResetButton(), "", false, pal) {
+			if style.Button(c, "reset", locales.SetResetButton(), "", false, pal) {
 				a.ss.confirm = &confirmation{
 					open: true, title: locales.SetResetTitle(), detail: locales.SetResetConfirmDetail(), action: locales.SetResetAction(), destroy: true,
 					run: func() { a.applySettings(settings.Default()) },
@@ -1434,7 +1435,7 @@ func (a *App) toastIn(c *ui.Context, msg string) { c.Toast(msg) }
 func (a *App) keyboardPage(c *ui.Context, pal *theme.Palette) {
 	ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
 		textField(c, "kb-search", &a.ss.filter, locales.SetKeyboardSearch(), 0, pal)
-		if len(a.set.Shortcuts) > 0 && button(c, "kb-reset", locales.SetRestoreDefaults(), "", false, pal) {
+		if len(a.set.Shortcuts) > 0 && style.Button(c, "kb-reset", locales.SetRestoreDefaults(), "", false, pal) {
 			a.set.Shortcuts = nil
 			a.ss.notice = ""
 		}
@@ -1501,7 +1502,7 @@ func (a *App) shortcutRow(c *ui.Context, pal *theme.Palette, act actions.Action)
 		case chip.Hovered():
 			bg = pal.ControlHover
 		}
-		face(chip, pal, bg)
+		style.Face(chip, pal, bg)
 		if chip.Clicked() && !recording {
 			a.setRecording(act.ID)
 			a.ss.recordRef.Focus()

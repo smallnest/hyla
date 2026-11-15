@@ -8,6 +8,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/ui/theme"
 
+	"hyla/internal/ui/style"
 	"hyla/locales"
 )
 
@@ -49,7 +50,7 @@ func (a *App) worktreeView(c *ui.Context, pal *theme.Palette) {
 	create := false
 	ui.DialogBase(c.Key("worktree"), &w.open, func(backdrop, panel ui.Element) {
 		backdrop.Background(pal.Overlay)
-		floating(panel.Width(420).Padding(22).Gap(8).Radius(14).Background(pal.Popover), pal).Label(locales.WorktreeTitle())
+		style.Floating(panel.Width(420).Padding(22).Gap(8).Radius(14).Background(pal.Popover), pal).Label(locales.WorktreeTitle())
 		ui.Text(c, locales.WorktreeTitle()).FontSize(15).FontWeight(650).TextColor(pal.Text)
 		detail := locales.WorktreeDetailDefault()
 		if w.p.Base == "HEAD" {
@@ -64,10 +65,10 @@ func (a *App) worktreeView(c *ui.Context, pal *theme.Palette) {
 			}
 		})
 		ui.Row(c).Gap(8).Justify(ui.End).Margin(14, 0, 0, 0).Children(func() {
-			if button(c, "cancel", locales.CommonCancel(), "esc", false, pal) {
+			if style.Button(c, "cancel", locales.CommonCancel(), "esc", false, pal) {
 				w.open = false
 			}
-			if button(c, "ok", locales.WorktreeCreate(), "↩", true, pal) {
+			if style.Button(c, "ok", locales.WorktreeCreate(), "↩", true, pal) {
 				create = true
 			}
 		})

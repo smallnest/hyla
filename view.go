@@ -15,6 +15,7 @@ import (
 	"hyla/internal/ui/theme"
 
 	"hyla/internal/ui/marks"
+	"hyla/internal/ui/style"
 	"hyla/locales"
 )
 
@@ -776,7 +777,7 @@ func (a *App) sessionRow(c *ui.Context, pal *theme.Palette, s *proto.Session, n 
 	switch {
 	case selected:
 		bg = theme.TranslucentGlass(pal.RowSelected, pal, a.set)
-		chosen(row, pal)
+		style.Chosen(row, pal)
 	case hovered:
 		bg = theme.TranslucentGlass(pal.RowHover, pal, a.set)
 	}
@@ -1402,7 +1403,7 @@ func (a *App) cardFor(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown 
 		return
 	}
 	// No session: one card, for what the app has to say.
-	card := raised(ui.Column(c).Grow(1).MinHeight(0).Radius(14).Background(theme.TranslucentGlass(pal.Card, pal, a.set)), pal).Clip()
+	card := style.Raised(ui.Column(c).Grow(1).MinHeight(0).Radius(14).Background(theme.TranslucentGlass(pal.Card, pal, a.set)), pal).Clip()
 	card.Children(func() {
 		left := a.chrome.headerPad
 		ui.Row(c).Height(headerH).Shrink(0).AlignItems(ui.Center).Padding(0, 10, 0, left).DragWindow().Children(func() {
@@ -1439,7 +1440,7 @@ func (a *App) message(c *ui.Context, pal *theme.Palette, title, detail, action s
 		ui.Text(c, detail).FontSize(13).TextColor(pal.TextMuted).MaxWidth(420).TextAlign(ui.Center).LineHeight(1.4)
 		if action != "" {
 			ui.Box(c).Height(8)
-			if button(c, "msg-action", action, "", true, pal) {
+			if style.Button(c, "msg-action", action, "", true, pal) {
 				fn()
 			}
 		}
@@ -1456,17 +1457,17 @@ func (a *App) emptyState(c *ui.Context, pal *theme.Palette) {
 			FontSize(13.5).TextColor(pal.TextMuted).MaxWidth(380).TextAlign(ui.Center).LineHeight(1.45).Margin(8, 0, 22, 0)
 		ui.Column(c).Gap(12).Children(func() {
 			ui.Row(c).Gap(10).Children(func() {
-				if button(c, "empty-new", locales.ActionNewSession(), a.keys("session.new"), true, pal) {
+				if style.Button(c, "empty-new", locales.ActionNewSession(), a.keys("session.new"), true, pal) {
 					a.newSession("")
 				}
-				if button(c, "empty-open", locales.ActionOpenProject(), a.keys("project.open"), false, pal) {
+				if style.Button(c, "empty-open", locales.ActionOpenProject(), a.keys("project.open"), false, pal) {
 					a.openProject()
 				}
 			})
 			// Another machine's, as the footer adds: an SSH host, a pod, or
 			// one that runs Hyla, whose sessions show here. A quiet button,
 			// a link under the two of this machine.
-			if quietButton(c, "empty-connect", locales.EmptyConnect(), locales.EmptyConnectDetail(), pal) {
+			if style.QuietButton(c, "empty-connect", locales.EmptyConnect(), locales.EmptyConnectDetail(), pal) {
 				a.askSSHHost()
 			}
 		})

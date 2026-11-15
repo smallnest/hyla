@@ -8,6 +8,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/ui/glyph"
+	"hyla/internal/ui/style"
 	"hyla/internal/ui/theme"
 	"hyla/locales"
 )
@@ -26,8 +27,7 @@ var (
 )
 
 const (
-	controlH = 24 // the height of macOS's regular controls
-	popupH   = 28 // a pop-up button's, its disc 22
+	popupH = 28 // a pop-up button's, its disc 22
 	// A menu's padding, its items' height, and where their labels start,
 	// past the check.
 	menuPad, menuItemH, menuTextX = 5, 24, 22
@@ -128,7 +128,7 @@ func menuSpot(c *ui.Context, key string, b ui.Rect, at, n int) (ui.Element, floa
 
 // menuPanel styles a menu: rounded, lifted off the window.
 func menuPanel(panel ui.Element, pal *theme.Palette) ui.Element {
-	return menu(panel.Padding(menuPad).Radius(13), pal)
+	return style.Menu(panel.Padding(menuPad).Radius(13), pal)
 }
 
 // menuItem styles an item of a menu: a check by the current one, and the
@@ -209,7 +209,7 @@ func (a *App) searchPopup(c *ui.Context, key, value string, options []string, wi
 	b := trig.Bounds()
 	_, h := c.Size()
 	room := max(h-(b.Y+b.H)-gap-edge, b.Y-gap-edge)
-	listH := min(300, room-(2*menuPad+2*inset+controlH+2+menuPad))
+	listH := min(300, room-(2*menuPad+2*inset+style.ControlH+2+menuPad))
 	ui.PopoverBase(c.Key(key+"-menu"), trig, &m.open, func(panel ui.Element) {
 		menuPanel(panel, pal).Margin(gap, 0, 0, 0).Width(max(width, 260))
 		q := strings.ToLower(strings.TrimSpace(m.query))
@@ -283,7 +283,7 @@ func (a *App) searchPopup(c *ui.Context, key, value string, options []string, wi
 
 // field styles a text field's frame, around its input.
 func field(c *ui.Context, frame ui.Element, focused bool, pal *theme.Palette) ui.Element {
-	frame.Height(controlH+2).Padding(0, 8).Gap(6).Radius(7).AlignItems(ui.Center)
+	frame.Height(style.ControlH+2).Padding(0, 8).Gap(6).Radius(7).AlignItems(ui.Center)
 	stroke := ui.RGBA(0, 0, 0, 0.13)
 	bg := ui.Hex("#ffffff")
 	if pal.Dark {
@@ -323,7 +323,7 @@ func textField(c *ui.Context, key string, value *string, placeholder string, wid
 // width pads the track, so that the value spans the knob's travel.
 func slider(c *ui.Context, key string, value *float64, lo, hi float64, width float32, pal *theme.Palette) ui.Element {
 	const knobW, knobH, trackH = 20, 16, 4
-	s := ui.SliderBase(c.Key(key), value, lo, hi).Width(width).Height(controlH).Padding(0, knobW/2).FocusRing(false)
+	s := ui.SliderBase(c.Key(key), value, lo, hi).Width(width).Height(style.ControlH).Padding(0, knobW/2).FocusRing(false)
 	track := pal.Text.Alpha(0.14)
 	if pal.Dark {
 		track = ui.RGBA(255, 255, 255, 0.18)

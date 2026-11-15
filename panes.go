@@ -10,6 +10,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/ui/theme"
 
+	"hyla/internal/ui/style"
 	"hyla/locales"
 )
 
@@ -305,12 +306,12 @@ func (a *App) paneCard(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown
 	if w := a.paneBackground(pal, bg, p); w != nil {
 		card.Material(w)
 		if pal.Dark {
-			darkShadow(litEdge(card, pal))
+			style.DarkShadow(style.LitEdge(card, pal))
 		} else {
 			card.Shadow(0, 1, 2, 0, pal.CardShadow).Shadow(0, 1, 6, 0, pal.CardShadow2)
 		}
 	} else {
-		raised(card.Background(bgNow), pal)
+		style.Raised(card.Background(bgNow), pal)
 	}
 	hovered := card.Hovered()
 	if chat {
@@ -545,7 +546,7 @@ func (a *App) dropPreview(c *ui.Context, pal *theme.Palette, target string, zone
 			ui.Box(c).HeightPercent(22).Shrink(0)
 			pill := ui.Row(c).Height(30).Padding(0, 12).Gap(7).Radius(15).AlignItems(ui.Center).
 				Background(pal.Accent).TextColor(ui.Hex("#ffffff"))
-			floating(pill, pal).Children(func() {
+			style.Floating(pill, pal).Children(func() {
 				ui.Icon(c, glyph).Size(14, 14)
 				ui.Text(c, label).FontSize(12.5).FontWeight(600).SingleLine()
 			})
@@ -601,7 +602,7 @@ func (a *App) paneHeader(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, sho
 			switch {
 			case dragging:
 				// What follows the pointer is a copy of the grip: a chip.
-				floating(grip.Background(pal.Popover), pal)
+				style.Floating(grip.Background(pal.Popover), pal)
 			case grip.Hovered():
 				grip.Background(pal.RowHover).Cursor(ui.CursorGrab)
 			}
@@ -768,7 +769,7 @@ func (a *App) paneChips(c *ui.Context, pal *theme.Palette, p *proto.Pane, icon b
 		chip(c, pal, pal.Danger.Alpha(0.1), pal.Danger, func() {
 			ui.Text(c, locales.PaneExited(itoa(p.ExitCode))).FontSize(12).FontWeight(500).SingleLine()
 		})
-		if button(c, "restart-"+p.ID, locales.CommonRestart(), "", false, pal) {
+		if style.Button(c, "restart-"+p.ID, locales.CommonRestart(), "", false, pal) {
 			a.restartSession(p.ID)
 		}
 	case proto.Idle:

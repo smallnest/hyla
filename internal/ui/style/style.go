@@ -1,14 +1,23 @@
-package main
+package style
 
 import (
-	"sync"
 	"time"
 
 	"github.com/egoist/mygo/ui"
 
-	"hyla/internal/settings"
 	"hyla/internal/ui/theme"
 )
+
+// ControlH is the height of macOS's regular controls.
+const ControlH = 24
+
+// B2F is a bool as the float a frame animates by.
+func B2F(b bool) float32 {
+	if b {
+		return 1
+	}
+	return 0
+}
 
 // Surfaces stand out by their color and an edge, crisp, on whole pixels.
 // In the light, the edge is a small soft shadow and no line; in the dark,
@@ -17,9 +26,9 @@ import (
 
 // raised lifts a surface off what is under it a little: the card, the
 // selected row, buttons.
-func raised(e ui.Element, pal *theme.Palette) ui.Element {
+func Raised(e ui.Element, pal *theme.Palette) ui.Element {
 	if pal.Dark {
-		return darkShadow(litEdge(e, pal))
+		return DarkShadow(LitEdge(e, pal))
 	}
 	return e.Shadow(0, 1, 2, 0, pal.CardShadow).Shadow(0, 1, 6, 0, pal.CardShadow2)
 }
@@ -27,9 +36,9 @@ func raised(e ui.Element, pal *theme.Palette) ui.Element {
 // chosen lifts the chosen row of a list, the sidebars', a hair: an even
 // ring a shade darker than what is under it, and a faint shadow close
 // under it, as Rex's rows, lighter than a card's. In the dark, as raised.
-func chosen(e ui.Element, pal *theme.Palette) ui.Element {
+func Chosen(e ui.Element, pal *theme.Palette) ui.Element {
 	if pal.Dark {
-		return raised(e, pal)
+		return Raised(e, pal)
 	}
 	return e.Shadow(0, 0, 0, 0.5, ui.RGBA(0, 0, 0, 0.06)).Shadow(0, 0.5, 2, 0, ui.RGBA(0, 0, 0, 0.05))
 }
@@ -40,7 +49,7 @@ func chosen(e ui.Element, pal *theme.Palette) ui.Element {
 // shadow, a little
 // below, darkening what is under the menu's edge by about 9% at its sides
 // and 16% under it, gone some 9 DIPs out.
-func menu(e ui.Element, pal *theme.Palette) ui.Element {
+func Menu(e ui.Element, pal *theme.Palette) ui.Element {
 	if pal.Dark {
 		return e.Background(pal.Popover).InsetShadow(0, 0, 0, 1, ui.RGBA(255, 255, 255, 0.12)).
 			Shadow(0, 1, 3, 0, ui.RGBA(0, 0, 0, 0.25)).Shadow(0, 4, 16, 0, ui.RGBA(0, 0, 0, 0.4))
@@ -52,9 +61,9 @@ func menu(e ui.Element, pal *theme.Palette) ui.Element {
 }
 
 // floating lifts a surface above the window: the palette, dialogs.
-func floating(e ui.Element, pal *theme.Palette) ui.Element {
+func Floating(e ui.Element, pal *theme.Palette) ui.Element {
 	if pal.Dark {
-		return darkShadow(litEdge(e, pal)).Shadow(0, 16, 40, 0, pal.FloatShadow)
+		return DarkShadow(LitEdge(e, pal)).Shadow(0, 16, 40, 0, pal.FloatShadow)
 	}
 	return e.Shadow(0, 1, 3, 0, pal.CardShadow).Shadow(0, 16, 40, 0, pal.FloatShadow)
 }
@@ -62,35 +71,35 @@ func floating(e ui.Element, pal *theme.Palette) ui.Element {
 // litEdge draws a dark surface's edge as Rex's docs draw their code
 // blocks: a 1px border in the text's color, 18% at the top fading
 // evenly to 6% at the bottom, as if lit from above.
-func litEdge(e ui.Element, pal *theme.Palette) ui.Element {
+func LitEdge(e ui.Element, pal *theme.Palette) ui.Element {
 	return e.Border(1, pal.Text.Alpha(0.12)).BorderLinearGradient(ui.LinearGradient{
 		Angle: 180, From: pal.Text.Alpha(0.18), To: pal.Text.Alpha(0.06),
 	})
 }
 
 // darkShadow is Rex's surface shadow in the dark: three tight layers.
-func darkShadow(e ui.Element) ui.Element {
+func DarkShadow(e ui.Element) ui.Element {
 	return e.Shadow(0, 1, 1, 0, ui.RGBA(0, 0, 0, 0.2)).Shadow(0, 2, 2, -1, ui.RGBA(0, 0, 0, 0.2)).Shadow(0, 4, 6, -3, ui.RGBA(0, 0, 0, 0.24))
 }
 
 // face styles a control's face: see palette.control.
-func face(e ui.Element, pal *theme.Palette, bg ui.Color) ui.Element {
+func Face(e ui.Element, pal *theme.Palette, bg ui.Color) ui.Element {
 	e.Background(bg)
 	if pal.ControlShadow {
 		return e.Shadow(0, 0.5, 1.5, 0, ui.RGBA(0, 0, 0, 0.13)).Shadow(0, 0, 0, 0.5, ui.RGBA(0, 0, 0, 0.05))
 	}
-	return darkShadow(litEdge(e, pal))
+	return DarkShadow(LitEdge(e, pal))
 }
 
 // button is hyla's button: a raised surface, or the accent's for the
 // primary one, with a label and, optionally, its keys.
-func button(c *ui.Context, key, label, keys string, primary bool, pal *theme.Palette) bool {
-	return sizedButton(c, key, label, keys, primary, 30, 8, pal)
+func Button(c *ui.Context, key, label, keys string, primary bool, pal *theme.Palette) bool {
+	return SizedButton(c, key, label, keys, primary, 30, 8, pal)
 }
 
 // quietButton is a button under others, as a link: its label in the muted
 // text, in the accent under the pointer, its detail as the tooltip.
-func quietButton(c *ui.Context, key, label, tip string, pal *theme.Palette) bool {
+func QuietButton(c *ui.Context, key, label, tip string, pal *theme.Palette) bool {
 	b := ui.ButtonBase(c.Key(key)).Padding(4, 8).Radius(6).AlignItems(ui.Center)
 	b.TextColor(pal.TextMuted).Label(label).Tooltip(tip)
 	if b.Hovered() {
@@ -102,21 +111,21 @@ func quietButton(c *ui.Context, key, label, tip string, pal *theme.Palette) bool
 
 // defaultButton is button, focused when its dialog first appears, so that
 // Return presses it.
-func defaultButton(c *ui.Context, key, label, keys string, primary bool, pal *theme.Palette) bool {
-	return sizedButtonAt(c, key, label, keys, primary, 30, 8, pal, true)
+func DefaultButton(c *ui.Context, key, label, keys string, primary bool, pal *theme.Palette) bool {
+	return SizedButtonAt(c, key, label, keys, primary, 30, 8, pal, true)
 }
 
 // fieldButton is a button beside a text field, of the field's height and
 // corners, as a form's Add.
-func fieldButton(c *ui.Context, key, label string, primary bool, pal *theme.Palette) bool {
-	return sizedButton(c, key, label, "", primary, controlH+2, 7, pal)
+func FieldButton(c *ui.Context, key, label string, primary bool, pal *theme.Palette) bool {
+	return SizedButton(c, key, label, "", primary, ControlH+2, 7, pal)
 }
 
-func sizedButton(c *ui.Context, key, label, keys string, primary bool, height, radius float32, pal *theme.Palette) bool {
-	return sizedButtonAt(c, key, label, keys, primary, height, radius, pal, false)
+func SizedButton(c *ui.Context, key, label, keys string, primary bool, height, radius float32, pal *theme.Palette) bool {
+	return SizedButtonAt(c, key, label, keys, primary, height, radius, pal, false)
 }
 
-func sizedButtonAt(c *ui.Context, key, label, keys string, primary bool, height, radius float32, pal *theme.Palette, focus bool) bool {
+func SizedButtonAt(c *ui.Context, key, label, keys string, primary bool, height, radius float32, pal *theme.Palette, focus bool) bool {
 	b := ui.ButtonBase(c.Key(key)).Height(height).Padding(0, 14).Gap(8).Radius(radius).AlignItems(ui.Center).Label(label)
 	if focus {
 		b.AutoFocus()
@@ -133,7 +142,7 @@ func sizedButtonAt(c *ui.Context, key, label, keys string, primary bool, height,
 	case b.Hovered():
 		bg = pal.ControlHover
 	}
-	face(b, pal, b.AnimateColor("bg", bg, ui.Animation{Duration: 90e6})).TextColor(fg)
+	Face(b, pal, b.AnimateColor("bg", bg, ui.Animation{Duration: 90e6})).TextColor(fg)
 	b.Children(func() {
 		ui.Text(c, label).FontSize(13).FontWeight(500).SingleLine()
 		if keys != "" {
@@ -143,46 +152,10 @@ func sizedButtonAt(c *ui.Context, key, label, keys string, primary bool, height,
 	return b.Clicked()
 }
 
-// borderless returns the theme with hyla's look: its accent, and no lines
-// around controls, which stand out by their fill: white fields and
-// buttons on soft panels.
-// applied is the settings the window shows: the last Apply's.
-var applied struct {
-	sync.RWMutex
-	s settings.Settings
-}
-
-// appliedSettings is the settings the window shows, for what it builds.
-func appliedSettings() settings.Settings {
-	applied.RLock()
-	defer applied.RUnlock()
-	return applied.s
-}
-
-func borderless(c *ui.Context, pal *theme.Palette) *ui.Theme {
-	t := *c.Theme()
-	// Text is the setting's: the font, its size and weight, which the
-	// terminal shows too.
-	s := appliedSettings()
-	if s.FontSize >= 8 && s.FontSize <= 30 {
-		t.FontSize = s.FontSize
-	}
-	if s.FontFamily != "" {
-		t.Font = s.FontFamily
-	}
-	t.Accent = pal.Accent
-	t.Selection = pal.Accent.Alpha(0.25)
-	t.Border = ui.Transparent
-	t.Surface = pal.Control
-	t.SurfaceHover = pal.ControlHover
-	t.SurfacePressed = pal.ControlHover.Mix(pal.Text, 0.06)
-	return &t
-}
-
 // toggle is hyla's switch: a track that shows on and off alike, the
 // accent's when on, with a knob that springs across. It returns the
 // switch, for OnChange.
-func toggle(c *ui.Context, on *bool, pal *theme.Palette) ui.Element {
+func Toggle(c *ui.Context, on *bool, pal *theme.Palette) ui.Element {
 	sw := ui.SwitchBase(c, on).Size(38, 22).Radius(11).Padding(2).Shrink(0)
 	track := pal.Text.Alpha(0.14)
 	if pal.Dark {
@@ -192,7 +165,7 @@ func toggle(c *ui.Context, on *bool, pal *theme.Palette) ui.Element {
 		track = pal.Accent
 	}
 	sw.Background(sw.AnimateColor("track", track, ui.Animation{Duration: 150 * time.Millisecond}))
-	x := sw.AnimateTo("knob", b2f(*on)*16, ui.Animation{Spring: ui.SpringOptions{Duration: 260 * time.Millisecond, Bounce: 0.15}})
+	x := sw.AnimateTo("knob", B2F(*on)*16, ui.Animation{Spring: ui.SpringOptions{Duration: 260 * time.Millisecond, Bounce: 0.15}})
 	sw.Children(func() {
 		ui.Box(c).Size(18, 18).Radius(9).Background(ui.Hex("#ffffff")).Translate(x, 0).
 			Shadow(0, 1, 2, 0, ui.RGBA(0, 0, 0, 0.22)).Shadow(0, 0, 0, 0.5, ui.RGBA(0, 0, 0, 0.06))

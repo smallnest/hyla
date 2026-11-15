@@ -15,6 +15,7 @@ import (
 	"hyla/internal/ui/theme"
 
 	"hyla/internal/ui/marks"
+	"hyla/internal/ui/style"
 	"hyla/locales"
 )
 
@@ -58,7 +59,7 @@ func (a *App) k8sView(c *ui.Context, pal *theme.Palette) {
 	connect := false
 	ui.DialogBase(c.Key("k8s"), &d.open, func(backdrop, panel ui.Element) {
 		backdrop.Background(pal.Overlay)
-		floating(panel.Width(520).Padding(22).Gap(8).Radius(14).Background(pal.Popover), pal).Label(locales.ActionAddK8sPod())
+		style.Floating(panel.Width(520).Padding(22).Gap(8).Radius(14).Background(pal.Popover), pal).Label(locales.ActionAddK8sPod())
 		ui.Text(c, locales.ActionAddK8sPod()).FontSize(15).FontWeight(650).TextColor(pal.Text)
 		ui.Text(c, locales.K8sPodDetail()).FontSize(13).TextColor(pal.TextMuted).LineHeight(1.4)
 		ui.Row(c).Margin(8, 0, 1, 0).Children(func() {
@@ -72,10 +73,10 @@ func (a *App) k8sView(c *ui.Context, pal *theme.Palette) {
 			ui.Text(c, d.err).FontSize(12).TextColor(pal.Danger)
 		}
 		ui.Row(c).Gap(8).Justify(ui.End).Margin(14, 0, 0, 0).Children(func() {
-			if button(c, "cancel", locales.CommonCancel(), "esc", false, pal) {
+			if style.Button(c, "cancel", locales.CommonCancel(), "esc", false, pal) {
 				d.open = false
 			}
-			if button(c, "ok", locales.CommonConnect(), "↩", true, pal) {
+			if style.Button(c, "ok", locales.CommonConnect(), "↩", true, pal) {
 				connect = true
 			}
 		})
@@ -398,7 +399,7 @@ func (a *App) k8sPodRow(c *ui.Context, pal *theme.Palette, i int) {
 	switch {
 	case selected:
 		bg = theme.TranslucentGlass(pal.RowSelected, pal, a.set)
-		chosen(row, pal)
+		style.Chosen(row, pal)
 	case row.Hovered():
 		bg = theme.TranslucentGlass(pal.RowHover, pal, a.set)
 	}

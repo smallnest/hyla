@@ -12,6 +12,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/ui/theme"
 
+	"hyla/internal/ui/style"
 	"hyla/locales"
 )
 
@@ -376,7 +377,7 @@ func (a *App) addressBar(c *ui.Context, pal *theme.Palette, s *proto.Session, p 
 			dragging = grip.Dragging()
 			switch {
 			case dragging:
-				floating(grip.Background(pal.Popover), pal)
+				style.Floating(grip.Background(pal.Popover), pal)
 			case grip.Hovered():
 				grip.Background(pal.RowHover).TextColor(pal.TextMuted).Cursor(ui.CursorGrab)
 			}
@@ -439,9 +440,9 @@ func (a *App) addressBar(c *ui.Context, pal *theme.Palette, s *proto.Session, p 
 func (a *App) browserError(c *ui.Context, pal *theme.Palette, e *webEntry) {
 	bar := ui.Row(c.Key("error")).Absolute().Top(8).Left(12).Right(12).Padding(8, 8, 8, 12).Gap(8).
 		AlignItems(ui.Center).Radius(10).Background(pal.Popover)
-	floating(bar, pal).Children(func() {
+	style.Floating(bar, pal).Children(func() {
 		ui.Text(c, e.err).FontSize(12.5).TextColor(pal.Danger).Grow(1).MinWidth(0).Ellipsis("…").SingleLine()
-		if button(c, "retry", locales.CommonTryAgain(), "", false, pal) {
+		if style.Button(c, "retry", locales.CommonTryAgain(), "", false, pal) {
 			e.load(e.url)
 		}
 		iconButton(c, "dismiss", closeIcon, locales.FindClose(), pal, func() { e.err = "" })
@@ -456,7 +457,7 @@ func (a *App) browserFind(c *ui.Context, pal *theme.Palette, e *webEntry) {
 	}
 	bar := ui.Row(c.Key("find")).Absolute().Top(8).Right(12).Height(36).Padding(0, 4, 0, 12).Gap(4).
 		AlignItems(ui.Center).Radius(10).Background(pal.Popover).Label(locales.FindLabel())
-	floating(bar, pal).Children(func() {
+	style.Floating(bar, pal).Children(func() {
 		ui.Icon(c, searchIcon).Size(13, 13).TextColor(pal.TextMuted).Shrink(0)
 		in := ui.TextInputBase(c.Key("q"), &f.query).Width(180).FontSize(13).Placeholder(locales.FindPlaceholder()).Bind(&f.input)
 		if f.focus {

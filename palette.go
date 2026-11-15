@@ -15,6 +15,7 @@ import (
 
 	"hyla/internal/proto"
 
+	"hyla/internal/ui/style"
 	"hyla/locales"
 )
 
@@ -325,7 +326,7 @@ func (a *App) paletteView(c *ui.Context, pal *theme.Palette) {
 	}
 	ui.DialogBase(c.Key("palette"), &a.pal.open, func(backdrop, panel ui.Element) {
 		backdrop.Background(pal.Overlay).Justify(ui.Start).Padding(84, 0, 0, 0)
-		floating(panel.Width(600).MaxHeight(460).Radius(14).Background(pal.Popover), pal).Clip().
+		style.Floating(panel.Width(600).MaxHeight(460).Radius(14).Background(pal.Popover), pal).Clip().
 			Label(label)
 		ui.Row(c).Height(50).Shrink(0).Padding(0, 16).Gap(10).AlignItems(ui.Center).Children(func() {
 			ui.Icon(c, searchIcon).Size(16, 16).TextColor(pal.TextMuted)
@@ -419,7 +420,7 @@ func confirmDialog(c *ui.Context, pal *theme.Palette, pending **confirmation) bo
 		if cf.alt != "" {
 			width = 460 // room for a third button
 		}
-		floating(panel.Width(width).Padding(22).Gap(8).Radius(14).Background(pal.Popover), pal).Label(cf.title)
+		style.Floating(panel.Width(width).Padding(22).Gap(8).Radius(14).Background(pal.Popover), pal).Label(cf.title)
 		ui.Text(c, cf.title).FontSize(15).FontWeight(650).TextColor(pal.Text)
 		ui.Text(c, cf.detail).FontSize(13).TextColor(pal.TextMuted).LineHeight(1.4)
 		ui.Row(c).Gap(8).Justify(ui.End).Margin(14, 0, 0, 0).Children(func() {
@@ -428,21 +429,21 @@ func confirmDialog(c *ui.Context, pal *theme.Palette, pending **confirmation) bo
 				// takes a click, or Escape: the focus goes to the panel,
 				// not to Cancel, which a Return would press.
 				ui.Box(c).Focus()
-				if button(c, "cancel", locales.CommonCancel(), "esc", false, pal) {
+				if style.Button(c, "cancel", locales.CommonCancel(), "esc", false, pal) {
 					cf.open = false
 				}
-				if button(c, "ok", cf.action, "", true, pal) {
+				if style.Button(c, "ok", cf.action, "", true, pal) {
 					run = true
 				}
 				return
 			}
-			if button(c, "cancel", locales.CommonCancel(), "esc", false, pal) {
+			if style.Button(c, "cancel", locales.CommonCancel(), "esc", false, pal) {
 				cf.open = false
 			}
-			if cf.alt != "" && button(c, "alt", cf.alt, "", false, pal) {
+			if cf.alt != "" && style.Button(c, "alt", cf.alt, "", false, pal) {
 				alt = true
 			}
-			if defaultButton(c, "ok", cf.action, "↩", true, pal) || c.Shortcut(0, ui.KeyEnter) {
+			if style.DefaultButton(c, "ok", cf.action, "↩", true, pal) || c.Shortcut(0, ui.KeyEnter) {
 				run = true
 			}
 		})

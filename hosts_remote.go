@@ -15,6 +15,7 @@ import (
 	"hyla/internal/settings"
 	"hyla/internal/ui/theme"
 
+	"hyla/internal/ui/style"
 	"hyla/locales"
 )
 
@@ -285,7 +286,7 @@ func (a *App) tailcatHosts(c *ui.Context, pal *theme.Palette) {
 			if in := textField(c, "tc-port", &d.port, remote.DefaultPort, 70, pal); in.Submitted() {
 				add()
 			}
-			if fieldButton(c, "tc-add", locales.CommonAdd(), true, pal) {
+			if style.FieldButton(c, "tc-add", locales.CommonAdd(), true, pal) {
 				add()
 			}
 		})
@@ -356,7 +357,7 @@ func (a *App) remoteHosts(c *ui.Context, pal *theme.Palette) {
 			if in := textField(c, "remote-token", &d.token, locales.SetRemoteHostPassword(), 150, pal); in.Submitted() {
 				add()
 			}
-			if fieldButton(c, "remote-add", locales.CommonAdd(), true, pal) {
+			if style.FieldButton(c, "remote-add", locales.CommonAdd(), true, pal) {
 				add()
 			}
 		})

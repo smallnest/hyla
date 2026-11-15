@@ -10,6 +10,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/ui/theme"
 
+	"hyla/internal/ui/style"
 	"hyla/locales"
 )
 
@@ -101,7 +102,7 @@ func (a *App) findBar(c *ui.Context, pal *theme.Palette, p *proto.Pane, t *termi
 	}
 	bar := ui.Row(c.Key("find")).Absolute().Top(8).Right(12).Height(36).Padding(0, 4, 0, 12).Gap(4).
 		AlignItems(ui.Center).Radius(10).Background(pal.Popover).Label(locales.FindLabel())
-	floating(bar, pal).Children(func() {
+	style.Floating(bar, pal).Children(func() {
 		ui.Icon(c, searchIcon).Size(13, 13).TextColor(pal.TextMuted).Shrink(0)
 		in := ui.TextInputBase(c.Key("q"), &f.query).Width(180).FontSize(13).Placeholder(locales.FindPlaceholder()).Bind(&f.input)
 		if f.focus {

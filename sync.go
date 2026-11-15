@@ -11,6 +11,7 @@ import (
 
 	"hyla/internal/settings"
 	hylasync "hyla/internal/sync"
+	"hyla/internal/ui/style"
 	"hyla/internal/ui/theme"
 	"hyla/locales"
 )
@@ -248,7 +249,7 @@ func (a *App) syncPage(c *ui.Context, pal *theme.Palette) {
 	})
 	settingsGroup(c, pal, locales.SetSyncNowGroup(), "", func() {
 		settingRow(c, pal, locales.SetSyncAuto(), locales.SetSyncAutoDetail(), func() {
-			toggle(c.Key("sync-auto"), &cfg.Auto, pal).OnChange(saved)
+			style.Toggle(c.Key("sync-auto"), &cfg.Auto, pal).OnChange(saved)
 		})
 		settingRow(c, pal, locales.SetSyncNow(), a.syncLine(), func() {
 			b := ui.Button(c.Key("sync-now"), locales.SetSyncNow()).Padding(5, 12).Radius(7).FontSize(12.5)

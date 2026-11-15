@@ -12,6 +12,7 @@ import (
 	"hyla/internal/feishu"
 	"hyla/internal/proto"
 	"hyla/internal/settings"
+	"hyla/internal/ui/style"
 	"hyla/internal/ui/theme"
 	"hyla/locales"
 )
@@ -91,7 +92,7 @@ func (a *App) feishuYoloGroup(c *ui.Context, pal *theme.Palette) {
 	}
 	settingsGroup(c, pal, locales.SetFeishuYolo(), locales.SetFeishuYoloDetail(), func() {
 		settingRow(c, pal, locales.SetFeishuYoloEvery(), locales.SetFeishuYoloEveryDetail(), func() {
-			toggle(c, &s.FeishuYolo, pal)
+			style.Toggle(c, &s.FeishuYolo, pal)
 		})
 		for _, agent := range feishuYoloAgents {
 			detail := strings.Join(settings.YoloFlag(agent), " ")
@@ -102,7 +103,7 @@ func (a *App) feishuYoloGroup(c *ui.Context, pal *theme.Palette) {
 			}
 			settingRow(c, pal, agent, detail, func() {
 				on := settings.IsYolo(s.Feishu, s.FeishuYolo, agent)
-				toggle(c, &on, pal)
+				style.Toggle(c, &on, pal)
 				if on != settings.IsYolo(s.Feishu, s.FeishuYolo, agent) {
 					s.Feishu.Yolo = settings.SetYolo(s.Feishu.Yolo, agent, on)
 				}
@@ -146,7 +147,7 @@ func (a *App) feishuGroup(c *ui.Context, pal *theme.Palette) {
 			textField(c, "feishu-app", &d.app, "cli_…", 200, pal)
 			if d.busy {
 				ui.Text(c, locales.SetFeishuConnecting()).FontSize(12.5).TextColor(pal.TextMuted).SingleLine()
-			} else if button(c, "feishu-connect", locales.SetFeishuCheck(), "", true, pal) {
+			} else if style.Button(c, "feishu-connect", locales.SetFeishuCheck(), "", true, pal) {
 				a.feishuConnect(d)
 			}
 		})
@@ -168,7 +169,7 @@ func (a *App) feishuGroup(c *ui.Context, pal *theme.Palette) {
 		return
 	}
 	a.feishuRow(c, pal, locales.SetFeishuOffState(), a.feishuStatusLine(d), func() {
-		if button(c, "feishu-off", locales.SetFeishuDisconnect(), "", false, pal) {
+		if style.Button(c, "feishu-off", locales.SetFeishuDisconnect(), "", false, pal) {
 			a.feishuDisconnect(d)
 		}
 	})

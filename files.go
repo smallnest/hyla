@@ -16,6 +16,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/ui/theme"
 
+	"hyla/internal/ui/style"
 	"hyla/locales"
 )
 
@@ -324,7 +325,7 @@ func treeRow(c *ui.Context, pal *theme.Palette, depth int, current bool) ui.Elem
 	switch {
 	case current:
 		row.Background(pal.RowSelected)
-		chosen(row, pal)
+		style.Chosen(row, pal)
 	case row.Hovered():
 		row.Background(pal.RowHover)
 	}

@@ -16,6 +16,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/ui/theme"
 
+	"hyla/internal/ui/style"
 	"hyla/locales"
 )
 
@@ -240,7 +241,7 @@ func (a *App) sideEdge(c *ui.Context, pal *theme.Palette, row float32) {
 func (a *App) sidePanel(c *ui.Context, pal *theme.Palette, s *proto.Session, width float32, right bool) {
 	card := ui.Column(c.Key("side")).Width(width).Shrink(0).MinHeight(0).Radius(14).Clip().Background(theme.TranslucentGlass(pal.Card, pal, a.set)).
 		Focusable().Bind(a.paneRef("side-card"))
-	raised(card, pal)
+	style.Raised(card, pal)
 	a.side.focused = card.FocusWithin()
 	// It slides in from the window's edge, past which it starts, and
 	// fades as it comes, and out the same way as it closes, as the
@@ -927,7 +928,7 @@ func (a *App) diffOptions(c *ui.Context, pal *theme.Palette, s *proto.Session, s
 	d.RenderSeparator = func(c *ui.Context, sep ui.Element, s *editor.DiffSeparator) { a.separator(c, pal, sep, s) }
 	d.HunkActions = sf.base == git.BaseTurn && !sf.patch && !working && !sf.writing
 	d.RenderHunkActions = func(c *ui.Context, bar ui.Element, h *editor.DiffHunkActions) {
-		floating(bar.Gap(2).Padding(3).Radius(8).Background(pal.Popover).AlignItems(ui.Center), pal)
+		style.Floating(bar.Gap(2).Padding(3).Radius(8).Background(pal.Popover).AlignItems(ui.Center), pal)
 		bar.Children(func() {
 			if hunkButton(c, "revert", revertIcon, locales.ChangesRevert(), locales.ChangesRevertTip(), pal) {
 				h.Revert()

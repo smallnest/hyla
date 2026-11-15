@@ -15,6 +15,7 @@ import (
 	"hyla/internal/settings"
 	"hyla/internal/ui/theme"
 
+	"hyla/internal/ui/style"
 	"hyla/locales"
 )
 
@@ -120,7 +121,7 @@ func (a *App) tailcatListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) 
 				}
 			})
 			ui.Row(c).Shrink(0).AlignItems(ui.Center).Children(func() {
-				toggle(c.Key("tailcat-listen"), &on, pal).OnClick(func() {
+				style.Toggle(c.Key("tailcat-listen"), &on, pal).OnClick(func() {
 					s := a.set.Clone()
 					if on {
 						port := strings.TrimSpace(d.listenPort)
@@ -287,7 +288,7 @@ func (a *App) tcpListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) {
 				}
 			})
 			ui.Row(c).Shrink(0).AlignItems(ui.Center).Children(func() {
-				toggle(c.Key("tcp-listen"), &on, pal).OnClick(func() {
+				style.Toggle(c.Key("tcp-listen"), &on, pal).OnClick(func() {
 					s := a.set.Clone()
 					if on {
 						addr := strings.TrimSpace(d.tcpAddr)

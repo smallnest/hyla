@@ -10,6 +10,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/ui/theme"
 
+	"hyla/internal/ui/style"
 	"hyla/locales"
 )
 
@@ -133,7 +134,7 @@ func (a *App) pickerView(c *ui.Context, pal *theme.Palette) {
 	var goTo, openDir string
 	ui.DialogBase(c.Key("picker"), &p.open, func(backdrop, panel ui.Element) {
 		backdrop.Background(pal.Overlay).Justify(ui.Start).Padding(84, 0, 0, 0)
-		floating(panel.Width(600).MaxHeight(500).Radius(14).Background(pal.Popover), pal).Clip().
+		style.Floating(panel.Width(600).MaxHeight(500).Radius(14).Background(pal.Popover), pal).Clip().
 			Label(locales.PickerTitle(h.label()))
 		ui.Row(c).Height(42).Shrink(0).Padding(0, 16).Gap(8).AlignItems(ui.Center).Children(func() {
 			ui.Icon(c, hostIcon).Size(14, 14).TextColor(pal.TextMuted)
@@ -224,10 +225,10 @@ func (a *App) pickerView(c *ui.Context, pal *theme.Palette) {
 		})
 		ui.Row(c).Height(52).Shrink(0).Padding(0, 16).Gap(10).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, locales.PickerHint(actions.Glyphs("CmdOrCtrl+Enter"))).FontSize(12).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").Grow(1).MinWidth(0)
-			if button(c, "cancel", locales.CommonCancel(), "esc", false, pal) {
+			if style.Button(c, "cancel", locales.CommonCancel(), "esc", false, pal) {
 				p.open = false
 			}
-			if button(c, "open", locales.CommonOpen(), "", true, pal) {
+			if style.Button(c, "open", locales.CommonOpen(), "", true, pal) {
 				openDir = a.pickerChosen(items)
 			}
 		})
