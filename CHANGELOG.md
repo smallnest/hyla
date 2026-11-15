@@ -4,6 +4,13 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## Unreleased
+
+- The Tailcat pair code in Settings › Hosts, and `hyla p2p code`, carried
+  `tailcat://` twice: a phone scanned `tailcat://tailcat://tc…` and
+  reached nothing. If HylaPocket cannot reach a machine over Tailcat,
+  copy the code again.
+
 ## 3.10.3
 
 - Installing the `hyla` command no longer asks for a password when it is
