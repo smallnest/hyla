@@ -15,6 +15,7 @@ import (
 	"hyla/internal/git"
 	"hyla/internal/proto"
 	"hyla/internal/ui/paints"
+	uisettings "hyla/internal/ui/settings"
 )
 
 // A session in a worktree of its own shows its branch by its name, and
@@ -169,10 +170,10 @@ func TestReplaceText(t *testing.T) {
 // Settings' search finds the changes panel's shortcut by git and diff, as
 // well as by its title.
 func TestChangesShortcutSearch(t *testing.T) {
-	testApp(t)
+	a := testApp(t)
 	for _, q := range []string{"git", "diff", "changes"} {
-		if !slices.Contains(searchResults(q, nil)["keyboard"], "Toggle Changes") {
-			t.Errorf("%q doesn't find Toggle Changes: %v", q, searchResults(q, nil))
+		if !slices.Contains(uisettings.SearchResults(a, q)["keyboard"], "Toggle Changes") {
+			t.Errorf("%q doesn't find Toggle Changes: %v", q, uisettings.SearchResults(a, q))
 		}
 	}
 }

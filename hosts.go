@@ -19,7 +19,7 @@ import (
 	"hyla/locales"
 )
 
-func (a *App) local() *host.Host { return a.Hosts[0] }
+func (a *App) local() *host.Host { return a.Machines[0] }
 
 func (a *App) hostOf(id string) *host.Host {
 	if h := a.Owner[id]; h != nil {
@@ -30,7 +30,7 @@ func (a *App) hostOf(id string) *host.Host {
 
 // hostNamed returns a remote host, by name, else nil.
 func (a *App) hostNamed(name string) *host.Host {
-	for _, h := range a.Hosts[1:] {
+	for _, h := range a.Machines[1:] {
 		if strings.EqualFold(h.Name, name) {
 			return h
 		}
@@ -86,7 +86,7 @@ func connectLocal() (*client.Client, error) {
 
 // connected takes the result of connectHost.
 func (a *App) connected(h *host.Host, gen int, cl *client.Client, err error) {
-	if h.Gen != gen || !slices.Contains(a.Hosts, h) {
+	if h.Gen != gen || !slices.Contains(a.Machines, h) {
 		if cl != nil {
 			go cl.Close()
 		}
@@ -134,7 +134,7 @@ func (a *App) retryLater(h *host.Host) {
 	wait := time.Duration(h.Retries) * 400 * time.Millisecond
 	time.AfterFunc(wait, func() {
 		a.update(func() {
-			if h.Gen == gen && h.Conn == host.StateFailed && slices.Contains(a.Hosts, h) {
+			if h.Gen == gen && h.Conn == host.StateFailed && slices.Contains(a.Machines, h) {
 				a.connectHost(h)
 			}
 		})
@@ -159,7 +159,7 @@ func (a *App) disconnected(h *host.Host, cl *client.Client) {
 
 // reconnect connects again, unless it is.
 func (a *App) reconnect(h *host.Host) {
-	if slices.Contains(a.Hosts, h) && h.Client == nil && !h.Dialing {
+	if slices.Contains(a.Machines, h) && h.Client == nil && !h.Dialing {
 		a.connectHost(h)
 	}
 }
@@ -202,7 +202,7 @@ func (a *App) mergeState(h *host.Host, st proto.State) {
 	var projects []proto.Project
 	var sessions []proto.Session
 	owner := map[string]*host.Host{}
-	for _, o := range a.Hosts {
+	for _, o := range a.Machines {
 		ps, ss := st.Projects, st.Sessions
 		if o != h {
 			ps, ss = a.projectsOf(o), a.sessionsOf(o)
@@ -262,7 +262,7 @@ func (a *App) hostedName(s *proto.Session) string {
 // allLoaded reports whether the state came, or failed to: the session the
 // app showed last may be of a hylad still connecting.
 func (a *App) allLoaded() bool {
-	for _, h := range a.Hosts {
+	for _, h := range a.Machines {
 		if !h.Loaded && h.Conn == host.StateConnecting {
 			return false
 		}

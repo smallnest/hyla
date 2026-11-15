@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	uisettings "hyla/internal/ui/settings"
 	"runtime"
 	"slices"
 	"strings"
@@ -26,26 +27,26 @@ import (
 // Every page builds, and shows its settings.
 func TestSettingsPages(t *testing.T) {
 	a := testApp(t)
-	a.Ss.draft = map[string]string{}
-	tt := ui.NewTester(a.settingsView, 820, 900)
+	a.Ss.Draft = map[string]string{}
+	tt := ui.NewTester(uisettings.View(a), 820, 900)
 	want := map[string]string{
 		"general": "Restore sessions after a restart", "appearance": "Translucent window", "terminal": "Line height",
 		"shell": "Scrollback", "notifications": "A session needs me", "keyboard": "Split Right",
 		"agents": "Let commands drive this window", "hosts": "Experimental", "advanced": "Background service",
 	}
-	for _, p := range settingsPages {
-		if p.id == "notifications" {
+	for _, p := range uisettings.Pages() {
+		if p.ID == "notifications" {
 			continue // asks the system whether it can notify: needs the app
 		}
-		a.Ss.page = p.id
+		a.Ss.Page = p.ID
 		tt.Frame()
-		if !tt.HasText(want[p.id]) {
-			t.Errorf("page %s: no %q; texts %q", p.id, want[p.id], tt.Texts())
+		if !tt.HasText(want[p.ID]) {
+			t.Errorf("page %s: no %q; texts %q", p.ID, want[p.ID], tt.Texts())
 		}
-		if p.id != "hosts" && tt.HasText("Experimental") {
-			t.Errorf("page %s is tagged experimental", p.id)
+		if p.ID != "hosts" && tt.HasText("Experimental") {
+			t.Errorf("page %s is tagged experimental", p.ID)
 		}
-		shot(t, tt, "settings-"+p.id)
+		shot(t, tt, "settings-"+p.ID)
 	}
 }
 
@@ -53,9 +54,9 @@ func TestSettingsPages(t *testing.T) {
 // action that had them.
 func TestRecordShortcut(t *testing.T) {
 	a := testApp(t)
-	a.Ss.draft = map[string]string{}
-	a.Ss.page = "keyboard"
-	tt := ui.NewTester(a.settingsView, 820, 1100)
+	a.Ss.Draft = map[string]string{}
+	a.Ss.Page = "keyboard"
+	tt := ui.NewTester(uisettings.View(a), 820, 1100)
 	tt.Frame()
 	if err := tt.Click("Shortcut for Split Right"); err != nil {
 		t.Fatal(err)
@@ -87,8 +88,8 @@ func TestRecordShortcut(t *testing.T) {
 // A choice made in a segmented control stays, and is saved.
 func TestSegmentedChoiceSticks(t *testing.T) {
 	a := testApp(t)
-	a.Ss.page = "appearance"
-	tt := ui.NewTester(a.settingsView, 820, 640)
+	a.Ss.Page = "appearance"
+	tt := ui.NewTester(uisettings.View(a), 820, 640)
 	tt.Frame()
 	if err := tt.Click("Light"); err != nil {
 		t.Fatal(err)
@@ -117,11 +118,11 @@ func TestSegmentedChoiceSticks(t *testing.T) {
 // sticks, and saves, as the pages' other segments do.
 func TestFeishuRunChoiceSticks(t *testing.T) {
 	a := testApp(t)
-	a.Ss.draft = map[string]string{}
+	a.Ss.Draft = map[string]string{}
 	a.settingsIn.Feishu = &settings.Feishu{App: "cli_a", Allow: []string{"*"}, Run: settings.FeishuRunSession}
 	a.Applied = a.settingsIn.Clone()
-	a.Ss.page = "feishu"
-	tt := ui.NewTester(a.settingsView, 820, 900)
+	a.Ss.Page = "feishu"
+	tt := ui.NewTester(uisettings.View(a), 820, 900)
 	tt.Frame()
 	if !tt.HasText("In the background") {
 		t.Fatalf("the run's row is not there: %q", tt.Texts())
@@ -143,10 +144,10 @@ func TestFeishuRunChoiceSticks(t *testing.T) {
 // Dark pages, and the plain background, for a look ($HYLA_SHOTS).
 func TestDarkShots(t *testing.T) {
 	a := testApp(t)
-	tt := ui.NewTester(a.settingsView, 820, 640)
+	tt := ui.NewTester(uisettings.View(a), 820, 640)
 	tt.SetDark(true)
 	for _, p := range []string{"advanced", "terminal", "appearance"} {
-		a.Ss.page = p
+		a.Ss.Page = p
 		tt.Frame()
 		shot(t, tt, "dark-"+p)
 	}
@@ -164,10 +165,10 @@ func TestDarkShots(t *testing.T) {
 func TestSegmentedShots(t *testing.T) {
 	for _, dark := range []bool{false, true} {
 		a := testApp(t)
-		a.Ss.page = "appearance"
+		a.Ss.Page = "appearance"
 		a.settingsIn.Appearance = "light"
 		a.Applied = a.settingsIn.Clone()
-		tt := ui.NewTester(a.settingsView, 820, 240)
+		tt := ui.NewTester(uisettings.View(a), 820, 240)
 		tt.SetDark(dark)
 		tt.Frame()
 		tt.Advance(time.Second)
@@ -185,8 +186,8 @@ func TestSegmentedShots(t *testing.T) {
 func TestControlShots(t *testing.T) {
 	for _, dark := range []bool{false, true} {
 		a := testApp(t)
-		a.Ss.page = "shell"
-		tt := ui.NewTester(a.settingsView, 820, 520)
+		a.Ss.Page = "shell"
+		tt := ui.NewTester(uisettings.View(a), 820, 520)
 		tt.SetDark(dark)
 		tt.Frame()
 		tt.Advance(time.Second)
@@ -221,8 +222,8 @@ func TestControlShots(t *testing.T) {
 func TestSlider(t *testing.T) {
 	for _, dark := range []bool{false, true} {
 		a := testApp(t)
-		a.Ss.page = "terminal"
-		tt := ui.NewTester(a.settingsView, 820, 640)
+		a.Ss.Page = "terminal"
+		tt := ui.NewTester(uisettings.View(a), 820, 640)
 		tt.SetDark(dark)
 		tt.Frame()
 		tt.Advance(time.Second)
@@ -268,8 +269,8 @@ func TestBundledFont(t *testing.T) {
 		t.Errorf("System picked, terminal font %q", got)
 	}
 	a.settingsIn.FontFamily = ""
-	a.Ss.page = "terminal"
-	tt := ui.NewTester(a.settingsView, 820, 320)
+	a.Ss.Page = "terminal"
+	tt := ui.NewTester(uisettings.View(a), 820, 320)
 	tt.Frame()
 	if !tt.HasText("JetBrains Mono Nerd Font") {
 		t.Errorf("the picker does not show the bundled font; texts %q", tt.Texts())
@@ -281,8 +282,8 @@ func TestBundledFont(t *testing.T) {
 func TestScrollEdgeShots(t *testing.T) {
 	for _, dark := range []bool{false, true} {
 		a := testApp(t)
-		a.Ss.page = "keyboard"
-		tt := ui.NewTester(a.settingsView, 820, 520)
+		a.Ss.Page = "keyboard"
+		tt := ui.NewTester(uisettings.View(a), 820, 520)
 		tt.SetDark(dark)
 		tt.Frame()
 		tt.Advance(time.Second)
@@ -314,9 +315,9 @@ func TestScrollEdgeShots(t *testing.T) {
 // finds, the first of them when the page shown has none.
 func TestSettingsSearch(t *testing.T) {
 	a := testApp(t)
-	a.Ss.draft = map[string]string{}
-	a.Ss.page = "general"
-	tt := ui.NewTester(a.settingsView, 820, 640)
+	a.Ss.Draft = map[string]string{}
+	a.Ss.Page = "general"
+	tt := ui.NewTester(uisettings.View(a), 820, 640)
 	tt.Frame()
 	tt.Key(ui.Cmd, ui.KeyF)
 	tt.Frame()
@@ -324,11 +325,11 @@ func TestSettingsSearch(t *testing.T) {
 	for range 3 {
 		tt.Frame()
 	}
-	if a.Ss.query != "font-size" {
-		t.Fatalf("⌘F then typing: query %q", a.Ss.query)
+	if a.Ss.Query != "font-size" {
+		t.Fatalf("⌘F then typing: query %q", a.Ss.Query)
 	}
-	if a.Ss.page != "terminal" || !kit.Hits["Size"] || kit.Hits["Font"] {
-		t.Errorf("font-size: page %s, hits %v", a.Ss.page, kit.Hits)
+	if a.Ss.Page != "terminal" || !kit.Hits["Size"] || kit.Hits["Font"] {
+		t.Errorf("font-size: page %s, hits %v", a.Ss.Page, kit.Hits)
 	}
 	if tt.HasText("General") || !tt.HasText("Terminal") {
 		t.Errorf("sidebar of pages without finds; texts %q", tt.Texts())
@@ -337,28 +338,28 @@ func TestSettingsSearch(t *testing.T) {
 
 	// Not the notifications page: it asks the system, which needs the app.
 	for q, page := range map[string]string{"vibrancy": "appearance", "osc 52": "terminal", "split right": "keyboard", "hylad": "advanced", "remote-control": "agents", "fish": "shell"} {
-		a.Ss.query = q
+		a.Ss.Query = q
 		tt.Frame()
-		if a.Ss.page != page {
-			t.Errorf("%q: page %s, want %s", q, a.Ss.page, page)
+		if a.Ss.Page != page {
+			t.Errorf("%q: page %s, want %s", q, a.Ss.Page, page)
 		}
 	}
-	a.Ss.query = "split right"
+	a.Ss.Query = "split right"
 	tt.Frame()
 	if !tt.HasText("Split Right") || tt.HasText("Split Down") {
 		t.Errorf("keyboard page unfiltered; texts %q", tt.Texts())
 	}
 	shot(t, tt, "settings-search-keyboard")
 
-	a.Ss.query = "zzzz"
+	a.Ss.Query = "zzzz"
 	tt.Frame()
 	if !tt.HasText("No Results") {
 		t.Errorf("no word of no results; texts %q", tt.Texts())
 	}
 	tt.Key(0, ui.KeyEscape)
 	tt.Frame()
-	if a.Ss.query != "" || !tt.HasText("General") {
-		t.Errorf("Escape: query %q", a.Ss.query)
+	if a.Ss.Query != "" || !tt.HasText("General") {
+		t.Errorf("Escape: query %q", a.Ss.Query)
 	}
 }
 
@@ -368,8 +369,8 @@ func TestPopupButtons(t *testing.T) {
 	for _, dark := range []bool{false, true} {
 		name := map[bool]string{false: "light", true: "dark"}[dark]
 		a := testApp(t)
-		a.Ss.page = "terminal"
-		tt := ui.NewTester(a.settingsView, 820, 900)
+		a.Ss.Page = "terminal"
+		tt := ui.NewTester(uisettings.View(a), 820, 900)
 		tt.SetDark(dark)
 		tt.Frame()
 		tt.Advance(time.Second)
@@ -416,7 +417,7 @@ func TestPopupButtons(t *testing.T) {
 		if a.settingsIn.LightTheme != "Catppuccin Mocha" {
 			t.Errorf("light theme %q, want Catppuccin Mocha", a.settingsIn.LightTheme)
 		}
-		if a.Ss.menus["light"].Open {
+		if a.Ss.Menus["light"].Open {
 			t.Error("the theme menu stayed open")
 		}
 
@@ -446,9 +447,9 @@ func TestPopupMenuStaysInWindow(t *testing.T) {
 	// the size's button no room to open its menu.
 	for _, h := range []int{900, 460} {
 		a := testApp(t)
-		a.Ss.page = "terminal"
+		a.Ss.Page = "terminal"
 		a.settingsIn.FontSize = 15
-		tt := ui.NewTester(a.settingsView, 820, h)
+		tt := ui.NewTester(uisettings.View(a), 820, h)
 		tt.Frame()
 		r, ok := tt.Find("15 pt")
 		if !ok {
@@ -492,8 +493,8 @@ func TestPopupMenuStaysInWindow(t *testing.T) {
 // The font menu offers every monospaced family installed, so a font
 // installed with the system is there to pick.
 func TestFontOptionsInstalled(t *testing.T) {
-	opts := fontOptions()
-	for _, want := range []string{fontChoices[0], locales.SetFontSystem(), "Monaco"} {
+	opts := uisettings.FontOptions()
+	for _, want := range []string{uisettings.FontChoices()[0], locales.SetFontSystem(), "Monaco"} {
 		if !slices.Contains(opts, want) {
 			t.Errorf("%q is not offered", want)
 		}
@@ -516,10 +517,10 @@ func TestFontOptionsInstalled(t *testing.T) {
 // The font menu names the system's font in the language the app shows
 // now, as the menu's choice is read back, after the language changes.
 func TestFontOptionsFollowLanguage(t *testing.T) {
-	en := fontOptions()[1]
+	en := uisettings.FontOptions()[1]
 	i18n.SetLocaleFunc(func() string { return "zh-Hans" })
 	t.Cleanup(func() { i18n.SetLocaleFunc(nil) })
-	if got, want := fontOptions()[1], locales.SetFontSystem(); got != want || got == en {
+	if got, want := uisettings.FontOptions()[1], locales.SetFontSystem(); got != want || got == en {
 		t.Errorf("the system's font is offered as %q, want %q", got, want)
 	}
 }
@@ -529,8 +530,8 @@ func TestFontOptionsFollowLanguage(t *testing.T) {
 func TestSearchMenuStaysInWindow(t *testing.T) {
 	for _, h := range []int{900, 420} {
 		a := testApp(t)
-		a.Ss.page = "terminal"
-		tt := ui.NewTester(a.settingsView, 820, h)
+		a.Ss.Page = "terminal"
+		tt := ui.NewTester(uisettings.View(a), 820, h)
 		tt.Frame()
 		if err := tt.Click("JetBrains Mono Nerd Font"); err != nil {
 			t.Fatal(err)
@@ -547,7 +548,7 @@ func TestSearchMenuStaysInWindow(t *testing.T) {
 		}
 		// The menu's bottom: the last item shown is inside the window.
 		var low float32
-		for _, f := range fontChoices {
+		for _, f := range uisettings.FontChoices() {
 			if r, ok := tt.Find(f); ok && r.Y > low {
 				low = r.Y + r.H
 			}
@@ -562,8 +563,8 @@ func TestSearchMenuStaysInWindow(t *testing.T) {
 // on the line between two items too.
 func TestSearchMenuOneHighlight(t *testing.T) {
 	a := testApp(t)
-	a.Ss.page = "terminal"
-	tt := ui.NewTester(a.settingsView, 820, 900)
+	a.Ss.Page = "terminal"
+	tt := ui.NewTester(uisettings.View(a), 820, 900)
 	tt.Frame()
 	if err := tt.Click("JetBrains Mono Nerd Font"); err != nil {
 		t.Fatal(err)
@@ -607,8 +608,8 @@ func TestSearchMenuOneHighlight(t *testing.T) {
 // under it, and a press outside it closes it, going no further.
 func TestSearchMenuIsModal(t *testing.T) {
 	a := testApp(t)
-	a.Ss.page = "terminal"
-	tt := ui.NewTester(a.settingsView, 820, 600)
+	a.Ss.Page = "terminal"
+	tt := ui.NewTester(uisettings.View(a), 820, 600)
 	tt.Frame()
 	open := func() {
 		t.Helper()
@@ -618,17 +619,17 @@ func TestSearchMenuIsModal(t *testing.T) {
 		tt.Frame()
 		tt.Advance(time.Second)
 		tt.Frame()
-		if !a.Ss.menus["font"].Open {
+		if !a.Ss.Menus["font"].Open {
 			t.Fatal("the font menu did not open")
 		}
 	}
 	open()
 	tt.Scroll(400, 500, 0, 120)
 	tt.Frame()
-	if y := a.Ss.scrolls["terminal"].Y; y != 0 {
+	if y := a.Ss.Scrolls["terminal"].Y; y != 0 {
 		t.Errorf("the page scrolled %g under the menu", y)
 	}
-	if !a.Ss.menus["font"].Open {
+	if !a.Ss.Menus["font"].Open {
 		t.Error("the wheel closed the menu")
 	}
 	// The menu's own list still scrolls.
@@ -642,16 +643,16 @@ func TestSearchMenuIsModal(t *testing.T) {
 	r, _ := tt.Find("General")
 	tt.ClickAt(r.X+r.W/2, r.Y+r.H/2)
 	tt.Frame()
-	if a.Ss.menus["font"].Open {
+	if a.Ss.Menus["font"].Open {
 		t.Error("a press outside left the menu open")
 	}
-	if a.Ss.page != "terminal" {
-		t.Errorf("the press outside the menu went on: page %s", a.Ss.page)
+	if a.Ss.Page != "terminal" {
+		t.Errorf("the press outside the menu went on: page %s", a.Ss.Page)
 	}
 	// Closed, the page scrolls again.
 	tt.Scroll(400, 500, 0, 120)
 	tt.Frame()
-	if a.Ss.scrolls["terminal"].Y == 0 {
+	if a.Ss.Scrolls["terminal"].Y == 0 {
 		t.Error("the page does not scroll once the menu closed")
 	}
 }
@@ -666,8 +667,8 @@ func abs32(f float32) float32 {
 // The filter lists under Block ads add up and save, and hide with it.
 func TestAdListToggles(t *testing.T) {
 	a := testApp(t)
-	a.Ss.page = "browser"
-	tt := ui.NewTester(a.settingsView, 820, 1500)
+	a.Ss.Page = "browser"
+	tt := ui.NewTester(uisettings.View(a), 820, 1500)
 	tt.Frame()
 	flip := func(label string) {
 		t.Helper()
@@ -765,8 +766,8 @@ func TestTranslucentGlass(t *testing.T) {
 func TestFontFeaturesField(t *testing.T) {
 	for _, dark := range []bool{false, true} {
 		a := testApp(t)
-		a.Ss.page = "terminal"
-		tt := ui.NewTester(a.settingsView, 820, 760)
+		a.Ss.Page = "terminal"
+		tt := ui.NewTester(uisettings.View(a), 820, 760)
 		tt.SetDark(dark)
 		tt.Frame()
 		if err := tt.Click("ss01, cv05=2, -calt"); err != nil {
@@ -797,11 +798,11 @@ func TestFontFeaturesField(t *testing.T) {
 // another, and each goes by its x.
 func TestFallbackFont(t *testing.T) {
 	a := testApp(t)
-	a.Ss.page = "terminal"
+	a.Ss.Page = "terminal"
 	a.settingsIn.FontFallback = "PingFang SC, Menlo"
 	// Room for every row: a page too short for the picker's menu shows
 	// the font under the window's foot.
-	tt := ui.NewTester(a.settingsView, 820, 980)
+	tt := ui.NewTester(uisettings.View(a), 820, 980)
 	tt.Frame()
 	// A font already there comes once.
 	if err := tt.Click("Add another font…"); err != nil {
@@ -863,8 +864,8 @@ func TestCJKFamily(t *testing.T) {
 		"Noto Sans CJK SC": true, "Hiragino Mincho ProN": true, "Apple SD Gothic Neo": true,
 		"Menlo": false, "SF Mono": false, "Apple Color Emoji": false,
 	} {
-		if got := cjkFamily(name); got != want {
-			t.Errorf("cjkFamily(%q) %v, want %v", name, got, want)
+		if got := uisettings.CJKFamily(name); got != want {
+			t.Errorf("uisettings.CJKFamily(%q) %v, want %v", name, got, want)
 		}
 	}
 }
@@ -873,8 +874,8 @@ func TestCJKFamily(t *testing.T) {
 // draws: extra light, and thin.
 func TestWeightExtraLight(t *testing.T) {
 	a := testApp(t)
-	a.Ss.page = "terminal"
-	tt := ui.NewTester(a.settingsView, 820, 900)
+	a.Ss.Page = "terminal"
+	tt := ui.NewTester(uisettings.View(a), 820, 900)
 	tt.Frame()
 	if err := tt.Click("Regular"); err != nil {
 		t.Fatal(err)

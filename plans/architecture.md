@@ -122,6 +122,16 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
   - Also: the Settings window's groups, rows, segmented control and the
     search's marks are `internal/ui/settings/kit`, which the pages, the
     Sync page and the hosts' forms draw with.
+  - Also: the Settings window is `internal/ui/settings` — its state
+    (`State`, with the hosts' and Feishu's drafts), its pages, the
+    keyboard's shortcut recording and the window's opening. It asks an
+    `App` of the settings, the window and what the controls change, and
+    names its own layer "cli", as it reads `internal/cli`'s skills; the
+    root keeps `settings.go` as its adapters. The Sync, Feishu and hosts
+    pages stay in the root, which the window draws through `App.Sync`,
+    `App.Feishu`, `App.Tailcat` and `App.P2P`. The pages read an `App`,
+    not the app: `App.Machines` is the hosts' field, renamed from
+    `Hosts`, as `HostCount` answers the window.
   - Also: `host` is `internal/app/host`.Host — one hylad's address, its
     connection's state and error, what it holds, and the dialers — which
     the views read directly, as the root's field was. Its fields are

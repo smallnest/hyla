@@ -78,6 +78,15 @@ func (a *App) fallbackFonts() []string {
 	return out
 }
 
+// removeFallback removes the i'th of font-fallback.
+func (a *App) removeFallback(i int) {
+	f := a.fallbackFonts()
+	if i < 0 || i >= len(f) {
+		return
+	}
+	a.settingsIn.FontFallback = strings.Join(slices.Delete(f, i, i+1), ", ")
+}
+
 // addFallback adds family to font-fallback: in place, as the i'th of
 // them, else at the end.
 func (a *App) addFallback(family string, i int) {

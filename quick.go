@@ -61,7 +61,7 @@ type quickTerm struct {
 func (a *App) applyGlobalShortcuts() {
 	q := &a.quick
 	want := ""
-	if a.Ss.recording == "" {
+	if a.Ss.Recording == "" {
 		act, _ := actions.Find(quickAction)
 		want = actions.Keys(act, a.settingsIn.Shortcuts)
 	}

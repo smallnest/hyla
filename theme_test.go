@@ -7,6 +7,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/settings"
+	uisettings "hyla/internal/ui/settings"
 	"hyla/internal/ui/wash"
 )
 
@@ -33,18 +34,18 @@ func TestEveryBackgroundHasAWash(t *testing.T) {
 // in the language the app shows, and choosing one keeps it.
 func TestBackgroundTiles(t *testing.T) {
 	a := testApp(t)
-	a.Ss.page = "appearance"
-	tt := ui.NewTester(a.settingsView, 820, 2400)
+	a.Ss.Page = "appearance"
+	tt := ui.NewTester(uisettings.View(a), 820, 2400)
 	tt.Frame()
 	for _, b := range settings.Backgrounds {
-		name := backgroundName(b.ID, b.Name)
+		name := uisettings.BackgroundName(b.ID, b.Name)
 		_ = name
 		if !tt.HasText(name) {
 			t.Errorf("%s: no tile named %q", b.ID, name)
 		}
 	}
 	// A new one is chosen, and saved.
-	if err := tt.Click(backgroundName("umbra", "Umbra")); err != nil {
+	if err := tt.Click(uisettings.BackgroundName("umbra", "Umbra")); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
@@ -87,10 +88,10 @@ func TestWashShots(t *testing.T) {
 // The appearance page's washes, for a look ($HYLA_SHOTS).
 func TestBackgroundTilesShot(t *testing.T) {
 	a := testApp(t)
-	a.Ss.page = "appearance"
-	tt := ui.NewTester(a.settingsView, 820, 900)
+	a.Ss.Page = "appearance"
+	tt := ui.NewTester(uisettings.View(a), 820, 900)
 	tt.Frame()
-	sc := a.Ss.scrolls["appearance"]
+	sc := a.Ss.Scrolls["appearance"]
 	if sc == nil {
 		t.Skip("no scroll")
 	}

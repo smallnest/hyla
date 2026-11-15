@@ -2,6 +2,7 @@ package main
 
 import (
 	"hyla/internal/app/petspot"
+	uisettings "hyla/internal/ui/settings"
 	"math"
 	"testing"
 	"time"
@@ -254,9 +255,9 @@ func TestPetLooks(t *testing.T) {
 // The Appearance page's switch, for a look: HYLA_SHOTS=dir writes it.
 func TestPetSettingRow(t *testing.T) {
 	a := testApp(t)
-	a.Ss.draft = map[string]string{}
-	a.Ss.page = "appearance"
-	tt := ui.NewTester(a.settingsView, 820, 640)
+	a.Ss.Draft = map[string]string{}
+	a.Ss.Page = "appearance"
+	tt := ui.NewTester(uisettings.View(a), 820, 640)
 	tt.Frame()
 	shot(t, tt, "settings-pet")
 	if !tt.HasText(locales.SetPet()) || !tt.HasText(locales.SetPetSize()) {

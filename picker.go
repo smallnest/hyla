@@ -25,5 +25,5 @@ func (a *App) pickerView(c *ui.Context, pal *theme.Palette) { picker.View(c, &a.
 // pickerHosts is the picker's switch of machines: the one it lists, and
 // each other, which a click lists instead.
 func (a *App) pickerHosts(c *ui.Context, pal *theme.Palette, shown *host.Host) {
-	picker.Hosts(c, &a.Picker, a, a.Hosts, pal)
+	picker.Hosts(c, &a.Picker, a, a.Machines, pal)
 }

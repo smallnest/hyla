@@ -11,6 +11,7 @@ import (
 	"hyla/internal/actions"
 	"hyla/internal/proto"
 
+	uisettings "hyla/internal/ui/settings"
 	"hyla/locales"
 )
 
@@ -194,7 +195,7 @@ func actionTitle(id string) string {
 // types a new one in Settings, and none of a global one, which the system
 // takes before the menus.
 func (a *App) accelerator(act actions.Action) string {
-	if a.Ss.recording != "" || act.Global {
+	if a.Ss.Recording != "" || act.Global {
 		return ""
 	}
 	return actions.Keys(act, a.settingsIn.Shortcuts)
@@ -289,7 +290,7 @@ func (a *App) menuShortcut(it *ui.MenuItem, id string) *ui.MenuItem {
 			mods |= ui.Shift
 		}
 	}
-	for k, name := range keyNames {
+	for k, name := range uisettings.KeyNames() {
 		if strings.EqualFold(name, parts[len(parts)-1]) {
 			return it.Shortcut(mods, k)
 		}

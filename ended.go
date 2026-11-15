@@ -43,7 +43,7 @@ func (a *App) SectionPrefs() *history.Prefs {
 
 func (a *App) ShowAll() *bool { return &a.EndedAll }
 
-func (a *App) AllHosts() []*host.Host { return a.Hosts }
+func (a *App) AllHosts() []*host.Host { return a.Machines }
 
 func (a *App) Skills() []history.SkillState {
 	states := cli.SkillStates()

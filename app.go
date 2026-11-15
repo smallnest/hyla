@@ -37,6 +37,7 @@ import (
 	"hyla/internal/ui/confirm"
 	"hyla/internal/ui/palette"
 	"hyla/internal/ui/picker"
+	uisettings "hyla/internal/ui/settings"
 	"hyla/internal/ui/theme"
 
 	"hyla/locales"
@@ -123,16 +124,16 @@ type App struct {
 	// hosts are the hylads the app shows, this machine's first; st is
 	// what they hold, each host's sessions and projects after the one's
 	// before, and owner the host of each session, pane and project.
-	Hosts  []*host.Host
-	Owner  map[string]*host.Host
-	St     proto.State
-	Loaded bool // a state came
+	Machines []*host.Host // this machine and the others
+	Owner    map[string]*host.Host
+	St       proto.State
+	Loaded   bool // a state came
 
 	Prefs      prefs
 	settingsIn settings.Settings // the user's settings: Settings' controls edit it
 	Applied    settings.Settings // set, as last applied and saved
 	SetWin     *mygo.Window      // the Settings window, while open
-	Ss         settingsState
+	Ss         uisettings.State
 	Selected   string
 	Terms      map[string]*termEntry
 	Webs       map[string]*webEntry // browser panes' pages, by pane
@@ -264,10 +265,10 @@ func newApp() *App {
 	applied.Lock()
 	applied.s = a.settingsIn
 	applied.Unlock()
-	a.Ss.problems = settings.Problems()
+	a.Ss.Problems = settings.Problems()
 	a.Applied = a.settingsIn.Clone()
 	a.Selected = a.Prefs.Selected
-	a.Hosts = []*host.Host{{Conn: host.StateConnecting}}
+	a.Machines = []*host.Host{{Conn: host.StateConnecting}}
 	return a
 }
 
@@ -418,7 +419,7 @@ func (a *App) setState(h *host.Host, st proto.State) {
 	if a.settingsIn.SessionHistory {
 		a.SyncEnded()
 	} else {
-		for _, h := range a.Hosts {
+		for _, h := range a.Machines {
 			h.Convs, h.ConvKnown, h.ConvAsked = nil, false, false
 		}
 	}
@@ -587,7 +588,7 @@ func (g group) dragKey() string {
 // groups returns the projects of every host, as the sidebar lists them.
 func (a *App) groups() []group {
 	var gs []group
-	for _, h := range a.Hosts {
+	for _, h := range a.Machines {
 		gs = append(gs, a.hostGroups(h)...)
 	}
 	return gs
@@ -898,14 +899,14 @@ func (a *App) visibleOrder() []string {
 	var ids []string
 	switch a.Prefs.SidebarGroup {
 	case "none":
-		for _, h := range a.Hosts {
+		for _, h := range a.Machines {
 			for _, s := range a.flatSessions(h) {
 				ids = append(ids, s.ID)
 			}
 		}
 		return ids
 	case "date":
-		for _, h := range a.Hosts {
+		for _, h := range a.Machines {
 			for _, dg := range a.dateGroups(h) {
 				for _, s := range dg.sessions {
 					ids = append(ids, s.ID)
@@ -962,7 +963,7 @@ func (a *App) watching(id string) bool {
 // at, which it then never marks unread.
 func (a *App) reportView() {
 	shown := a.selectedHost()
-	for _, h := range a.Hosts {
+	for _, h := range a.Machines {
 		if h.Client == nil {
 			continue
 		}
@@ -1447,7 +1448,7 @@ func (a *App) apply(s settings.Settings, save bool) {
 		mygo.Theme.SetSource(mygo.ThemeSource(s.Appearance))
 	}
 	if old.Language != s.Language && a.Win != nil {
-		mygo.App.SetLocale(localeTag(s.Language))
+		mygo.App.SetLocale(uisettings.LocaleTag(s.Language))
 	}
 	// The wash changes with the material or its blur, which a change of
 	// opacity too, its alpha only, would leave as it was.
@@ -1566,8 +1567,8 @@ func (a *App) reloadConfig() {
 	cur := settings.Load()
 	problems := settings.Problems()
 	a.update(func() {
-		changed := strings.Join(problems, "\n") != strings.Join(a.Ss.problems, "\n")
-		a.Ss.problems = problems
+		changed := strings.Join(problems, "\n") != strings.Join(a.Ss.Problems, "\n")
+		a.Ss.Problems = problems
 		if !reflect.DeepEqual(cur, a.Applied) {
 			a.apply(cur, false)
 		}
@@ -2104,7 +2105,7 @@ func (a *App) quitRequested() bool {
 		a.Confirm = &confirm.Ask{
 			Open:    true,
 			Title:   locales.ConfirmQuitAllTitle(),
-			Detail:  quitAllDetail(busy, len(a.Hosts) > 1),
+			Detail:  quitAllDetail(busy, len(a.Machines) > 1),
 			Action:  locales.ConfirmQuitAllAction(),
 			Destroy: true,
 			Ends:    true, // Return may be a program's to read
@@ -2177,7 +2178,7 @@ func (a *App) quitEndsSession() {
 // hostsLoaded reports whether every host has shown its sessions, as the
 // app asks before it ends this machine's.
 func (a *App) hostsLoaded() bool {
-	for _, h := range a.Hosts {
+	for _, h := range a.Machines {
 		if h.Conn == host.StateConnecting || (h.Client != nil && !h.Loaded) {
 			return false
 		}
@@ -2259,7 +2260,7 @@ func (a *App) quitAndEnd() {
 	a.Confirm = &confirm.Ask{
 		Open:    true,
 		Title:   locales.ConfirmQuitAllTitle(),
-		Detail:  quitAllDetail(n, len(a.Hosts) > 1),
+		Detail:  quitAllDetail(n, len(a.Machines) > 1),
 		Action:  locales.ConfirmQuitAllAction(),
 		Destroy: true,
 		Ends:    true,

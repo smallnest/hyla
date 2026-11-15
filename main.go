@@ -30,6 +30,7 @@ import (
 	"hyla/internal/profiling"
 	"hyla/internal/proto"
 
+	uisettings "hyla/internal/ui/settings"
 	"hyla/locales"
 )
 
@@ -99,7 +100,7 @@ func runApp() {
 	a := newApp()
 	loadFonts()
 	mygo.Theme.SetSource(mygo.ThemeSource(a.settingsIn.Appearance))
-	mygo.App.SetLocale(localeTag(a.settingsIn.Language))
+	mygo.App.SetLocale(uisettings.LocaleTag(a.settingsIn.Language))
 	mygo.App.SetMenu(a.menu())
 	// Windows draw anew in another language; the menu and the titles,
 	// set once, are made again in it.

@@ -26,7 +26,9 @@ import (
 	"hyla/internal/settings"
 	"hyla/internal/ui/picker"
 
+	"github.com/egoist/mygo/i18n"
 	"hyla/internal/ui/confirm"
+	"hyla/internal/ui/settings/kit"
 	"hyla/locales"
 )
 
@@ -34,6 +36,10 @@ import (
 // and no hylad.
 func testApp(t *testing.T) *App {
 	t.Helper()
+	// The windows' marks and the language are the package's, as the app's:
+	// neither outlives a test.
+	kit.Reset()
+	i18n.SetLocaleFunc(nil)
 	home := t.TempDir()
 	t.Setenv("HYLA_HOME", home)
 	// The configuration too: never the user's.
@@ -126,7 +132,7 @@ func TestSidebarRejectsUnavailableDrops(t *testing.T) {
 		{"folder picker", func(a *App) { a.Picker = picker.State{Open: true, Host: a.local()} }},
 		{"only remote connected", func(a *App) {
 			h := &host.Host{Name: "remote", Conn: host.StateReady, Client: a.local().Client, Loaded: true}
-			a.Hosts = append(a.Hosts, h)
+			a.Machines = append(a.Machines, h)
 			a.Owner = map[string]*host.Host{"s1": h, "p1": h, "a": h, "b": h}
 			a.local().Conn, a.local().Client = host.StateFailed, nil
 		}},
@@ -148,7 +154,7 @@ func TestSidebarRejectsUnavailableDrops(t *testing.T) {
 func TestSidebarLocalDropWithRemoteSelected(t *testing.T) {
 	a := testDropApp(t)
 	h := &host.Host{Name: "remote", Conn: host.StateFailed, Loaded: true}
-	a.Hosts = append(a.Hosts, h)
+	a.Machines = append(a.Machines, h)
 	a.Owner = map[string]*host.Host{"s1": h, "p1": h, "a": h, "b": h}
 	tt := ui.NewTester(a.view, 1100, 640)
 	tt.Frame()

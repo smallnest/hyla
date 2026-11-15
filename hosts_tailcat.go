@@ -20,6 +20,7 @@ import (
 
 	"hyla/internal/ui/controls"
 	"hyla/internal/ui/glyph"
+	uisettings "hyla/internal/ui/settings"
 	"hyla/internal/ui/style"
 	"hyla/locales"
 )
@@ -29,34 +30,12 @@ import (
 // Hosts turns it on and off: off, hylad starts no listener of it, and the
 // phone reaches nothing.
 
-// tailcatField is a field of the Tailcat group that failed: which, as its
-// key, and why.
-type tailcatField struct {
-	key, err string
-}
-
-// tailcatDraft is the Tailcat group's form, and the fields it edits: the
-// relay, and the port of this machine's listener.
-type tailcatDraft struct {
-	listenPort string // this machine's listener's, while a host
-	relay      string
-	tcpAddr    string // the network listener's address, "" for every
-	tcpToken   string // its password, as listen-token keeps it
-	err        tailcatField
-	code       string       // this machine's pair code, as hylad's key makes it
-	codeErr    string       // why there is none, as a failure
-	qr         *qrcode.Code // code as a QR code, for a phone to scan
-	at         time.Time    // when the key was last read, or rotated
-	copied     time.Time
-	looking    bool
-}
-
 // tailcatGroup is Settings › Hosts › Tailcat: the switch, and with it on,
 // the hosts Hyla adds and this machine as a host.
 func (a *App) tailcatGroup(c *ui.Context, pal *theme.Palette) {
 	kit.Group(c, pal, locales.SetTailcatTitle(), "", func() {
-		d := &a.Ss.tailcat
-		if d.listenPort == "" {
+		d := &a.Ss.Tailcat
+		if d.ListenPort == "" {
 			a.resetTailcat()
 		}
 		if kit.Rows++; kit.Rows > 1 {
@@ -66,8 +45,8 @@ func (a *App) tailcatGroup(c *ui.Context, pal *theme.Palette) {
 		// so is this machine's listener.
 		ui.Column(c).Gap(6).Children(func() {
 			ui.Text(c, locales.SetTailcatRelay()).FontSize(13.5).TextColor(pal.Text)
-			if in := controls.TextField(c, "tailcat-relay", &d.relay, remote.DefaultDERPMapURL, 0, pal); in.Submitted() {
-				d.save(a, "tailcat-relay")
+			if in := controls.TextField(c, "tailcat-relay", &d.Relay, remote.DefaultDERPMapURL, 0, pal); in.Submitted() {
+				saveTailcat(a, d, "tailcat-relay")
 			}
 		})
 		tailcatFieldErr(c, pal, d, "tailcat-relay")
@@ -86,15 +65,15 @@ func (a *App) tailcatGroup(c *ui.Context, pal *theme.Palette) {
 // and this machine's pair code with them.
 func (a *App) resetTailcat() {
 	s := a.settingsIn
-	d := &a.Ss.tailcat
-	*d = tailcatDraft{
-		relay:      s.TailcatRelay,
-		listenPort: settings.TailcatListenPortDefault(),
-		tcpAddr:    tcpListenAddr(&s),
-		tcpToken:   s.ListenToken,
+	d := &a.Ss.Tailcat
+	*d = uisettings.TailcatDraft{
+		Relay:      s.TailcatRelay,
+		ListenPort: settings.TailcatListenPortDefault(),
+		TCPAddr:    tcpListenAddr(&s),
+		TCPToken:   s.ListenToken,
 	}
 	if _, port, ok := s.TailcatListen(); ok {
-		d.listenPort = port
+		d.ListenPort = port
 	}
 	if s.Tailcat {
 		a.tailcatCode()
@@ -111,7 +90,7 @@ func tailcatSettingRow(c *ui.Context, pal *theme.Palette, label, detail string, 
 // tailcatListen is this machine as a host over Tailcat: the switch of
 // hylad's tailcat listener here, its port, and the pair code Hyla on
 // other machines adds with.
-func (a *App) tailcatListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) {
+func (a *App) tailcatListen(c *ui.Context, pal *theme.Palette, d *uisettings.TailcatDraft) {
 	on := hasTailcatListener(&a.settingsIn)
 	detail := locales.SetTailcatListenDetail()
 	if on {
@@ -129,7 +108,7 @@ func (a *App) tailcatListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) 
 				style.Toggle(c.Key("tailcat-listen"), &on, pal).OnClick(func() {
 					s := a.settingsIn.Clone()
 					if on {
-						port := strings.TrimSpace(d.listenPort)
+						port := strings.TrimSpace(d.ListenPort)
 						if !settings.ValidListenPort(port) {
 							port = settings.TailcatListenPortDefault()
 						}
@@ -152,8 +131,8 @@ func (a *App) tailcatListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) 
 					ui.Text(c, d).FontSize(12).TextColor(pal.TextMuted).LineHeight(1.35)
 				}
 			})
-			if in := controls.TextField(c, "tailcat-listen-port", &d.listenPort, settings.TailcatListenPortDefault(), 70, pal); in.Submitted() {
-				d.save(a, "tailcat-listen-port")
+			if in := controls.TextField(c, "tailcat-listen-port", &d.ListenPort, settings.TailcatListenPortDefault(), 70, pal); in.Submitted() {
+				saveTailcat(a, d, "tailcat-listen-port")
 			}
 		})
 		tailcatFieldErr(c, pal, d, "tailcat-listen-port")
@@ -165,36 +144,36 @@ func (a *App) tailcatListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) 
 		})
 		// What other machines add with the code, as a phone scans it:
 		// nothing where there is none.
-		if d.qr != nil {
-			qrcode.View(c, d.qr).Size(160, 160).Shrink(0)
+		if d.QR != nil {
+			qrcode.View(c, d.QR).Size(160, 160).Shrink(0)
 		}
 		ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
-			code, col := d.code, pal.Text
+			code, col := d.Code, pal.Text
 			switch {
-			case d.codeErr != "":
-				code, col = d.codeErr, pal.Danger
+			case d.CodeErr != "":
+				code, col = d.CodeErr, pal.Danger
 			case code == "":
 				code, col = locales.SetTailcatStarting(), pal.TextMuted
 			}
 			ui.Text(c, code).Font("monospace").FontSize(12.5).TextColor(col).LineHeight(1.35).Selectable().MinWidth(0)
 			ui.Row(c).Grow(1)
-			if code == "" || d.codeErr != "" {
+			if code == "" || d.CodeErr != "" {
 				return
 			}
 			icon, label := glyph.Copy, locales.HostCopyAddress()
-			if time.Since(d.copied) < 1500*time.Millisecond {
+			if time.Since(d.Copied) < 1500*time.Millisecond {
 				icon, label = glyph.Of("lucide-check"), locales.ToastCopied()
 			}
 			paints.IconButton(c, "copy-tailcat", icon, label, pal, func() {
 				c.WriteClipboard(code)
-				d.copied = time.Now()
+				d.Copied = time.Now()
 				go func() {
 					time.Sleep(1500 * time.Millisecond)
 					a.update(func() {})
 				}()
 			})
 			paints.IconButton(c, "change-tailcat", glyph.Reload, locales.SetTailcatChange(), pal, func() {
-				a.Ss.confirm = &confirm.Ask{
+				a.Ss.Confirm = &confirm.Ask{
 					Open:    true,
 					Title:   locales.SetTailcatChange(),
 					Action:  locales.SetTailcatChange(),
@@ -207,18 +186,18 @@ func (a *App) tailcatListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) 
 }
 
 // tailcatFieldErr is the reason a field of the group failed, under it.
-func tailcatFieldErr(c *ui.Context, pal *theme.Palette, d *tailcatDraft, key string) {
-	if d.err.key == key {
-		ui.Text(c, d.err.err).FontSize(12).TextColor(pal.Danger)
+func tailcatFieldErr(c *ui.Context, pal *theme.Palette, d *uisettings.TailcatDraft, key string) {
+	if d.Err.Key == key {
+		ui.Text(c, d.Err.Err).FontSize(12).TextColor(pal.Danger)
 	}
 }
 
 func (a *App) tailcatCode() {
-	d := &a.Ss.tailcat
-	if d.looking || !d.at.IsZero() {
+	d := &a.Ss.Tailcat
+	if d.Looking || !d.At.IsZero() {
 		return
 	}
-	d.looking = true
+	d.Looking = true
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		code, err := remote.LocalTailcatAddress(ctx)
@@ -230,7 +209,7 @@ func (a *App) tailcatCode() {
 			qr, _ = qrcode.Encode("tailcat://"+code, qrcode.L)
 		}
 		a.update(func() {
-			d.code, d.codeErr, d.qr, d.looking, d.at = code, errorText(err), qr, false, time.Now()
+			d.Code, d.CodeErr, d.QR, d.Looking, d.At = code, errorText(err), qr, false, time.Now()
 		})
 	}()
 }
@@ -242,8 +221,8 @@ func (a *App) rotateTailcatCode() {
 		a.toast(err.Error())
 		return
 	}
-	d := &a.Ss.tailcat
-	*d = tailcatDraft{relay: d.relay, listenPort: d.listenPort}
+	d := &a.Ss.Tailcat
+	*d = uisettings.TailcatDraft{Relay: d.Relay, ListenPort: d.ListenPort}
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		k, err := remote.TailcatKeyAt(ctx, remote.TailcatKeyPath())
@@ -253,9 +232,9 @@ func (a *App) rotateTailcatCode() {
 		}
 		cancel()
 		a.update(func() {
-			d.code, d.codeErr, d.at = errorText(err), errorText(err), time.Now()
+			d.Code, d.CodeErr, d.At = errorText(err), errorText(err), time.Now()
 			if err == nil {
-				d.code = "tailcat://" + code
+				d.Code = "tailcat://" + code
 			}
 		})
 	}()
@@ -281,7 +260,7 @@ func errorText(err error) string {
 
 // tcpListen is this machine on its own network: a tcp:// listener, whose
 // address and password a client of Hyla, or of HylaPocket, takes.
-func (a *App) tcpListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) {
+func (a *App) tcpListen(c *ui.Context, pal *theme.Palette, d *uisettings.TailcatDraft) {
 	on := hasTCPListener(&a.settingsIn)
 	detail := locales.SetTCPListenDetail()
 	ui.Column(c).Padding(11, 0).Gap(8).Children(func() {
@@ -296,7 +275,7 @@ func (a *App) tcpListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) {
 				style.Toggle(c.Key("tcp-listen"), &on, pal).OnClick(func() {
 					s := a.settingsIn.Clone()
 					if on {
-						addr := strings.TrimSpace(d.tcpAddr)
+						addr := strings.TrimSpace(d.TCPAddr)
 						if addr == "" {
 							addr = ":" + remote.PocketPort
 						}
@@ -333,8 +312,8 @@ func (a *App) tcpListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) {
 					ui.Text(c, d).FontSize(12).TextColor(pal.TextMuted).LineHeight(1.35)
 				}
 			})
-			if in := controls.TextField(c, "tcp-addr", &d.tcpAddr, ":"+remote.PocketPort, 140, pal).Font("monospace"); in.Submitted() {
-				d.save(a, "tcp-addr")
+			if in := controls.TextField(c, "tcp-addr", &d.TCPAddr, ":"+remote.PocketPort, 140, pal).Font("monospace"); in.Submitted() {
+				saveTailcat(a, d, "tcp-addr")
 			}
 		})
 		tailcatFieldErr(c, pal, d, "tcp-addr")
@@ -345,15 +324,15 @@ func (a *App) tcpListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) {
 			}
 		})
 		ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, d.tcpToken).Font("monospace").FontSize(12.5).TextColor(pal.Text).Selectable().MinWidth(0)
+			ui.Text(c, d.TCPToken).Font("monospace").FontSize(12.5).TextColor(pal.Text).Selectable().MinWidth(0)
 			ui.Row(c).Grow(1)
 			icon, label := glyph.Copy, locales.HostCopyAddress()
-			if time.Since(d.copied) < 1500*time.Millisecond {
+			if time.Since(d.Copied) < 1500*time.Millisecond {
 				icon, label = glyph.Of("lucide-check"), locales.ToastCopied()
 			}
 			paints.IconButton(c, "copy-token", icon, label, pal, func() {
-				c.WriteClipboard(d.tcpToken)
-				d.copied = time.Now()
+				c.WriteClipboard(d.TCPToken)
+				d.Copied = time.Now()
 				go func() {
 					time.Sleep(1500 * time.Millisecond)
 					a.update(func() {})
@@ -429,7 +408,7 @@ func tcpCode(addr, token string) string {
 }
 
 // tcpAddrs are the addresses a client of another machine reaches the
-// network listener at: the one it names, or this machine's own, with the
+// network listener At: the one it names, or this machine's own, with the
 // listener's port.
 func tcpAddrs(s *settings.Settings) []string {
 	port := tcpListenPort(s)
@@ -462,23 +441,23 @@ func tcpListenPort(s *settings.Settings) string {
 
 // save checks and keeps the group's field keyed key, which is one of its
 // fields set.
-func (d *tailcatDraft) save(a *App, key string) {
+func saveTailcat(a *App, d *uisettings.TailcatDraft, key string) {
 	var v string
 	switch key {
 	case "tailcat-relay":
-		v = strings.TrimSpace(d.relay)
+		v = strings.TrimSpace(d.Relay)
 		if v != "" && !settings.ValidDERPMapURL(v) {
-			d.err = tailcatField{key, v + ": a relay is the https URL of a DERP map"}
+			d.Err = uisettings.TailcatField{Key: key, Err: v + ": a relay is the https URL of a DERP map"}
 			return
 		}
 	case "tcp-addr":
-		addr := strings.TrimSpace(d.tcpAddr)
+		addr := strings.TrimSpace(d.TCPAddr)
 		if addr == "" {
 			addr = ":" + remote.PocketPort
 		}
 		spec, err := remote.ParseListen("tcp://" + addr)
 		if err != nil {
-			d.err = tailcatField{key, err.Error()}
+			d.Err = uisettings.TailcatField{Key: key, Err: err.Error()}
 			return
 		}
 		s := a.settingsIn.Clone()
@@ -487,21 +466,21 @@ func (d *tailcatDraft) save(a *App, key string) {
 			return err == nil && o.Kind == "tcp"
 		})
 		s.Listen = append(s.Listen, spec.String())
-		a.settingsIn, d.err = s, tailcatField{}
+		a.settingsIn, d.Err = s, uisettings.TailcatField{}
 		return
 	case "tailcat-listen-port":
-		if v = strings.TrimSpace(d.listenPort); !settings.ValidListenPort(v) {
-			d.err = tailcatField{key, v + ": a port is 1 to 65535"}
+		if v = strings.TrimSpace(d.ListenPort); !settings.ValidListenPort(v) {
+			d.Err = uisettings.TailcatField{Key: key, Err: v + ": a port is 1 to 65535"}
 			return
 		}
 		s := a.settingsIn.Clone()
 		s.SetTailcatListen(v)
-		a.settingsIn, d.err = s, tailcatField{}
+		a.settingsIn, d.Err = s, uisettings.TailcatField{}
 		return
 	}
 	s := a.settingsIn.Clone()
 	if key == "tailcat-relay" {
 		s.TailcatRelay = v
 	}
-	a.settingsIn, d.err = s, tailcatField{}
+	a.settingsIn, d.Err = s, uisettings.TailcatField{}
 }

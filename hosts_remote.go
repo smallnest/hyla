@@ -24,6 +24,7 @@ import (
 	"hyla/locales"
 
 	"hyla/internal/ui/glyph"
+	uisettings "hyla/internal/ui/settings"
 )
 
 // remoteHost is another machine Hyla reaches: over its tcp:// listener, by
@@ -95,16 +96,16 @@ func (a *App) syncRemoteHosts() {
 	}
 	added := []*host.Host{}
 	for _, h := range keep[1:] {
-		if !slices.Contains(a.Hosts, h) {
+		if !slices.Contains(a.Machines, h) {
 			added = append(added, h)
 		}
 	}
-	for _, h := range a.Hosts[1:] {
+	for _, h := range a.Machines[1:] {
 		if !slices.Contains(keep, h) {
 			a.closeHost(h)
 		}
 	}
-	a.Hosts = keep
+	a.Machines = keep
 	a.mergeState(a.local(), proto.State{Projects: a.projectsOf(a.local()), Sessions: a.sessionsOf(a.local())})
 	for _, h := range added {
 		a.connectHost(h)
@@ -231,7 +232,7 @@ func (e errString) Error() string { return string(e) }
 // reaches by an address and a password, and this machine's own listener,
 // which a client of them reaches.
 func (a *App) p2pGroup(c *ui.Context, pal *theme.Palette) {
-	d := &a.Ss.tailcat
+	d := &a.Ss.Tailcat
 	kit.Group(c, pal, locales.SetTCPTitle(), "", func() {
 		a.remoteHosts(c, pal)
 		if kit.Rows++; kit.Rows > 1 {
@@ -241,16 +242,10 @@ func (a *App) p2pGroup(c *ui.Context, pal *theme.Palette) {
 	})
 }
 
-// tcHostDraft is the form that adds a machine by its tailcat pair code.
-type tcHostDraft struct {
-	name, code, port string
-	err              string
-}
-
 // tailcatHosts are the machines reached by a pair code: the head of the
 // Tailcat group.
 func (a *App) tailcatHosts(c *ui.Context, pal *theme.Palette) {
-	d := &a.Ss.tcHost
+	d := &a.Ss.TCHost
 	ui.Column(c).Padding(11, 0).Gap(8).Children(func() {
 		ui.Text(c, locales.SetTailcatHostsTitle()).FontSize(13.5).TextColor(pal.Text)
 		n := 0
@@ -273,32 +268,32 @@ func (a *App) tailcatHosts(c *ui.Context, pal *theme.Palette) {
 			})
 		}
 		add := func() {
-			port := d.port
+			port := d.Port
 			if strings.TrimSpace(port) == "" {
 				port = remote.DefaultPort
 			}
-			if err := a.addRemoteHost(d.name, d.code, "", port); err != nil {
-				d.err = err.Error()
+			if err := a.addRemoteHost(d.Name, d.Code, "", port); err != nil {
+				d.Err = err.Error()
 				return
 			}
-			*d = tcHostDraft{}
+			*d = uisettings.TCHostDraft{}
 		}
 		ui.Row(c).Padding(2, 0, 10, 0).Gap(8).AlignItems(ui.Center).Children(func() {
-			if in := controls.TextField(c, "tc-code", &d.code, locales.SetTailcatHostCode(), 190, pal).Font("monospace"); in.Submitted() {
+			if in := controls.TextField(c, "tc-code", &d.Code, locales.SetTailcatHostCode(), 190, pal).Font("monospace"); in.Submitted() {
 				add()
 			}
-			if in := controls.TextField(c, "tc-name", &d.name, locales.SetTailcatHostName(), 100, pal); in.Submitted() {
+			if in := controls.TextField(c, "tc-name", &d.Name, locales.SetTailcatHostName(), 100, pal); in.Submitted() {
 				add()
 			}
-			if in := controls.TextField(c, "tc-port", &d.port, remote.DefaultPort, 70, pal); in.Submitted() {
+			if in := controls.TextField(c, "tc-port", &d.Port, remote.DefaultPort, 70, pal); in.Submitted() {
 				add()
 			}
 			if style.FieldButton(c, "tc-add", locales.CommonAdd(), true, pal) {
 				add()
 			}
 		})
-		if d.err != "" {
-			ui.Text(c, d.err).FontSize(12).TextColor(pal.Danger)
+		if d.Err != "" {
+			ui.Text(c, d.Err).FontSize(12).TextColor(pal.Danger)
 		}
 	})
 }
@@ -310,13 +305,6 @@ func shortPairCode(addr string) string {
 		return code[:12] + "…"
 	}
 	return code
-}
-
-// hostDraft is the form that adds another machine: its name, its
-// listener's address and its password, and what went wrong.
-type hostDraft struct {
-	name, addr, token string
-	err               string
 }
 
 // remoteHosts is the machines the sidebar lists beside this one's: the
@@ -348,28 +336,28 @@ func (a *App) remoteHosts(c *ui.Context, pal *theme.Palette) {
 				})
 			})
 		}
-		d := &a.Ss.remote
+		d := &a.Ss.Remote
 		add := func() {
-			if err := a.addRemoteHost(d.name, d.addr, d.token, ""); err != nil {
-				d.err = err.Error()
+			if err := a.addRemoteHost(d.Name, d.Addr, d.Token, ""); err != nil {
+				d.Err = err.Error()
 				return
 			}
-			*d = hostDraft{}
+			*d = uisettings.HostDraft{}
 		}
 		ui.Row(c).Padding(2, 0, 10, 0).Gap(8).AlignItems(ui.Center).Children(func() {
-			controls.TextField(c, "remote-addr", &d.addr, locales.SetRemoteHostAddress(), 170, pal).Font("monospace").OnSubmit(add)
-			if in := controls.TextField(c, "remote-name", &d.name, locales.SetHostNamePlaceholder(""), 110, pal); in.Submitted() {
+			controls.TextField(c, "remote-addr", &d.Addr, locales.SetRemoteHostAddress(), 170, pal).Font("monospace").OnSubmit(add)
+			if in := controls.TextField(c, "remote-name", &d.Name, locales.SetHostNamePlaceholder(""), 110, pal); in.Submitted() {
 				add()
 			}
-			if in := controls.TextField(c, "remote-token", &d.token, locales.SetRemoteHostPassword(), 150, pal); in.Submitted() {
+			if in := controls.TextField(c, "remote-token", &d.Token, locales.SetRemoteHostPassword(), 150, pal); in.Submitted() {
 				add()
 			}
 			if style.FieldButton(c, "remote-add", locales.CommonAdd(), true, pal) {
 				add()
 			}
 		})
-		if d.err != "" {
-			ui.Text(c, d.err).FontSize(12).TextColor(pal.Danger)
+		if d.Err != "" {
+			ui.Text(c, d.Err).FontSize(12).TextColor(pal.Danger)
 		}
 	})
 }

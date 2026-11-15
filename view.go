@@ -254,7 +254,7 @@ func (a *App) sidebar(c *ui.Context, pal *theme.Palette, bar ui.TitleBar) {
 			}
 		}
 		// Then each other machine's, under its name.
-		for _, h := range a.Hosts[1:] {
+		for _, h := range a.Machines[1:] {
 			top := float32(18)
 			if gi == 0 {
 				top = 2
@@ -372,7 +372,7 @@ func (a *App) newSessionButton(c *ui.Context, pal *theme.Palette) {
 func (a *App) sessionSidebar(c *ui.Context, pal *theme.Palette, group string, n *int) {
 	gi := 0
 	local := a.local()
-	for _, h := range a.Hosts {
+	for _, h := range a.Machines {
 		if h == local && !h.Loaded {
 			continue
 		}
@@ -398,7 +398,7 @@ func (a *App) sessionSidebar(c *ui.Context, pal *theme.Palette, group string, n 
 				a.sessionRow(c, pal, s, n, rowInset, "")
 			}
 		}
-		if h == local && empty && h.Conn == host.StateReady && len(a.Hosts) == 1 {
+		if h == local && empty && h.Conn == host.StateReady && len(a.Machines) == 1 {
 			ui.Text(c, locales.SidebarNoSessions()).FontSize(12.5).TextColor(pal.TextFaint).Padding(8, 10)
 		}
 	}

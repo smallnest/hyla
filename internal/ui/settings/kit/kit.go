@@ -37,6 +37,12 @@ func Group(c *ui.Context, pal *theme.Palette, title, note string, fn func()) {
 	})
 }
 
+// Reset clears what a frame sets for the pages: the search's marks, and
+// the rows counted.
+func Reset() {
+	Hits, Reveal, Rows = nil, "", 0
+}
+
 // Rows counts the rows of the group being built, so that a divider
 // goes between them, as in macOS's Settings.
 var Rows int

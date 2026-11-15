@@ -8,6 +8,7 @@ import (
 	"hyla/internal/settings"
 	"hyla/internal/ui/confirm"
 	"hyla/internal/ui/palette"
+	uisettings "hyla/internal/ui/settings"
 	"hyla/internal/ui/theme"
 	"hyla/locales"
 )
@@ -44,9 +45,9 @@ func (a *App) Collapsed() map[string]bool {
 }
 
 func (a *App) Pages() []palette.Page {
-	pages := make([]palette.Page, len(settingsPages))
-	for i, p := range settingsPages {
-		pages[i] = palette.Page{ID: p.id, Title: p.title()}
+	pages := make([]palette.Page, len(uisettings.Pages()))
+	for i, p := range uisettings.Pages() {
+		pages[i] = palette.Page{ID: p.ID, Title: p.Title}
 	}
 	return pages
 }

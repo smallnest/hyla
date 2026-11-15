@@ -212,7 +212,7 @@ func TestOpenProjectRemotePaths(t *testing.T) {
 				}
 			})
 			h := &host.Host{Name: "remote", Client: cl, Conn: host.StateReady}
-			a.Hosts = append(a.Hosts, h)
+			a.Machines = append(a.Machines, h)
 			a.openProjectDirs(h, cl, []string{dir}, false)
 			stop()
 			if !slices.Equal(opened, []string{dir}) {
