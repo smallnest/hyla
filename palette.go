@@ -10,6 +10,7 @@ import (
 	"hyla/internal/ui/menus"
 	"hyla/internal/ui/palette"
 	uisettings "hyla/internal/ui/settings"
+	"hyla/internal/ui/sidebar"
 	"hyla/internal/ui/theme"
 	"hyla/locales"
 )
@@ -22,10 +23,14 @@ func (a *App) Settings() *settings.Settings { return &a.settingsIn }
 func (a *App) Projects() []proto.Project { return a.St.Projects }
 
 func (a *App) Groups() [][]*proto.Session {
-	groups := a.groups()
+	groups := sidebar.Groups(a)
 	out := make([][]*proto.Session, len(groups))
 	for i, g := range groups {
-		out[i] = g.sessions
+		for _, id := range g.Sessions {
+			if s := a.session(id); s != nil {
+				out[i] = append(out[i], s)
+			}
+		}
 	}
 	return out
 }
@@ -121,7 +126,7 @@ func (a *App) shortcuts(c *ui.Context) {
 	keys := []ui.Key{ui.Key1, ui.Key2, ui.Key3, ui.Key4, ui.Key5, ui.Key6, ui.Key7, ui.Key8, ui.Key9}
 	for i, k := range keys {
 		if c.Shortcut(ui.Cmd, k) {
-			ids := a.visibleOrder()
+			ids := sidebar.VisibleOrder(a)
 			if i < len(ids) {
 				a.selectSession(ids[i])
 			}

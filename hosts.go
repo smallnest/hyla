@@ -11,6 +11,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/settings"
 	"hyla/internal/ui/hostlink"
+	"hyla/internal/ui/sidebar"
 )
 
 func (a *App) local() *host.Host { return a.Machines[0] }
@@ -242,7 +243,7 @@ func (a *App) reselect() {
 	if a.session(a.Selected) != nil {
 		return
 	}
-	ids := a.visibleOrder()
+	ids := sidebar.VisibleOrder(a)
 	switch {
 	case len(ids) == 0 && a.allLoaded():
 		a.Selected = ""

@@ -201,6 +201,13 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
     stands with each — is `internal/ui/hostlink`, which `hoststate.go`
     answers. The app's `sessionsOf` and `projectsOf` are its `SessionsOf`
     and `ProjectsOf`, over `sessionsOn` and `projectsOn`.
+  - Also: what the sidebar lists — the groups of a project's sessions,
+    their order by drag, by created or updated time, and by date — is
+    `internal/ui/sidebar`, whose `Group` and `DateGroup` hold session
+    ids rather than the state's sessions, as the state moves as they
+    read it. The preferences it sets are a copy's: `PrefsNow` gives the
+    app's own back, as its `SetProjectOrder` and `SetSessionOrder` set
+    them.
   - Also: the panes' drawing is `internal/ui/panes`, beside their
     actions: the card, the layout's nodes and its divider, the header and
     its controls, the terminal's body, the drop preview and the moves a

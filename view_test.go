@@ -23,6 +23,7 @@ import (
 
 	"hyla/internal/actions"
 	"hyla/internal/proto"
+	"hyla/internal/ui/sidebar"
 
 	"hyla/internal/settings"
 	"hyla/internal/ui/picker"
@@ -984,19 +985,19 @@ func TestProjectOrder(t *testing.T) {
 	a.Prefs.ProjectOrder = []string{"p3", "p1", "p2"}
 	ids := func() []string {
 		var out []string
-		for _, g := range a.hostGroups(a.local()) {
-			out = append(out, g.project.ID)
+		for _, g := range sidebar.HostGroups(a, a.local()) {
+			out = append(out, g.Project.ID)
 		}
 		return out
 	}
 	if got := ids(); !slices.Equal(got, []string{"p3", "p1", "p2"}) {
 		t.Fatalf("ordered %v", got)
 	}
-	a.moveProject(projectDrag{host: a.local(), id: "p1"}, "p3", false)
+	sidebar.MoveProject(a, sidebar.ProjectDrag{Host: a.local(), ID: "p1"}, "p3", false)
 	if got := ids(); !slices.Equal(got, []string{"p1", "p3", "p2"}) {
 		t.Errorf("before p3: %v", got)
 	}
-	a.moveProject(projectDrag{host: a.local(), id: "p2"}, "p1", false)
+	sidebar.MoveProject(a, sidebar.ProjectDrag{Host: a.local(), ID: "p2"}, "p1", false)
 	if got := ids(); !slices.Equal(got, []string{"p2", "p1", "p3"}) {
 		t.Errorf("before p1: %v", got)
 	}
@@ -1131,10 +1132,8 @@ func TestSessionDrag(t *testing.T) {
 	tt := ui.NewTester(a.view, 1100, 640)
 	ids := func() []string {
 		var out []string
-		for _, g := range a.hostGroups(a.local()) {
-			for _, s := range g.sessions {
-				out = append(out, s.ID)
-			}
+		for _, g := range sidebar.HostGroups(a, a.local()) {
+			out = append(out, g.Sessions...)
 		}
 		return out
 	}
@@ -1152,7 +1151,7 @@ func TestSessionDrag(t *testing.T) {
 	if got := ids(); !slices.Equal(got, []string{"s3", "s2", "s1"}) {
 		t.Errorf("one after two: %v", got)
 	}
-	if got := a.visibleOrder(); !slices.Equal(got, []string{"s3", "s2", "s1"}) {
+	if got := sidebar.VisibleOrder(a); !slices.Equal(got, []string{"s3", "s2", "s1"}) {
 		t.Errorf("the sidebar lists %v, want s3 s2 s1", got)
 	}
 }
@@ -1170,20 +1169,16 @@ func TestReorderSession(t *testing.T) {
 		proto.Session{ID: "s5", Project: "", Created: 500})
 	order := func() [][]string {
 		var out [][]string
-		for _, g := range a.hostGroups(a.local()) {
-			var ids []string
-			for _, s := range g.sessions {
-				ids = append(ids, s.ID)
-			}
-			out = append(out, ids)
+		for _, g := range sidebar.HostGroups(a, a.local()) {
+			out = append(out, slices.Clone(g.Sessions))
 		}
 		return out
 	}
-	a.reorderSession(sessionDrag{group: "p1", id: "s1"}, "s2", true)
+	sidebar.ReorderSession(a, sidebar.SessionDrag{Group: "p1", ID: "s1"}, "s2", true)
 	// A drag of another group's session, or onto another group, moves
 	// nothing.
-	a.reorderSession(sessionDrag{group: "p2", id: "s1"}, "s3", false)
-	a.reorderSession(sessionDrag{group: "p1", id: "s1"}, "s3", false)
+	sidebar.ReorderSession(a, sidebar.SessionDrag{Group: "p2", ID: "s1"}, "s3", false)
+	sidebar.ReorderSession(a, sidebar.SessionDrag{Group: "p1", ID: "s1"}, "s3", false)
 	if got := order(); !slices.Equal(got[0], []string{"s2", "s1"}) {
 		t.Errorf("p1 holds %v, want s2 s1", got[0])
 	}
@@ -1191,7 +1186,7 @@ func TestReorderSession(t *testing.T) {
 		t.Errorf("p2 holds %v, want s3", got[1])
 	}
 	// This machine's sessions of no project drag under "other:<host>".
-	a.reorderSession(sessionDrag{group: "other:" + a.local().Name, id: "s5"}, "s4", false)
+	sidebar.ReorderSession(a, sidebar.SessionDrag{Group: "other:" + a.local().Name, ID: "s5"}, "s4", false)
 	if got := order(); !slices.Equal(got[2], []string{"s5", "s4"}) {
 		t.Errorf("the sessions of no project are %v, want s5 s4", got[2])
 	}
@@ -1206,10 +1201,8 @@ func TestSidebarOrder(t *testing.T) {
 		proto.Session{ID: "s3", Project: "p1", Created: 300, Activity: 400})
 	ids := func() []string {
 		var out []string
-		for _, g := range a.hostGroups(a.local()) {
-			for _, s := range g.sessions {
-				out = append(out, s.ID)
-			}
+		for _, g := range sidebar.HostGroups(a, a.local()) {
+			out = append(out, g.Sessions...)
 		}
 		return out
 	}
@@ -1222,7 +1215,7 @@ func TestSidebarOrder(t *testing.T) {
 		t.Errorf("updated: %v", got)
 	}
 	a.Prefs.SidebarGroup = "none"
-	if got := a.visibleOrder(); !slices.Equal(got, []string{"s3", "s1", "s2"}) {
+	if got := sidebar.VisibleOrder(a); !slices.Equal(got, []string{"s3", "s1", "s2"}) {
 		t.Errorf("flat updated: %v", got)
 	}
 }
@@ -1235,18 +1228,18 @@ func TestSidebarDateGroups(t *testing.T) {
 	a.St.Sessions[0].Created = now.UnixMilli()
 	a.St.Sessions = append(a.St.Sessions,
 		proto.Session{ID: "s2", Project: "p1", Created: now.Add(-24 * time.Hour).UnixMilli()})
-	dgs := a.dateGroups(a.local())
+	dgs := sidebar.DateGroups(a, a.local())
 	if len(dgs) != 2 {
 		t.Fatalf("%d date groups, want 2", len(dgs))
 	}
-	if !dgs[0].day.After(dgs[1].day) {
-		t.Errorf("days %v then %v", dgs[0].day, dgs[1].day)
+	if !dgs[0].Day.After(dgs[1].Day) {
+		t.Errorf("days %v then %v", dgs[0].Day, dgs[1].Day)
 	}
-	if got := dgs[0].sessions[0].ID; got != "s1" {
+	if got := dgs[0].Sessions[0]; got != "s1" {
 		t.Errorf("today's first session %s", got)
 	}
 	a.Prefs.SidebarGroup = "date"
-	if got := a.visibleOrder(); !slices.Equal(got, []string{"s1", "s2"}) {
+	if got := sidebar.VisibleOrder(a); !slices.Equal(got, []string{"s1", "s2"}) {
 		t.Errorf("date order: %v", got)
 	}
 }

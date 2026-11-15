@@ -16,6 +16,7 @@ import (
 	"hyla/internal/actions"
 	"hyla/internal/proto"
 	"hyla/internal/ui/confirm"
+	"hyla/internal/ui/sidebar"
 	"hyla/internal/ui/theme"
 
 	"hyla/internal/ui/k8sdialog"
@@ -249,7 +250,7 @@ func (a *App) sidebar(c *ui.Context, pal *theme.Palette, bar ui.TitleBar) {
 		// This machine's projects first, unlabeled; then each host's,
 		// under its name.
 		if local := a.local(); local.Loaded {
-			for _, g := range a.hostGroups(local) {
+			for _, g := range sidebar.HostGroups(a, local) {
 				a.groupView(c, pal, g, gi, &n)
 				gi++
 			}
@@ -268,8 +269,8 @@ func (a *App) sidebar(c *ui.Context, pal *theme.Palette, bar ui.TitleBar) {
 			if h.Conn != host.StateReady {
 				continue
 			}
-			for _, g := range a.hostGroups(h) {
-				g.first = false
+			for _, g := range sidebar.HostGroups(a, h) {
+				g.First = false
 				a.groupView(c, pal, g, gi, &n)
 				gi++
 			}
@@ -382,24 +383,28 @@ func (a *App) sessionSidebar(c *ui.Context, pal *theme.Palette, group string, n 
 		}
 		empty := true
 		if group == "date" {
-			dgs := a.dateGroups(h)
+			dgs := sidebar.DateGroups(a, h)
 			empty = len(dgs) == 0
 			for _, dg := range dgs {
 				top := float32(18)
 				if gi == 0 && *n == 0 {
 					top = 2
 				}
-				a.dateHeader(c, pal, "date-"+h.Name+"-"+dateLabel(dg.day, c.Now()), dateLabel(dg.day, c.Now()), len(dg.sessions), top)
+				a.dateHeader(c, pal, "date-"+h.Name+"-"+sidebar.DateLabel(dg.Day, c.Now()), sidebar.DateLabel(dg.Day, c.Now()), len(dg.Sessions), top)
 				gi++
-				for _, s := range dg.sessions {
-					a.sessionRow(c, pal, s, n, rowInset, "")
+				for _, id := range dg.Sessions {
+					if s := a.session(id); s != nil {
+						a.sessionRow(c, pal, s, n, rowInset, "")
+					}
 				}
 			}
 		} else {
-			ss := a.flatSessions(h)
+			ss := sidebar.FlatSessions(a, h)
 			empty = len(ss) == 0
-			for _, s := range ss {
-				a.sessionRow(c, pal, s, n, rowInset, "")
+			for _, id := range ss {
+				if s := a.session(id); s != nil {
+					a.sessionRow(c, pal, s, n, rowInset, "")
+				}
 			}
 		}
 		if h == local && empty && h.Conn == host.StateReady && len(a.Machines) == 1 {
@@ -420,8 +425,8 @@ func (a *App) dateHeader(c *ui.Context, pal *theme.Palette, key, label string, c
 	})
 }
 
-func (a *App) groupView(c *ui.Context, pal *theme.Palette, g group, gi int, n *int) {
-	id, key := g.project.ID, g.key()
+func (a *App) groupView(c *ui.Context, pal *theme.Palette, g sidebar.Group, gi int, n *int) {
+	id, key := g.Project.ID, g.Key()
 	// The SSH and K8s projects open terminals of their own, not shells:
 	// their rows are the machines and pods they list.
 	ssh := id != "" && id == a.Prefs.SSHProject
@@ -429,16 +434,10 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g group, gi int, n *i
 	collapsed := a.Prefs.Collapsed[key]
 	// current says this project holds the session in the card; folded, its
 	// badge keeps a dot for it.
-	current := false
-	for _, s := range g.sessions {
-		if s.ID == a.Selected {
-			current = true
-			break
-		}
-	}
+	current := slices.Contains(g.Sessions, a.Selected)
 	needs := 0
-	for _, s := range g.sessions {
-		if s.Status == proto.Waiting {
+	for _, id := range g.Sessions {
+		if s := a.session(id); s != nil && s.Status == proto.Waiting {
 			needs++
 		}
 	}
@@ -461,20 +460,20 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g group, gi int, n *i
 	// The name is the project's handle: dragged, it moves the project to
 	// another place under its host.
 	if id != "" && !renaming {
-		hdr.Drag(projectDrag{host: g.host, id: id}).Cursor(ui.CursorGrab)
+		hdr.Drag(sidebar.ProjectDrag{Host: g.Host, ID: id}).Cursor(ui.CursorGrab)
 		if hdr.Dragging() {
 			hdr.Opacity(0.35)
 		}
 	}
 	if id != "" {
-		if d, over := ui.DragOver[projectDrag](hdr); over && d.host == g.host && d.id != id {
+		if d, over := ui.DragOver[sidebar.ProjectDrag](hdr); over && d.Host == g.Host && d.ID != id {
 			_, y, _ := hdr.PointerPosition()
 			after := y > 14
 			a.DragAtAddr, a.DragAfterSide = id, after
 			hdr.Background(pal.RowHover)
 			dragLine(hdr, pal, after)
 		}
-		if d, ok := ui.Drop[projectDrag](hdr); ok && d.host == g.host && d.id != id {
+		if d, ok := ui.Drop[sidebar.ProjectDrag](hdr); ok && d.Host == g.Host && d.ID != id {
 			_, y, _ := hdr.PointerPosition()
 			after := y > 14
 			if a.DragAtAddr == id {
@@ -482,7 +481,7 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g group, gi int, n *i
 				after = a.DragAfterSide
 			}
 			target := id
-			a.defer_(func() { a.moveProject(d, target, after) })
+			a.defer_(func() { sidebar.MoveProject(a, d, target, after) })
 		}
 	}
 	hovered := hdr.Hovered()
@@ -491,8 +490,8 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g group, gi int, n *i
 	}
 	paints.PointerTooltip(c, hdr, "tip-project-"+key, a.projectTip(g))
 	hdr.ContextMenu(func(m *ui.Menu) {
-		if m.Item(locales.NewSessionIn(g.project.Name)).Chosen() {
-			a.newSessionOn(g.host, id)
+		if m.Item(locales.NewSessionIn(g.Project.Name)).Chosen() {
+			a.newSessionOn(g.Host, id)
 		}
 		label := locales.SidebarCollapse()
 		if collapsed {
@@ -508,8 +507,8 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g group, gi int, n *i
 		// Close All Sessions ends the sessions the project holds, not the
 		// project itself, asking first as closing the project does: what
 		// runs in them ends with them.
-		if m.Item(locales.SidebarCloseAllSessions()).Disabled(len(g.sessions) == 0).Chosen() {
-			name, count := g.project.Name, len(g.sessions)
+		if m.Item(locales.SidebarCloseAllSessions()).Disabled(len(g.Sessions) == 0).Chosen() {
+			name, count := g.Project.Name, len(g.Sessions)
 			a.Confirm = &confirm.Ask{
 				Open:    true,
 				Title:   locales.ConfirmCloseAllSessionsTitle(count, name),
@@ -520,7 +519,7 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g group, gi int, n *i
 			}
 		}
 		if m.Item(locales.SidebarCloseProjectMenu()).Disabled(id == "").Chosen() {
-			name, count := g.project.Name, len(g.sessions)
+			name, count := g.Project.Name, len(g.Sessions)
 			a.Confirm = &confirm.Ask{
 				Open:    true,
 				Title:   locales.ConfirmCloseTitle(name),
@@ -543,7 +542,7 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g group, gi int, n *i
 		}
 	})
 	hdr.Children(func() {
-		badgeColor := a.projectBadgeColor(g.project)
+		badgeColor := a.projectBadgeColor(g.Project)
 		if urgent {
 			badgeColor = pal.Attention
 		}
@@ -561,7 +560,7 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g group, gi int, n *i
 			})
 		} else {
 			badge.Radius(5).Center().Background(badgeColor).Children(func() {
-				ui.Text(c, projectInitial(g.project.Name)).FontSize(10.5).FontWeight(700).TextColor(ui.Hex("#ffffff"))
+				ui.Text(c, projectInitial(g.Project.Name)).FontSize(10.5).FontWeight(700).TextColor(ui.Hex("#ffffff"))
 			})
 		}
 		if collapsed && current {
@@ -571,7 +570,7 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g group, gi int, n *i
 			// the badge's own color, which attention's would hide.
 			dot := pal.Danger
 			if urgent {
-				dot = a.projectBadgeColor(g.project)
+				dot = a.projectBadgeColor(g.Project)
 			}
 			badge.DrawOver(func(p *ui.Painter, r ui.Rect) {
 				cx, cy := r.X+r.W-1, r.Y+r.H-1
@@ -590,41 +589,42 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g group, gi int, n *i
 			}
 			return
 		}
-		ui.Text(c, g.project.Name).FontSize(13).FontWeight(500).TextColor(pal.Group).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
-		ui.Textf(c, "%d", len(g.sessions)).FontSize(12.5).TextColor(pal.TextFaint).FontFeatures("tnum")
+		ui.Text(c, g.Project.Name).FontSize(13).FontWeight(500).TextColor(pal.Group).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
+		ui.Textf(c, "%d", len(g.Sessions)).FontSize(12.5).TextColor(pal.TextFaint).FontFeatures("tnum")
 		chev := ui.Icon(c, glyph.Chevron).Size(11, 11).TextColor(pal.TextFaint)
 		turn := chev.AnimateTo("turn", 90*(1-b2f(collapsed)), ui.Snappy)
 		chev.Rotate(turn).Opacity(chev.Animate("shown", b2f(hovered || collapsed), 120*time.Millisecond))
 		ui.Spacer(c)
 		// This machine's hylad says how the app stands with it here, when
 		// it reconnects, or wants restarting: the first group's header.
-		if g.first {
-			a.hostStateNow(c, pal, g.host)
+		if g.First {
+			a.hostStateNow(c, pal, g.Host)
 		}
 		if needs > 0 {
 			ui.Text(c, locales.SidebarNeedsYou(needs)).FontSize(12.5).FontWeight(500).TextColor(pal.Attention).SingleLine()
 		}
 		if hovered {
-			b := ui.ButtonBase(c.Key("add")).Size(20, 20).Radius(5).Center().TextColor(pal.TextMuted).Label(locales.NewSessionIn(g.project.Name)).Tooltip(locales.ActionNewSession())
+			b := ui.ButtonBase(c.Key("add")).Size(20, 20).Radius(5).Center().TextColor(pal.TextMuted).Label(locales.NewSessionIn(g.Project.Name)).Tooltip(locales.ActionNewSession())
 			if b.Hovered() {
 				b.Background(pal.RowHover).TextColor(pal.Text)
 			}
 			b.Children(func() { ui.Icon(c, glyph.Plus).Size(13, 13) })
 			if b.Clicked() {
-				a.newSessionOn(g.host, id)
+				a.newSessionOn(g.Host, id)
 			}
 		}
 	})
 	if collapsed {
 		return
 	}
-	for _, s := range g.sessions {
+	for _, id := range g.Sessions {
+		s := a.session(id)
 		// A machine's or pod's terminal is its row, not a session of its
 		// own.
-		if ssh && a.sshHostOfSession(s.ID) != nil || k8s && a.k8sPodOfSession(s.ID) != nil {
+		if s == nil || ssh && a.sshHostOfSession(s.ID) != nil || k8s && a.k8sPodOfSession(s.ID) != nil {
 			continue
 		}
-		a.sessionRow(c, pal, s, n, float32(rowInset), g.dragKey())
+		a.sessionRow(c, pal, s, n, float32(rowInset), g.DragKey())
 	}
 	if ssh {
 		sshdialog.Rows(a, c, pal)
@@ -637,11 +637,11 @@ func (a *App) groupView(c *ui.Context, pal *theme.Palette, g group, gi int, n *i
 // projectTip is a project's header tooltip: its directory, or the name of
 // the sidebar's SSH and K8s projects, which have no directory of their
 // own.
-func (a *App) projectTip(g group) string {
-	if g.project.ID != "" && (g.project.ID == a.Prefs.SSHProject || g.project.ID == a.Prefs.K8sProject) {
-		return g.project.Name
+func (a *App) projectTip(g sidebar.Group) string {
+	if g.Project.ID != "" && (g.Project.ID == a.Prefs.SSHProject || g.Project.ID == a.Prefs.K8sProject) {
+		return g.Project.Name
 	}
-	return g.host.ShortDir(g.project.Dir)
+	return g.Host.ShortDir(g.Project.Dir)
 }
 
 // projectBadges are the squares before project names: muted colors, far
@@ -725,19 +725,19 @@ func (a *App) sessionRow(c *ui.Context, pal *theme.Palette, s *proto.Session, n 
 	// moves the session to another place there, past the row of the one
 	// it is dropped on, above or below its middle.
 	if group != "" && a.Renaming != s.ID {
-		drag := sessionDrag{group: group, id: s.ID}
+		drag := sidebar.SessionDrag{Group: group, ID: s.ID}
 		row.Drag(drag).Cursor(ui.CursorGrab)
 		if row.Dragging() {
 			row.Opacity(0.35)
 		}
-		if d, over := ui.DragOver[sessionDrag](row); over && d.group == group && d.id != s.ID {
+		if d, over := ui.DragOver[sidebar.SessionDrag](row); over && d.Group == group && d.ID != s.ID {
 			_, y, _ := row.PointerPosition()
 			after := y > h/2
 			a.DragAtAddr, a.DragAfterSide = s.ID, after
 			row.Background(pal.RowHover)
 			dragLine(row, pal, after)
 		}
-		if d, ok := ui.Drop[sessionDrag](row); ok && d.group == group && d.id != s.ID {
+		if d, ok := ui.Drop[sidebar.SessionDrag](row); ok && d.Group == group && d.ID != s.ID {
 			_, y, _ := row.PointerPosition()
 			after := y > h/2
 			if a.DragAtAddr == s.ID {
@@ -745,7 +745,7 @@ func (a *App) sessionRow(c *ui.Context, pal *theme.Palette, s *proto.Session, n 
 				after = a.DragAfterSide
 			}
 			target := s.ID
-			a.defer_(func() { a.reorderSession(d, target, after) })
+			a.defer_(func() { sidebar.ReorderSession(a, d, target, after) })
 		}
 	}
 	tip := a.hostOf(s.ID).ShortDir(s.WorkDir())
@@ -854,7 +854,7 @@ func (a *App) sessionRow(c *ui.Context, pal *theme.Palette, s *proto.Session, n 
 				case a.Prefs.SidebarGroup == "none" || a.Prefs.SidebarGroup == "date":
 					// Without project headers, the project says which list
 					// the session is in, before what it is at.
-					if p := a.projectName(s.Project); p != "" {
+					if p := sidebar.ProjectName(a, s.Project); p != "" {
 						line = p + " · " + line
 					}
 				}
@@ -883,7 +883,7 @@ func (a *App) sessionRow(c *ui.Context, pal *theme.Palette, s *proto.Session, n 
 		}
 		// Without project headers, the project says which list it is.
 		if a.Prefs.SidebarGroup == "none" || a.Prefs.SidebarGroup == "date" {
-			if p := a.projectName(s.Project); p != "" {
+			if p := sidebar.ProjectName(a, s.Project); p != "" {
 				ui.Text(c, p).FontSize(12).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").Shrink(2).MinWidth(0).MaxWidth(90)
 			}
 		}
