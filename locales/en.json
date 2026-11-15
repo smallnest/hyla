@@ -91,7 +91,7 @@
     }
   },
   "toastNothingNeedsYou": "Nothing needs you",
-  "cliInstallFailed": "Couldn’t install the command line tool",
+  "cliInstallFailed": "Couldn’t install the command line tool: {error}",
   "cliInstalledIn": "Installed the hyla command in {dir}",
   "cliAddedToPath": "Added the hyla command to your PATH: new terminals have it",
   "notifyNeedsYouTitle": "{name} needs you",

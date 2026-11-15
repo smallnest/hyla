@@ -34,8 +34,14 @@ func (a *App) installCLI() {
 			link = filepath.Join(proto.Home(), ".local/bin/hyla")
 			os.MkdirAll(filepath.Dir(link), 0o755)
 		}
-		os.Remove(link)
-		err := os.Symlink(exe, link)
+		// A command that already runs this executable needs nothing, and
+		// asks for no password: /usr/local/bin's belongs to root, and a
+		// link left there by an earlier install cannot be replaced by the
+		// user alone.
+		err := error(nil)
+		if !sameLink(link, exe) {
+			err = replaceLink(link, exe)
+		}
 		if err != nil && runtime.GOOS == "darwin" {
 			// The paths go in as arguments, quoted by AppleScript itself,
 			// so no app location can break the script.
@@ -47,12 +53,36 @@ func (a *App) installCLI() {
 		}
 		a.update(func() {
 			if err != nil {
-				a.toast(locales.CliInstallFailed())
+				// Why it failed, not only that it did: a password put off,
+				// a directory of another owner, a dialog that never showed.
+				a.toast(locales.CliInstallFailed(err.Error()))
 				return
 			}
 			a.toast(locales.CliInstalledIn(proto.ShortDir(filepath.Dir(link))))
 		})
 	}()
+}
+
+// sameLink tells whether path leads to target: a link to it, or the file
+// itself, which an install that ran before left there.
+func sameLink(path, target string) bool {
+	if t, err := os.Readlink(path); err == nil {
+		return t == target
+	}
+	st, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	ts, err := os.Stat(target)
+	return err == nil && os.SameFile(st, ts)
+}
+
+// replaceLink points path at target, replacing what is there.
+func replaceLink(path, target string) error {
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return os.Symlink(target, path)
 }
 
 // cliInstalled returns where the hyla command is installed, and what it

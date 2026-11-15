@@ -882,14 +882,14 @@ func (msgs Messages) ToastNothingNeedsYou() string {
 	return Catalog.Format(msgs.locale, "toastNothingNeedsYou", nil)
 }
 
-// CliInstallFailed says "Couldn’t install the command line tool"
+// CliInstallFailed says "Couldn’t install the command line tool: {error}"
 // in the language the app shows.
-func CliInstallFailed() string { return In(i18n.Locale()).CliInstallFailed() }
+func CliInstallFailed(error string) string { return In(i18n.Locale()).CliInstallFailed(error) }
 
-// CliInstallFailed says "Couldn’t install the command line tool"
+// CliInstallFailed says "Couldn’t install the command line tool: {error}"
 // in the language of msgs.
-func (msgs Messages) CliInstallFailed() string {
-	return Catalog.Format(msgs.locale, "cliInstallFailed", nil)
+func (msgs Messages) CliInstallFailed(error string) string {
+	return Catalog.Format(msgs.locale, "cliInstallFailed", map[string]any{"error": error})
 }
 
 // CliInstalledIn says "Installed the hyla command in {dir}"
