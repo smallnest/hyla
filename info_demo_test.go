@@ -1,6 +1,7 @@
 package main
 
 import (
+	"hyla/internal/app/magpie"
 	"image"
 	"image/png"
 	"os"
@@ -46,11 +47,11 @@ func TestInfoMagpieDemo(t *testing.T) {
 		{PID: 88130, Name: "claude", Age: "01:12:05"},
 	}
 	st.procsAt, st.listedAt = true, time.Now()
-	a.Magpie = &magpieInfo{ran: true, readAt: time.Now(), usage: &magpieUsage{
-		Today:   magpieBucket{Calls: 2081, Input: 1488819, Output: 359513, CacheRead: 246954880, Reasoning: 333, Cost: 1.1799},
+	a.Magpie = &magpieInfo{ran: true, readAt: time.Now(), usage: &magpie.Usage{
+		Today:   magpie.Bucket{Calls: 2081, Input: 1488819, Output: 359513, CacheRead: 246954880, Reasoning: 333, Cost: 1.1799},
 		Session: 412, SessionCost: 0.214,
-		Latest: magpieCall{Status: 200, Served: "deepseek-flash", Ms: 1446},
-		Windows: []magpieWindow{
+		Latest: magpie.Call{Status: 200, Served: "deepseek-flash", Ms: 1446},
+		Windows: []magpie.Window{
 			{Provider: "OpenCode Go", Name: "Month", Left: 4},
 			{Provider: "OpenCode Go", Name: "5 hours", Left: 37},
 			{Provider: "Antigravity", Name: "Claude & GPT · 7 days", Left: 88},

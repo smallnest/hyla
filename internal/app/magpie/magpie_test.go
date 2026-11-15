@@ -1,4 +1,4 @@
-package main
+package magpie
 
 import (
 	"encoding/json"
@@ -94,11 +94,11 @@ func TestFetchMagpie(t *testing.T) {
 		`{"time":"` + day.AddDate(0, 0, -1).Format(time.RFC3339) + `","calls":7,"cost":5}`,
 		`{"time":"` + day.Format(time.RFC3339) + `","calls":2081,"input":10,"output":5,"cache_read":985,"cost":1.1799}`,
 	}, rows, 38525)
-	u, err := fetchMagpie(srv.URL, "sess")
+	u, err := Fetch(srv.URL, "sess")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if u.Today.Calls != 2081 || u.Today.Tokens() != 1000 {
+	if u.Today.Calls != 2081 || u.Today.Count() != 1000 {
 		t.Errorf("today = %+v", u.Today)
 	}
 	if u.Session != 2 || u.SessionCost < 0.049 || u.SessionCost > 0.051 {
@@ -125,7 +125,7 @@ func TestFetchMagpiePages(t *testing.T) {
 		rows = append(rows, magpieRow(now.Add(-time.Duration(i)*time.Second), s, 0.01))
 	}
 	srv := magpieFake(t, day, nil, rows, 38525)
-	u, err := fetchMagpie(srv.URL, "sess")
+	u, err := Fetch(srv.URL, "sess")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -143,7 +143,7 @@ func TestFetchMagpieStopsAtYesterday(t *testing.T) {
 		rows = append(rows, magpieRow(day.Add(-time.Duration(i)*time.Second), "sess", 1))
 	}
 	srv := magpieFake(t, day, nil, rows, 38525)
-	u, err := fetchMagpie(srv.URL, "sess")
+	u, err := Fetch(srv.URL, "sess")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -154,31 +154,16 @@ func TestFetchMagpieStopsAtYesterday(t *testing.T) {
 
 func TestMagpieCost(t *testing.T) {
 	for c, want := range map[float64]string{0: "$0", 0.00061: "$0.0006", 0.0421: "$0.042", 1.1799: "$1.18", 41.67: "$41.7", 102.31: "$102"} {
-		if got := magpieCost(c); got != want {
-			t.Errorf("magpieCost(%v) = %q, want %q", c, got, want)
+		if got := Cost(c); got != want {
+			t.Errorf("Cost(%v) = %q, want %q", c, got, want)
 		}
 	}
 }
 
 func TestMagpieTokens(t *testing.T) {
 	for n, want := range map[int]string{0: "0", 812: "812", 2870: "2.9k", 34567: "34.6k", 248821: "248k", 1200000: "1.2M", 248460000: "248M"} {
-		if got := magpieTokens(n); got != want {
-			t.Errorf("magpieTokens(%d) = %q, want %q", n, got, want)
+		if got := Tokens(n); got != want {
+			t.Errorf("Tokens(%d) = %q, want %q", n, got, want)
 		}
-	}
-}
-
-// TestPaneSessionCounted checks that Magpie's session is the one the
-// pane's agent told hylad, and nothing while it told of none.
-func TestPaneSessionCounted(t *testing.T) {
-	a := testApp(t)
-	p := a.session("s1").FocusPane()
-	if s := a.paneSession(); s != "" {
-		t.Errorf("a pane without an agent has session %q", s)
-	}
-	p.Agent = "claude"
-	// Without hylad's answer, the pane's agent has no session.
-	if s := a.paneSession(); s != "" {
-		t.Errorf("an agent whose session hylad does not tell has %q", s)
 	}
 }
