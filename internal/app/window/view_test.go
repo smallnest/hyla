@@ -336,7 +336,7 @@ func TestWindowDragRegions(t *testing.T) {
 // a program's, does not.
 func TestCopyOnSelectToast(t *testing.T) {
 	a := testApp(t)
-	o := a.termOptions("a", nil)
+	o := a.TermOptions("a", nil)
 	o.OnCopy("x", terminal.CopyUser)
 	o.OnCopy("x", terminal.CopyProgram)
 	if a.PendingToast != "" {
@@ -895,7 +895,7 @@ func TestCommandKeysEditLine(t *testing.T) {
 	}
 	defer term.Close()
 	a.Terms["a"] = &termEntry{term: term}
-	o := a.termOptions("a", nil)
+	o := a.TermOptions("a", nil)
 	for _, k := range []struct {
 		key  ui.Key
 		want string

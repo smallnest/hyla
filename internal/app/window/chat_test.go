@@ -173,7 +173,7 @@ func chatApp(t *testing.T) (*App, *fakeHylad) {
 	// The pane's terminal, whose program is a pipe here, takes the chat's
 	// prompts, as the user would type them.
 	f.prog = &pipe{}
-	o := a.termOptions("a", nil)
+	o := a.TermOptions("a", nil)
 	o.Conn = f.prog
 	trm, err := terminal.New(o)
 	if err != nil {

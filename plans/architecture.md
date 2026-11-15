@@ -377,6 +377,19 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
   well as from beside the binary, as the test does not run from the
   repository's root.
 
+- **Step 5's narrowing** — the views' `App` interfaces now name only the
+  app's own methods: `Message` (the chat's empty view drew what the
+  changes view's did), `RecordKey`, `BundledFont`, `PetKnob`, `Toast`
+  and `AddPending` (the palette's), `Main` (the side panel's), `SideRowW`,
+  `HostNamed`, `SwitchIn`, `SwitchFrom`, `IconCache`, `SetFindText` and
+  the web pane's `Sessions`, `SelectedSession`, `SessionOf` and `Split`
+  went, none of them called. `SessionsOr` is `SessionOf`, one name for
+  a session by its id, which the sidebar, the panes, the web panes and
+  the shell's `browse.Pages` share; `browse.App` is `Pages` and its
+  page, so the shell names a page's load functions itself, and calls
+  `browse` only for the run of a request. Each `App` documents its
+  methods where the name alone does not say what they do.
+
 ## What a move looks like
 
 1. `git mv` the files and their tests into the package, `package name`.

@@ -37,16 +37,15 @@ import (
 // rows and menus take.
 type App interface {
 	// Local is this machine, and HostList the hosts the app holds, this
-	// machine's first; HostOf and HostNamed are of them, and RemoteHostHeader
-	// draws a machine's header.
+	// machine's first; HostOf is of them, and RemoteHostHeader draws a
+	// machine's header.
 	Local() *host.Host
 	HostList() []*host.Host
 	HostOf(id string) *host.Host
-	HostNamed(name string) *host.Host
 	RemoteHostHeader(c *ui.Context, pal *theme.Palette, h *host.Host, top float32)
-	// Sessions is the session id, and SessionState the sessions and
+	// SessionOf is a session by its id, and SessionState the sessions and
 	// ProjectState the projects the app shows.
-	SessionsOr(id string) *proto.Session
+	SessionOf(id string) *proto.Session
 	SessionState() []proto.Session
 	ProjectState() []proto.Project
 	// Settings are the settings, and Prefs the preferences the sidebar
@@ -188,7 +187,7 @@ type app struct {
 func (a app) MachinesNow() []*host.Host        { return a.HostList() }
 func (a app) SessionsNow() []proto.Session     { return a.SessionState() }
 func (a app) ProjectsNow() []proto.Project     { return a.ProjectState() }
-func (a app) Session(id string) *proto.Session { return a.SessionsOr(id) }
+func (a app) Session(id string) *proto.Session { return a.SessionOf(id) }
 func (a app) SelectedID() string               { return a.SelectedID() }
 func (a app) PrefsNow() sidebar.Prefs          { return a.root.PrefsNowAll().Prefs }
 
@@ -362,7 +361,7 @@ func sessionSidebar(x App, c *ui.Context, pal *theme.Palette, group string, n *i
 				dateHeader(x, c, pal, "date-"+h.Name+"-"+sidebar.DateLabel(dg.Day, c.Now()), sidebar.DateLabel(dg.Day, c.Now()), len(dg.Sessions), top)
 				gi++
 				for _, id := range dg.Sessions {
-					if s := x.SessionsOr(id); s != nil {
+					if s := x.SessionOf(id); s != nil {
 						sessionRow(x, c, pal, s, n, layout.RowInset, "")
 					}
 				}
@@ -371,7 +370,7 @@ func sessionSidebar(x App, c *ui.Context, pal *theme.Palette, group string, n *i
 			ss := sidebar.FlatSessions(app{x, x.Root()}, h)
 			empty = len(ss) == 0
 			for _, id := range ss {
-				if s := x.SessionsOr(id); s != nil {
+				if s := x.SessionOf(id); s != nil {
 					sessionRow(x, c, pal, s, n, layout.RowInset, "")
 				}
 			}
@@ -407,7 +406,7 @@ func groupView(x App, c *ui.Context, pal *theme.Palette, g sidebar.Group, gi int
 	current := slices.Contains(g.Sessions, x.SelectedID())
 	needs := 0
 	for _, id := range g.Sessions {
-		if s := x.SessionsOr(id); s != nil && s.Status == proto.Waiting {
+		if s := x.SessionOf(id); s != nil && s.Status == proto.Waiting {
 			needs++
 		}
 	}
@@ -588,7 +587,7 @@ func groupView(x App, c *ui.Context, pal *theme.Palette, g sidebar.Group, gi int
 		return
 	}
 	for _, id := range g.Sessions {
-		s := x.SessionsOr(id)
+		s := x.SessionOf(id)
 		// A machine's or pod's terminal is its row, not a session of its
 		// own.
 		if s == nil || ssh && x.SSHHostOfSession(s.ID) != nil || k8s && x.K8sPodOfSession(s.ID) != nil {
@@ -904,7 +903,7 @@ func sessionMenu(x App, m *ui.Menu, s *proto.Session) {
 		if m.Item(locales.ChatOpen()).Chosen() {
 			pid := x.FocusOf(s)
 			x.Later_(func() {
-				if cur := x.SessionsOr(id); cur != nil && pid != "" {
+				if cur := x.SessionOf(id); cur != nil && pid != "" {
 					x.ShowPaneChatIn(cur, pid)
 				}
 			})

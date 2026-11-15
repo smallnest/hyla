@@ -7,7 +7,6 @@ import (
 	"github.com/egoist/mygo/plugins/terminal"
 	"github.com/egoist/mygo/ui"
 
-	"hyla/internal/actions"
 	"hyla/internal/platform"
 	"hyla/internal/settings"
 	"hyla/internal/ui/layout"
@@ -70,9 +69,7 @@ func (a *App) InstallCLI()     { a.installCLI() }
 func (a *App) Keys(id string) string       { return a.keys(id) }
 func (a *App) Tip(title, id string) string { return a.tip(title, id) }
 func (a *App) StartRecording(id string)    { recording(a, id) }
-func (a *App) RecordKey(act actions.Action, mods ui.Modifiers, key ui.Key) bool {
-	return recordKey(a, act, mods, key)
-}
+
 func (a *App) SetShortcut(id, accel string)                 { setShortcut(a, id, accel) }
 func (a *App) RefreshAgents()                               { refreshAgents(a) }
 func (a *App) RefreshService()                              { refreshService(a) }
@@ -114,11 +111,6 @@ func (a *App) durationWords(d time.Duration) string { return uisettings.Duration
 
 // recording starts or ends typing a shortcut.
 func recording(a *App, id string) { uisettings.StartRecording(a, id) }
-
-// recordKey takes a key typed for a shortcut.
-func recordKey(a *App, act actions.Action, mods ui.Modifiers, key ui.Key) bool {
-	return uisettings.RecordKey(a, act, mods, key)
-}
 
 // setShortcut binds an action's shortcut.
 func setShortcut(a *App, id, accel string) { uisettings.SetShortcut(a, id, accel) }

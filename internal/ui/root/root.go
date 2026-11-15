@@ -36,7 +36,6 @@ type App interface {
 	// window winW wide.
 	SidebarHidden() bool
 	SidebarW() float32
-	SideRowW(winW float32) float32
 	// Crowd tells the side panel how crowded the window is, and Crowded
 	// reports whether it is too narrow for both; UnforceSide lets the
 	// panel close again.

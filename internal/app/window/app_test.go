@@ -228,7 +228,7 @@ func TestTermScrollback(t *testing.T) {
 	a := testApp(t)
 	for _, c := range []struct{ mb, want int }{{4, 4 << 20}, {16, 16 << 20}, {0, -1}} {
 		a.settingsIn.Scrollback = c.mb
-		if got := a.termOptions("a", nil).Scrollback; got != c.want {
+		if got := a.TermOptions("a", nil).Scrollback; got != c.want {
 			t.Errorf("scrollback-limit %d: the terminal keeps %d, want %d", c.mb, got, c.want)
 		}
 	}
@@ -251,7 +251,7 @@ func TestTermFontFeatures(t *testing.T) {
 		{true, []string{"-calt"}, []string{"-calt"}, "calt=0"},
 	} {
 		a.settingsIn.Ligatures, a.settingsIn.FontFeatures = c.liga, c.user
-		got := a.termOptions("a", nil).Font.Features
+		got := a.TermOptions("a", nil).Font.Features
 		if !slices.Equal(got, c.want) {
 			t.Errorf("ligatures %v, font-feature %q: the terminal has %q, want %q", c.liga, c.user, got, c.want)
 		}

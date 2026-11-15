@@ -62,8 +62,6 @@ type App interface {
 	Collapsed() map[string]bool
 	// Update runs fn on the app's own goroutine.
 	Update(fn func())
-	// Toast shows a message.
-	Toast(msg string)
 	// AllHosts are the app's hosts.
 	AllHosts() []*host.Host
 	// Pages are the Settings' pages.
@@ -76,9 +74,6 @@ type App interface {
 	OpenSettings(id string)
 	// NewSession starts a session in a project.
 	NewSession(projectID string)
-	// AddPending adds a session a host's hylad started, before the app
-	// hears of it another way.
-	AddPending(h *host.Host, s proto.Session)
 	// SelectSession shows a session.
 	SelectSession(id string)
 	// ResumeConversation shows the session running a conversation of a

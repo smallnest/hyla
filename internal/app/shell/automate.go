@@ -12,12 +12,25 @@ import (
 	"hyla/internal/ui/webpane"
 )
 
-// App is what the commands ask of the app they drive.
+// App is what the commands ask of the app they drive: the shell's page
+// and ensure, and as much of a browser request's as is the app's.
 type App interface {
 	webpane.Shell
-	browse.App
 	// EnsureWeb is the page the pane's browser shows, made if it had none.
 	EnsureWeb(p *proto.Pane) *webpane.Entry
+	browse.Pages
+	// Load and the rest are here, for every request: shell takes an
+	// unfinished load on from where a page left it.
+	page
+}
+
+// page is a request's page as a shell drives it.
+type page interface {
+	WebPage(pane string) (*browse.Pane, bool)
+	NextLoad(pane string) <-chan error
+	Load(pane, url string)
+	Loading(pane string)
+	Staged(pane string, on bool)
 }
 
 // Browse does what hyla browser asks of a browser pane's page, on a host.
@@ -28,7 +41,11 @@ func Browse(a App, h *host.Host, r *proto.BrowserRequest, answer func(*proto.Bro
 // WebPage is a pane's page, as hyla browser drives it, and whether the
 // pane had one: one never shown gets it now.
 func WebPage(a App, pane string) (*browse.Pane, bool) {
-	s := a.SessionOfPane(pane)
+	at := a.SessionOfPane(pane)
+	if at == nil {
+		return &browse.Pane{}, false
+	}
+	s := a.SessionOf(at.ID)
 	if s == nil {
 		return &browse.Pane{}, false
 	}

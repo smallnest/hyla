@@ -69,8 +69,6 @@ type App interface {
 	HostOf(session string) *host.Host
 	// Main runs fn on the main thread.
 	Main(fn func())
-	// Message is the view's, as it has nothing to show.
-	Message(c *ui.Context, pal *theme.Palette, title, detail string)
 }
 
 // Changed tells the view that a host shows a new state: the hosts' chat
@@ -127,6 +125,14 @@ func Read(x App, s *proto.Session, f *Feed) {
 	}()
 }
 
+// empty says that the chat has nothing to show.
+func empty(c *ui.Context, pal *theme.Palette, title, detail string) {
+	ui.Column(c).Grow(1).Center().Gap(6).Padding(24).Children(func() {
+		ui.Text(c, title).FontSize(14).FontWeight(600).TextColor(pal.Text).TextAlign(ui.Center)
+		ui.Text(c, detail).FontSize(12.5).TextColor(pal.TextMuted).MaxWidth(300).TextAlign(ui.Center).LineHeight(1.4)
+	})
+}
+
 // lines shows the conversation: what the user wrote to the right, the
 // agent's messages to the left, its tools faint, and each turn's answer
 // marked.
@@ -145,7 +151,7 @@ func lines(x App, c *ui.Context, pal *theme.Palette, s *proto.Session, f *Feed) 
 		case f.Feed.Chat == "":
 			msg = locales.ChatSessionNone()
 		}
-		x.Message(c, pal, locales.SideChat(), msg)
+		empty(c, pal, locales.SideChat(), msg)
 		return
 	}
 	f.List.FollowEnd, f.List.FollowAnimation = true, &ui.Smooth

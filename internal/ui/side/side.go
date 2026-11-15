@@ -52,8 +52,7 @@ type App interface {
 	FilesState() *files.State
 	// PaneRef is the handle a pane's terminal binds.
 	PaneRef(id string) *ui.Handle
-	// Main runs fn on the main thread, and RunLater after the frame.
-	Main(fn func())
+	// RunLater runs fn after the frame.
 	RunLater(fn func())
 	// Tip adds an action's shortcut, in words, to a title.
 	Tip(title, id string) string

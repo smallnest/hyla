@@ -614,12 +614,7 @@ const browseTimeout = 10 * time.Second
 // App is what the commands ask of the app: its window's pages, and the
 // browser panes' entries.
 type App interface {
-	// RemoteControl tells that commands may drive this window.
-	RemoteControl(h *host.Host) bool
-	// SessionOfPane is the session a pane belongs to.
-	SessionOfPane(pane string) *proto.Session
-	// HostOf is the host a session runs on.
-	HostOf(session string) *host.Host
+	Pages
 	// WebPage is a pane's page, as hyla browser drives it, and whether
 	// the pane had one.
 	WebPage(pane string) (*Pane, bool)
@@ -630,4 +625,16 @@ type App interface {
 	Loading(pane string)
 	// Staged says the window lays the page out unseen, or stops.
 	Staged(pane string, on bool)
+}
+
+// Pages is the app's pages and the hosts they run on, as a shell that
+// drives them reads them: what a request asks before it loads anything.
+type Pages interface {
+	// RemoteControl tells that commands may drive this window.
+	RemoteControl(h *host.Host) bool
+	// SessionOfPane is the session a pane belongs to.
+	SessionOfPane(pane string) *proto.Session
+	SessionOf(id string) *proto.Session
+	// HostOf is the host a session runs on.
+	HostOf(session string) *host.Host
 }

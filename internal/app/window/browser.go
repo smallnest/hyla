@@ -47,10 +47,6 @@ func (a *App) AdRules() []*mygo.ContentRules { return a.adRules() }
 
 func (a *App) Icons() *favicon.Cache { return &a.IconsCache }
 
-// IconCache is the field Icons answers, which the pages read where the
-// app's method is another.
-func (a *App) IconCache() *favicon.Cache { return &a.IconsCache }
-
 // openBrowser opens a browser pane beside the pane the user is in, or the
 // address bar of the browser they are in.
 func (a *App) openBrowser(url string) {
@@ -87,7 +83,15 @@ func (a *App) paneBrowser(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, sh
 	return webpane.Pane(a, c, pal, bar, shown, s, p, top, left, right, multi, focused, hovered)
 }
 
-func (a *App) sessionOfPane(id string) *proto.Session { return webpane.SessionOfPane(a, id) }
+// sessionOfPane is the session a pane belongs to: nil when none has it.
+func (a *App) sessionOfPane(id string) *proto.Session {
+	for i := range a.Sessions() {
+		if a.Sessions()[i].PaneByID(id) != nil {
+			return &a.Sessions()[i]
+		}
+	}
+	return nil
+}
 
 func (a *App) Shows(id string) bool { return webpane.Shows(a, id) }
 

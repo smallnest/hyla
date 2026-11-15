@@ -19,7 +19,6 @@ func (a *App) browse(h *host.Host, r *proto.BrowserRequest, answer func(*proto.B
 // RemoteControl tells that commands may drive this window.
 func (a *App) RemoteControl(h *host.Host) bool { return a.remoteControl(h) }
 
-// WebPage is a pane's page, as hyla browser drives it.
 func (a *App) WebPage(pane string) (*browse.Pane, bool) { return shell.WebPage(a, pane) }
 
 func (a *App) NextLoad(pane string) <-chan error { return shell.NextLoad(a, pane) }

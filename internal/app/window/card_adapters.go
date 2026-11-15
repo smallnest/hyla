@@ -21,9 +21,6 @@ func (a *App) CacheShown() bool { return a.Loaded }
 // SessionOr is a session the app knows, nil for none.
 func (a *App) SessionOr(id string) *proto.Session { return a.session(id) }
 
-// SelectedSession is the session the user looks at, nil for none.
-func (a *App) SelectedSession() *proto.Session { return a.session(a.Selected) }
-
 // Glass is a color of the window, as the settings make it.
 func (a *App) Glass(c ui.Color, pal *theme.Palette) ui.Color {
 	return theme.TranslucentGlass(c, pal, a.settingsIn)

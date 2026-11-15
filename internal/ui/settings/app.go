@@ -8,7 +8,6 @@ import (
 	"github.com/egoist/mygo/plugins/terminal"
 	ui "github.com/egoist/mygo/ui"
 
-	"hyla/internal/actions"
 	"hyla/internal/settings"
 	"hyla/internal/ui/settings/search"
 	"hyla/internal/ui/theme"
@@ -62,10 +61,6 @@ type App interface {
 	ActionTitle(id string) string
 	// StartRecording tells that a shortcut is typed, or that none is.
 	StartRecording(id string)
-	// RecordKey takes a key typed for an action's shortcut.
-	RecordKey(act actions.Action, mods ui.Modifiers, key ui.Key) bool
-	// SetShortcut binds an action's shortcut.
-	SetShortcut(id, accel string)
 	// RefreshAgents reads again where hyla is installed.
 	RefreshAgents()
 	// RefreshService asks hylad how it is.
@@ -98,8 +93,6 @@ type App interface {
 	AddFallback(font string)
 	// RemoveFallback removes the fallback font at.
 	RemoveFallback(at int)
-	// BundledFont is the font hyla brings.
-	BundledFont() string
 	// UIFeatures converts features as terminal.Font takes them to those
 	// that ui.Span.Features takes.
 	UIFeatures(fs []string) string
@@ -109,8 +102,6 @@ type App interface {
 	Feishu(c *ui.Context, pal *theme.Palette)
 	Tailcat(c *ui.Context, pal *theme.Palette)
 	P2P(c *ui.Context, pal *theme.Palette)
-	// PetKnob notes the pet's slider, as the pet grows.
-	PetKnob()
 	// Local is this machine, and CallOn asks it something, on the main
 	// thread.
 	Local() *host.Host
@@ -171,11 +162,10 @@ func SearchResults(x App, query string) map[string][]string {
 // FontChoices are the fonts the picker offers: hyla's own first.
 func FontChoices() []string { return fontChoices }
 
-// StartRecording, RecordKey and SetShortcut are the keyboard page's, which
-// the root's menu reads too.
-func StartRecording(x App, id string)                                  { setRecording(x, id) }
-func RecordKey(x App, a actions.Action, m ui.Modifiers, k ui.Key) bool { return recordKey(x, a, m, k) }
-func SetShortcut(x App, id, accel string)                              { setShortcut(x, id, accel) }
+// StartRecording starts or ends typing a shortcut, and SetShortcut binds
+// one: the keyboard page's, which the app's menu reads too.
+func StartRecording(x App, id string)     { setRecording(x, id) }
+func SetShortcut(x App, id, accel string) { setShortcut(x, id, accel) }
 
 // OpenConfig opens the configuration in the user's editor.
 func OpenConfig(x App) { openConfig(x) }

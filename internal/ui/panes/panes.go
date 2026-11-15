@@ -21,7 +21,7 @@ type App interface {
 	// HostOf is the machine a session runs on.
 	HostOf(id string) *host.Host
 	// Session is a session the app knows, nil for none, and
-	// SelectedSession the one the window shows.
+	// SelectedSession the one the window shows: the app's Selected.
 	Session(id string) *proto.Session
 	SelectedSession() *proto.Session
 	// FocusOf is the pane of a session the user is in, and SetFocus puts
@@ -58,11 +58,6 @@ type App interface {
 	Update(fn func())
 	RunLater(fn func())
 	Toast(msg string)
-
-	// SwitchIn and SwitchFrom are whether a session comes in place of
-	// another this frame, and where it comes from.
-	SwitchIn() bool
-	SwitchFrom() ui.Motion
 
 	// Chrome is where the sidebar's animation puts things, and
 	// HeaderHeight is the height of a card's header.

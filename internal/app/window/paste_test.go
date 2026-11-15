@@ -330,7 +330,7 @@ func TestPasteImageByKeys(t *testing.T) {
 	// A terminal of the app's options, as the app makes them.
 	term.Close()
 	sink = newSink()
-	o := a.termOptions("a", nil)
+	o := a.TermOptions("a", nil)
 	o.Conn = sink
 	o.ResizeByConn = false
 	var err error

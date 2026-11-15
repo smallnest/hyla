@@ -669,10 +669,6 @@ func (a *App) dropTerm(id string) {
 	a.Lru = slices.DeleteFunc(a.Lru, func(x string) bool { return x == id })
 }
 
-// gated holds back the stream's frames until the terminal takes the size
-// of the first, which then shows the session as it is.
-type gated = quick.Gated
-
 // EnsureTerm attaches a terminal to a session, unless one is.
 func (a *App) EnsureTerm(id string) {
 	h := a.hostOf(id)
@@ -692,8 +688,8 @@ func (a *App) EnsureTerm(id string) {
 			})
 			return
 		}
-		g := &gated{Stream: stream, Ready: make(chan struct{})}
-		o := a.termOptions(id, g)
+		g := &quick.Gated{Stream: stream, Ready: make(chan struct{})}
+		o := a.TermOptions(id, g)
 		// The terminal shows hylad's frames: hylad's terminal is the
 		// session's, ours shows what it shows, cell for cell, and lays out
 		// nothing of the program's own. It takes the sizes hylad's does,
@@ -848,7 +844,7 @@ var commandKeys = map[ui.Key]byte{
 	ui.KeyRight:     0x05, // Control+E, end-of-line
 }
 
-func (a *App) termOptions(id string, conn *gated) terminal.Options {
+func (a *App) TermOptions(id string, conn *quick.Gated) terminal.Options {
 	light, dark := a.termThemes()
 	o := terminal.Options{
 		Conn:          conn,

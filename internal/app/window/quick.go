@@ -5,7 +5,6 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/app/host"
-	"hyla/internal/proto"
 	"hyla/internal/ui/layout"
 	"hyla/internal/ui/panes"
 	"hyla/internal/ui/quick"
@@ -28,15 +27,10 @@ func (a *App) Quitting() bool { return a.quittingApp }
 
 func (a *App) LocalHost() *host.Host { return a.Local() }
 
-func (a *App) SessionOf(id string) *proto.Session { return a.session(id) }
-
-func (a *App) QuickSession() string { return a.Prefs.QuickSession }
-
+// QuickSession is the session the quick terminal shows, which
+// SetQuickSession keeps.
+func (a *App) QuickSession() string      { return a.Prefs.QuickSession }
 func (a *App) SetQuickSession(id string) { a.Prefs.QuickSession = id }
-
-func (a *App) TermOptions(id string, conn *quick.Gated) terminal.Options {
-	return a.termOptions(id, conn)
-}
 
 func (a *App) PaneMessageOfQuick(c *ui.Context, pal *theme.Palette, title, detail, action string, fn func()) {
 	a.PaneMessage(c, pal, title, detail, action, fn)

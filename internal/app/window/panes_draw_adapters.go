@@ -11,10 +11,6 @@ import (
 	"hyla/internal/ui/theme"
 )
 
-func (a *App) SwitchIn() bool { return a.SwitchInState }
-
-func (a *App) SwitchFrom() ui.Motion { return a.SwitchFromMotion }
-
 func (a *App) ChromeForPanel() panes.Chrome {
 	return panes.Chrome{SideW: a.ChromeState.SideW, MainPad: a.ChromeState.MainPad, HeaderPad: a.ChromeState.HeaderPad, Lead: layout.Lead(a.Bar)}
 }

@@ -35,11 +35,6 @@ func (a *App) SideMessage(c *ui.Context, pal *theme.Palette, title, detail strin
 	changesview.Message(c, pal, title, detail)
 }
 
-// Message is the Chat view's, as it has nothing to show.
-func (a *App) Message(c *ui.Context, pal *theme.Palette, title, detail string) {
-	a.SideMessage(c, pal, title, detail)
-}
-
 // fileCollapsed tells whether a file's diff is folded.
 func (a *App) fileCollapsed(scope string, f proto.GitFile) bool {
 	return changesview.FileCollapsed(a, scope, f)

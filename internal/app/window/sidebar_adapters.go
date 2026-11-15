@@ -28,8 +28,10 @@ func (a *App) ProjectState() []proto.Project { return a.St.Projects }
 
 func (a *App) SessionState() []proto.Session { return a.St.Sessions }
 
-// SessionsOr is a session the app knows, nil for none.
-func (a *App) SessionsOr(id string) *proto.Session { return a.session(id) }
+// SelectedSession is the session the user looks at, nil for none, and
+// SessionOf a session the app knows.
+func (a *App) SelectedSession() *proto.Session    { return a.session(a.Selected) }
+func (a *App) SessionOf(id string) *proto.Session { return a.session(id) }
 
 // RenameFrames counts the frame a rename began in.
 func (a *App) RenameFrames() *int { return &a.RenameFramesF }

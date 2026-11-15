@@ -180,8 +180,6 @@ func (e *Entry) Load(text string) {
 // commands a shell sends it drive it.
 type Shell interface {
 	App
-	// SessionOfPane is the session a pane belongs to: nil when none has it.
-	SessionOfPane(pane string) *proto.Session
 	// EntryOf is the page of a pane: nil when the pane has none.
 	EntryOf(pane string) *Entry
 	// TellPage tells hylad the page a browser pane shows.
@@ -197,7 +195,7 @@ func TellPage(a App, id string, e *Entry) {
 		return
 	}
 	e.Told = [2]string{e.URL, e.Title}
-	if s := SessionOfPane(a, id); s != nil {
+	if s := a.SessionOfPane(id); s != nil {
 		if p := s.PaneByID(id); p != nil {
 			p.URL, p.Title = e.URL, e.Title
 		}
@@ -470,20 +468,10 @@ func Find(a App, c *ui.Context, pal *theme.Palette, e *Entry) {
 	}
 }
 
-// SessionOfPane returns the session a pane is of.
-func SessionOfPane(a App, id string) *proto.Session {
-	for i := range a.Sessions() {
-		if a.Sessions()[i].PaneByID(id) != nil {
-			return &a.Sessions()[i]
-		}
-	}
-	return nil
-}
-
 // Shows reports whether the app draws a pane itself, rather than a
 // terminal's cells: a browser's page, or a file's text.
 func Shows(a App, id string) bool {
-	if s := SessionOfPane(a, id); s != nil {
+	if s := a.SessionOfPane(id); s != nil {
 		return s.PaneByID(id).Shown()
 	}
 	return false
