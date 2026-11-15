@@ -4334,11 +4334,11 @@ func (msgs Messages) SetRemoteHostsNone() string {
 	return Catalog.Format(msgs.locale, "setRemoteHostsNone", nil)
 }
 
-// SetRemoteHostAddress says "192.168.1.5:7297"
+// SetRemoteHostAddress says "192.168.1.5:7473"
 // in the language the app shows.
 func SetRemoteHostAddress() string { return In(i18n.Locale()).SetRemoteHostAddress() }
 
-// SetRemoteHostAddress says "192.168.1.5:7297"
+// SetRemoteHostAddress says "192.168.1.5:7473"
 // in the language of msgs.
 func (msgs Messages) SetRemoteHostAddress() string {
 	return Catalog.Format(msgs.locale, "setRemoteHostAddress", nil)
@@ -7022,11 +7022,11 @@ func (msgs Messages) SetHostNeedsToken() string {
 	return Catalog.Format(msgs.locale, "setHostNeedsToken", nil)
 }
 
-// SetHostBadAddress says "This is no address: write host:port, as 192.168.1.5:7297."
+// SetHostBadAddress says "This is no address: write host:port, as 192.168.1.5:7473."
 // in the language the app shows.
 func SetHostBadAddress() string { return In(i18n.Locale()).SetHostBadAddress() }
 
-// SetHostBadAddress says "This is no address: write host:port, as 192.168.1.5:7297."
+// SetHostBadAddress says "This is no address: write host:port, as 192.168.1.5:7473."
 // in the language of msgs.
 func (msgs Messages) SetHostBadAddress() string {
 	return Catalog.Format(msgs.locale, "setHostBadAddress", nil)

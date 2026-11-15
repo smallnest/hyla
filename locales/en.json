@@ -589,7 +589,7 @@
   "setRemoteHostsTitle": "P2P machines",
   "setRemoteHostsDetail": "",
   "setRemoteHostsNone": "No other machine yet.",
-  "setRemoteHostAddress": "192.168.1.5:7297",
+  "setRemoteHostAddress": "192.168.1.5:7473",
   "setRemoteHostPassword": "password",
   "setRemoteControlRow": "Let commands drive this window",
   "setRemoteControlDetail": "hyla do and hyla focus run the app’s actions, as its menus do: splitting, switching sessions, opening the palette. hyla browser clicks, types and reads in browser panes.",
@@ -1229,7 +1229,7 @@
   },
   "setHostNameTaken": "There's a host named {name} already",
   "setHostNeedsToken": "A host takes the password of its tcp listener.",
-  "setHostBadAddress": "This is no address: write host:port, as 192.168.1.5:7297.",
+  "setHostBadAddress": "This is no address: write host:port, as 192.168.1.5:7473.",
   "@setHostNameTaken": {
     "placeholders": {
       "name": {

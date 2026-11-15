@@ -10,6 +10,8 @@ number; the notes of the upstream releases it includes follow its own.
   `tailcat://` twice: a phone scanned `tailcat://tailcat://tc…` and
   reached nothing. If HylaPocket cannot reach a machine over Tailcat,
   copy the code again.
+- The address Settings › Hosts shows as an example is `192.168.1.5:7473`,
+  the port hylad listens on: it said 7297, the port of HylaPocket.
 
 ## 3.10.3
 
