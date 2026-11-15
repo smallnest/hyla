@@ -4,6 +4,15 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.10.3
+
+- Installing the `hyla` command no longer asks for a password when it is
+  already installed — a link pointing at the app was removed with the user's
+  own permissions, failed, and only an administrator could put it back — and
+  a failure now says why, not only that it failed.
+- `hyla help` lists the other names a command answers to: `p2p (tailcat)`,
+  `close (kill)`, `ls (list)`, `read (capture)`.
+
 ## 3.10.2
 
 - Every session row keeps the mark's slot, with an agent in it or not, so that
