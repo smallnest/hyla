@@ -11,6 +11,7 @@ import (
 
 	"hyla/internal/fileicons"
 	"hyla/internal/proto"
+	"hyla/internal/ui/theme"
 
 	"hyla/locales"
 )
@@ -70,14 +71,14 @@ func (a *App) startRenameEntry(s *proto.Session, pane string, it fileItem) {
 }
 
 // nameRow is the field the user types a name in, in the tree.
-func (a *App) nameRow(c *ui.Context, pal *palette, it fileItem) {
+func (a *App) nameRow(c *ui.Context, pal *theme.Palette, it fileItem) {
 	fs := &a.side.files
 	e := fs.edit
 	row := treeRow(c, pal, it.depth, true)
 	row.Children(func() {
 		ui.Box(c).Size(9, 9).Shrink(0)
 		// The icon of the name as typed.
-		fileicons.Image(c, strings.TrimSpace(e.name), e.op == editNewFolder || e.op == editRename && e.dirEnt, false, pal.dark)
+		fileicons.Image(c, strings.TrimSpace(e.name), e.op == editNewFolder || e.op == editRename && e.dirEnt, false, pal.Dark)
 		in := ui.TextInputBase(c.Key("name"), &e.name).Grow(1).MinWidth(0).FontSize(12.5).Label(it.Name)
 		// The field takes the focus in its first frame, which a click
 		// left on a button made before this one; it then leaves it only

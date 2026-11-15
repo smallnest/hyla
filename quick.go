@@ -13,6 +13,7 @@ import (
 	"hyla/internal/actions"
 	"hyla/internal/client"
 	"hyla/internal/proto"
+	"hyla/internal/ui/theme"
 
 	"hyla/locales"
 )
@@ -362,7 +363,7 @@ func (a *App) quickChanged() {
 // quickView is the panel's content: the terminal, or what keeps it.
 func (a *App) quickView(c *ui.Context) {
 	q := &a.quick
-	pal := paletteFor(c)
+	pal := theme.For(c)
 	light, dark := a.termThemes()
 	bg := light.Background
 	if c.Theme().Dark {

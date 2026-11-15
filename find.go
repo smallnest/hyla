@@ -8,6 +8,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/proto"
+	"hyla/internal/ui/theme"
 
 	"hyla/locales"
 )
@@ -92,16 +93,16 @@ func (a *App) findTerm() *terminal.Terminal {
 
 // findBar floats over the top right of the pane searched: the query, how
 // many matches it has, and the buttons going through them.
-func (a *App) findBar(c *ui.Context, pal *palette, p *proto.Pane, t *terminal.Terminal) {
+func (a *App) findBar(c *ui.Context, pal *theme.Palette, p *proto.Pane, t *terminal.Terminal) {
 	f := &a.find
 	// A terminal attached anew, as settings change, searches again.
 	if f.query != "" && t.SearchStatus().Text != f.query {
 		t.Search(f.query)
 	}
 	bar := ui.Row(c.Key("find")).Absolute().Top(8).Right(12).Height(36).Padding(0, 4, 0, 12).Gap(4).
-		AlignItems(ui.Center).Radius(10).Background(pal.popover).Label(locales.FindLabel())
+		AlignItems(ui.Center).Radius(10).Background(pal.Popover).Label(locales.FindLabel())
 	floating(bar, pal).Children(func() {
-		ui.Icon(c, searchIcon).Size(13, 13).TextColor(pal.textMuted).Shrink(0)
+		ui.Icon(c, searchIcon).Size(13, 13).TextColor(pal.TextMuted).Shrink(0)
 		in := ui.TextInputBase(c.Key("q"), &f.query).Width(180).FontSize(13).Placeholder(locales.FindPlaceholder()).Bind(&f.input)
 		if f.focus {
 			f.focus = false
@@ -125,7 +126,7 @@ func (a *App) findBar(c *ui.Context, pal *palette, p *proto.Pane, t *terminal.Te
 		case st.Total > 0:
 			count = locales.FindCount(itoa(st.Selected), itoa(st.Total))
 		}
-		ui.Text(c, count).FontSize(12).FontFeatures("tnum").TextColor(pal.textFaint).SingleLine().MinWidth(56).TextAlign(ui.End).Margin(0, 4, 0, 0)
+		ui.Text(c, count).FontSize(12).FontFeatures("tnum").TextColor(pal.TextFaint).SingleLine().MinWidth(56).TextAlign(ui.End).Margin(0, 4, 0, 0)
 		// Up goes back through the output, as Enter does, as in Ghostty.
 		iconButton(c, "next", chevronUpIcon, a.tip(locales.ActionFindNext(), "find.next"), pal, t.SearchNext)
 		iconButton(c, "previous", chevronDownIcon, a.tip(locales.ActionFindPrevious(), "find.previous"), pal, t.SearchPrevious)

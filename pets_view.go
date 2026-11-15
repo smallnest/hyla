@@ -8,6 +8,7 @@ import (
 
 	"hyla/internal/pets"
 	"hyla/internal/settings"
+	"hyla/internal/ui/theme"
 
 	"hyla/locales"
 )
@@ -60,7 +61,7 @@ func (a *App) readPets() []pets.Builtin {
 }
 
 // petChooser is the pop-up that chooses the pet on the edge.
-func (a *App) petChooser(c *ui.Context, pal *palette) {
+func (a *App) petChooser(c *ui.Context, pal *theme.Palette) {
 	ps := a.listPets()
 	names := make([]string, 1, len(ps)+1)
 	names[0] = a.set.PetSet

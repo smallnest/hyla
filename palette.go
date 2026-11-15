@@ -11,6 +11,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/actions"
+	"hyla/internal/ui/theme"
 
 	"hyla/internal/proto"
 
@@ -289,7 +290,7 @@ func keywords(query, words string) int {
 	return score
 }
 
-func (a *App) paletteView(c *ui.Context, pal *palette) {
+func (a *App) paletteView(c *ui.Context, pal *theme.Palette) {
 	if !a.pal.open {
 		return
 	}
@@ -323,11 +324,11 @@ func (a *App) paletteView(c *ui.Context, pal *palette) {
 		}
 	}
 	ui.DialogBase(c.Key("palette"), &a.pal.open, func(backdrop, panel ui.Element) {
-		backdrop.Background(pal.overlay).Justify(ui.Start).Padding(84, 0, 0, 0)
-		floating(panel.Width(600).MaxHeight(460).Radius(14).Background(pal.popover), pal).Clip().
+		backdrop.Background(pal.Overlay).Justify(ui.Start).Padding(84, 0, 0, 0)
+		floating(panel.Width(600).MaxHeight(460).Radius(14).Background(pal.Popover), pal).Clip().
 			Label(label)
 		ui.Row(c).Height(50).Shrink(0).Padding(0, 16).Gap(10).AlignItems(ui.Center).Children(func() {
-			ui.Icon(c, searchIcon).Size(16, 16).TextColor(pal.textMuted)
+			ui.Icon(c, searchIcon).Size(16, 16).TextColor(pal.TextMuted)
 			in := ui.TextInputBase(c.Key("q"), &a.pal.query).Grow(1).FontSize(15).Placeholder(placeholder).AutoFocus()
 			if in.Changed() {
 				a.pal.index, a.pal.reveal = 0, true
@@ -347,7 +348,7 @@ func (a *App) paletteView(c *ui.Context, pal *palette) {
 		a.pal.reveal = false
 		list.Children(func() {
 			if len(items) == 0 {
-				ui.Text(c, none).FontSize(13).TextColor(pal.textFaint).Padding(12, 12).LineHeight(1.4)
+				ui.Text(c, none).FontSize(13).TextColor(pal.TextFaint).Padding(12, 12).LineHeight(1.4)
 			}
 			lastKind := paletteSession
 			for i, it := range items {
@@ -359,17 +360,17 @@ func (a *App) paletteView(c *ui.Context, pal *palette) {
 					if kind == paletteConversation {
 						title = locales.PaletteConversations()
 					}
-					ui.Text(c, title).FontSize(11.5).FontWeight(600).TextColor(pal.textFaint).Padding(10, 10, 4, 10)
+					ui.Text(c, title).FontSize(11.5).FontWeight(600).TextColor(pal.TextFaint).Padding(10, 10, 4, 10)
 				}
 				lastKind = kind
 				row := ui.Row(c.Key(i)).Height(38).Padding(0, 10).Gap(10).AlignItems(ui.Center).Radius(8)
 				if i == a.pal.index {
-					row.Background(pal.accent.Alpha(0.12))
+					row.Background(pal.Accent.Alpha(0.12))
 					if reveal {
 						row.ScrollIntoView()
 					}
 				} else if row.Hovered() {
-					row.Background(pal.rowHover)
+					row.Background(pal.RowHover)
 				}
 				if row.Clicked() {
 					chosen = it.run
@@ -379,12 +380,12 @@ func (a *App) paletteView(c *ui.Context, pal *palette) {
 					case paletteSession:
 						statusIcon(c, pal, it.session.Status, it.session.Unread, 14)
 					case paletteConversation:
-						ui.Icon(c, programIcon(&proto.Pane{Agent: it.conv.Agent})).Size(14, 14).TextColor(pal.textFaint)
+						ui.Icon(c, programIcon(&proto.Pane{Agent: it.conv.Agent})).Size(14, 14).TextColor(pal.TextFaint)
 					default:
-						ui.Icon(c, returnIcon).Size(14, 14).TextColor(pal.textFaint)
+						ui.Icon(c, returnIcon).Size(14, 14).TextColor(pal.TextFaint)
 					}
-					ui.Text(c, it.title).FontSize(13.5).TextColor(pal.text).SingleLine().Ellipsis("…").Shrink(0).MaxWidth(300)
-					ui.Text(c, it.detail).FontSize(12.5).TextColor(pal.textFaint).SingleLine().Ellipsis("…").Grow(1).MinWidth(0)
+					ui.Text(c, it.title).FontSize(13.5).TextColor(pal.Text).SingleLine().Ellipsis("…").Shrink(0).MaxWidth(300)
+					ui.Text(c, it.detail).FontSize(12.5).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").Grow(1).MinWidth(0)
 					if it.keys != "" {
 						kbd(c, pal, it.keys)
 					}
@@ -401,7 +402,7 @@ func (a *App) paletteView(c *ui.Context, pal *palette) {
 	}
 }
 
-func (a *App) confirmView(c *ui.Context, pal *palette) {
+func (a *App) confirmView(c *ui.Context, pal *theme.Palette) {
 	if a.confirm != nil && confirmDialog(c, pal, &a.confirm) {
 		a.focusTerminal()
 	}
@@ -409,18 +410,18 @@ func (a *App) confirmView(c *ui.Context, pal *palette) {
 
 // confirmDialog asks *pending's question in c's window, and clears it once
 // answered, which it reports.
-func confirmDialog(c *ui.Context, pal *palette, pending **confirmation) bool {
+func confirmDialog(c *ui.Context, pal *theme.Palette, pending **confirmation) bool {
 	cf := *pending
 	run, alt := false, false
 	ui.DialogBase(c.Key("confirm"), &cf.open, func(backdrop, panel ui.Element) {
-		backdrop.Background(pal.overlay)
+		backdrop.Background(pal.Overlay)
 		width := float32(380)
 		if cf.alt != "" {
 			width = 460 // room for a third button
 		}
-		floating(panel.Width(width).Padding(22).Gap(8).Radius(14).Background(pal.popover), pal).Label(cf.title)
-		ui.Text(c, cf.title).FontSize(15).FontWeight(650).TextColor(pal.text)
-		ui.Text(c, cf.detail).FontSize(13).TextColor(pal.textMuted).LineHeight(1.4)
+		floating(panel.Width(width).Padding(22).Gap(8).Radius(14).Background(pal.Popover), pal).Label(cf.title)
+		ui.Text(c, cf.title).FontSize(15).FontWeight(650).TextColor(pal.Text)
+		ui.Text(c, cf.detail).FontSize(13).TextColor(pal.TextMuted).LineHeight(1.4)
 		ui.Row(c).Gap(8).Justify(ui.End).Margin(14, 0, 0, 0).Children(func() {
 			if cf.ends {
 				// Return may be what a program reads, so this question

@@ -16,6 +16,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/proto"
+	"hyla/internal/ui/theme"
 
 	"hyla/locales"
 )
@@ -389,7 +390,7 @@ var magpieGlyph = icon(`<path d="M3 4.5 13 8 9.5 9.5 8 13 3 4.5Z"/><path d="M5.8
 // today and this conversation spent through it, the plan windows closest
 // to their limits and its latest call; while it does not, why it does not,
 // once it answered or as a message it installed it.
-func (a *App) infoMagpie(c *ui.Context, pal *palette) {
+func (a *App) infoMagpie(c *ui.Context, pal *theme.Palette) {
 	st := a.infoMagpieState(c)
 	if st.usage == nil && st.err == "" {
 		return
@@ -410,7 +411,7 @@ func (a *App) infoMagpie(c *ui.Context, pal *palette) {
 
 // infoMagpieUsage lists what Magpie spent, then its sessions before now,
 // another's or the one that ended.
-func infoMagpieUsage(c *ui.Context, pal *palette, u *magpieUsage, down string) {
+func infoMagpieUsage(c *ui.Context, pal *theme.Palette, u *magpieUsage, down string) {
 	infoRows(c, func() {
 		infoMetric(c, pal, locales.InfoMagpieCalls(), strconv.Itoa(u.Today.Calls))
 		infoRule(c, pal)
@@ -447,28 +448,28 @@ func (a *App) infoMagpieState(c *ui.Context) *magpieInfo {
 }
 
 // infoMetric is a row of a card: a label, and a value on the right.
-func infoMetric(c *ui.Context, pal *palette, label, value string) {
+func infoMetric(c *ui.Context, pal *theme.Palette, label, value string) {
 	ui.Row(c).MinHeight(32).Padding(0, 12).Gap(10).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, label).FontSize(12.5).TextColor(pal.textMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1).MinWidth(0)
+		ui.Text(c, label).FontSize(12.5).TextColor(pal.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1).MinWidth(0)
 		infoMetricValue(c, pal, value)
 	})
 }
 
 // infoMetricSub is a metric of two lines: its value over a word of what it
 // counts, or a detail of it.
-func infoMetricSub(c *ui.Context, pal *palette, label, value, sub string) {
+func infoMetricSub(c *ui.Context, pal *theme.Palette, label, value, sub string) {
 	ui.Row(c).MinHeight(42).Padding(6, 12).Gap(10).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, label).FontSize(12.5).TextColor(pal.textMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1).MinWidth(0)
+		ui.Text(c, label).FontSize(12.5).TextColor(pal.TextMuted).SingleLine().Ellipsis("…").Grow(1).Shrink(1).MinWidth(0)
 		ui.Column(c).Gap(1).AlignItems(ui.End).Shrink(1).MinWidth(80).Children(func() {
 			infoMetricValue(c, pal, value)
-			ui.Text(c, sub).FontSize(11).TextColor(pal.textFaint).SingleLine()
+			ui.Text(c, sub).FontSize(11).TextColor(pal.TextFaint).SingleLine()
 		})
 	})
 }
 
 // infoMetricValue is a metric's value, on the right.
-func infoMetricValue(c *ui.Context, pal *palette, value string) {
-	ui.Text(c, value).FontSize(12.5).FontWeight(500).TextColor(pal.text).FontFeatures("tnum").SingleLine().Shrink(0)
+func infoMetricValue(c *ui.Context, pal *theme.Palette, value string) {
+	ui.Text(c, value).FontSize(12.5).FontWeight(500).TextColor(pal.Text).FontFeatures("tnum").SingleLine().Shrink(0)
 }
 
 // magpieLeft is a window's share left in words.

@@ -7,6 +7,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 	"hyla/internal/proto"
+	"hyla/internal/ui/theme"
 
 	"hyla/locales"
 )
@@ -18,7 +19,7 @@ const feishuStatusTick = 5 * time.Second
 // connects to, whether hylad connects, and who may use it, while
 // feishu-app names one. While the bot connects, the view reads the state
 // again, for the connection to drop.
-func (a *App) infoFeishu(c *ui.Context, pal *palette, p *proto.Pane) {
+func (a *App) infoFeishu(c *ui.Context, pal *theme.Palette, p *proto.Pane) {
 	set := a.set.Feishu
 	if set == nil || set.App == "" {
 		return
@@ -52,15 +53,15 @@ func (a *App) infoFeishu(c *ui.Context, pal *palette, p *proto.Pane) {
 	a.infoCard(c, pal, infoFoldFeishu, linkIcon, locales.SetFeishu(), aside, func() {
 		infoRows(c, func() {
 			ui.Column(c).Padding(4, 12, 10, 12).Gap(4).Children(func() {
-				ui.Text(c, who).FontSize(12).TextColor(pal.textMuted).Wrap()
+				ui.Text(c, who).FontSize(12).TextColor(pal.TextMuted).Wrap()
 				if st.feishu != nil && !st.feishu.Connected {
 					why := st.feishu.Error
 					if why == "" {
 						why = "not connected"
 					}
-					ui.Text(c, why).FontSize(11.5).TextColor(pal.textFaint).Wrap()
+					ui.Text(c, why).FontSize(11.5).TextColor(pal.TextFaint).Wrap()
 				}
-				ui.Text(c, fmt.Sprintf("%s, %s", locales.SetFeishuSetup(), set.Agent)).FontSize(11.5).TextColor(pal.textFaint).Wrap().FontFeatures("tnum")
+				ui.Text(c, fmt.Sprintf("%s, %s", locales.SetFeishuSetup(), set.Agent)).FontSize(11.5).TextColor(pal.TextFaint).Wrap().FontFeatures("tnum")
 			})
 		})
 	})

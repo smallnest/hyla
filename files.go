@@ -14,6 +14,7 @@ import (
 	"hyla/internal/client"
 	"hyla/internal/fileicons"
 	"hyla/internal/proto"
+	"hyla/internal/ui/theme"
 
 	"hyla/locales"
 )
@@ -156,7 +157,7 @@ func (a *App) filesRoot(s *proto.Session) (*proto.Pane, string) {
 
 // filesSide is the Files tab: the root's tree, a folder listed as it
 // unfolds, and again as the worktree changes.
-func (a *App) filesSide(c *ui.Context, pal *palette, s *proto.Session) {
+func (a *App) filesSide(c *ui.Context, pal *theme.Palette, s *proto.Session) {
 	fs := &a.side.files
 	if !fs.showed {
 		fs.gen++
@@ -229,7 +230,7 @@ func (a *App) filesSide(c *ui.Context, pal *palette, s *proto.Session) {
 	walk(root, "", 0)
 
 	ui.Row(c.Key("root")).Height(28).Shrink(0).Padding(0, 10, 6, 16).Gap(0).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, h.shortDir(root)).FontSize(12.5).TextColor(pal.textFaint).SingleLine().Ellipsis("…").MinWidth(0).Grow(1).Tooltip(root)
+		ui.Text(c, h.shortDir(root)).FontSize(12.5).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").MinWidth(0).Grow(1).Tooltip(root)
 		iconButton(c, "new-file", docIcon, locales.FilesNewFile(), pal, func() { a.startCreate(s, p.ID, root, "", false) })
 		iconButton(c, "new-folder", folderIcon, locales.FilesNewFolder(), pal, func() { a.startCreate(s, p.ID, root, "", true) })
 		iconButton(c, "fold-folders", collapseIcon, locales.FilesCollapseFolders(), pal, func() {
@@ -271,7 +272,7 @@ func (a *App) filesSide(c *ui.Context, pal *palette, s *proto.Session) {
 		case it.edit:
 			a.nameRow(c, pal, it)
 		case it.err != "":
-			ui.Text(c, it.err).FontSize(12).TextColor(pal.textFaint).SingleLine().Ellipsis("…").Padding(4, 8, 4, 6+12*float32(it.depth)+28).Tooltip(it.err)
+			ui.Text(c, it.err).FontSize(12).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").Padding(4, 8, 4, 6+12*float32(it.depth)+28).Tooltip(it.err)
 		case it.Dir:
 			key := filesKey(h, it.path)
 			row := a.treeFolder(c, pal, it.Name, it.rel, it.depth, it.open, false, func() {
@@ -314,24 +315,24 @@ type treeKey struct {
 }
 
 // treeRow is a row of a tree, depth folders in, the one there chosen.
-func treeRow(c *ui.Context, pal *palette, depth int, current bool) ui.Element {
+func treeRow(c *ui.Context, pal *theme.Palette, depth int, current bool) ui.Element {
 	row := ui.Row(c.Key("row")).Height(26).Padding(0, 8, 0, 6+12*float32(depth)).Gap(5).AlignItems(ui.Center).Radius(7)
-	if pal.dark {
+	if pal.Dark {
 		// Room for the chosen row's edge in every row.
 		row.Border(1, ui.Transparent)
 	}
 	switch {
 	case current:
-		row.Background(pal.rowSelected)
+		row.Background(pal.RowSelected)
 		chosen(row, pal)
 	case row.Hovered():
-		row.Background(pal.rowHover)
+		row.Background(pal.RowHover)
 	}
 	return row
 }
 
 // treeFolder is a folder of a tree, which a click folds or unfolds.
-func (a *App) treeFolder(c *ui.Context, pal *palette, name, tip string, depth int, open, faded bool, toggle func()) ui.Element {
+func (a *App) treeFolder(c *ui.Context, pal *theme.Palette, name, tip string, depth int, open, faded bool, toggle func()) ui.Element {
 	row := treeRow(c, pal, depth, false).Tooltip(tip)
 	if faded {
 		row.Opacity(0.55)
@@ -340,25 +341,25 @@ func (a *App) treeFolder(c *ui.Context, pal *palette, name, tip string, depth in
 		toggle()
 	}
 	row.Children(func() {
-		chev := ui.Icon(c, chevronIcon).Size(9, 9).TextColor(pal.textFaint).Shrink(0)
+		chev := ui.Icon(c, chevronIcon).Size(9, 9).TextColor(pal.TextFaint).Shrink(0)
 		chev.Rotate(chev.AnimateTo("turn", 90*b2f(open), ui.Snappy))
-		fileicons.Image(c, name, true, open, pal.dark)
-		ui.Text(c, name).FontSize(12.5).TextColor(pal.textMuted).SingleLine().Ellipsis("…").MinWidth(0)
+		fileicons.Image(c, name, true, open, pal.Dark)
+		ui.Text(c, name).FontSize(12.5).TextColor(pal.TextMuted).SingleLine().Ellipsis("…").MinWidth(0)
 	})
 	return row
 }
 
 // treeEntry is a file of the Files tab's tree, with its icon, which a
 // click opens in the viewer.
-func (a *App) treeEntry(c *ui.Context, pal *palette, it fileItem, current bool, open func()) ui.Element {
+func (a *App) treeEntry(c *ui.Context, pal *theme.Palette, it fileItem, current bool, open func()) ui.Element {
 	row := treeRow(c, pal, it.depth, current).Tooltip(it.rel)
 	if row.Clicked() {
 		open()
 	}
 	row.Children(func() {
 		ui.Box(c).Size(9, 9).Shrink(0)
-		fileicons.Image(c, it.Name, false, false, pal.dark)
-		ui.Text(c, it.Name).FontSize(12.5).TextColor(pal.text).SingleLine().Ellipsis("…").MinWidth(0)
+		fileicons.Image(c, it.Name, false, false, pal.Dark)
+		ui.Text(c, it.Name).FontSize(12.5).TextColor(pal.Text).SingleLine().Ellipsis("…").MinWidth(0)
 	})
 	return row
 }
@@ -411,7 +412,7 @@ func (a *App) openViewer(fv *fileView) {
 // fileViewer is the viewer of a file of Files: an image as an image, else
 // its text, read only, which it reads again as the worktree changes, and
 // every few seconds while an agent works.
-func (a *App) fileViewer(c *ui.Context, pal *palette, s *proto.Session, fv *fileView) {
+func (a *App) fileViewer(c *ui.Context, pal *theme.Palette, s *proto.Session, fv *fileView) {
 	h := a.hostOf(fv.pane)
 	stamp := ""
 	if p := withGit(s, s.PaneByID(fv.pane)); p != nil {
@@ -427,10 +428,10 @@ func (a *App) fileViewer(c *ui.Context, pal *palette, s *proto.Session, fv *file
 
 	dir, name := path.Split(fv.rel)
 	ui.Row(c.Key("hdr")).Height(headerH).Shrink(0).AlignItems(ui.Center).Padding(0, 10, 0, 10).Gap(8).Children(func() {
-		fileicons.Image(c, name, false, false, pal.dark)
-		ui.Text(c, name).FontSize(14).FontWeight(600).TextColor(pal.text).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
+		fileicons.Image(c, name, false, false, pal.Dark)
+		ui.Text(c, name).FontSize(14).FontWeight(600).TextColor(pal.Text).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
 		if dir = strings.TrimSuffix(dir, "/"); dir != "" {
-			ui.Text(c, dir).FontSize(13).TextColor(pal.textFaint).SingleLine().Ellipsis("…").Shrink(2).MinWidth(0).Tooltip(fv.path)
+			ui.Text(c, dir).FontSize(13).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").Shrink(2).MinWidth(0).Tooltip(fv.path)
 		}
 		ui.Box(c.Key("drag")).Grow(1).AlignSelf(ui.Stretch).DragWindow()
 		if !fv.gone {

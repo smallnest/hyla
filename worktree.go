@@ -6,6 +6,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/proto"
+	"hyla/internal/ui/theme"
 
 	"hyla/locales"
 )
@@ -40,21 +41,21 @@ func (a *App) newWorktreeSession() {
 	a.wtAsk = &worktreeAsk{open: true, host: h, p: p}
 }
 
-func (a *App) worktreeView(c *ui.Context, pal *palette) {
+func (a *App) worktreeView(c *ui.Context, pal *theme.Palette) {
 	w := a.wtAsk
 	if w == nil {
 		return
 	}
 	create := false
 	ui.DialogBase(c.Key("worktree"), &w.open, func(backdrop, panel ui.Element) {
-		backdrop.Background(pal.overlay)
-		floating(panel.Width(420).Padding(22).Gap(8).Radius(14).Background(pal.popover), pal).Label(locales.WorktreeTitle())
-		ui.Text(c, locales.WorktreeTitle()).FontSize(15).FontWeight(650).TextColor(pal.text)
+		backdrop.Background(pal.Overlay)
+		floating(panel.Width(420).Padding(22).Gap(8).Radius(14).Background(pal.Popover), pal).Label(locales.WorktreeTitle())
+		ui.Text(c, locales.WorktreeTitle()).FontSize(15).FontWeight(650).TextColor(pal.Text)
 		detail := locales.WorktreeDetailDefault()
 		if w.p.Base == "HEAD" {
 			detail = locales.WorktreeDetailCurrent()
 		}
-		ui.Text(c, detail).FontSize(13).TextColor(pal.textMuted).LineHeight(1.4)
+		ui.Text(c, detail).FontSize(13).TextColor(pal.TextMuted).LineHeight(1.4)
 		ui.Row(c).Margin(8, 0, 0, 0).Children(func() {
 			in := textField(c, "branch", &w.branch, locales.WorktreeBranch(), 0, pal)
 			in.AutoFocus()

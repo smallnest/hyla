@@ -7,6 +7,7 @@ import (
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 
+	"hyla/internal/ui/theme"
 	"hyla/locales"
 )
 
@@ -79,7 +80,7 @@ var (
 
 // windowControls are a window's minimize, maximize and close buttons, as
 // Hyla draws them (ownControls), at the right of a header.
-func windowControls(c *ui.Context, pal *palette, w *mygo.Window) {
+func windowControls(c *ui.Context, pal *theme.Palette, w *mygo.Window) {
 	if !ownControls || w == nil {
 		return
 	}
@@ -92,11 +93,11 @@ func windowControls(c *ui.Context, pal *palette, w *mygo.Window) {
 		if maximized {
 			label, svg = locales.WindowRestore(), restoreIcon
 		}
-		m := ui.ButtonBase(c.Key("maximize")).Size(28, 26).Radius(6).Center().TextColor(pal.textMuted).Label(label).MaximizeButton()
+		m := ui.ButtonBase(c.Key("maximize")).Size(28, 26).Radius(6).Center().TextColor(pal.TextMuted).Label(label).MaximizeButton()
 		if m.Pressed() {
-			m.Background(pal.rowHover.Alpha(0.12))
+			m.Background(pal.RowHover.Alpha(0.12))
 		} else if m.Hovered() {
-			m.Background(pal.rowHover).TextColor(pal.text)
+			m.Background(pal.RowHover).TextColor(pal.Text)
 		}
 		m.Children(func() { ui.Icon(c, svg).Size(16, 16) })
 		if m.Clicked() {
@@ -106,9 +107,9 @@ func windowControls(c *ui.Context, pal *palette, w *mygo.Window) {
 				w.Maximize()
 			}
 		}
-		b := ui.ButtonBase(c.Key("close-window")).Size(28, 26).Radius(6).Center().TextColor(pal.textMuted).Label(locales.CommonClose()).Tooltip(locales.CommonClose())
+		b := ui.ButtonBase(c.Key("close-window")).Size(28, 26).Radius(6).Center().TextColor(pal.TextMuted).Label(locales.CommonClose()).Tooltip(locales.CommonClose())
 		if b.Hovered() || b.Pressed() {
-			b.Background(pal.danger).TextColor(ui.RGB(255, 255, 255))
+			b.Background(pal.Danger).TextColor(ui.RGB(255, 255, 255))
 		}
 		b.Children(func() { ui.Icon(c, closeIcon).Size(16, 16) })
 		if b.Clicked() {

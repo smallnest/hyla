@@ -16,6 +16,7 @@ import (
 	"hyla/internal/actions"
 	"hyla/internal/adblock"
 	"hyla/internal/settings"
+	"hyla/internal/ui/theme"
 
 	"hyla/locales"
 )
@@ -739,21 +740,21 @@ func TestBlurlessBackgroundIsTranslucent(t *testing.T) {
 // translucent, a little more the more the wash lets through, and stay
 // solid without translucency.
 func TestTranslucentGlass(t *testing.T) {
-	pal := lightPalette
+	pal := theme.Light
 	s := settings.Default()
 	s.WindowOpacity = 0.84
-	got := translucentGlass(pal.card, &pal, s)
+	got := theme.TranslucentGlass(pal.Card, &pal, s)
 	if got.A > 230 {
 		t.Errorf("the card over the wash is %v", got)
 	}
 	// A thin wash leaves the card nearly solid.
 	s.WindowOpacity = 0.05
-	if thin := translucentGlass(pal.card, &pal, s); thin.A < 250 {
+	if thin := theme.TranslucentGlass(pal.Card, &pal, s); thin.A < 250 {
 		t.Errorf("the card over a thin wash is %v", thin)
 	}
 	s.Vibrancy = false
-	if off := translucentGlass(pal.card, &pal, s); off != pal.card {
-		t.Errorf("the card without translucency is %v, not %v", off, pal.card)
+	if off := theme.TranslucentGlass(pal.Card, &pal, s); off != pal.Card {
+		t.Errorf("the card without translucency is %v, not %v", off, pal.Card)
 	}
 }
 

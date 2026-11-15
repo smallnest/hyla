@@ -29,6 +29,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/remote"
 	"hyla/internal/settings"
+	"hyla/internal/ui/theme"
 
 	"hyla/locales"
 )
@@ -1210,7 +1211,7 @@ func (a *App) termThemes() (light, dark *terminal.Theme) {
 		}
 		return def
 	}
-	return pick(a.set.LightTheme, lightTermTheme), pick(a.set.DarkTheme, darkTermTheme)
+	return pick(a.set.LightTheme, theme.LightTerm()), pick(a.set.DarkTheme, theme.DarkTerm())
 }
 
 // commandKeys are the keys that, with ⌘ alone on a Mac, send the program a

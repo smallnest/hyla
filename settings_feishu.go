@@ -12,6 +12,7 @@ import (
 	"hyla/internal/feishu"
 	"hyla/internal/proto"
 	"hyla/internal/settings"
+	"hyla/internal/ui/theme"
 	"hyla/locales"
 )
 
@@ -73,7 +74,7 @@ func (a *App) feishuState(cl *client.Client) (proto.FeishuState, bool) {
 }
 
 // feishuPage is Settings › Feishu.
-func (a *App) feishuPage(c *ui.Context, pal *palette) {
+func (a *App) feishuPage(c *ui.Context, pal *theme.Palette) {
 	a.feishuGroup(c, pal)
 	if settings.FeishuSet(a.applied.Feishu) {
 		a.feishuYoloGroup(c, pal)
@@ -83,7 +84,7 @@ func (a *App) feishuPage(c *ui.Context, pal *palette) {
 // feishuYoloGroup is Settings › Feishu's yolo modes: every agent runs
 // without its permission prompts or sandbox, as feishu-yolo says, unless
 // an agent's switch turns it off.
-func (a *App) feishuYoloGroup(c *ui.Context, pal *palette) {
+func (a *App) feishuYoloGroup(c *ui.Context, pal *theme.Palette) {
 	s := &a.set
 	if s.Feishu == nil {
 		return
@@ -112,7 +113,7 @@ func (a *App) feishuYoloGroup(c *ui.Context, pal *palette) {
 
 // feishuGroup is Settings › Feishu: the app and its secret, who
 // may use the bot, how a prompt runs, and what its cards show.
-func (a *App) feishuGroup(c *ui.Context, pal *palette) {
+func (a *App) feishuGroup(c *ui.Context, pal *theme.Palette) {
 	d := &a.ss.feishu
 	set := a.applied.Feishu
 	setup := settings.FeishuSet(set)
@@ -144,13 +145,13 @@ func (a *App) feishuGroup(c *ui.Context, pal *palette) {
 		settingRow(c, pal, locales.SetFeishuAppId(), a.feishuStatusLine(d), func() {
 			textField(c, "feishu-app", &d.app, "cli_…", 200, pal)
 			if d.busy {
-				ui.Text(c, locales.SetFeishuConnecting()).FontSize(12.5).TextColor(pal.textMuted).SingleLine()
+				ui.Text(c, locales.SetFeishuConnecting()).FontSize(12.5).TextColor(pal.TextMuted).SingleLine()
 			} else if button(c, "feishu-connect", locales.SetFeishuCheck(), "", true, pal) {
 				a.feishuConnect(d)
 			}
 		})
 		if d.err != "" {
-			ui.Text(c, d.err).FontSize(12).TextColor(pal.attention).LineHeight(1.35).Wrap().Padding(0, 0, 10, 0)
+			ui.Text(c, d.err).FontSize(12).TextColor(pal.Attention).LineHeight(1.35).Wrap().Padding(0, 0, 10, 0)
 		}
 	})
 	settingsGroup(c, pal, "", "", func() {
@@ -208,7 +209,7 @@ func (a *App) feishuGroup(c *ui.Context, pal *palette) {
 // feishuRunRow is the row of how a prompt runs its agent: a setting the
 // app applies and saves as the segment changes, as the pages' other
 // controls do, not a field of the form, which a submit saves.
-func (a *App) feishuRunRow(c *ui.Context, pal *palette) {
+func (a *App) feishuRunRow(c *ui.Context, pal *theme.Palette) {
 	f := a.set.Feishu
 	if f == nil {
 		return
@@ -220,7 +221,7 @@ func (a *App) feishuRunRow(c *ui.Context, pal *palette) {
 }
 
 // feishuRow is the group of a row, its controls by build.
-func (a *App) feishuRow(c *ui.Context, pal *palette, label, detail string, build func()) {
+func (a *App) feishuRow(c *ui.Context, pal *theme.Palette, label, detail string, build func()) {
 	// The title, as its row reads it.
 	title := label
 	settingsGroup(c, pal, label, "", func() {

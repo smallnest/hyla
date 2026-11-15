@@ -13,6 +13,7 @@ import (
 
 	"hyla/internal/remote"
 	"hyla/internal/settings"
+	"hyla/internal/ui/theme"
 
 	"hyla/locales"
 )
@@ -46,30 +47,30 @@ type tailcatDraft struct {
 
 // tailcatGroup is Settings › Hosts › Tailcat: the switch, and with it on,
 // the hosts Hyla adds and this machine as a host.
-func (a *App) tailcatGroup(c *ui.Context, pal *palette) {
+func (a *App) tailcatGroup(c *ui.Context, pal *theme.Palette) {
 	settingsGroup(c, pal, locales.SetTailcatTitle(), "", func() {
 		d := &a.ss.tailcat
 		if d.listenPort == "" {
 			a.resetTailcat()
 		}
 		if groupRows++; groupRows > 1 {
-			ui.Box(c).Height(1).Shrink(0).Background(pal.text.Alpha(0.07))
+			ui.Box(c).Height(1).Shrink(0).Background(pal.Text.Alpha(0.07))
 		}
 		// The relay both ways: the machines added are found through it, and
 		// so is this machine's listener.
 		ui.Column(c).Gap(6).Children(func() {
-			ui.Text(c, locales.SetTailcatRelay()).FontSize(13.5).TextColor(pal.text)
+			ui.Text(c, locales.SetTailcatRelay()).FontSize(13.5).TextColor(pal.Text)
 			if in := textField(c, "tailcat-relay", &d.relay, remote.DefaultDERPMapURL, 0, pal); in.Submitted() {
 				d.save(a, "tailcat-relay")
 			}
 		})
 		tailcatFieldErr(c, pal, d, "tailcat-relay")
 		if groupRows++; groupRows > 1 {
-			ui.Box(c).Height(1).Shrink(0).Background(pal.text.Alpha(0.07))
+			ui.Box(c).Height(1).Shrink(0).Background(pal.Text.Alpha(0.07))
 		}
 		a.tailcatHosts(c, pal)
 		if groupRows++; groupRows > 1 {
-			ui.Box(c).Height(1).Shrink(0).Background(pal.text.Alpha(0.07))
+			ui.Box(c).Height(1).Shrink(0).Background(pal.Text.Alpha(0.07))
 		}
 		a.tailcatListen(c, pal, d)
 	})
@@ -95,7 +96,7 @@ func (a *App) resetTailcat() {
 }
 
 // tailcatSettingRow is settingRow, which is no row of its group's, here.
-func tailcatSettingRow(c *ui.Context, pal *palette, label, detail string, control func()) {
+func tailcatSettingRow(c *ui.Context, pal *theme.Palette, label, detail string, control func()) {
 	n := groupRows
 	settingRow(c, pal, label, detail, control)
 	groupRows = n
@@ -104,7 +105,7 @@ func tailcatSettingRow(c *ui.Context, pal *palette, label, detail string, contro
 // tailcatListen is this machine as a host over Tailcat: the switch of
 // hylad's tailcat listener here, its port, and the pair code Hyla on
 // other machines adds with.
-func (a *App) tailcatListen(c *ui.Context, pal *palette, d *tailcatDraft) {
+func (a *App) tailcatListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) {
 	on := hasTailcatListener(&a.set)
 	detail := locales.SetTailcatListenDetail()
 	if on {
@@ -113,9 +114,9 @@ func (a *App) tailcatListen(c *ui.Context, pal *palette, d *tailcatDraft) {
 	ui.Column(c).Padding(11, 0).Gap(8).Children(func() {
 		ui.Row(c).Gap(16).AlignItems(ui.Center).Children(func() {
 			ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
-				ui.Text(c, locales.SetTailcatListen()).FontSize(13.5).TextColor(pal.text)
+				ui.Text(c, locales.SetTailcatListen()).FontSize(13.5).TextColor(pal.Text)
 				if detail != "" {
-					ui.Text(c, detail).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
+					ui.Text(c, detail).FontSize(12).TextColor(pal.TextMuted).LineHeight(1.35)
 				}
 			})
 			ui.Row(c).Shrink(0).AlignItems(ui.Center).Children(func() {
@@ -140,9 +141,9 @@ func (a *App) tailcatListen(c *ui.Context, pal *palette, d *tailcatDraft) {
 		}
 		ui.Row(c).Gap(16).AlignItems(ui.Center).Children(func() {
 			ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
-				ui.Text(c, locales.SetTailcatListenPort()).FontSize(13.5).TextColor(pal.text)
+				ui.Text(c, locales.SetTailcatListenPort()).FontSize(13.5).TextColor(pal.Text)
 				if d := locales.SetTailcatListenPortDetail(); d != "" {
-					ui.Text(c, d).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
+					ui.Text(c, d).FontSize(12).TextColor(pal.TextMuted).LineHeight(1.35)
 				}
 			})
 			if in := textField(c, "tailcat-listen-port", &d.listenPort, settings.TailcatListenPortDefault(), 70, pal); in.Submitted() {
@@ -151,9 +152,9 @@ func (a *App) tailcatListen(c *ui.Context, pal *palette, d *tailcatDraft) {
 		})
 		tailcatFieldErr(c, pal, d, "tailcat-listen-port")
 		ui.Column(c).Gap(3).Children(func() {
-			ui.Text(c, locales.SetTailcatCode()).FontSize(13.5).TextColor(pal.text)
+			ui.Text(c, locales.SetTailcatCode()).FontSize(13.5).TextColor(pal.Text)
 			if d := locales.SetTailcatCodeDetail(); d != "" {
-				ui.Text(c, d).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
+				ui.Text(c, d).FontSize(12).TextColor(pal.TextMuted).LineHeight(1.35)
 			}
 		})
 		// What other machines add with the code, as a phone scans it:
@@ -162,12 +163,12 @@ func (a *App) tailcatListen(c *ui.Context, pal *palette, d *tailcatDraft) {
 			qrcode.View(c, d.qr).Size(160, 160).Shrink(0)
 		}
 		ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
-			code, col := d.code, pal.text
+			code, col := d.code, pal.Text
 			switch {
 			case d.codeErr != "":
-				code, col = d.codeErr, pal.danger
+				code, col = d.codeErr, pal.Danger
 			case code == "":
-				code, col = locales.SetTailcatStarting(), pal.textMuted
+				code, col = locales.SetTailcatStarting(), pal.TextMuted
 			}
 			ui.Text(c, code).Font("monospace").FontSize(12.5).TextColor(col).LineHeight(1.35).Selectable().MinWidth(0)
 			ui.Row(c).Grow(1)
@@ -200,9 +201,9 @@ func (a *App) tailcatListen(c *ui.Context, pal *palette, d *tailcatDraft) {
 }
 
 // tailcatFieldErr is the reason a field of the group failed, under it.
-func tailcatFieldErr(c *ui.Context, pal *palette, d *tailcatDraft, key string) {
+func tailcatFieldErr(c *ui.Context, pal *theme.Palette, d *tailcatDraft, key string) {
 	if d.err.key == key {
-		ui.Text(c, d.err.err).FontSize(12).TextColor(pal.danger)
+		ui.Text(c, d.err.err).FontSize(12).TextColor(pal.Danger)
 	}
 }
 
@@ -274,15 +275,15 @@ func errorText(err error) string {
 
 // tcpListen is this machine on its own network: a tcp:// listener, whose
 // address and password a client of Hyla, or of HylaPocket, takes.
-func (a *App) tcpListen(c *ui.Context, pal *palette, d *tailcatDraft) {
+func (a *App) tcpListen(c *ui.Context, pal *theme.Palette, d *tailcatDraft) {
 	on := hasTCPListener(&a.set)
 	detail := locales.SetTCPListenDetail()
 	ui.Column(c).Padding(11, 0).Gap(8).Children(func() {
 		ui.Row(c).Gap(16).AlignItems(ui.Center).Children(func() {
 			ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
-				ui.Text(c, locales.SetTCP()).FontSize(13.5).TextColor(pal.text)
+				ui.Text(c, locales.SetTCP()).FontSize(13.5).TextColor(pal.Text)
 				if detail != "" {
-					ui.Text(c, detail).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
+					ui.Text(c, detail).FontSize(12).TextColor(pal.TextMuted).LineHeight(1.35)
 				}
 			})
 			ui.Row(c).Shrink(0).AlignItems(ui.Center).Children(func() {
@@ -321,9 +322,9 @@ func (a *App) tcpListen(c *ui.Context, pal *palette, d *tailcatDraft) {
 		}
 		ui.Row(c).Gap(16).AlignItems(ui.Center).Children(func() {
 			ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
-				ui.Text(c, locales.SetTCPAddress()).FontSize(13.5).TextColor(pal.text)
+				ui.Text(c, locales.SetTCPAddress()).FontSize(13.5).TextColor(pal.Text)
 				if d := locales.SetTCPAddressDetail(); d != "" {
-					ui.Text(c, d).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
+					ui.Text(c, d).FontSize(12).TextColor(pal.TextMuted).LineHeight(1.35)
 				}
 			})
 			if in := textField(c, "tcp-addr", &d.tcpAddr, ":"+remote.PocketPort, 140, pal).Font("monospace"); in.Submitted() {
@@ -332,13 +333,13 @@ func (a *App) tcpListen(c *ui.Context, pal *palette, d *tailcatDraft) {
 		})
 		tailcatFieldErr(c, pal, d, "tcp-addr")
 		ui.Column(c).Gap(3).Children(func() {
-			ui.Text(c, locales.SetTCPPassword()).FontSize(13.5).TextColor(pal.text)
+			ui.Text(c, locales.SetTCPPassword()).FontSize(13.5).TextColor(pal.Text)
 			if d := locales.SetTCPPasswordDetail(); d != "" {
-				ui.Text(c, d).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
+				ui.Text(c, d).FontSize(12).TextColor(pal.TextMuted).LineHeight(1.35)
 			}
 		})
 		ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, d.tcpToken).Font("monospace").FontSize(12.5).TextColor(pal.text).Selectable().MinWidth(0)
+			ui.Text(c, d.tcpToken).Font("monospace").FontSize(12.5).TextColor(pal.Text).Selectable().MinWidth(0)
 			ui.Row(c).Grow(1)
 			icon, label := copyIcon, locales.HostCopyAddress()
 			if time.Since(d.copied) < 1500*time.Millisecond {
@@ -372,7 +373,7 @@ func (a *App) tcpListen(c *ui.Context, pal *palette, d *tailcatDraft) {
 			return
 		}
 		ui.Column(c).Gap(3).Children(func() {
-			ui.Text(c, locales.SetTCPQR()).FontSize(13.5).TextColor(pal.text)
+			ui.Text(c, locales.SetTCPQR()).FontSize(13.5).TextColor(pal.Text)
 		})
 		// The code carries the address and the password together, as a
 		// client of the listener takes them: tcp://host:port?token=….
@@ -382,9 +383,9 @@ func (a *App) tcpListen(c *ui.Context, pal *palette, d *tailcatDraft) {
 				qrcode.View(c, q).Size(140, 140).Shrink(0)
 			}
 			ui.Column(c).Gap(4).Grow(1).MinWidth(0).Children(func() {
-				ui.Text(c, code).Font("monospace").FontSize(12.5).TextColor(pal.text).Selectable().SingleLine().Ellipsis("…")
+				ui.Text(c, code).Font("monospace").FontSize(12.5).TextColor(pal.Text).Selectable().SingleLine().Ellipsis("…")
 				for _, addr := range addrs {
-					ui.Text(c, addr).Font("monospace").FontSize(12).TextColor(pal.textFaint).Selectable().SingleLine().Ellipsis("…")
+					ui.Text(c, addr).Font("monospace").FontSize(12).TextColor(pal.TextFaint).Selectable().SingleLine().Ellipsis("…")
 				}
 			})
 		})

@@ -27,6 +27,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/settings"
 	"hyla/internal/shell"
+	"hyla/internal/ui/theme"
 	"hyla/internal/ui/wash"
 
 	"hyla/locales"
@@ -197,7 +198,7 @@ func durationWords(d time.Duration) string {
 }
 
 func (a *App) settingsView(c *ui.Context) {
-	pal := paletteFor(c)
+	pal := theme.For(c)
 	c.SetTheme(borderless(c, pal))
 	if a.ss.toast != "" {
 		c.Toast(a.ss.toast)
@@ -206,7 +207,7 @@ func (a *App) settingsView(c *ui.Context) {
 	found := a.searchSettings()
 	c.OnShortcut(ui.Cmd, ui.KeyF, func() { a.ss.searchRef.Focus(c) })
 	row := ui.Row(c).Fill().AlignItems(ui.Stretch)
-	backdrop(c, pal, row, a.set)
+	theme.Backdrop(c, pal, row, a.set)
 	row.Children(func() {
 		// Under the traffic lights on macOS; elsewhere the search starts
 		// the sidebar, centered on barMid as the page's title and the
@@ -223,14 +224,14 @@ func (a *App) settingsView(c *ui.Context) {
 				}
 			}
 			if found != nil && len(found) == 0 {
-				ui.Text(c, locales.CommonNoResults()).FontSize(13).TextColor(pal.textFaint).Padding(8, 10)
+				ui.Text(c, locales.CommonNoResults()).FontSize(13).TextColor(pal.TextFaint).Padding(8, 10)
 			}
 			ui.Spacer(c)
 			link := ui.ButtonBase(c.Key("open-config")).Padding(6, 10).Gap(6).Radius(7).AlignItems(ui.Center).Label(locales.SettingsOpenConfigLabel())
-			fg := pal.textMuted
+			fg := pal.TextMuted
 			if link.Hovered() {
-				fg = pal.text
-				link.Background(pal.rowHover)
+				fg = pal.Text
+				link.Background(pal.RowHover)
 			}
 			link.TextColor(fg).Tooltip(proto.ShortDir(settings.Path())).Children(func() {
 				ui.Icon(c, glyph("f7-chevron-left-slash-chevron-right")).Size(13, 13)
@@ -241,7 +242,7 @@ func (a *App) settingsView(c *ui.Context) {
 			}
 		})
 		ui.Column(c).Grow(1).MinWidth(0).Padding(cardGap, cardGap, cardGap, 0).Children(func() {
-			card := raised(ui.Column(c).Grow(1).MinHeight(0).Radius(14).Background(pal.card), pal).Clip()
+			card := raised(ui.Column(c).Grow(1).MinHeight(0).Radius(14).Background(pal.Card), pal).Clip()
 			card.Children(func() {
 				page := settingsPages[0]
 				for _, p := range settingsPages {
@@ -297,14 +298,14 @@ func (a *App) settingsView(c *ui.Context) {
 						})
 					})
 					edge := ui.Box(c.Key("edge")).Absolute().Top(0).Left(0).Right(0).Height(headerH).PassThrough().
-						Material(glass.ScrollEdge{Hard: true, Background: pal.card})
+						Material(glass.ScrollEdge{Hard: true, Background: pal.Card})
 					edge.Opacity(edge.Animate("on", b2f(edgeOn), 160*time.Millisecond))
 					ui.Row(c).Absolute().Top(0).Left(0).Right(0).Height(headerH).AlignItems(ui.Center).Padding(0, 10, 0, 24).DragWindow().Children(func() {
-						ui.Text(c, page.title()).FontSize(15).FontWeight(650).TextColor(pal.text)
+						ui.Text(c, page.title()).FontSize(15).FontWeight(650).TextColor(pal.Text)
 						if page.experimental {
 							ui.Row(c.Key("experimental")).Height(18).Margin(0, 0, 0, 8).Padding(0, 6).Radius(5).AlignItems(ui.Center).Shrink(0).
-								Background(pal.attention.Alpha(0.14)).Children(func() {
-								ui.Text(c, locales.PageExperimental()).FontSize(11.5).FontWeight(600).TextColor(pal.attention).SingleLine()
+								Background(pal.Attention.Alpha(0.14)).Children(func() {
+								ui.Text(c, locales.PageExperimental()).FontSize(11.5).FontWeight(600).TextColor(pal.Attention).SingleLine()
 							})
 						}
 						ui.Spacer(c)
@@ -358,19 +359,19 @@ func (a *App) searchSettings() map[string][]string {
 // settingsSearch is the sidebar's search field, which finds settings in
 // every page by their labels, their keys in the configuration file, and
 // words for them.
-func (a *App) settingsSearch(c *ui.Context, pal *palette) {
+func (a *App) settingsSearch(c *ui.Context, pal *theme.Palette) {
 	var in ui.Element
 	frame := ui.Row(c.Key("search")).Cursor(ui.CursorText).Margin(0, 0, 10, 0)
 	frame.Children(func() {
-		ui.Icon(c, searchIcon).Size(13, 13).TextColor(pal.textFaint).Shrink(0)
+		ui.Icon(c, searchIcon).Size(13, 13).TextColor(pal.TextFaint).Shrink(0)
 		in = ui.TextInputBase(c.Key("in"), &a.ss.query).Bind(&a.ss.searchRef).Grow(1).MinWidth(0).AlignSelf(ui.Stretch).FontSize(13).
 			Placeholder(locales.CommonSearch()).Label(locales.SettingsSearchLabel())
 		in.OnShortcut(0, ui.KeyEscape, func() { a.ss.query = "" })
 		if a.ss.query != "" {
 			x := ui.ButtonBase(c.Key("clear")).Size(16, 16).Radius(8).Center().Shrink(0).Label(locales.SettingsClearSearch()).
-				Background(pal.textFaint.Alpha(0.55)).TextColor(pal.card)
+				Background(pal.TextFaint.Alpha(0.55)).TextColor(pal.Card)
 			if x.Hovered() {
-				x.Background(pal.textMuted)
+				x.Background(pal.TextMuted)
 			}
 			x.Children(func() { ui.Icon(c, closeIcon).Size(8, 8) })
 			if x.Clicked() {
@@ -382,19 +383,19 @@ func (a *App) settingsSearch(c *ui.Context, pal *palette) {
 	field(c, frame, in.Focused(), pal)
 }
 
-func (a *App) settingsNav(c *ui.Context, pal *palette, p settingsPage) {
+func (a *App) settingsNav(c *ui.Context, pal *theme.Palette, p settingsPage) {
 	sel := a.ss.page == p.id
 	item := ui.Row(c.Key(p.id)).Height(32).Padding(0, 10).Gap(10).AlignItems(ui.Center).Radius(8)
-	if pal.dark {
+	if pal.Dark {
 		item.Border(1, ui.Transparent) // room for the chosen item's edge
 	}
 	bg := ui.Transparent
 	switch {
 	case sel:
-		bg = pal.rowSelected
+		bg = pal.RowSelected
 		chosen(item, pal)
 	case item.Hovered():
-		bg = pal.rowHover
+		bg = pal.RowHover
 	}
 	item.Background(item.AnimateColor("bg", bg, ui.Animation{Duration: 110 * time.Millisecond}))
 	// A quick tap can press and release between frames; keep its click too.
@@ -403,36 +404,36 @@ func (a *App) settingsNav(c *ui.Context, pal *palette, p settingsPage) {
 		a.setRecording("")
 	}
 	item.Children(func() {
-		ic := ui.Icon(c, p.icon).Size(15, 15).TextColor(pal.textMuted)
+		ic := ui.Icon(c, p.icon).Size(15, 15).TextColor(pal.TextMuted)
 		if sel {
-			ic.TextColor(pal.accent)
+			ic.TextColor(pal.Accent)
 		}
-		ui.Text(c, p.title()).FontSize(13.5).TextColor(pal.text).SingleLine()
+		ui.Text(c, p.title()).FontSize(13.5).TextColor(pal.Text).SingleLine()
 	})
 }
 
 // groupTitle is a group's title, which the search highlights as it does
 // a setting.
-func groupTitle(c *ui.Context, pal *palette, title string) {
+func groupTitle(c *ui.Context, pal *theme.Palette, title string) {
 	row := ui.Row(c.Key("title-"+title)).Padding(0, 4)
 	row.Children(func() {
 		searchHighlight(c, row, title, pal, 2, 3)
-		ui.Text(c, title).FontSize(12).FontWeight(600).TextColor(pal.textMuted)
+		ui.Text(c, title).FontSize(12).FontWeight(600).TextColor(pal.TextMuted)
 	})
 }
 
 // group is a titled set of settings, on a soft panel.
-func settingsGroup(c *ui.Context, pal *palette, title, note string, fn func()) {
+func settingsGroup(c *ui.Context, pal *theme.Palette, title, note string, fn func()) {
 	ui.Column(c).Gap(8).Children(func() {
 		if title != "" {
 			groupTitle(c, pal, title)
 		}
 		if fn != nil { // a group of a note alone has no panel
 			groupRows = 0
-			ui.Column(c).Radius(12).Background(pal.chip).Padding(4, 16).Children(fn)
+			ui.Column(c).Radius(12).Background(pal.Chip).Padding(4, 16).Children(fn)
 		}
 		if note != "" {
-			ui.Text(c, note).FontSize(12).TextColor(pal.textFaint).LineHeight(1.4).Padding(0, 4)
+			ui.Text(c, note).FontSize(12).TextColor(pal.TextFaint).LineHeight(1.4).Padding(0, 4)
 		}
 	})
 }
@@ -442,17 +443,17 @@ func settingsGroup(c *ui.Context, pal *palette, title, note string, fn func()) {
 var groupRows int
 
 // setting is a row of a group: a label, what it does, and its control.
-func settingRow(c *ui.Context, pal *palette, label, detail string, control func()) {
+func settingRow(c *ui.Context, pal *theme.Palette, label, detail string, control func()) {
 	if groupRows++; groupRows > 1 {
-		ui.Box(c).Height(1).Shrink(0).Background(pal.text.Alpha(0.07))
+		ui.Box(c).Height(1).Shrink(0).Background(pal.Text.Alpha(0.07))
 	}
 	row := ui.Row(c.Key("row-"+label)).Padding(11, 0).Gap(16).AlignItems(ui.Center)
 	row.Children(func() {
 		searchHighlight(c, row, label, pal, 10, -2)
 		ui.Column(c).Grow(1).MinWidth(0).Gap(3).Children(func() {
-			ui.Text(c, label).FontSize(13.5).TextColor(pal.text)
+			ui.Text(c, label).FontSize(13.5).TextColor(pal.Text)
 			if detail != "" {
-				ui.Text(c, detail).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
+				ui.Text(c, detail).FontSize(12).TextColor(pal.TextMuted).LineHeight(1.35)
 			}
 		})
 		ui.Row(c).Shrink(0).Gap(8).AlignItems(ui.Center).Children(control)
@@ -463,10 +464,10 @@ func settingRow(c *ui.Context, pal *palette, label, detail string, control func(
 // shows it: a soft track, the choice a lighter fill raised a hair, thin
 // separators between the others, and labels of one weight.
 func segmented(c *ui.Context, key string, value *string, ids, labels []string) {
-	pal := paletteFor(c)
+	pal := theme.For(c)
 	i := max(slices.Index(ids, *value), 0)
 	track, thumb := ui.RGBA(0, 0, 0, 0.06), ui.Hex("#ffffff")
-	if pal.dark {
+	if pal.Dark {
 		track, thumb = ui.RGBA(255, 255, 255, 0.07), ui.RGBA(255, 255, 255, 0.2)
 	}
 	seg := ui.SegmentedBase(c.Key(key), &i, len(labels))
@@ -476,20 +477,20 @@ func segmented(c *ui.Context, key string, value *string, ids, labels []string) {
 				// A separator, where neither segment beside it is chosen.
 				sep := ui.Box(c).Width(1).Height(12).Shrink(0)
 				if n != i && n-1 != i {
-					sep.Background(pal.text.Alpha(0.14))
+					sep.Background(pal.Text.Alpha(0.14))
 				}
 			}
 			s := seg.Segment(n).FillHeight().Padding(0, 12).Radius(5).Center()
 			if n == i {
 				s.Background(thumb)
-				if pal.dark {
+				if pal.Dark {
 					s.Shadow(0, 1, 1, 0, ui.RGBA(0, 0, 0, 0.25))
 				} else {
 					s.Shadow(0, 0.5, 1.5, 0, ui.RGBA(0, 0, 0, 0.16)).Shadow(0, 0, 0, 0.5, ui.RGBA(0, 0, 0, 0.04))
 				}
 			}
 			s.Children(func() {
-				ui.Text(c, label).FontSize(12.5).SingleLine().TextColor(pal.text)
+				ui.Text(c, label).FontSize(12.5).SingleLine().TextColor(pal.Text)
 			})
 		}
 	})
@@ -497,7 +498,7 @@ func segmented(c *ui.Context, key string, value *string, ids, labels []string) {
 	seg.Track.OnChange(func() { *value = ids[i] })
 }
 
-func (a *App) generalPage(c *ui.Context, pal *palette) {
+func (a *App) generalPage(c *ui.Context, pal *theme.Palette) {
 	s := &a.set
 	settingsGroup(c, pal, locales.SetSessions(), locales.SetSessionsDetail(a.tip(strings.TrimSuffix(actionTitle("app.quitAll"), "…"), "app.quitAll")), func() {
 		settingRow(c, pal, locales.SetNewSessionsStartIn(), "", func() {
@@ -563,7 +564,7 @@ func (a *App) generalPage(c *ui.Context, pal *palette) {
 }
 
 // browserPage is Settings › Browser: what browser panes block.
-func (a *App) browserPage(c *ui.Context, pal *palette) {
+func (a *App) browserPage(c *ui.Context, pal *theme.Palette) {
 	s := &a.set
 	lists := ""
 	if s.BlockAds {
@@ -581,7 +582,7 @@ func (a *App) browserPage(c *ui.Context, pal *palette) {
 
 // adListRows are the filter lists to block with: those Hyla offers, and
 // those of other URLs the configuration names.
-func adListRows(c *ui.Context, pal *palette, s *settings.Settings) {
+func adListRows(c *ui.Context, pal *theme.Palette, s *settings.Settings) {
 	sources := slices.Clone(adblock.Catalog)
 	for _, id := range s.AdLists {
 		if src, ok := adblock.Find(id); ok && !slices.ContainsFunc(sources, func(c adblock.Source) bool { return c.ID == id }) {
@@ -629,7 +630,7 @@ func adListDetail(src adblock.Source) string {
 	return src.URL
 }
 
-func (a *App) updatesGroup(c *ui.Context, pal *palette) {
+func (a *App) updatesGroup(c *ui.Context, pal *theme.Palette) {
 	u := &a.ss.updates
 	version := "Hyla " + mygo.App.Version()
 	switch {
@@ -672,7 +673,7 @@ func materialName(id string) string {
 	return locales.SetMaterialSidebar()
 }
 
-func (a *App) appearancePage(c *ui.Context, pal *palette) {
+func (a *App) appearancePage(c *ui.Context, pal *theme.Palette) {
 	s := &a.set
 	settingsGroup(c, pal, "", "", func() {
 		settingRow(c, pal, locales.SetAppearance(), "", func() {
@@ -692,7 +693,7 @@ func (a *App) appearancePage(c *ui.Context, pal *palette) {
 			slider(c, "window-opacity", &v, 0, 1, 160, pal).OnChange(func() {
 				s.WindowOpacity = float32(int(v*100+0.5)) / 100
 			})
-			ui.Textf(c, "%.0f%%", s.WindowOpacity*100).FontSize(12.5).TextColor(pal.textMuted).Width(40).FontFeatures("tnum")
+			ui.Textf(c, "%.0f%%", s.WindowOpacity*100).FontSize(12.5).TextColor(pal.TextMuted).Width(40).FontFeatures("tnum")
 		})
 		settingRow(c, pal, locales.SetWindowBlur(), locales.SetWindowBlurDetail(), func() {
 			toggle(c.Key("window-blur"), &s.WindowBlur, pal)
@@ -718,7 +719,7 @@ func (a *App) appearancePage(c *ui.Context, pal *palette) {
 				slider(c, "sidebar-image-opacity", &v, 0, 1, 160, pal).OnChange(func() {
 					s.SidebarImageOpacity = float32(int(v*100+0.5)) / 100
 				})
-				ui.Textf(c, "%.0f%%", s.SidebarImageOpacity*100).FontSize(12.5).TextColor(pal.textMuted).Width(40).FontFeatures("tnum")
+				ui.Textf(c, "%.0f%%", s.SidebarImageOpacity*100).FontSize(12.5).TextColor(pal.TextMuted).Width(40).FontFeatures("tnum")
 			})
 		}
 		detail = locales.SetPaneImageDetail()
@@ -739,7 +740,7 @@ func (a *App) appearancePage(c *ui.Context, pal *palette) {
 				slider(c, "pane-image-opacity", &v, 0, 1, 160, pal).OnChange(func() {
 					s.PaneImageOpacity = float32(int(v*100+0.5)) / 100
 				})
-				ui.Textf(c, "%.0f%%", s.PaneImageOpacity*100).FontSize(12.5).TextColor(pal.textMuted).Width(40).FontFeatures("tnum")
+				ui.Textf(c, "%.0f%%", s.PaneImageOpacity*100).FontSize(12.5).TextColor(pal.TextMuted).Width(40).FontFeatures("tnum")
 			})
 			settingRow(c, pal, locales.SetPaneImageFit(), locales.SetPaneImageFitDetail(), func() {
 				popup(c, "pane-image-fit", &s.PaneImageFit, settings.PaneImageFits, paneFitName, 200, pal)
@@ -761,7 +762,7 @@ func (a *App) appearancePage(c *ui.Context, pal *palette) {
 				s.PetSize = float32(int(v*10+0.5)) / 10
 				a.petGrow()
 			})
-			ui.Textf(c, "%.1f×", s.PetSize).FontSize(12.5).TextColor(pal.textMuted).Width(40).FontFeatures("tnum")
+			ui.Textf(c, "%.1f×", s.PetSize).FontSize(12.5).TextColor(pal.TextMuted).Width(40).FontFeatures("tnum")
 		})
 	})
 	ui.Column(c).Gap(8).Children(func() {
@@ -855,7 +856,7 @@ func backgroundName(id, name string) string {
 }
 
 // backgroundTile previews a wash, choosing it on a click.
-func (a *App) backgroundTile(c *ui.Context, pal *palette, id, name string) {
+func (a *App) backgroundTile(c *ui.Context, pal *theme.Palette, id, name string) {
 	sel := a.set.Background == id
 	tile := ui.ButtonBase(c.Key("bg-" + id)).Column().Width(104).Gap(8).AlignItems(ui.Stretch).Label(name)
 	if tile.Clicked() {
@@ -871,20 +872,20 @@ func (a *App) backgroundTile(c *ui.Context, pal *palette, id, name string) {
 	}
 	tile.Children(func() {
 		sw := raised(ui.Box(c).Size(104, 68).Radius(12), pal).Clip()
-		base, glow := wash.Washes(id, pal.dark)
+		base, glow := wash.Washes(id, pal.Dark)
 		sw.LinearGradient(base)
 		sw.Children(func() {
 			ui.Box(c).Absolute().Top(0).Left(0).Right(0).Bottom(0).LinearGradient(glow)
 			if scene := wash.Table[id].Scene; scene != nil {
 				// The tile is little: the scene at its size, as the window
 				// has it.
-				ui.Box(c).Absolute().Top(0).Left(0).Right(0).Bottom(0).Draw(func(p *ui.Painter, r ui.Rect) { scene(p, r, pal.dark, 1) })
+				ui.Box(c).Absolute().Top(0).Left(0).Right(0).Bottom(0).Draw(func(p *ui.Painter, r ui.Rect) { scene(p, r, pal.Dark, 1) })
 			}
 			// A card on it, as the window shows them.
-			ui.Box(c).Absolute().Top(12).Left(26).Right(8).Bottom(-6).Radius(7).Background(pal.card)
-			ui.Box(c).Absolute().Top(20).Left(8).Width(12).Height(4).Radius(2).Background(pal.textFaint.Alpha(0.5))
+			ui.Box(c).Absolute().Top(12).Left(26).Right(8).Bottom(-6).Radius(7).Background(pal.Card)
+			ui.Box(c).Absolute().Top(20).Left(8).Width(12).Height(4).Radius(2).Background(pal.TextFaint.Alpha(0.5))
 			if sel {
-				ui.Box(c).Absolute().Top(6).Right(6).Size(18, 18).Radius(9).Center().Background(pal.accent).Children(func() {
+				ui.Box(c).Absolute().Top(6).Right(6).Size(18, 18).Radius(9).Center().Background(pal.Accent).Children(func() {
 					ui.Box(c).Size(10, 10).Draw(func(p *ui.Painter, r ui.Rect) {
 						ck := (&ui.Path{}).MoveTo(r.X+1, r.Y+5.2).LineTo(r.X+4, r.Y+8).LineTo(r.X+9, r.Y+2)
 						p.StrokePath(ck, 1.6, ui.Hex("#ffffff"))
@@ -892,9 +893,9 @@ func (a *App) backgroundTile(c *ui.Context, pal *palette, id, name string) {
 				})
 			}
 		})
-		lbl := ui.Text(c, name).FontSize(12.5).TextColor(pal.textMuted).TextAlign(ui.Center)
+		lbl := ui.Text(c, name).FontSize(12.5).TextColor(pal.TextMuted).TextAlign(ui.Center)
 		if sel {
-			lbl.TextColor(pal.text).FontWeight(600)
+			lbl.TextColor(pal.Text).FontWeight(600)
 		}
 	})
 }
@@ -936,7 +937,7 @@ var otherFonts = sync.OnceValue(func() []string {
 	return opts
 })
 
-func (a *App) terminalPage(c *ui.Context, pal *palette) {
+func (a *App) terminalPage(c *ui.Context, pal *theme.Palette) {
 	s := &a.set
 	a.terminalPreview(c, pal)
 	settingsGroup(c, pal, locales.SetText(), "", func() {
@@ -978,7 +979,7 @@ func (a *App) terminalPage(c *ui.Context, pal *palette) {
 		settingRow(c, pal, locales.SetLineHeight(), "", func() {
 			v := float64(s.LineHeight)
 			slider(c, "lh", &v, 1, 2, 160, pal).OnChange(func() { a.set.LineHeight = float32(int(v*100+0.5)) / 100 })
-			ui.Textf(c, "%.2f×", s.LineHeight).FontSize(12.5).TextColor(pal.textMuted).Width(40).FontFeatures("tnum")
+			ui.Textf(c, "%.2f×", s.LineHeight).FontSize(12.5).TextColor(pal.TextMuted).Width(40).FontFeatures("tnum")
 		})
 		settingRow(c, pal, locales.SetWeight(), "", func() {
 			popup(c, "weight", &s.FontWeight, []int{100, 200, 300, 400, 500, 600}, func(w int) string {
@@ -1018,7 +1019,7 @@ func (a *App) terminalPage(c *ui.Context, pal *palette) {
 			slider(c, "pane-opacity", &v, 0, 1, 160, pal).OnChange(func() {
 				s.PaneOpacity = float32(int(v*100+0.5)) / 100
 			})
-			ui.Textf(c, "%.0f%%", s.PaneOpacity*100).FontSize(12.5).TextColor(pal.textMuted).Width(40).FontFeatures("tnum")
+			ui.Textf(c, "%.0f%%", s.PaneOpacity*100).FontSize(12.5).TextColor(pal.TextMuted).Width(40).FontFeatures("tnum")
 		})
 		settingRow(c, pal, locales.SetPaneBlur(), locales.SetPaneBlurDetail(), func() {
 			toggle(c.Key("pane-blur"), &s.PaneBlur, pal)
@@ -1067,17 +1068,17 @@ func (a *App) terminalPage(c *ui.Context, pal *palette) {
 		settingRow(c, pal, locales.SetTrackpadScroll(), locales.SetTrackpadScrollDetail(), func() {
 			v := float64(s.ScrollPrecision)
 			slider(c, "trackpad", &v, 0.25, 3, 160, pal).OnChange(func() { a.set.ScrollPrecision = float32(int(v*20+0.5)) / 20 })
-			ui.Textf(c, "%.2f×", s.ScrollPrecision).FontSize(12.5).TextColor(pal.textMuted).Width(40).FontFeatures("tnum")
+			ui.Textf(c, "%.2f×", s.ScrollPrecision).FontSize(12.5).TextColor(pal.TextMuted).Width(40).FontFeatures("tnum")
 		})
 	})
 }
 
 // terminalPreview shows text as the terminals would draw it: the font,
 // its size and line height, and the colors of the window's appearance.
-func (a *App) terminalPreview(c *ui.Context, pal *palette) {
+func (a *App) terminalPreview(c *ui.Context, pal *theme.Palette) {
 	light, dark := a.termThemes()
 	th := light
-	if pal.dark {
+	if pal.Dark {
 		th = dark
 	}
 	features := uiFeatures(a.fontFeatures())
@@ -1110,13 +1111,13 @@ func (a *App) terminalPreview(c *ui.Context, pal *palette) {
 // families installed, which adds one: a font may lack Chinese, emoji or
 // icons, which a fallback of the user's draws. It returns the button that
 // adds one.
-func (a *App) fontFallbackField(c *ui.Context, pal *palette) {
+func (a *App) fontFallbackField(c *ui.Context, pal *theme.Palette) {
 	cur := a.fallbackFonts()
 	for i, f := range cur {
 		family, at := f, i
 		ui.Row(c.Key("fb-"+family)).Padding(8, 0).Gap(8).AlignItems(ui.Center).Children(func() {
-			ui.Textf(c, "%d", at+1).FontSize(12).TextColor(pal.textFaint).Width(14).FontFeatures("tnum").Shrink(0)
-			ui.Text(c, family).FontSize(13).TextColor(pal.text).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1).Grow(1)
+			ui.Textf(c, "%d", at+1).FontSize(12).TextColor(pal.TextFaint).Width(14).FontFeatures("tnum").Shrink(0)
+			ui.Text(c, family).FontSize(13).TextColor(pal.Text).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1).Grow(1)
 			iconButton(c, "fb-x-"+family, closeIcon, locales.CommonRemove(), pal, func() {
 				a.set.FontFallback = strings.Join(slices.Delete(slices.Clone(cur), at, at+1), ", ")
 			})
@@ -1182,7 +1183,7 @@ func cjkFamily(name string) bool {
 // fontFeaturesField edits font-feature as a comma-separated list. What
 // it can read applies as it is submitted or loses the focus; a tag it
 // can't is left in the field, marked, for the user to fix.
-func (a *App) fontFeaturesField(c *ui.Context, pal *palette) {
+func (a *App) fontFeaturesField(c *ui.Context, pal *theme.Palette) {
 	if !a.ss.featuresEditing {
 		a.ss.featuresDraft = strings.Join(a.set.FontFeatures, ", ")
 	}
@@ -1190,7 +1191,7 @@ func (a *App) fontFeaturesField(c *ui.Context, pal *palette) {
 	a.ss.featuresEditing = in.Focused()
 	_, err := settings.ParseFontFeatures(a.ss.featuresDraft)
 	if err != nil {
-		in.TextColor(pal.danger)
+		in.TextColor(pal.Danger)
 	}
 	keep := func() {
 		if fs, err := settings.ParseFontFeatures(a.ss.featuresDraft); err == nil && !slices.Equal(fs, a.set.FontFeatures) {
@@ -1203,7 +1204,7 @@ func (a *App) fontFeaturesField(c *ui.Context, pal *palette) {
 	}
 }
 
-func (a *App) shellPage(c *ui.Context, pal *palette) {
+func (a *App) shellPage(c *ui.Context, pal *theme.Palette) {
 	s := &a.set
 	login := shell.Login()
 	note := locales.SetShellGroupDetail()
@@ -1240,8 +1241,8 @@ func (a *App) shellPage(c *ui.Context, pal *palette) {
 		for i, kv := range s.Env {
 			k, v, _ := strings.Cut(kv, "=")
 			ui.Row(c.Key("env"+strconv.Itoa(i))).Padding(8, 0).Gap(10).AlignItems(ui.Center).Children(func() {
-				ui.Text(c, k).Font("monospace").FontSize(12.5).FontWeight(600).TextColor(pal.text)
-				ui.Text(c, v).Font("monospace").FontSize(12.5).TextColor(pal.textMuted).Grow(1).SingleLine().Ellipsis("…").MinWidth(0)
+				ui.Text(c, k).Font("monospace").FontSize(12.5).FontWeight(600).TextColor(pal.Text)
+				ui.Text(c, v).Font("monospace").FontSize(12.5).TextColor(pal.TextMuted).Grow(1).SingleLine().Ellipsis("…").MinWidth(0)
 				idx := i
 				iconButton(c, "rm", closeIcon, locales.CommonRemove(), pal, func() {
 					a.set.Env = slices.Delete(slices.Clone(a.set.Env), idx, idx+1)
@@ -1263,7 +1264,7 @@ func (a *App) shellPage(c *ui.Context, pal *palette) {
 	})
 }
 
-func (a *App) notificationsPage(c *ui.Context, pal *palette) {
+func (a *App) notificationsPage(c *ui.Context, pal *theme.Palette) {
 	s := &a.set
 	note := ""
 	if !mygo.NotificationsSupported() {
@@ -1300,7 +1301,7 @@ func (a *App) notificationsPage(c *ui.Context, pal *palette) {
 	}
 }
 
-func (a *App) agentsPage(c *ui.Context, pal *palette) {
+func (a *App) agentsPage(c *ui.Context, pal *theme.Palette) {
 	s := &a.set
 	settingsGroup(c, pal, locales.SetRemoteControl(), "", func() {
 		settingRow(c, pal, locales.SetRemoteControlRow(), locales.SetRemoteControlDetail(), func() {
@@ -1353,12 +1354,12 @@ func (a *App) agentsPage(c *ui.Context, pal *palette) {
 	codeBlock(c, pal, "hyla report working \"Deploying\" --progress 40\nhyla report blocked \"Approve the migration?\" --kind permission\nhyla report done \"Deployed\"")
 }
 
-func codeBlock(c *ui.Context, pal *palette, code string) {
-	ui.Text(c, code).Font("monospace").FontSize(12).LineHeight(1.55).TextColor(pal.text).
-		Padding(12, 16).Radius(10).Background(pal.chip).Selectable()
+func codeBlock(c *ui.Context, pal *theme.Palette, code string) {
+	ui.Text(c, code).Font("monospace").FontSize(12).LineHeight(1.55).TextColor(pal.Text).
+		Padding(12, 16).Radius(10).Background(pal.Chip).Selectable()
 }
 
-func (a *App) advancedPage(c *ui.Context, pal *palette) {
+func (a *App) advancedPage(c *ui.Context, pal *theme.Palette) {
 	settingsGroup(c, pal, locales.SetConfiguration(), locales.SetConfigurationDetail(), func() {
 		settingRow(c, pal, locales.SetConfigFile(), proto.ShortDir(settings.Path()), func() {
 			if button(c, "reveal-config", locales.CommonShowIn(fileManager()), "", false, pal) {
@@ -1371,8 +1372,8 @@ func (a *App) advancedPage(c *ui.Context, pal *palette) {
 		})
 		for i, p := range a.ss.problems {
 			ui.Row(c.Key("problem"+strconv.Itoa(i))).Padding(0, 0, 8, 0).Gap(8).AlignItems(ui.Center).Children(func() {
-				ui.Box(c).Size(6, 6).Radius(3).Background(pal.attention).Shrink(0)
-				ui.Text(c, p).FontSize(12.5).TextColor(pal.attention).Grow(1).MinWidth(0)
+				ui.Box(c).Size(6, 6).Radius(3).Background(pal.Attention).Shrink(0)
+				ui.Text(c, p).FontSize(12.5).TextColor(pal.Attention).Grow(1).MinWidth(0)
 			})
 		}
 	})
@@ -1429,7 +1430,7 @@ func (a *App) toastIn(c *ui.Context, msg string) { c.Toast(msg) }
 
 // --- keyboard ---
 
-func (a *App) keyboardPage(c *ui.Context, pal *palette) {
+func (a *App) keyboardPage(c *ui.Context, pal *theme.Palette) {
 	ui.Row(c).Gap(10).AlignItems(ui.Center).Children(func() {
 		textField(c, "kb-search", &a.ss.filter, locales.SetKeyboardSearch(), 0, pal)
 		if len(a.set.Shortcuts) > 0 && button(c, "kb-reset", locales.SetRestoreDefaults(), "", false, pal) {
@@ -1438,7 +1439,7 @@ func (a *App) keyboardPage(c *ui.Context, pal *palette) {
 		}
 	})
 	if a.ss.notice != "" {
-		ui.Text(c, a.ss.notice).FontSize(12).TextColor(pal.attention).Padding(0, 4)
+		ui.Text(c, a.ss.notice).FontSize(12).TextColor(pal.Attention).Padding(0, 4)
 	}
 	q := strings.ToLower(strings.TrimSpace(a.ss.filter))
 	menus := []string{"Hyla", "Session", "Edit", "Pane", "View"}
@@ -1464,23 +1465,23 @@ func (a *App) keyboardPage(c *ui.Context, pal *palette) {
 			}
 		})
 	}
-	ui.Text(c, locales.SetKeyboardHelp()).FontSize(12).TextColor(pal.textFaint).Padding(0, 4)
+	ui.Text(c, locales.SetKeyboardHelp()).FontSize(12).TextColor(pal.TextFaint).Padding(0, 4)
 }
 
-func (a *App) shortcutRow(c *ui.Context, pal *palette, act actions.Action) {
+func (a *App) shortcutRow(c *ui.Context, pal *theme.Palette, act actions.Action) {
 	keys := actions.Keys(act, a.set.Shortcuts)
 	_, custom := a.set.Shortcuts[act.ID]
 	ui.Row(c.Key(act.ID)).Padding(7, 0).Gap(10).AlignItems(ui.Center).Children(func() {
 		ui.Column(c).Grow(1).Gap(2).Children(func() {
-			ui.Text(c, strings.TrimSuffix(actionTitle(act.ID), "…")).FontSize(13.5).TextColor(pal.text).SingleLine()
+			ui.Text(c, strings.TrimSuffix(actionTitle(act.ID), "…")).FontSize(13.5).TextColor(pal.Text).SingleLine()
 			if act.Global {
-				ui.Text(c, locales.SetShortcutGlobal()).FontSize(11.5).TextColor(pal.textFaint).SingleLine()
+				ui.Text(c, locales.SetShortcutGlobal()).FontSize(11.5).TextColor(pal.TextFaint).SingleLine()
 			}
 		})
 		if custom && keys != act.Keys {
-			b := ui.ButtonBase(c.Key("undo")).Size(22, 22).Radius(6).Center().TextColor(pal.textFaint).Label(locales.SetUseDefault(actions.Glyphs(act.Keys))).Tooltip(locales.SetDefaultKeys(actions.Glyphs(act.Keys)))
+			b := ui.ButtonBase(c.Key("undo")).Size(22, 22).Radius(6).Center().TextColor(pal.TextFaint).Label(locales.SetUseDefault(actions.Glyphs(act.Keys))).Tooltip(locales.SetDefaultKeys(actions.Glyphs(act.Keys)))
 			if b.Hovered() {
-				b.Background(pal.rowHover).TextColor(pal.text)
+				b.Background(pal.RowHover).TextColor(pal.Text)
 			}
 			b.Children(func() { ui.Icon(c, returnIcon).Size(12, 12) })
 			if b.Clicked() {
@@ -1492,12 +1493,12 @@ func (a *App) shortcutRow(c *ui.Context, pal *palette, act actions.Action) {
 		}
 		recording := a.ss.recording == act.ID
 		chip := ui.ButtonBase(c.Key("keys")).Height(26).MinWidth(84).Padding(0, 10).Radius(7).Center().Label(locales.SetShortcutFor(strings.TrimSuffix(actionTitle(act.ID), "…")))
-		bg := pal.control
+		bg := pal.Control
 		switch {
 		case recording:
-			bg = pal.accent.Alpha(0.18)
+			bg = pal.Accent.Alpha(0.18)
 		case chip.Hovered():
-			bg = pal.controlHover
+			bg = pal.ControlHover
 		}
 		face(chip, pal, bg)
 		if chip.Clicked() && !recording {
@@ -1519,11 +1520,11 @@ func (a *App) shortcutRow(c *ui.Context, pal *palette, act actions.Action) {
 		chip.Children(func() {
 			switch {
 			case recording:
-				ui.Text(c, locales.SetTypeShortcut()).FontSize(12.5).TextColor(pal.accent).SingleLine()
+				ui.Text(c, locales.SetTypeShortcut()).FontSize(12.5).TextColor(pal.Accent).SingleLine()
 			case keys == "":
-				ui.Text(c, locales.CommonNone()).FontSize(12.5).TextColor(pal.textFaint).SingleLine()
+				ui.Text(c, locales.CommonNone()).FontSize(12.5).TextColor(pal.TextFaint).SingleLine()
 			default:
-				ui.Text(c, actions.Glyphs(keys)).FontSize(13).TextColor(pal.text).SingleLine().FontFeatures("tnum")
+				ui.Text(c, actions.Glyphs(keys)).FontSize(13).TextColor(pal.Text).SingleLine().FontFeatures("tnum")
 			}
 		})
 	})

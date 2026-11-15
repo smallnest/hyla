@@ -10,6 +10,7 @@ import (
 
 	"hyla/internal/pets"
 	"hyla/internal/proto"
+	"hyla/internal/ui/theme"
 	"hyla/locales"
 )
 
@@ -285,7 +286,7 @@ func (a *App) petNote(at time.Time) {
 // over the pet.
 func (a *App) petView(c *ui.Context) {
 	c.Root().Background(ui.Transparent)
-	pal := paletteFor(c)
+	pal := theme.For(c)
 	now := c.Now()
 	mood, n := a.petCurrent(now)
 	label, fill, fg := a.petSpeech(pal, mood, n)
@@ -310,7 +311,7 @@ func (a *App) petView(c *ui.Context) {
 				bubble := ui.Row(c.Key("bubble")).Height(petBubbleH).Padding(0, 11).Radius(petBubbleH / 2).Gap(6).
 					AlignItems(ui.Center).Background(fill).MaxWidth(petW - 6).Shrink(1)
 				if mood == petWorking {
-					bubble.Shadow(0, 2, 10, 0, pal.floatShadow).Border(0.5, pal.cardBorder)
+					bubble.Shadow(0, 2, 10, 0, pal.FloatShadow).Border(0.5, pal.CardBorder)
 				}
 				bubble.Children(func() {
 					if mood == petWorking && showing {
@@ -391,20 +392,20 @@ func petDescription(name, label string) string {
 }
 
 // petSpeech says what the pet's bubble says, and how it looks.
-func (a *App) petSpeech(pal *palette, mood petMood, n int) (label string, fill, fg ui.Color) {
+func (a *App) petSpeech(pal *theme.Palette, mood petMood, n int) (label string, fill, fg ui.Color) {
 	switch mood {
 	case petWaiting:
-		return locales.FooterNeedsYou(n), pal.attention, ui.Hex("#241a08")
+		return locales.FooterNeedsYou(n), pal.Attention, ui.Hex("#241a08")
 	case petFailed:
 		label = locales.StatusFailed()
 		if n > 1 {
 			label += " · " + strconv.Itoa(n)
 		}
-		return label, pal.danger, ui.Hex("#ffffff")
+		return label, pal.Danger, ui.Hex("#ffffff")
 	case petDone:
-		return locales.FooterDone(n), pal.done, pal.onDone
+		return locales.FooterDone(n), pal.Done, pal.OnDone
 	case petWorking:
-		return locales.FooterWorking(n), pal.popover, pal.textMuted
+		return locales.FooterWorking(n), pal.Popover, pal.TextMuted
 	}
 	return "", ui.Transparent, ui.Transparent
 }

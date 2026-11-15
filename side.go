@@ -14,6 +14,7 @@ import (
 
 	"hyla/internal/git"
 	"hyla/internal/proto"
+	"hyla/internal/ui/theme"
 
 	"hyla/locales"
 )
@@ -209,12 +210,12 @@ func (a *App) sideWidth(w float32) float32 {
 // sideEdge is the gap between the panes and the panel, which a drag moves,
 // and whose edge takes the pointer on either side of it, over the panes
 // and the panel too, which would take it from all but its gap.
-func (a *App) sideEdge(c *ui.Context, pal *palette, row float32) {
+func (a *App) sideEdge(c *ui.Context, pal *theme.Palette, row float32) {
 	d := ui.Box(c.Key("side-edge")).Absolute().Top(0).Bottom(0).Width(sideGap + 8).Right(a.sideWidth(row)).
 		Cursor(ui.CursorResizeColumn).KeepFocus()
 	if d.Hovered() || d.Pressed() {
 		d.Draw(func(p *ui.Painter, r ui.Rect) {
-			p.Fill(ui.Rect{X: r.X + r.W/2 - 1.5, Y: r.Y + r.H/2 - 18, W: 3, H: 36}, pal.textFaint.Alpha(0.7), 1.5)
+			p.Fill(ui.Rect{X: r.X + r.W/2 - 1.5, Y: r.Y + r.H/2 - 18, W: 3, H: 36}, pal.TextFaint.Alpha(0.7), 1.5)
 		})
 	}
 	if dx, _, ok := d.Dragged(); ok {
@@ -236,8 +237,8 @@ func (a *App) sideEdge(c *ui.Context, pal *palette, row float32) {
 // sidePanel is the panel's card: its header, then its view. top and right
 // tell that it touches the window's top and right edges, where its header
 // drags the window and holds the window's controls (windowControls).
-func (a *App) sidePanel(c *ui.Context, pal *palette, s *proto.Session, width float32, right bool) {
-	card := ui.Column(c.Key("side")).Width(width).Shrink(0).MinHeight(0).Radius(14).Clip().Background(translucentGlass(pal.card, pal, a.set)).
+func (a *App) sidePanel(c *ui.Context, pal *theme.Palette, s *proto.Session, width float32, right bool) {
+	card := ui.Column(c.Key("side")).Width(width).Shrink(0).MinHeight(0).Radius(14).Clip().Background(theme.TranslucentGlass(pal.Card, pal, a.set)).
 		Focusable().Bind(a.paneRef("side-card"))
 	raised(card, pal)
 	a.side.focused = card.FocusWithin()
@@ -305,17 +306,17 @@ func (a *App) sidePanel(c *ui.Context, pal *palette, s *proto.Session, width flo
 // one shown in the text's color, the others faint. The header drags the
 // window where no tab is, as the window controls are, which the tabs are
 // part of as windowControls' buttons are.
-func (a *App) sideTabButton(c *ui.Context, pal *palette, id, label string, svg *ui.SVG, on bool, action string, fn func()) {
-	fg := pal.textFaint
+func (a *App) sideTabButton(c *ui.Context, pal *theme.Palette, id, label string, svg *ui.SVG, on bool, action string, fn func()) {
+	fg := pal.TextFaint
 	if on {
-		fg = pal.text
+		fg = pal.Text
 	}
 	b := ui.ButtonBase(c.Key("tab-"+id)).Height(26).Gap(5).Padding(0, 7).Radius(6).AlignItems(ui.Center).Shrink(0).
 		Cursor(ui.CursorPointer).Label(a.tip(label, action))
 	if on {
-		b.Background(pal.chip)
+		b.Background(pal.Chip)
 	} else if b.Hovered() {
-		b.Background(pal.rowHover)
+		b.Background(pal.RowHover)
 	}
 	if b.Clicked() {
 		fn()
@@ -382,7 +383,7 @@ func gitStamp(g *proto.GitInfo) string {
 	return fmt.Sprint(g.Root, g.Head, g.Branch, g.Files, g.Added, g.Removed)
 }
 
-func (a *App) changesView(c *ui.Context, pal *palette, s *proto.Session, width float32) {
+func (a *App) changesView(c *ui.Context, pal *theme.Palette, s *proto.Session, width float32) {
 	ch := &a.side.changes
 	here, turn := a.changesPanes(s)
 	if !a.set.GitStatus {
@@ -462,13 +463,13 @@ func (a *App) changesView(c *ui.Context, pal *palette, s *proto.Session, width f
 				for _, f := range res.Files {
 					added, removed = added+f.Added, removed+f.Removed
 				}
-				ui.Text(c, locales.ChangesFiles(len(res.Files))).FontSize(12.5).TextColor(pal.textMuted).SingleLine().Shrink(0)
+				ui.Text(c, locales.ChangesFiles(len(res.Files))).FontSize(12.5).TextColor(pal.TextMuted).SingleLine().Shrink(0)
 				a.lineCounts(c, pal, added, removed, 12.5)
 				if ch.base == git.BaseBranch && res.BaseName != "" {
-					ui.Text(c, locales.ChangesSince(res.BaseName)).FontSize(12.5).TextColor(pal.textFaint).SingleLine().Ellipsis("…").MinWidth(0)
+					ui.Text(c, locales.ChangesSince(res.BaseName)).FontSize(12.5).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").MinWidth(0)
 				}
 			} else {
-				ui.Text(c, tips[i]).FontSize(12.5).TextColor(pal.textFaint).SingleLine().Ellipsis("…").MinWidth(0)
+				ui.Text(c, tips[i]).FontSize(12.5).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").MinWidth(0)
 			}
 			ui.Spacer(c)
 			split := a.diffSplit(width)
@@ -550,7 +551,7 @@ func (a *App) changesView(c *ui.Context, pal *palette, s *proto.Session, width f
 				if i+1 < len(rows) && rows[i+1].diff {
 					gap = 0
 				}
-				ui.Column(c).FillWidth().AlignItems(ui.Stretch).Padding(0, 0, gap, 0).Background(translucentGlass(pal.card, pal, a.set)).Children(func() {
+				ui.Column(c).FillWidth().AlignItems(ui.Stretch).Padding(0, 0, gap, 0).Background(theme.TranslucentGlass(pal.Card, pal, a.set)).Children(func() {
 					a.fileHeader(c, pal, scope, res.Root, r.f, func() {
 						// Folding it as the list pins it brings it back where
 						// it stays: at the top.
@@ -638,7 +639,7 @@ func (a *App) fileCollapsed(scope string, f proto.GitFile) bool {
 
 // fileDiff is a changed file's diff, under its header, or why it shows
 // none.
-func (a *App) fileDiff(c *ui.Context, pal *palette, s *proto.Session, scope string, f proto.GitFile, width float32) {
+func (a *App) fileDiff(c *ui.Context, pal *theme.Palette, s *proto.Session, scope string, f proto.GitFile, width float32) {
 	ch := &a.side.changes
 	sf := ch.files[scope+"|"+f.Path]
 	ui.Column(c).FillWidth().AlignItems(ui.Stretch).Padding(4, 0, sectionGap, 0).Children(func() {
@@ -664,14 +665,14 @@ func (a *App) fileDiff(c *ui.Context, pal *palette, s *proto.Session, scope stri
 // fileHeader is a changed file's header: its change, its name and folder
 // and the lines it adds and removes, which a click folds or unfolds,
 // running folding first when set.
-func (a *App) fileHeader(c *ui.Context, pal *palette, scope, root string, f proto.GitFile, folding func()) {
+func (a *App) fileHeader(c *ui.Context, pal *theme.Palette, scope, root string, f proto.GitFile, folding func()) {
 	ch := &a.side.changes
 	key := scope + "|" + f.Path
 	collapsed := a.fileCollapsed(scope, f)
 	// Across the panel, edge to edge, its content in line with the bases'.
-	hdr := ui.Row(c.Key("hdr")).Height(stickyH).Padding(0, 10, 0, 12).Gap(8).AlignItems(ui.Center).Background(pal.chip)
+	hdr := ui.Row(c.Key("hdr")).Height(stickyH).Padding(0, 10, 0, 12).Gap(8).AlignItems(ui.Center).Background(pal.Chip)
 	if hdr.Hovered() {
-		hdr.Background(pal.rowHover.Mix(pal.chip, 0.5))
+		hdr.Background(pal.RowHover.Mix(pal.Chip, 0.5))
 	}
 	tip := f.Path
 	if f.OldPath != "" {
@@ -688,18 +689,18 @@ func (a *App) fileHeader(c *ui.Context, pal *palette, scope, root string, f prot
 		ch.collapsed[key] = !collapsed
 	}
 	hdr.Children(func() {
-		chev := ui.Icon(c, chevronIcon).Size(10, 10).TextColor(pal.textFaint).Shrink(0)
+		chev := ui.Icon(c, chevronIcon).Size(10, 10).TextColor(pal.TextFaint).Shrink(0)
 		chev.Rotate(chev.AnimateTo("turn", 90*(1-b2f(collapsed)), ui.Snappy))
 		a.statusBadge(c, pal, f.Status)
 		dir, name := path.Split(f.Path)
-		fg := pal.text
+		fg := pal.Text
 		if f.Status == "deleted" {
-			fg = pal.textMuted
+			fg = pal.TextMuted
 		}
 		ui.Text(c, name).FontSize(13).FontWeight(600).TextColor(fg).SingleLine().Ellipsis("…").Shrink(0).MaxWidth(260)
-		ui.Text(c, strings.TrimSuffix(dir, "/")).FontSize(12).TextColor(pal.textFaint).SingleLine().Ellipsis("…").Grow(1).MinWidth(0)
+		ui.Text(c, strings.TrimSuffix(dir, "/")).FontSize(12).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").Grow(1).MinWidth(0)
 		if f.Binary {
-			ui.Text(c, locales.ChangesBinary()).FontSize(11.5).TextColor(pal.textFaint).SingleLine()
+			ui.Text(c, locales.ChangesBinary()).FontSize(11.5).TextColor(pal.TextFaint).SingleLine()
 		} else {
 			a.lineCounts(c, pal, f.Added, f.Removed, 12)
 		}
@@ -711,8 +712,8 @@ func (a *App) fileHeader(c *ui.Context, pal *palette, scope, root string, f prot
 }
 
 // sectionNote says why a file shows no diff.
-func (a *App) sectionNote(c *ui.Context, pal *palette, text string) {
-	ui.Text(c, text).FontSize(12.5).TextColor(pal.textMuted).Padding(10, 12).LineHeight(1.4)
+func (a *App) sectionNote(c *ui.Context, pal *theme.Palette, text string) {
+	ui.Text(c, text).FontSize(12.5).TextColor(pal.TextMuted).Padding(10, 12).LineHeight(1.4)
 }
 
 // fetchChanges asks hylad for the list of a pane's changes since a base.
@@ -749,7 +750,7 @@ func (a *App) fetchChanges(scope, stamp, pane, base string) {
 
 // statusBadge is a file's change as a letter in its color: A added, M
 // modified, D deleted, R renamed, T a change of type.
-func (a *App) statusBadge(c *ui.Context, pal *palette, status string) {
+func (a *App) statusBadge(c *ui.Context, pal *theme.Palette, status string) {
 	added, removed, modified := a.diffColors(pal)
 	letter, col := "M", modified
 	switch status {
@@ -769,7 +770,7 @@ func (a *App) statusBadge(c *ui.Context, pal *palette, status string) {
 
 // lineCounts shows lines added and removed, as +12 −3, in the diffs'
 // colors; nothing for none.
-func (a *App) lineCounts(c *ui.Context, pal *palette, added, removed int, size float32) {
+func (a *App) lineCounts(c *ui.Context, pal *theme.Palette, added, removed int, size float32) {
 	if added == 0 && removed == 0 {
 		return
 	}
@@ -787,22 +788,22 @@ func (a *App) lineCounts(c *ui.Context, pal *palette, added, removed int, size f
 // diffColors are the colors of lines added, removed and modified: the
 // terminals' green, red and yellow, so that a diff reads as one printed in
 // the pane beside it.
-func (a *App) diffColors(pal *palette) (added, removed, modified ui.Color) {
+func (a *App) diffColors(pal *theme.Palette) (added, removed, modified ui.Color) {
 	light, dark := a.termThemes()
 	t := light
-	if pal.dark {
+	if pal.Dark {
 		t = dark
 	}
 	return t.Palette[2], t.Palette[1], t.Palette[3]
 }
 
 // codeTheme is the diffs' colors: the card's, with the diff colors.
-func (a *App) codeTheme(c *ui.Context, pal *palette) *editor.Theme {
+func (a *App) codeTheme(c *ui.Context, pal *theme.Palette) *editor.Theme {
 	added, removed, modified := a.diffColors(pal)
-	key := fmt.Sprint(pal.dark, added, removed, modified)
+	key := fmt.Sprint(pal.Dark, added, removed, modified)
 	if a.side.theme == nil || a.side.themeKey != key {
 		t := editor.DefaultTheme(c.Theme())
-		t.Background, t.Text = pal.card, pal.text
+		t.Background, t.Text = pal.Card, pal.Text
 		t.Added, t.Deleted, t.Modified = added, removed, modified
 		a.side.theme, a.side.themeKey = t, key
 	}
@@ -810,11 +811,11 @@ func (a *App) codeTheme(c *ui.Context, pal *palette) *editor.Theme {
 }
 
 // sideMessage says why the view shows nothing.
-func (a *App) sideMessage(c *ui.Context, pal *palette, title, detail string) {
+func (a *App) sideMessage(c *ui.Context, pal *theme.Palette, title, detail string) {
 	ui.Column(c).Grow(1).Center().Gap(6).Padding(24).Children(func() {
-		ui.Text(c, title).FontSize(14).FontWeight(600).TextColor(pal.text).TextAlign(ui.Center)
+		ui.Text(c, title).FontSize(14).FontWeight(600).TextColor(pal.Text).TextAlign(ui.Center)
 		if detail != "" {
-			ui.Text(c, detail).FontSize(12.5).TextColor(pal.textMuted).MaxWidth(300).TextAlign(ui.Center).LineHeight(1.4)
+			ui.Text(c, detail).FontSize(12.5).TextColor(pal.TextMuted).MaxWidth(300).TextAlign(ui.Center).LineHeight(1.4)
 		}
 	})
 }
@@ -910,7 +911,7 @@ func (a *App) diffSplit(width float32) bool {
 // diffOptions sets a file's diff's looks and actions for this frame: in a
 // turn, Revert and Keep on each change while no agent of the session
 // works, as the user reviews what the agent did.
-func (a *App) diffOptions(c *ui.Context, pal *palette, s *proto.Session, sf *sideFile, width float32) {
+func (a *App) diffOptions(c *ui.Context, pal *theme.Palette, s *proto.Session, sf *sideFile, width float32) {
 	d := sf.d
 	d.FitContent = true
 	d.Font = ui.Font{Family: a.termFamily(), Size: max(a.set.FontSize-1, 10)}
@@ -926,7 +927,7 @@ func (a *App) diffOptions(c *ui.Context, pal *palette, s *proto.Session, sf *sid
 	d.RenderSeparator = func(c *ui.Context, sep ui.Element, s *editor.DiffSeparator) { a.separator(c, pal, sep, s) }
 	d.HunkActions = sf.base == git.BaseTurn && !sf.patch && !working && !sf.writing
 	d.RenderHunkActions = func(c *ui.Context, bar ui.Element, h *editor.DiffHunkActions) {
-		floating(bar.Gap(2).Padding(3).Radius(8).Background(pal.popover).AlignItems(ui.Center), pal)
+		floating(bar.Gap(2).Padding(3).Radius(8).Background(pal.Popover).AlignItems(ui.Center), pal)
 		bar.Children(func() {
 			if hunkButton(c, "revert", revertIcon, locales.ChangesRevert(), locales.ChangesRevertTip(), pal) {
 				h.Revert()
@@ -943,13 +944,13 @@ func (a *App) diffOptions(c *ui.Context, pal *palette, s *proto.Session, sf *sid
 // chevrons that show more of them, up or down, and "N unmodified lines",
 // which shows them all, on the diff's own background, with no bar; or a
 // patch's hunk's header. Shift shows them all from any of them.
-func (a *App) separator(c *ui.Context, pal *palette, sep ui.Element, s *editor.DiffSeparator) {
+func (a *App) separator(c *ui.Context, pal *theme.Palette, sep ui.Element, s *editor.DiffSeparator) {
 	sep.Children(func() {
 		// Its chevron under the file's header's: the header's starts 12 in,
 		// 10 wide, and the button's icon, 11 wide, sits in 24.
 		ui.Row(c).Grow(1).AlignSelf(ui.Stretch).AlignItems(ui.Center).Gap(2).Padding(0, 12, 0, 5).Children(func() {
 			if s.Lines == 0 {
-				ui.Text(c, s.Header).Font(s.Font().Family).FontSize(s.Font().Size-1).TextColor(pal.textFaint).SingleLine().Shrink(1).Padding(0, 7)
+				ui.Text(c, s.Header).Font(s.Font().Family).FontSize(s.Font().Size-1).TextColor(pal.TextFaint).SingleLine().Shrink(1).Padding(0, 7)
 				return
 			}
 			expand := func(fn func()) func() {
@@ -961,9 +962,9 @@ func (a *App) separator(c *ui.Context, pal *palette, sep ui.Element, s *editor.D
 				}
 			}
 			chevron := func(key string, svg *ui.SVG, label string, fn func()) {
-				b := ui.ButtonBase(c.Key(key)).Size(24, 24).Radius(6).Center().TextColor(pal.textMuted).Label(label).Tooltip(label)
+				b := ui.ButtonBase(c.Key(key)).Size(24, 24).Radius(6).Center().TextColor(pal.TextMuted).Label(label).Tooltip(label)
 				if b.Hovered() || b.Pressed() {
-					b.Background(pal.rowHover).TextColor(pal.text)
+					b.Background(pal.RowHover).TextColor(pal.Text)
 				}
 				b.Children(func() { ui.Icon(c, svg).Size(11, 11) })
 				if b.Clicked() {
@@ -984,9 +985,9 @@ func (a *App) separator(c *ui.Context, pal *palette, sep ui.Element, s *editor.D
 			label := locales.ChangesUnmodified(s.Lines)
 			b := ui.ButtonBase(c.Key("lines")).Height(24).Padding(0, 4).Radius(6).AlignItems(ui.Center).Label(label).Tooltip(locales.ChangesExpandAll())
 			b.Children(func() {
-				fg := pal.textFaint
+				fg := pal.TextFaint
 				if b.Hovered() {
-					fg = pal.textMuted
+					fg = pal.TextMuted
 				}
 				ui.Text(c, label).FontSize(12).TextColor(fg).SingleLine()
 			})
@@ -999,11 +1000,11 @@ func (a *App) separator(c *ui.Context, pal *palette, sep ui.Element, s *editor.D
 
 // hunkButton is a small button of a change's actions, an icon and a
 // label.
-func hunkButton(c *ui.Context, key string, svg *ui.SVG, label, tip string, pal *palette) bool {
+func hunkButton(c *ui.Context, key string, svg *ui.SVG, label, tip string, pal *theme.Palette) bool {
 	b := ui.ButtonBase(c.Key(key)).Height(24).Padding(0, 8).Gap(5).Radius(6).AlignItems(ui.Center).
-		TextColor(pal.textMuted).Label(label).Tooltip(tip)
+		TextColor(pal.TextMuted).Label(label).Tooltip(tip)
 	if b.Hovered() || b.Pressed() {
-		b.Background(pal.rowHover).TextColor(pal.text)
+		b.Background(pal.RowHover).TextColor(pal.Text)
 	}
 	b.Children(func() {
 		ui.Icon(c, svg).Size(13, 13)

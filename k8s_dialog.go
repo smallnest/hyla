@@ -12,6 +12,7 @@ import (
 
 	"hyla/internal/client"
 	"hyla/internal/proto"
+	"hyla/internal/ui/theme"
 
 	"hyla/locales"
 )
@@ -48,17 +49,17 @@ func (a *App) askK8sPod() {
 
 // k8sView draws the dialog while it is open, and opens the terminal once
 // the user says so.
-func (a *App) k8sView(c *ui.Context, pal *palette) {
+func (a *App) k8sView(c *ui.Context, pal *theme.Palette) {
 	d := a.k8sAsk
 	if d == nil {
 		return
 	}
 	connect := false
 	ui.DialogBase(c.Key("k8s"), &d.open, func(backdrop, panel ui.Element) {
-		backdrop.Background(pal.overlay)
-		floating(panel.Width(520).Padding(22).Gap(8).Radius(14).Background(pal.popover), pal).Label(locales.ActionAddK8sPod())
-		ui.Text(c, locales.ActionAddK8sPod()).FontSize(15).FontWeight(650).TextColor(pal.text)
-		ui.Text(c, locales.K8sPodDetail()).FontSize(13).TextColor(pal.textMuted).LineHeight(1.4)
+		backdrop.Background(pal.Overlay)
+		floating(panel.Width(520).Padding(22).Gap(8).Radius(14).Background(pal.Popover), pal).Label(locales.ActionAddK8sPod())
+		ui.Text(c, locales.ActionAddK8sPod()).FontSize(15).FontWeight(650).TextColor(pal.Text)
+		ui.Text(c, locales.K8sPodDetail()).FontSize(13).TextColor(pal.TextMuted).LineHeight(1.4)
 		ui.Row(c).Margin(8, 0, 1, 0).Children(func() {
 			in := textField(c, "k8s-cmd", &d.cmd, locales.K8sPodCommandPlaceholder(), 0, pal).Font("monospace")
 			in.AutoFocus()
@@ -67,7 +68,7 @@ func (a *App) k8sView(c *ui.Context, pal *palette) {
 			}
 		})
 		if d.err != "" {
-			ui.Text(c, d.err).FontSize(12).TextColor(pal.danger)
+			ui.Text(c, d.err).FontSize(12).TextColor(pal.Danger)
 		}
 		ui.Row(c).Gap(8).Justify(ui.End).Margin(14, 0, 0, 0).Children(func() {
 			if button(c, "cancel", locales.CommonCancel(), "esc", false, pal) {
@@ -377,7 +378,7 @@ func k8sFlagValue(flag string) bool {
 
 // k8sPodRow is a pod in the K8s project: its name over the command that
 // enters it, a click showing its terminal or starting one.
-func (a *App) k8sPodRow(c *ui.Context, pal *palette, i int) {
+func (a *App) k8sPodRow(c *ui.Context, pal *theme.Palette, i int) {
 	pod := a.prefs.K8sPods[i]
 	s := a.session(pod.Session)
 	if s != nil && s.Project != a.prefs.K8sProject {
@@ -395,10 +396,10 @@ func (a *App) k8sPodRow(c *ui.Context, pal *palette, i int) {
 	bg := ui.Transparent
 	switch {
 	case selected:
-		bg = translucentGlass(pal.rowSelected, pal, a.set)
+		bg = theme.TranslucentGlass(pal.RowSelected, pal, a.set)
 		chosen(row, pal)
 	case row.Hovered():
-		bg = translucentGlass(pal.rowHover, pal, a.set)
+		bg = theme.TranslucentGlass(pal.RowHover, pal, a.set)
 	}
 	row.Background(row.AnimateColor("bg", bg, ui.Animation{Duration: 110 * time.Millisecond}))
 	// The row is its pod's handle: dragged, it moves the pod to another
@@ -411,7 +412,7 @@ func (a *App) k8sPodRow(c *ui.Context, pal *palette, i int) {
 		_, y, _ := row.PointerPosition()
 		after := y > height/2
 		a.dragAt, a.dragAfter = pod.Command, after
-		row.Background(pal.rowHover)
+		row.Background(pal.RowHover)
 		dragLine(row, pal, after)
 	}
 	if d, ok := ui.Drop[k8sDrag](row); ok && d.command != pod.Command {
@@ -458,17 +459,17 @@ func (a *App) k8sPodRow(c *ui.Context, pal *palette, i int) {
 		// under the name, past the mark.
 		mark := func(gap float32) {
 			markSlot(c, gap).Children(func() {
-				ui.Icon(c, terminalIcon).Size(agentMarkSize, agentMarkSize).TextColor(pal.textMuted)
+				ui.Icon(c, terminalIcon).Size(agentMarkSize, agentMarkSize).TextColor(pal.TextMuted)
 			})
 		}
 		top := func() {
-			ui.Text(c, pod.Name).FontSize(13).TextColor(pal.text).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
+			ui.Text(c, pod.Name).FontSize(13).TextColor(pal.Text).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
 		}
 		if !detailed {
 			mark(rowGap)
 			top()
 			ui.Spacer(c)
-			ui.Text(c, pod.Command).Font("monospace").FontSize(12).TextColor(pal.textFaint).SingleLine().Ellipsis("…").Shrink(2).MaxWidth(220)
+			ui.Text(c, pod.Command).Font("monospace").FontSize(12).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").Shrink(2).MaxWidth(220)
 		} else {
 			// The name and the command over the row's width, as a detailed
 			// session's row has its name and detail.
@@ -477,7 +478,7 @@ func (a *App) k8sPodRow(c *ui.Context, pal *palette, i int) {
 					mark(rowGap)
 					top()
 				})
-				cmd := ui.Text(c, pod.Command).Font("monospace").FontSize(12).TextColor(pal.textFaint).SingleLine().Ellipsis("…").MinWidth(0)
+				cmd := ui.Text(c, pod.Command).Font("monospace").FontSize(12).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").MinWidth(0)
 				cmd.Padding(0, 0, 0, projectBadge+projectBadgeGap)
 			})
 		}
@@ -497,19 +498,19 @@ func (a *App) k8sPodRow(c *ui.Context, pal *palette, i int) {
 
 // k8sEmpty is the K8s project with no pod in it yet: the row that adds
 // one, in place of a project's sessions.
-func (a *App) k8sEmpty(c *ui.Context, pal *palette) {
+func (a *App) k8sEmpty(c *ui.Context, pal *theme.Palette) {
 	inset := float32(rowInset)
 	row := ui.Row(c.Key("k8s-empty")).Height(rowH).Margin(0, 0, 1, 0).Padding(0, 10, 0, inset).Gap(10).AlignItems(ui.Center).Radius(8)
 	if row.Hovered() {
-		row.Background(pal.rowHover)
+		row.Background(pal.RowHover)
 	}
 	if row.Clicked() {
 		a.askK8sPod()
 	}
 	row.Children(func() {
 		markSlot(c, rowGap).Children(func() {
-			ui.Icon(c, plusIcon).Size(13, 13).TextColor(pal.textMuted)
+			ui.Icon(c, plusIcon).Size(13, 13).TextColor(pal.TextMuted)
 		})
-		ui.Text(c, locales.ActionAddK8sPod()).FontSize(13).TextColor(pal.textMuted).SingleLine()
+		ui.Text(c, locales.ActionAddK8sPod()).FontSize(13).TextColor(pal.TextMuted).SingleLine()
 	})
 }

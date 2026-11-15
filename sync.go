@@ -11,6 +11,7 @@ import (
 
 	"hyla/internal/settings"
 	hylasync "hyla/internal/sync"
+	"hyla/internal/ui/theme"
 	"hyla/locales"
 )
 
@@ -181,7 +182,7 @@ type syncField struct {
 
 // syncPage is Settings › Sync: where this machine's configuration goes, the
 // passphrase that seals it, and the button that syncs now.
-func (a *App) syncPage(c *ui.Context, pal *palette) {
+func (a *App) syncPage(c *ui.Context, pal *theme.Palette) {
 	st := &a.sync
 	if !st.loaded {
 		st.cfg, st.saved, st.loaded = hylasync.Load(), hylasync.Load(), true
@@ -251,7 +252,7 @@ func (a *App) syncPage(c *ui.Context, pal *palette) {
 		})
 		settingRow(c, pal, locales.SetSyncNow(), a.syncLine(), func() {
 			b := ui.Button(c.Key("sync-now"), locales.SetSyncNow()).Padding(5, 12).Radius(7).FontSize(12.5)
-			b.Background(pal.card).TextColor(pal.text)
+			b.Background(pal.Card).TextColor(pal.Text)
 			if b.Clicked() && !st.busy {
 				a.syncRun("")
 			}

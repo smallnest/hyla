@@ -8,6 +8,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/actions"
+	"hyla/internal/ui/theme"
 
 	"hyla/locales"
 )
@@ -237,7 +238,7 @@ var (
 
 // searchHighlight marks a find of the search behind el, a row or a
 // title, as a tint wider than it by dx on each side, and taller by dy.
-func searchHighlight(c *ui.Context, el ui.Element, label string, pal *palette, dx, dy float32) {
+func searchHighlight(c *ui.Context, el ui.Element, label string, pal *theme.Palette, dx, dy float32) {
 	hit := searchHits[label]
 	t := el.Animate("hit", b2f(hit), 180*time.Millisecond)
 	if label == searchReveal {
@@ -245,6 +246,6 @@ func searchHighlight(c *ui.Context, el ui.Element, label string, pal *palette, d
 	}
 	if t > 0 {
 		ui.Box(c.Key("hit")).Absolute().Top(-dy).Bottom(-dy).Left(-dx).Right(-dx).Radius(8).PassThrough().
-			Background(pal.accent.Alpha(0.13*t)).InsetShadow(0, 0, 0, 1, pal.accent.Alpha(0.28*t))
+			Background(pal.Accent.Alpha(0.13*t)).InsetShadow(0, 0, 0, 1, pal.Accent.Alpha(0.28*t))
 	}
 }

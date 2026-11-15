@@ -8,6 +8,7 @@ import (
 
 	"hyla/internal/actions"
 	"hyla/internal/proto"
+	"hyla/internal/ui/theme"
 
 	"hyla/locales"
 )
@@ -121,7 +122,7 @@ func isPathQuery(q string, windows bool) bool {
 	return windows && (strings.HasPrefix(q, `~\`) || strings.HasPrefix(q, `\\`) || drive)
 }
 
-func (a *App) pickerView(c *ui.Context, pal *palette) {
+func (a *App) pickerView(c *ui.Context, pal *theme.Palette) {
 	p := &a.picker
 	if !p.open {
 		return
@@ -131,16 +132,16 @@ func (a *App) pickerView(c *ui.Context, pal *palette) {
 	p.index = min(max(p.index, 0), max(len(items)-1, 0))
 	var goTo, openDir string
 	ui.DialogBase(c.Key("picker"), &p.open, func(backdrop, panel ui.Element) {
-		backdrop.Background(pal.overlay).Justify(ui.Start).Padding(84, 0, 0, 0)
-		floating(panel.Width(600).MaxHeight(500).Radius(14).Background(pal.popover), pal).Clip().
+		backdrop.Background(pal.Overlay).Justify(ui.Start).Padding(84, 0, 0, 0)
+		floating(panel.Width(600).MaxHeight(500).Radius(14).Background(pal.Popover), pal).Clip().
 			Label(locales.PickerTitle(h.label()))
 		ui.Row(c).Height(42).Shrink(0).Padding(0, 16).Gap(8).AlignItems(ui.Center).Children(func() {
-			ui.Icon(c, hostIcon).Size(14, 14).TextColor(pal.textMuted)
+			ui.Icon(c, hostIcon).Size(14, 14).TextColor(pal.TextMuted)
 			{
-				ui.Text(c, locales.PickerTitle(h.label())).FontSize(13).FontWeight(600).TextColor(pal.text).SingleLine().Shrink(0)
+				ui.Text(c, locales.PickerTitle(h.label())).FontSize(13).FontWeight(600).TextColor(pal.Text).SingleLine().Shrink(0)
 			}
 			if p.list != nil {
-				ui.Text(c, h.shortDir(p.list.Dir)).FontSize(12.5).TextColor(pal.textFaint).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
+				ui.Text(c, h.shortDir(p.list.Dir)).FontSize(12.5).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 			}
 			ui.Spacer(c)
 			label := locales.PickerShowHidden()
@@ -149,16 +150,16 @@ func (a *App) pickerView(c *ui.Context, pal *palette) {
 			}
 			b := ui.ButtonBase(c.Key("hidden")).Height(22).Padding(0, 8).Radius(6).Label(label)
 			if b.Hovered() {
-				b.Background(pal.rowHover)
+				b.Background(pal.RowHover)
 			}
-			b.Children(func() { ui.Text(c, label).FontSize(12).TextColor(pal.textMuted).SingleLine() })
+			b.Children(func() { ui.Text(c, label).FontSize(12).TextColor(pal.TextMuted).SingleLine() })
 			if b.Clicked() && p.list != nil {
 				p.hidden = !p.hidden
 				goTo = p.list.Dir
 			}
 		})
 		ui.Row(c).Height(44).Shrink(0).Padding(0, 16).Gap(10).AlignItems(ui.Center).Children(func() {
-			ui.Icon(c, folderIcon).Size(16, 16).TextColor(pal.textMuted)
+			ui.Icon(c, folderIcon).Size(16, 16).TextColor(pal.TextMuted)
 			in := ui.TextInputBase(c.Key("q"), &p.query).Grow(1).FontSize(15).Placeholder(locales.PickerPlaceholder()).AutoFocus()
 			if in.Changed() {
 				p.index, p.reveal = 0, true
@@ -189,21 +190,21 @@ func (a *App) pickerView(c *ui.Context, pal *palette) {
 		list.Children(func() {
 			switch {
 			case p.err != "":
-				ui.Text(c, p.err).FontSize(13).TextColor(pal.danger).Padding(12, 12).Selectable()
+				ui.Text(c, p.err).FontSize(13).TextColor(pal.Danger).Padding(12, 12).Selectable()
 			case p.list == nil:
 				ui.Row(c).Padding(12).Children(func() { ui.Spinner(c) })
 			case len(items) == 0:
-				ui.Text(c, locales.PickerNoFolders()).FontSize(13).TextColor(pal.textFaint).Padding(12, 12)
+				ui.Text(c, locales.PickerNoFolders()).FontSize(13).TextColor(pal.TextFaint).Padding(12, 12)
 			}
 			for i, it := range items {
 				row := ui.Row(c.Key(it.path)).Height(34).Padding(0, 10).Gap(10).AlignItems(ui.Center).Radius(8)
 				if i == p.index {
-					row.Background(pal.accent.Alpha(0.12))
+					row.Background(pal.Accent.Alpha(0.12))
 					if reveal {
 						row.ScrollIntoView()
 					}
 				} else if row.Hovered() {
-					row.Background(pal.rowHover)
+					row.Background(pal.RowHover)
 				}
 				if row.Clicked() {
 					p.index = i
@@ -216,13 +217,13 @@ func (a *App) pickerView(c *ui.Context, pal *palette) {
 					if it.repo {
 						glyph = branchIcon
 					}
-					ui.Icon(c, glyph).Size(14, 14).TextColor(pal.textFaint)
-					ui.Text(c, it.name).FontSize(13.5).TextColor(pal.text).SingleLine().Ellipsis("…").Grow(1).MinWidth(0)
+					ui.Icon(c, glyph).Size(14, 14).TextColor(pal.TextFaint)
+					ui.Text(c, it.name).FontSize(13.5).TextColor(pal.Text).SingleLine().Ellipsis("…").Grow(1).MinWidth(0)
 				})
 			}
 		})
 		ui.Row(c).Height(52).Shrink(0).Padding(0, 16).Gap(10).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, locales.PickerHint(actions.Glyphs("CmdOrCtrl+Enter"))).FontSize(12).TextColor(pal.textFaint).SingleLine().Ellipsis("…").Grow(1).MinWidth(0)
+			ui.Text(c, locales.PickerHint(actions.Glyphs("CmdOrCtrl+Enter"))).FontSize(12).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").Grow(1).MinWidth(0)
 			if button(c, "cancel", locales.CommonCancel(), "esc", false, pal) {
 				p.open = false
 			}
@@ -261,19 +262,19 @@ func (a *App) pickerChosen(items []pickerItem) string {
 
 // pickerHosts is the picker's switch of machines: the one it lists, and
 // each other, which a click lists instead.
-func (a *App) pickerHosts(c *ui.Context, pal *palette, shown *host) {
+func (a *App) pickerHosts(c *ui.Context, pal *theme.Palette, shown *host) {
 	ui.Row(c.Key("hosts")).Gap(2).AlignItems(ui.Center).MinWidth(0).Shrink(1).Children(func() {
 		for _, h := range a.hosts {
 			label := h.label()
 			b := ui.ButtonBase(c.Key("host-"+h.name)).Height(24).Padding(0, 8).Radius(6).AlignItems(ui.Center).
 				Label(locales.PickerTitle(label))
-			fg := pal.textMuted
+			fg := pal.TextMuted
 			switch {
 			case h == shown:
-				b.Background(pal.rowSelected).InsetShadow(0, 0, 0, 1, pal.rowSelBorder)
-				fg = pal.text
+				b.Background(pal.RowSelected).InsetShadow(0, 0, 0, 1, pal.RowSelBorder)
+				fg = pal.Text
 			case b.Hovered():
-				b.Background(pal.rowHover)
+				b.Background(pal.RowHover)
 			}
 			b.Children(func() {
 				ui.Text(c, label).FontSize(12.5).FontWeight(600).TextColor(fg).SingleLine()

@@ -9,6 +9,7 @@ import (
 	"github.com/egoist/mygo/ui/markdown"
 
 	"hyla/internal/proto"
+	"hyla/internal/ui/theme"
 
 	"hyla/locales"
 )
@@ -127,7 +128,7 @@ func (a *App) readChat(s *proto.Session) {
 // chatBody is the view: the conversation, in a column of a comfortable
 // width. It shows the chat's turns, which Feishu sends: a prompt is not
 // written here.
-func (a *App) chatBody(c *ui.Context, pal *palette, s *proto.Session) {
+func (a *App) chatBody(c *ui.Context, pal *theme.Palette, s *proto.Session) {
 	f := a.chatOf(s.ID)
 	a.readChat(s)
 	ui.Column(c.Key("lines")).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
@@ -146,7 +147,7 @@ const chatBubble = chatWidth * 0.88
 // chatLines shows the conversation: what the user wrote to the right,
 // the agent's messages to the left, its tools faint, and each turn's
 // answer marked.
-func (a *App) chatLines(c *ui.Context, pal *palette, s *proto.Session, f *chatFeed) {
+func (a *App) chatLines(c *ui.Context, pal *theme.Palette, s *proto.Session, f *chatFeed) {
 	lines := f.feed.Lines
 	if len(lines) > chatShow {
 		lines = lines[len(lines)-chatShow:]
@@ -174,7 +175,7 @@ func (a *App) chatLines(c *ui.Context, pal *palette, s *proto.Session, f *chatFe
 func (f *chatFeed) read() bool { return f.feed.ID != "" }
 
 // chatLine is a line of the conversation.
-func (a *App) chatLine(c *ui.Context, pal *palette, f *chatFeed, session string, i int, l proto.FeishuLine) {
+func (a *App) chatLine(c *ui.Context, pal *theme.Palette, f *chatFeed, session string, i int, l proto.FeishuLine) {
 	text := strings.TrimSpace(l.Text)
 	if text == "" && l.Detail == "" && l.Title == "" {
 		return
@@ -189,8 +190,8 @@ func (a *App) chatLine(c *ui.Context, pal *palette, f *chatFeed, session string,
 			return
 		case "think":
 			ui.Column(c).MaxWidth(chatWidth*0.9).Padding(6, 2).Gap(2).Children(func() {
-				ui.Text(c, locales.ChatThought()).FontSize(11).FontWeight(600).TextColor(pal.textFaint)
-				a.chatMarkdown(c, pal, text, pal.textMuted, pal.textMuted.Alpha(0.08))
+				ui.Text(c, locales.ChatThought()).FontSize(11).FontWeight(600).TextColor(pal.TextFaint)
+				a.chatMarkdown(c, pal, text, pal.TextMuted, pal.TextMuted.Alpha(0.08))
 			})
 			return
 		case "note", "user":
@@ -199,7 +200,7 @@ func (a *App) chatLine(c *ui.Context, pal *palette, f *chatFeed, session string,
 			// long prompt takes.
 			ui.Row(c).AlignSelf(ui.Stretch).Justify(ui.End).Children(func() {
 				ui.Box(c).Grow(1)
-				ui.Column(c).Padding(8, 13).Radius(14).Background(pal.accent).Children(func() {
+				ui.Column(c).Padding(8, 13).Radius(14).Background(pal.Accent).Children(func() {
 					a.chatMarkdown(c, pal, text, chatOnAccent, ui.RGBA(255, 255, 255, 0.16))
 				})
 			})
@@ -207,13 +208,13 @@ func (a *App) chatLine(c *ui.Context, pal *palette, f *chatFeed, session string,
 		}
 		// The agent's: its text on a soft bubble, the turn's answer a
 		// shade stronger.
-		bg := pal.text.Alpha(0.05)
+		bg := pal.Text.Alpha(0.05)
 		if l.Answer {
-			bg = pal.text.Alpha(0.085)
+			bg = pal.Text.Alpha(0.085)
 		}
 		ui.Row(c).AlignSelf(ui.Stretch).MaxWidth(chatBubble).Children(func() {
 			ui.Column(c).Padding(8, 13).Radius(14).Background(bg).Children(func() {
-				a.chatMarkdown(c, pal, text, pal.text, pal.text.Alpha(0.07))
+				a.chatMarkdown(c, pal, text, pal.Text, pal.Text.Alpha(0.07))
 			})
 		})
 	})
@@ -230,9 +231,9 @@ var chatOnAccent = ui.Hex("#ffffff")
 // headings, lists, quotes, tables, code blocks, and links, which open in
 // the browser. fg is the color of its text and code the fill of code
 // spans, which differ with the message's surface.
-func (a *App) chatMarkdown(c *ui.Context, pal *palette, text string, fg, code ui.Color) {
+func (a *App) chatMarkdown(c *ui.Context, pal *theme.Palette, text string, fg, code ui.Color) {
 	key := "light"
-	if pal.dark {
+	if pal.Dark {
 		key = "dark"
 	}
 	th, ok := chatThemes[key]
@@ -266,7 +267,7 @@ func (a *App) chatMarkdown(c *ui.Context, pal *palette, text string, fg, code ui
 
 // chatTool is a tool's line: its icon and its name, and what it ran,
 // with the output under it, which a click folds or opens.
-func (a *App) chatTool(c *ui.Context, pal *palette, session string, at int, l proto.FeishuLine) {
+func (a *App) chatTool(c *ui.Context, pal *theme.Palette, session string, at int, l proto.FeishuLine) {
 	g, name := gearIcon, strings.TrimPrefix(l.Text, "Tool ")
 	if l.Text == "Result" {
 		g, name = returnIcon, locales.ChatOutput()
@@ -282,10 +283,10 @@ func (a *App) chatTool(c *ui.Context, pal *palette, session string, at int, l pr
 	}
 	ui.Column(c).AlignSelf(ui.Stretch).Children(func() {
 		row := ui.Row(c).Gap(6).AlignItems(ui.Center).Children(func() {
-			ui.Icon(c, g).Size(11, 11).TextColor(pal.textFaint).Shrink(0)
-			ui.Text(c, name).FontSize(11.5).FontWeight(500).TextColor(pal.textMuted).SingleLine().Shrink(0)
+			ui.Icon(c, g).Size(11, 11).TextColor(pal.TextFaint).Shrink(0)
+			ui.Text(c, name).FontSize(11.5).FontWeight(500).TextColor(pal.TextMuted).SingleLine().Shrink(0)
 			if arg != "" {
-				ui.Text(c, shortText(arg, 90)).Font("monospace").FontSize(11).TextColor(pal.textFaint).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
+				ui.Text(c, shortText(arg, 90)).Font("monospace").FontSize(11).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
 			}
 		})
 		// A tool's arguments open under its line, and its output, which
@@ -306,8 +307,8 @@ func (a *App) chatTool(c *ui.Context, pal *palette, session string, at int, l pr
 		if detail == "" || !open {
 			return
 		}
-		ui.Scroll(c.Key("detail")).MaxHeight(240).Padding(8, 10).Margin(4, 20, 0, 18).Radius(8).Background(pal.text.Alpha(0.04)).Children(func() {
-			ui.Text(c, shortText(detail, 4000)).Font("monospace").FontSize(11.5).TextColor(pal.textMuted).LineHeight(1.35).Wrap().Selectable()
+		ui.Scroll(c.Key("detail")).MaxHeight(240).Padding(8, 10).Margin(4, 20, 0, 18).Radius(8).Background(pal.Text.Alpha(0.04)).Children(func() {
+			ui.Text(c, shortText(detail, 4000)).Font("monospace").FontSize(11.5).TextColor(pal.TextMuted).LineHeight(1.35).Wrap().Selectable()
 		})
 	})
 }

@@ -18,6 +18,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/settings"
 	"hyla/internal/shell"
+	"hyla/internal/ui/theme"
 	"hyla/internal/update"
 
 	"hyla/locales"
@@ -406,40 +407,40 @@ func (a *App) reselect() {
 
 // hostDot says how the app stands with this machine's hylad: a dot, and
 // its words as the tooltip.
-func (a *App) hostDot(c *ui.Context, pal *palette, col ui.Color, label string) {
+func (a *App) hostDot(c *ui.Context, pal *theme.Palette, col ui.Color, label string) {
 	ui.Box(c).Size(7, 7).Radius(3.5).Background(col).Shrink(0).Margin(0, 4, 0, 0).Label(label).Tooltip(label)
 }
 
 // hostState says how the app stands with this machine's hylad: a dot
 // while it connects or failed to, a chip when it wants restarting.
-func (a *App) hostState(c *ui.Context, pal *palette, h *host) {
+func (a *App) hostState(c *ui.Context, pal *theme.Palette, h *host) {
 	if h.remote() {
 		// Another machine's hylad is not this app's to restart: it says
 		// where it stands, and the user reconnects to it.
 		switch {
 		case h.conn == connConnecting:
-			a.hostDot(c, pal, pal.textFaint, locales.StatusConnecting())
+			a.hostDot(c, pal, pal.TextFaint, locales.StatusConnecting())
 		case h.conn == connFailed:
-			a.hostDot(c, pal, pal.danger, h.err)
+			a.hostDot(c, pal, pal.Danger, h.err)
 		}
 		return
 	}
 	switch {
 	case h.conn == connConnecting && h.loaded:
-		a.hostDot(c, pal, pal.attention, locales.HostReconnecting())
+		a.hostDot(c, pal, pal.Attention, locales.HostReconnecting())
 	case h.conn == connConnecting:
-		a.hostDot(c, pal, pal.textFaint, locales.StatusConnecting())
+		a.hostDot(c, pal, pal.TextFaint, locales.StatusConnecting())
 	case h.conn == connFailed:
-		a.hostDot(c, pal, pal.danger, locales.HostCantConnect(h.name))
+		a.hostDot(c, pal, pal.Danger, locales.HostCantConnect(h.name))
 	case h.conn == connVersion || h.stale():
 		b := ui.ButtonBase(c.Key("restart")).Height(22).Padding(0, 7).Gap(5).Radius(11).AlignItems(ui.Center).
 			Label(locales.CommonRestart()).Tooltip(locales.HostStaleTip(h.name, h.daemonApp, mygo.App.Version()))
 		if b.Hovered() {
-			b.Background(pal.rowHover)
+			b.Background(pal.RowHover)
 		}
 		b.Children(func() {
-			ui.Box(c).Size(6, 6).Radius(3).Background(pal.attention)
-			ui.Text(c, locales.CommonRestart()).FontSize(12).FontWeight(500).TextColor(pal.attention).SingleLine()
+			ui.Box(c).Size(6, 6).Radius(3).Background(pal.Attention)
+			ui.Text(c, locales.CommonRestart()).FontSize(12).FontWeight(500).TextColor(pal.Attention).SingleLine()
 		})
 		if b.Clicked() {
 			a.offerHostRestart(h)

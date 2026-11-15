@@ -7,6 +7,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
+	"hyla/internal/ui/theme"
 	"hyla/locales"
 )
 
@@ -34,27 +35,27 @@ const (
 // popupFace draws a pop-up button on trig: its text, and the chevrons in
 // a disc, which the button's own tint takes the place of as the pointer
 // comes, deepening while its menu is open.
-func popupFace(c *ui.Context, trig ui.Element, text string, open bool, pal *palette) {
+func popupFace(c *ui.Context, trig ui.Element, text string, open bool, pal *theme.Palette) {
 	trig.Height(popupH).Padding(0, 3, 0, 10).Gap(6).Radius(popupH / 2).AlignItems(ui.Center).Cursor(ui.CursorDefault)
-	tint := pal.text.Alpha(0.065)
-	if pal.dark {
+	tint := pal.Text.Alpha(0.065)
+	if pal.Dark {
 		tint = ui.RGBA(255, 255, 255, 0.09)
 	}
 	hover := trig.Hovered() || open
 	bg, disc := ui.Transparent, tint
 	switch {
 	case open || trig.Pressed():
-		bg, disc = tint.Mix(pal.text, 0.06), ui.Transparent
+		bg, disc = tint.Mix(pal.Text, 0.06), ui.Transparent
 	case hover:
 		bg, disc = tint, ui.Transparent
 	}
 	anim := ui.Animation{Duration: 120 * time.Millisecond}
 	trig.Background(trig.AnimateColor("bg", bg, anim))
 	trig.Children(func() {
-		ui.Text(c, text).FontSize(13).TextColor(pal.text).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
+		ui.Text(c, text).FontSize(13).TextColor(pal.Text).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 		d := ui.Box(c.Key("disc")).Size(22, 22).Radius(11).Center().Shrink(0)
 		d.Background(d.AnimateColor("bg", disc, anim)).Children(func() {
-			ui.Icon(c, updownIcon).Size(16, 16).TextColor(pal.text.Alpha(0.85))
+			ui.Icon(c, updownIcon).Size(16, 16).TextColor(pal.Text.Alpha(0.85))
 		})
 	})
 }
@@ -62,7 +63,7 @@ func popupFace(c *ui.Context, trig ui.Element, text string, open bool, pal *pale
 // popup chooses *value among options, labeled by label, as a pop-up
 // button no wider than width. It binds *value itself: the choice lands
 // in it.
-func popup[T comparable](c *ui.Context, key string, value *T, options []T, label func(T) string, width float32, pal *palette) ui.Element {
+func popup[T comparable](c *ui.Context, key string, value *T, options []T, label func(T) string, width float32, pal *theme.Palette) ui.Element {
 	sel := ui.SelectBase(c.Key(key), value)
 	trig := sel.Trigger.MaxWidth(width)
 	open := sel.Open()
@@ -125,21 +126,21 @@ func menuSpot(c *ui.Context, key string, b ui.Rect, at, n int) (ui.Element, floa
 }
 
 // menuPanel styles a menu: rounded, lifted off the window.
-func menuPanel(panel ui.Element, pal *palette) ui.Element {
+func menuPanel(panel ui.Element, pal *theme.Palette) ui.Element {
 	return menu(panel.Padding(menuPad).Radius(13), pal)
 }
 
 // menuItem styles an item of a menu: a check by the current one, and the
 // accent behind the one the pointer or the arrows are on.
-func menuItem(c *ui.Context, item ui.Element, label string, current bool, pal *palette) {
+func menuItem(c *ui.Context, item ui.Element, label string, current bool, pal *theme.Palette) {
 	menuRow(c, item, label, current, item.Highlighted(), pal)
 }
 
-func menuRow(c *ui.Context, item ui.Element, label string, current, highlighted bool, pal *palette) {
+func menuRow(c *ui.Context, item ui.Element, label string, current, highlighted bool, pal *theme.Palette) {
 	item.Height(menuItemH).Padding(0, 12, 0, 6).Gap(5).Radius(7).AlignItems(ui.Center)
-	fg := pal.text
+	fg := pal.Text
 	if highlighted {
-		item.Background(pal.accent)
+		item.Background(pal.Accent)
 		fg = ui.Hex("#ffffff")
 	}
 	item.TextColor(fg).Children(func() {
@@ -167,7 +168,7 @@ type searchMenu struct {
 // through: typing filters them, the arrows move, Return chooses and
 // Escape closes. With custom set, a query no option is offers itself, as
 // custom labels it: "Use “%s”". choose gets the choice.
-func (a *App) searchPopup(c *ui.Context, key, value string, options []string, width float32, custom func(string) string, pal *palette, choose func(string)) {
+func (a *App) searchPopup(c *ui.Context, key, value string, options []string, width float32, custom func(string) string, pal *theme.Palette, choose func(string)) {
 	if a.ss.menus == nil {
 		a.ss.menus = map[string]*searchMenu{}
 	}
@@ -238,7 +239,7 @@ func (a *App) searchPopup(c *ui.Context, key, value string, options []string, wi
 		// the menu's edge.
 		frame := ui.Row(c.Key("search")).Margin(inset, inset, menuPad+inset, inset).Cursor(ui.CursorText)
 		frame.Children(func() {
-			ui.Icon(c, searchIcon).Size(12, 12).TextColor(pal.textFaint).Shrink(0)
+			ui.Icon(c, searchIcon).Size(12, 12).TextColor(pal.TextFaint).Shrink(0)
 			in = ui.TextInputBase(c.Key("q"), &m.query).AutoFocus().Grow(1).MinWidth(0).AlignSelf(ui.Stretch).FontSize(13).
 				Placeholder(locales.CommonSearch()).Label(locales.CommonSearch())
 		})
@@ -248,7 +249,7 @@ func (a *App) searchPopup(c *ui.Context, key, value string, options []string, wi
 		in.OnShortcut(0, ui.KeyUp, func() { m.hi, m.reveal = max(m.hi-1, 0), true })
 		in.OnSubmit(func() { pick(m.hi) })
 		if len(shown) == 0 {
-			ui.Text(c, locales.CommonNoResults()).FontSize(13).TextColor(pal.textFaint).Padding(6, 12)
+			ui.Text(c, locales.CommonNoResults()).FontSize(13).TextColor(pal.TextFaint).Padding(6, 12)
 			return
 		}
 		reveal := m.reveal
@@ -280,24 +281,24 @@ func (a *App) searchPopup(c *ui.Context, key, value string, options []string, wi
 }
 
 // field styles a text field's frame, around its input.
-func field(c *ui.Context, frame ui.Element, focused bool, pal *palette) ui.Element {
+func field(c *ui.Context, frame ui.Element, focused bool, pal *theme.Palette) ui.Element {
 	frame.Height(controlH+2).Padding(0, 8).Gap(6).Radius(7).AlignItems(ui.Center)
 	stroke := ui.RGBA(0, 0, 0, 0.13)
 	bg := ui.Hex("#ffffff")
-	if pal.dark {
+	if pal.Dark {
 		stroke, bg = ui.RGBA(255, 255, 255, 0.13), ui.RGBA(255, 255, 255, 0.06)
 	}
 	frame.Background(bg).InsetShadow(0, 0, 0, 1, stroke)
 	glow := frame.Animate("glow", b2f(focused), 120*time.Millisecond)
 	if glow > 0 {
-		frame.Shadow(0, 0, 0, 3.5*glow, pal.accent.Alpha(0.32*glow)).InsetShadow(0, 0, 0, 1, pal.accent.Alpha(0.75*glow))
+		frame.Shadow(0, 0, 0, 3.5*glow, pal.Accent.Alpha(0.32*glow)).InsetShadow(0, 0, 0, 1, pal.Accent.Alpha(0.75*glow))
 	}
 	return frame
 }
 
 // textField edits *value in a field, returning its input, for
 // Submitted, OnSubmit and Focused.
-func textField(c *ui.Context, key string, value *string, placeholder string, width float32, pal *palette) ui.Element {
+func textField(c *ui.Context, key string, value *string, placeholder string, width float32, pal *theme.Palette) ui.Element {
 	var in ui.Element
 	frame := ui.Row(c.Key(key)).Cursor(ui.CursorText)
 	if width > 0 {
@@ -319,11 +320,11 @@ func textField(c *ui.Context, key string, value *string, placeholder string, wid
 // Held, the knob grows into a lens of glass that the track shows through,
 // as AppKit's does, and as MyGo's own slider draws it. The knob's half
 // width pads the track, so that the value spans the knob's travel.
-func slider(c *ui.Context, key string, value *float64, lo, hi float64, width float32, pal *palette) ui.Element {
+func slider(c *ui.Context, key string, value *float64, lo, hi float64, width float32, pal *theme.Palette) ui.Element {
 	const knobW, knobH, trackH = 20, 16, 4
 	s := ui.SliderBase(c.Key(key), value, lo, hi).Width(width).Height(controlH).Padding(0, knobW/2).FocusRing(false)
-	track := pal.text.Alpha(0.14)
-	if pal.dark {
+	track := pal.Text.Alpha(0.14)
+	if pal.Dark {
 		track = ui.RGBA(255, 255, 255, 0.18)
 	}
 	f := float32(0)
@@ -332,7 +333,7 @@ func slider(c *ui.Context, key string, value *float64, lo, hi float64, width flo
 	}
 	f = min(max(f, 0), 1)
 	held := s.Animate("held", b2f(s.Pressed()), 150*time.Millisecond)
-	accent, dark, focus := pal.accent, pal.dark, s.FocusVisible()
+	accent, dark, focus := pal.Accent, pal.Dark, s.FocusVisible()
 	s.Draw(func(p *ui.Painter, r ui.Rect) {
 		x0, x1 := r.X+knobW/2, r.X+r.W-knobW/2
 		cy := r.Y + r.H/2

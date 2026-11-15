@@ -12,24 +12,25 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/settings"
+	"hyla/internal/ui/theme"
 	"hyla/internal/ui/wash"
 )
 
 // A translucent terminal's card has a material, and an opaque one none, in
 // a window that is translucent too.
 func TestPaneGlass(t *testing.T) {
-	pal := &lightPalette
+	pal := &theme.Light
 	s := settings.Settings{Vibrancy: true, PaneOpacity: 0.5}
-	if paneGlass(pal, s, nil) == nil {
+	if theme.PaneGlass(pal, s, nil, nil) == nil {
 		t.Fatal("a translucent pane has no material")
 	}
 	s.PaneOpacity = 1
-	if paneGlass(pal, s, nil) != nil {
+	if theme.PaneGlass(pal, s, nil, nil) != nil {
 		t.Error("an opaque pane has a material")
 	}
 	s.PaneOpacity = 0.5
 	s.Vibrancy = false
-	if paneGlass(pal, s, nil) != nil {
+	if theme.PaneGlass(pal, s, nil, nil) != nil {
 		t.Error("a pane in a window that is not translucent has a material")
 	}
 }
@@ -75,9 +76,9 @@ func TestPaneGlassKeepsTheTerminal(t *testing.T) {
 // Terminal blur has the system's glass under the card, which the wash
 // shows through; without it, the wash alone.
 func TestPaneFrost(t *testing.T) {
-	pal := &lightPalette
+	pal := &theme.Light
 	s := settings.Settings{Vibrancy: true, PaneOpacity: 0.5, PaneBlur: true, PaneMaterial: "glass"}
-	m := paneGlass(pal, s, nil)
+	m := theme.PaneGlass(pal, s, nil, nil)
 	f, ok := m.(wash.PaneFrost)
 	if !ok {
 		t.Fatalf("terminal blur has no glass: %T", m)
@@ -89,20 +90,20 @@ func TestPaneFrost(t *testing.T) {
 		t.Errorf("the frost's glass is %+v, %v", spec, ok)
 	}
 	s.PaneMaterial = "glass-clear"
-	if spec, ok := paneGlass(pal, s, nil).(wash.PaneFrost).NativeGlass(); !ok || spec.Style != int(glass.Clear) {
+	if spec, ok := theme.PaneGlass(pal, s, nil, nil).(wash.PaneFrost).NativeGlass(); !ok || spec.Style != int(glass.Clear) {
 		t.Errorf("the clear frost's glass is %+v, %v", spec, ok)
 	}
 	s.PaneBlur = false
-	if _, ok := paneGlass(pal, s, nil).(*wash.PaneWash); !ok {
-		t.Errorf("without terminal blur, the card is %T", paneGlass(pal, s, nil))
+	if _, ok := theme.PaneGlass(pal, s, nil, nil).(*wash.PaneWash); !ok {
+		t.Errorf("without terminal blur, the card is %T", theme.PaneGlass(pal, s, nil, nil))
 	}
 }
 
 // Plastic is a plain blur with the wash, not the system's glass.
 func TestPanePlastic(t *testing.T) {
-	pal := &lightPalette
+	pal := &theme.Light
 	s := settings.Settings{Vibrancy: true, PaneOpacity: 0.5, PaneBlur: true, PaneMaterial: "plastic"}
-	m := paneGlass(pal, s, nil)
+	m := theme.PaneGlass(pal, s, nil, nil)
 	p, ok := m.(wash.PanePlastic)
 	if !ok {
 		t.Fatalf("plastic is %T", m)
@@ -116,22 +117,21 @@ func TestPanePlastic(t *testing.T) {
 // window's, translucent or not, and the card's color when none shows
 // ($HYLA_SHOTS).
 func TestPanePicture(t *testing.T) {
-	pal := &lightPalette
+	pal := &theme.Light
 	s := settings.Settings{PaneImage: "/tmp/picture.png", PaneImageOpacity: 0.6}
-	m := paneGlass(pal, s, nil)
+	m := theme.PaneGlass(pal, s, nil, nil)
 	p, ok := m.(*wash.PanePicture)
-	if !ok || p.Bitmap != nil || p.Opacity != 0.6 || p.Base != pal.card {
+	if !ok || p.Bitmap != nil || p.Opacity != 0.6 || p.Base != pal.Card {
 		t.Fatalf("a picture while it comes: %#v", m)
 	}
 	pic := image.NewRGBA(image.Rect(0, 0, 40, 80))
 	withBM := &sidebarArt{path: s.PaneImage, bm: ui.NewBitmap(pic)}
-	if ready := paneGlass(pal, s, withBM).(*wash.PanePicture); ready.Bitmap == nil || ready.Opacity != 0.6 {
+	if ready := theme.PaneGlass(pal, s, withBM.bm, nil).(*wash.PanePicture); ready.Bitmap == nil || ready.Opacity != 0.6 {
 		t.Errorf("a picture ready: %#v", ready)
 	}
 	// A dimmed card's color shows under it.
-	dim := pal.cardDim
-	art := &sidebarArt{path: s.PaneImage, card: &dim}
-	if dimmed := paneGlass(pal, s, art).(*wash.PanePicture); dimmed.Base != dim {
+	dim := pal.CardDim
+	if dimmed := theme.PaneGlass(pal, s, nil, &dim).(*wash.PanePicture); dimmed.Base != dim {
 		t.Errorf("dimmed card: base %v, want %v", dimmed.Base, dim)
 	}
 
@@ -140,12 +140,12 @@ func TestPanePicture(t *testing.T) {
 	a := testApp(t)
 	a.set.PaneImage, a.set.PaneImageOpacity = s.PaneImage, 1
 	a.paneArt = sidebarArt{path: a.set.PaneImage, bm: ui.NewBitmap(pic)}
-	if p := a.paneBackground(pal, pal.card, &a.st.Sessions[0].Panes[0]).(*wash.PanePicture); p.Bitmap == nil || p.Base != pal.card {
+	if p := a.paneBackground(pal, pal.Card, &a.st.Sessions[0].Panes[0]).(*wash.PanePicture); p.Bitmap == nil || p.Base != pal.Card {
 		t.Errorf("the pane's card: %#v", p)
 	}
 	// A window that is not translucent: the card's color alone.
 	a.set.PaneImage, a.set.Vibrancy = "", false
-	if m := a.paneBackground(pal, pal.card, &a.st.Sessions[0].Panes[0]); m != nil {
+	if m := a.paneBackground(pal, pal.Card, &a.st.Sessions[0].Panes[0]); m != nil {
 		t.Errorf("no picture, and an opaque window: %T", m)
 	}
 }
@@ -164,7 +164,7 @@ func TestPanePicturePaints(t *testing.T) {
 			pic.Set(x, y, c)
 		}
 	}
-	m := &wash.PanePicture{Bitmap: ui.NewBitmap(pic), Opacity: 1, Base: lightPalette.card}
+	m := &wash.PanePicture{Bitmap: ui.NewBitmap(pic), Opacity: 1, Base: theme.Light.Card}
 	box := ui.Rect{X: 0, Y: 0, W: 200, H: 100}
 	render := func() *image.RGBA {
 		return ui.Render(func(c *ui.Context) {
@@ -204,7 +204,7 @@ func TestPanePictureFits(t *testing.T) {
 	}
 	box := ui.Rect{X: 0, Y: 0, W: 200, H: 100}
 	render := func(fit string) *image.RGBA {
-		m := &wash.PanePicture{Bitmap: ui.NewBitmap(pic), Opacity: 1, Fit: fit, Base: lightPalette.card}
+		m := &wash.PanePicture{Bitmap: ui.NewBitmap(pic), Opacity: 1, Fit: fit, Base: theme.Light.Card}
 		return ui.Render(func(c *ui.Context) {
 			ui.Box(c).Fill().Material(m)
 		}, int(box.W), int(box.H), 1)

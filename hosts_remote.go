@@ -13,6 +13,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/remote"
 	"hyla/internal/settings"
+	"hyla/internal/ui/theme"
 
 	"hyla/locales"
 )
@@ -221,12 +222,12 @@ func (e errString) Error() string { return string(e) }
 // p2pGroup is Settings › Remote Connection › P2P: the machines this app
 // reaches by an address and a password, and this machine's own listener,
 // which a client of them reaches.
-func (a *App) p2pGroup(c *ui.Context, pal *palette) {
+func (a *App) p2pGroup(c *ui.Context, pal *theme.Palette) {
 	d := &a.ss.tailcat
 	settingsGroup(c, pal, locales.SetTCPTitle(), "", func() {
 		a.remoteHosts(c, pal)
 		if groupRows++; groupRows > 1 {
-			ui.Box(c).Height(1).Shrink(0).Background(pal.text.Alpha(0.07))
+			ui.Box(c).Height(1).Shrink(0).Background(pal.Text.Alpha(0.07))
 		}
 		a.tcpListen(c, pal, d)
 	})
@@ -240,10 +241,10 @@ type tcHostDraft struct {
 
 // tailcatHosts are the machines reached by a pair code: the head of the
 // Tailcat group.
-func (a *App) tailcatHosts(c *ui.Context, pal *palette) {
+func (a *App) tailcatHosts(c *ui.Context, pal *theme.Palette) {
 	d := &a.ss.tcHost
 	ui.Column(c).Padding(11, 0).Gap(8).Children(func() {
-		ui.Text(c, locales.SetTailcatHostsTitle()).FontSize(13.5).TextColor(pal.text)
+		ui.Text(c, locales.SetTailcatHostsTitle()).FontSize(13.5).TextColor(pal.Text)
 		n := 0
 		for _, r := range a.prefs.RemoteHosts {
 			if !r.tailcat() {
@@ -252,11 +253,11 @@ func (a *App) tailcatHosts(c *ui.Context, pal *palette) {
 			n++
 			r := r
 			ui.Row(c).Padding(2, 0).Gap(10).AlignItems(ui.Center).Children(func() {
-				ui.Icon(c, hostIcon).Size(14, 14).TextColor(pal.textMuted).Shrink(0)
+				ui.Icon(c, hostIcon).Size(14, 14).TextColor(pal.TextMuted).Shrink(0)
 				ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
-					ui.Text(c, r.Name).FontSize(13).TextColor(pal.text).SingleLine().Ellipsis("…")
+					ui.Text(c, r.Name).FontSize(13).TextColor(pal.Text).SingleLine().Ellipsis("…")
 					ui.Text(c, strings.TrimPrefix(r.Addr, "tailcat://")[:min(12, len(strings.TrimPrefix(r.Addr, "tailcat://")))]+"… "+r.Port).
-						Font("monospace").FontSize(12).TextColor(pal.textFaint).SingleLine().Ellipsis("…")
+						Font("monospace").FontSize(12).TextColor(pal.TextFaint).SingleLine().Ellipsis("…")
 				})
 				iconButton(c, "rm-tc-"+r.Name, closeIcon, locales.HostRemove(), pal, func() {
 					a.removeRemoteHost(r.Name)
@@ -289,7 +290,7 @@ func (a *App) tailcatHosts(c *ui.Context, pal *palette) {
 			}
 		})
 		if d.err != "" {
-			ui.Text(c, d.err).FontSize(12).TextColor(pal.danger)
+			ui.Text(c, d.err).FontSize(12).TextColor(pal.Danger)
 		}
 	})
 }
@@ -312,16 +313,16 @@ type hostDraft struct {
 
 // remoteHosts is the machines the sidebar lists beside this one's: the
 // head of the P2P group.
-func (a *App) remoteHosts(c *ui.Context, pal *palette) {
+func (a *App) remoteHosts(c *ui.Context, pal *theme.Palette) {
 	ui.Column(c).Padding(11, 0).Gap(8).Children(func() {
 		ui.Column(c).Gap(2).Children(func() {
-			ui.Text(c, locales.SetRemoteHostsTitle()).FontSize(13.5).TextColor(pal.text)
+			ui.Text(c, locales.SetRemoteHostsTitle()).FontSize(13.5).TextColor(pal.Text)
 			if d := locales.SetRemoteHostsDetail(); d != "" {
-				ui.Text(c, d).FontSize(12).TextColor(pal.textMuted).LineHeight(1.35)
+				ui.Text(c, d).FontSize(12).TextColor(pal.TextMuted).LineHeight(1.35)
 			}
 		})
 		if len(a.prefs.RemoteHosts) == 0 {
-			ui.Text(c, locales.SetRemoteHostsNone()).FontSize(12.5).TextColor(pal.textFaint).Padding(2, 4)
+			ui.Text(c, locales.SetRemoteHostsNone()).FontSize(12.5).TextColor(pal.TextFaint).Padding(2, 4)
 		}
 		for _, r := range a.prefs.RemoteHosts {
 			if r.tailcat() {
@@ -329,10 +330,10 @@ func (a *App) remoteHosts(c *ui.Context, pal *palette) {
 			}
 			r := r
 			ui.Row(c).Padding(2, 0).Gap(10).AlignItems(ui.Center).Children(func() {
-				ui.Icon(c, hostIcon).Size(14, 14).TextColor(pal.textMuted).Shrink(0)
+				ui.Icon(c, hostIcon).Size(14, 14).TextColor(pal.TextMuted).Shrink(0)
 				ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
-					ui.Text(c, r.Name).FontSize(13).TextColor(pal.text).SingleLine().Ellipsis("…")
-					ui.Text(c, r.Addr).Font("monospace").FontSize(12).TextColor(pal.textFaint).SingleLine().Ellipsis("…")
+					ui.Text(c, r.Name).FontSize(13).TextColor(pal.Text).SingleLine().Ellipsis("…")
+					ui.Text(c, r.Addr).Font("monospace").FontSize(12).TextColor(pal.TextFaint).SingleLine().Ellipsis("…")
 				})
 				iconButton(c, "rm-"+r.Name, closeIcon, locales.HostRemove(), pal, func() {
 					a.removeRemoteHost(r.Name)
@@ -360,18 +361,18 @@ func (a *App) remoteHosts(c *ui.Context, pal *palette) {
 			}
 		})
 		if d.err != "" {
-			ui.Text(c, d.err).FontSize(12).TextColor(pal.danger)
+			ui.Text(c, d.err).FontSize(12).TextColor(pal.Danger)
 		}
 	})
 }
 
 // remoteHostHeader is another machine's name in the sidebar, above its
 // projects: how the app stands with it, and what the user may do about it.
-func (a *App) remoteHostHeader(c *ui.Context, pal *palette, h *host, top float32) {
+func (a *App) remoteHostHeader(c *ui.Context, pal *theme.Palette, h *host, top float32) {
 	hdr := ui.Row(c.Key("remote-"+h.name)).Height(28).Margin(top, 0, 3, 0).Padding(0, 6, 0, rowInset).Gap(6).AlignItems(ui.Center).Radius(6)
 	hovered := hdr.Hovered()
 	if hovered {
-		hdr.Background(pal.rowHover)
+		hdr.Background(pal.RowHover)
 	}
 	pointerTooltip(c, hdr, "tip-remote-"+h.name, h.name+" "+h.addr)
 	hdr.ContextMenu(func(m *ui.Menu) {
@@ -397,18 +398,18 @@ func (a *App) remoteHostHeader(c *ui.Context, pal *palette, h *host, top float32
 		}
 	}
 	hdr.Children(func() {
-		ui.Icon(c, hostIcon).Size(13, 13).TextColor(pal.textMuted).Shrink(0)
-		ui.Text(c, h.name).FontSize(13).FontWeight(600).TextColor(pal.text).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
+		ui.Icon(c, hostIcon).Size(13, 13).TextColor(pal.TextMuted).Shrink(0)
+		ui.Text(c, h.name).FontSize(13).FontWeight(600).TextColor(pal.Text).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 		ui.Spacer(c)
 		a.hostState(c, pal, h)
 		if h.conn == connReady {
-			ui.Textf(c, "%d", len(a.sessionsOf(h))).FontSize(12.5).TextColor(pal.textFaint).FontFeatures("tnum")
+			ui.Textf(c, "%d", len(a.sessionsOf(h))).FontSize(12.5).TextColor(pal.TextFaint).FontFeatures("tnum")
 		}
 		if hovered {
-			b := ui.ButtonBase(c.Key("add")).Size(20, 20).Radius(5).Center().TextColor(pal.textMuted).
+			b := ui.ButtonBase(c.Key("add")).Size(20, 20).Radius(5).Center().TextColor(pal.TextMuted).
 				Label(locales.NewSessionIn(h.name)).Tooltip(locales.ActionNewSession())
 			if b.Hovered() {
-				b.Background(pal.rowHover).TextColor(pal.text)
+				b.Background(pal.RowHover).TextColor(pal.Text)
 			}
 			b.Children(func() { ui.Icon(c, plusIcon).Size(13, 13) })
 			if b.Clicked() {
@@ -417,7 +418,7 @@ func (a *App) remoteHostHeader(c *ui.Context, pal *palette, h *host, top float32
 		}
 	})
 	if h.conn != connReady && h.err != "" {
-		ui.Text(c, h.err).FontSize(12).TextColor(pal.textMuted).Padding(2, 10).LineHeight(1.35)
+		ui.Text(c, h.err).FontSize(12).TextColor(pal.TextMuted).Padding(2, 10).LineHeight(1.35)
 	}
 }
 

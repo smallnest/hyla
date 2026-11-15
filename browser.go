@@ -10,6 +10,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/proto"
+	"hyla/internal/ui/theme"
 
 	"hyla/locales"
 )
@@ -237,7 +238,7 @@ func (a *App) focusAddress() {
 
 // paneBrowser is a browser pane: its toolbar, which is its header, over
 // its page; it reports whether the pane is being dragged by its toolbar.
-func (a *App) paneBrowser(c *ui.Context, pal *palette, bar ui.TitleBar, shown float32, s *proto.Session, p *proto.Pane, top, left, right, multi, focused, hovered bool) (dragging bool) {
+func (a *App) paneBrowser(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown float32, s *proto.Session, p *proto.Pane, top, left, right, multi, focused, hovered bool) (dragging bool) {
 	e := a.ensureWeb(p)
 	ref := a.paneRef(p.ID)
 	// What the page was as the build began: the address bar, which holds
@@ -254,8 +255,8 @@ func (a *App) paneBrowser(c *ui.Context, pal *palette, bar ui.TitleBar, shown fl
 		case blank:
 			// Nothing to show yet: the address bar asks.
 			ui.Column(c).Fill().Center().Gap(10).Children(func() {
-				ui.Icon(c, globeIcon).Size(36, 36).TextColor(pal.textFaint)
-				ui.Text(c, locales.BrowserBlank()).FontSize(13).TextColor(pal.textMuted)
+				ui.Icon(c, globeIcon).Size(36, 36).TextColor(pal.TextFaint)
+				ui.Text(c, locales.BrowserBlank()).FontSize(13).TextColor(pal.TextMuted)
 			})
 		case e.view == nil:
 			a.message(c, pal, locales.BrowserCantShow(), e.err, "", nil)
@@ -293,7 +294,7 @@ func (a *App) paneBrowser(c *ui.Context, pal *palette, bar ui.TitleBar, shown fl
 // address bar, which the pane is dragged by, then the pane's buttons. As
 // a terminal's header, it drags the window where it is empty, and keeps
 // clear of the traffic lights and the sidebar's buttons.
-func (a *App) browserBar(c *ui.Context, pal *palette, bar ui.TitleBar, shown float32, s *proto.Session, p *proto.Pane, e *webEntry, top, left, right, multi, focused, hovered bool) (ui.Element, bool) {
+func (a *App) browserBar(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown float32, s *proto.Session, p *proto.Pane, e *webEntry, top, left, right, multi, focused, hovered bool) (ui.Element, bool) {
 	pad := float32(16)
 	if top && left {
 		pad = a.chrome.headerPad
@@ -342,15 +343,15 @@ func (a *App) browserBar(c *ui.Context, pal *palette, bar ui.TitleBar, shown flo
 }
 
 // navButton is a toolbar's button, faint while it can do nothing.
-func navButton(c *ui.Context, key string, svg *ui.SVG, label string, enabled bool, pal *palette, fn func()) {
-	b := ui.ButtonBase(c.Key(key)).Size(28, 26).Radius(6).Center().TextColor(pal.textMuted).Label(label).Tooltip(label).Disabled(!enabled)
+func navButton(c *ui.Context, key string, svg *ui.SVG, label string, enabled bool, pal *theme.Palette, fn func()) {
+	b := ui.ButtonBase(c.Key(key)).Size(28, 26).Radius(6).Center().TextColor(pal.TextMuted).Label(label).Tooltip(label).Disabled(!enabled)
 	switch {
 	case !enabled:
-		b.TextColor(pal.textFaint.Alpha(0.6))
+		b.TextColor(pal.TextFaint.Alpha(0.6))
 	case b.Pressed():
-		b.Background(pal.rowHover.Alpha(0.12))
+		b.Background(pal.RowHover.Alpha(0.12))
 	case b.Hovered():
-		b.Background(pal.rowHover).TextColor(pal.text)
+		b.Background(pal.RowHover).TextColor(pal.Text)
 	}
 	b.Children(func() { ui.Icon(c, svg).Size(15, 15) })
 	if enabled && b.Clicked() {
@@ -361,23 +362,23 @@ func navButton(c *ui.Context, key string, svg *ui.SVG, label string, enabled boo
 // addressBar is where the page's URL shows, and the user types another, or
 // words to search for. With several panes, its globe is the pane's handle,
 // as a terminal's title is: it reports whether it is being dragged.
-func (a *App) addressBar(c *ui.Context, pal *palette, s *proto.Session, p *proto.Pane, e *webEntry, multi bool) (dragging bool) {
+func (a *App) addressBar(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane, e *webEntry, multi bool) (dragging bool) {
 	blank := e.url == proto.BlankURL
 	// It takes the room up to a width that reads well, and leaves the
 	// rest to move the window by.
 	frame := ui.Row(c.Key("address")).Grow(100).MinWidth(120).MaxWidth(760).Height(28).Padding(0, 10, 0, 4).Gap(3).Radius(8).
-		AlignItems(ui.Center).Background(pal.chip).Cursor(ui.CursorText)
+		AlignItems(ui.Center).Background(pal.Chip).Cursor(ui.CursorText)
 	var in ui.Element
 	frame.Children(func() {
-		grip := ui.Row(c.Key("grip")).Size(22, 22).Radius(6).Center().Shrink(0).TextColor(pal.textFaint)
+		grip := ui.Row(c.Key("grip")).Size(22, 22).Radius(6).Center().Shrink(0).TextColor(pal.TextFaint)
 		if multi {
 			grip.Drag(paneDrag{s.ID, p.ID}).Tooltip(locales.PaneDragTip())
 			dragging = grip.Dragging()
 			switch {
 			case dragging:
-				floating(grip.Background(pal.popover), pal)
+				floating(grip.Background(pal.Popover), pal)
 			case grip.Hovered():
-				grip.Background(pal.rowHover).TextColor(pal.textMuted).Cursor(ui.CursorGrab)
+				grip.Background(pal.RowHover).TextColor(pal.TextMuted).Cursor(ui.CursorGrab)
 			}
 		}
 		grip.Children(func() {
@@ -398,7 +399,7 @@ func (a *App) addressBar(c *ui.Context, pal *palette, s *proto.Session, p *proto
 	e.editing = focused
 	glow := frame.Animate("glow", b2f(focused), 120*time.Millisecond)
 	if glow > 0 {
-		frame.Shadow(0, 0, 0, 3*glow, pal.accent.Alpha(0.3*glow))
+		frame.Shadow(0, 0, 0, 3*glow, pal.Accent.Alpha(0.3*glow))
 	}
 	if frame.Pressed() && !focused {
 		in.Focus()
@@ -435,11 +436,11 @@ func (a *App) addressBar(c *ui.Context, pal *palette, s *proto.Session, p *proto
 }
 
 // browserError shows why the page failed to load, over its top.
-func (a *App) browserError(c *ui.Context, pal *palette, e *webEntry) {
+func (a *App) browserError(c *ui.Context, pal *theme.Palette, e *webEntry) {
 	bar := ui.Row(c.Key("error")).Absolute().Top(8).Left(12).Right(12).Padding(8, 8, 8, 12).Gap(8).
-		AlignItems(ui.Center).Radius(10).Background(pal.popover)
+		AlignItems(ui.Center).Radius(10).Background(pal.Popover)
 	floating(bar, pal).Children(func() {
-		ui.Text(c, e.err).FontSize(12.5).TextColor(pal.danger).Grow(1).MinWidth(0).Ellipsis("…").SingleLine()
+		ui.Text(c, e.err).FontSize(12.5).TextColor(pal.Danger).Grow(1).MinWidth(0).Ellipsis("…").SingleLine()
 		if button(c, "retry", locales.CommonTryAgain(), "", false, pal) {
 			e.load(e.url)
 		}
@@ -448,15 +449,15 @@ func (a *App) browserError(c *ui.Context, pal *palette, e *webEntry) {
 }
 
 // browserFind is the find bar over a browser's page, as over a terminal.
-func (a *App) browserFind(c *ui.Context, pal *palette, e *webEntry) {
+func (a *App) browserFind(c *ui.Context, pal *theme.Palette, e *webEntry) {
 	f := &a.find
 	if e.findText != f.query {
 		a.findInPage(e, false, false)
 	}
 	bar := ui.Row(c.Key("find")).Absolute().Top(8).Right(12).Height(36).Padding(0, 4, 0, 12).Gap(4).
-		AlignItems(ui.Center).Radius(10).Background(pal.popover).Label(locales.FindLabel())
+		AlignItems(ui.Center).Radius(10).Background(pal.Popover).Label(locales.FindLabel())
 	floating(bar, pal).Children(func() {
-		ui.Icon(c, searchIcon).Size(13, 13).TextColor(pal.textMuted).Shrink(0)
+		ui.Icon(c, searchIcon).Size(13, 13).TextColor(pal.TextMuted).Shrink(0)
 		in := ui.TextInputBase(c.Key("q"), &f.query).Width(180).FontSize(13).Placeholder(locales.FindPlaceholder()).Bind(&f.input)
 		if f.focus {
 			f.focus = false
@@ -473,7 +474,7 @@ func (a *App) browserFind(c *ui.Context, pal *palette, e *webEntry) {
 		default:
 			count = locales.FindCount(itoa(e.found.Active), itoa(e.found.Matches))
 		}
-		ui.Text(c, count).FontSize(12).FontFeatures("tnum").TextColor(pal.textFaint).SingleLine().MinWidth(56).TextAlign(ui.End).Margin(0, 4, 0, 0)
+		ui.Text(c, count).FontSize(12).FontFeatures("tnum").TextColor(pal.TextFaint).SingleLine().MinWidth(56).TextAlign(ui.End).Margin(0, 4, 0, 0)
 		iconButton(c, "previous", chevronUpIcon, a.tip(locales.ActionFindPrevious(), "find.previous"), pal, func() { a.findInPage(e, true, true) })
 		iconButton(c, "next", chevronDownIcon, a.tip(locales.ActionFindNext(), "find.next"), pal, func() { a.findInPage(e, true, false) })
 		iconButton(c, "close", closeIcon, locales.FindClose(), pal, func() { a.defer_(a.closeFind) })

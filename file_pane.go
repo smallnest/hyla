@@ -8,6 +8,7 @@ import (
 	"github.com/egoist/mygo/ui/editor"
 
 	"hyla/internal/proto"
+	"hyla/internal/ui/theme"
 
 	"hyla/locales"
 )
@@ -49,7 +50,7 @@ func (a *App) filePaneFor(p *proto.Pane) *filePane {
 
 // filePane shows the file of a file pane, and reads it as it first shows
 // or changes on disk.
-func (a *App) filePane(c *ui.Context, pal *palette, s *proto.Session, p *proto.Pane) {
+func (a *App) filePane(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane) {
 	f := a.filePaneFor(p)
 	a.readFilePane(p, f)
 	ui.Box(c.Key("body")).Grow(1).MinHeight(0).Children(func() {
