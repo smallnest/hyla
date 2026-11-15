@@ -1,6 +1,7 @@
 package main
 
 import (
+	"hyla/internal/app/host"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
@@ -18,7 +19,7 @@ func TestQuitEndsSessions(t *testing.T) {
 
 	// A shell alone: the quit is let through, to end the sessions as it
 	// goes, not to close the window and leave them.
-	a.local().conn, a.local().loaded = connReady, true
+	a.local().Conn, a.local().Loaded = host.StateReady, true
 	a.Settings.QuitEndsSessions = true
 	if !a.quitRequested() {
 		t.Fatal("a quit of idle sessions was taken back")
@@ -26,7 +27,7 @@ func TestQuitEndsSessions(t *testing.T) {
 
 	// A program runs: the quit asks, and the question takes a click.
 	a = testApp(t)
-	a.local().conn, a.local().loaded = connReady, true
+	a.local().Conn, a.local().Loaded = host.StateReady, true
 	a.Settings.QuitEndsSessions, a.St.Sessions[0].Process = true, "claude" // the sessions came
 	if a.quitRequested() {
 		t.Fatal("a quit that ends a running program went ahead unasked")
@@ -63,7 +64,7 @@ func TestQuitEndsSessions(t *testing.T) {
 func TestQuitAllQuestionCancel(t *testing.T) {
 	for _, answer := range []string{"click", "esc"} {
 		a := testApp(t)
-		a.local().conn, a.local().loaded = connReady, true
+		a.local().Conn, a.local().Loaded = host.StateReady, true
 		a.Settings.QuitEndsSessions, a.St.Sessions[0].Process = true, "claude"
 		if a.quitRequested() || a.Confirm == nil {
 			t.Fatalf("%s: the quit did not ask: %+v", answer, a.Confirm)
@@ -107,7 +108,7 @@ func TestQuitEndsSessionsNotLoaded(t *testing.T) {
 // nothing go until it is answered.
 func TestQuitLeavesTheQuickTerminal(t *testing.T) {
 	a := testApp(t)
-	a.local().conn, a.local().loaded = connReady, true
+	a.local().Conn, a.local().Loaded = host.StateReady, true
 	if !a.quitRequested() {
 		t.Fatal("a quit was taken back")
 	}
@@ -116,7 +117,7 @@ func TestQuitLeavesTheQuickTerminal(t *testing.T) {
 	}
 
 	a = testApp(t)
-	a.local().conn, a.local().loaded = connReady, true
+	a.local().Conn, a.local().Loaded = host.StateReady, true
 	a.Settings.QuitEndsSessions, a.St.Sessions[0].Process = true, "claude"
 	if a.quitRequested() {
 		t.Fatal("a quit that ends a program went ahead unasked")

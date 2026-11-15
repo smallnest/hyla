@@ -126,7 +126,7 @@ func (a *App) addK8sPod() {
 		d.err = locales.K8sPodOnly()
 		return
 	}
-	if a.local().cl == nil {
+	if a.local().Client == nil {
 		d.err = locales.SshNoService()
 		return
 	}
@@ -151,11 +151,11 @@ func (a *App) withK8sProject(fn func(proto.Project)) {
 		return
 	}
 	h := a.local()
-	if h.cl == nil || !h.loaded {
+	if h.Client == nil || !h.Loaded {
 		a.toast(locales.SshNoService())
 		return
 	}
-	cl := h.cl
+	cl := h.Client
 	go func() {
 		p, err := k8sProject(cl, k8sProjectName())
 		a.main(func() {
@@ -226,12 +226,12 @@ func (a *App) startK8s(pod k8sPod) {
 		return
 	}
 	h := a.local()
-	if h.cl == nil {
+	if h.Client == nil {
 		a.toast(locales.SshNoService())
 		return
 	}
 	a.withK8sProject(func(p proto.Project) {
-		cl := h.cl
+		cl := h.Client
 		go func() {
 			var s proto.Session
 			err := cl.Call("create", proto.CreateParams{Project: p.ID, Dir: proto.Home(), Name: pod.Name, Command: args}, &s)

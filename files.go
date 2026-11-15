@@ -2,6 +2,7 @@ package main
 
 import (
 	"hyla/internal/app/filepane"
+	"hyla/internal/app/host"
 	"hyla/internal/platform"
 	"path"
 	"path/filepath"
@@ -95,7 +96,7 @@ type fileView struct {
 var errFilesGone = filepane.ErrGone
 
 // filesKey keys a path of a host.
-func filesKey(h *host, p string) string { return h.name + "\x00" + p }
+func filesKey(h *host.Host, p string) string { return h.Name + "\x00" + p }
 
 // withGit gives a pane its session's worktree, the one that holds its
 // directory, when the pane has none itself.
@@ -189,7 +190,7 @@ func (a *App) filesSide(c *ui.Context, pal *theme.Palette, s *proto.Session) {
 	list := func(dir string) *dirList {
 		l := fs.dirs[filesKey(h, dir)]
 		stale := l == nil || !l.busy && (l.stamp != stamp || l.gen != fs.gen || working && time.Since(l.fetched) > 5*time.Second)
-		if stale && asking < 4 && h.cl != nil {
+		if stale && asking < 4 && h.Client != nil {
 			asking++
 			l = a.fetchDir(h, dir, stamp)
 		}
@@ -215,9 +216,9 @@ func (a *App) filesSide(c *ui.Context, pal *theme.Palette, s *proto.Session) {
 			if e.Dir && e.Name == ".git" {
 				continue
 			}
-			it := fileItem{FSEntry: e, path: h.joinPath(dir, e.Name), rel: path.Join(rel, e.Name), parent: dir, parentRel: rel, depth: depth}
+			it := fileItem{FSEntry: e, path: h.JoinPath(dir, e.Name), rel: path.Join(rel, e.Name), parent: dir, parentRel: rel, depth: depth}
 			it.open = e.Dir && fs.open[filesKey(h, it.path)]
-			it.edit = fs.edit != nil && fs.edit.op == editRename && fs.edit.host == h.name && fs.edit.path == it.path
+			it.edit = fs.edit != nil && fs.edit.op == editRename && fs.edit.host == h.Name && fs.edit.path == it.path
 			items = append(items, it)
 			if it.open {
 				walk(it.path, it.rel, depth+1)
@@ -227,7 +228,7 @@ func (a *App) filesSide(c *ui.Context, pal *theme.Palette, s *proto.Session) {
 	walk(root, "", 0)
 
 	ui.Row(c.Key("root")).Height(28).Shrink(0).Padding(0, 10, 6, 16).Gap(0).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, h.shortDir(root)).FontSize(12.5).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").MinWidth(0).Grow(1).Tooltip(root)
+		ui.Text(c, h.ShortDir(root)).FontSize(12.5).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").MinWidth(0).Grow(1).Tooltip(root)
 		iconButton(c, "new-file", glyph.Doc, locales.FilesNewFile(), pal, func() { a.startCreate(s, p.ID, root, "", false) })
 		iconButton(c, "new-folder", glyph.Folder, locales.FilesNewFolder(), pal, func() { a.startCreate(s, p.ID, root, "", true) })
 		iconButton(c, "fold-folders", glyph.Collapse, locales.FilesCollapseFolders(), pal, func() {
@@ -243,7 +244,7 @@ func (a *App) filesSide(c *ui.Context, pal *theme.Palette, s *proto.Session) {
 		switch {
 		case l != nil && l.err != "" && !l.busy:
 			a.sideMessage(c, pal, locales.FilesCantReadFolder(), l.err)
-		case h.cl != nil:
+		case h.Client != nil:
 			ui.Column(c).Grow(1).Center().Children(func() { ui.Spinner(c) })
 		}
 		return
@@ -362,7 +363,7 @@ func (a *App) treeEntry(c *ui.Context, pal *theme.Palette, it fileItem, current 
 }
 
 // fetchDir asks hylad for a folder's entries, dotfiles too.
-func (a *App) fetchDir(h *host, dir string, stamp string) *dirList {
+func (a *App) fetchDir(h *host.Host, dir string, stamp string) *dirList {
 	fs := &a.Side.files
 	key := filesKey(h, dir)
 	l := fs.dirs[key]
@@ -371,7 +372,7 @@ func (a *App) fetchDir(h *host, dir string, stamp string) *dirList {
 		fs.dirs[key] = l
 	}
 	l.busy = true
-	gen, cl := fs.gen, h.cl
+	gen, cl := fs.gen, h.Client
 	go func() {
 		var res proto.FSList
 		err := cl.Call("fs.list", proto.FSListParams{Dir: dir, Hidden: true}, &res)
@@ -401,7 +402,7 @@ func (a *App) openViewer(fv *fileView) {
 	if !fv.open {
 		fv.open, fv.fetched = true, time.Time{} // read anew
 	}
-	if cl := a.hostOf(fv.pane).cl; cl != nil && !fv.busy && fv.fetched.IsZero() {
+	if cl := a.hostOf(fv.pane).Client; cl != nil && !fv.busy && fv.fetched.IsZero() {
 		a.loadFile(cl, fv, "")
 	}
 }
@@ -419,8 +420,8 @@ func (a *App) fileViewer(c *ui.Context, pal *theme.Palette, s *proto.Session, fv
 	if working {
 		c.After(3 * time.Second)
 	}
-	if !fv.busy && h.cl != nil && (fv.fetched.IsZero() || fv.stamp != stamp || working && time.Since(fv.fetched) > 3*time.Second) {
-		a.loadFile(h.cl, fv, stamp)
+	if !fv.busy && h.Client != nil && (fv.fetched.IsZero() || fv.stamp != stamp || working && time.Since(fv.fetched) > 3*time.Second) {
+		a.loadFile(h.Client, fv, stamp)
 	}
 
 	dir, name := path.Split(fv.rel)
@@ -554,7 +555,7 @@ func (a *App) openFileInEditor(pane, file string) {
 	if s == nil {
 		return
 	}
-	a.split(s, proto.CreateParams{Split: pane, Direction: "right", Command: editorCommand(a.hostOf(pane), file)})
+	a.split(s, proto.CreateParams{Split: pane, Direction: "right", Command: host.EditorCommand(a.hostOf(pane), file)})
 }
 
 // --- the tab's menu ---

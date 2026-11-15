@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"hyla/internal/app/host"
 	"hyla/internal/platform"
 	"os"
 	"os/exec"
@@ -34,10 +35,10 @@ func (a *App) infoTick(c *ui.Context, p *proto.Pane) {
 	st := a.paneInfoOf(p)
 	now := time.Now()
 	if now.Sub(st.ReadAt) >= paneinfo.Tick {
-		paneinfo.Read(st, a.hostOf(p.ID).cl, a.workDir(p.ID), a.update)
+		paneinfo.Read(st, a.hostOf(p.ID).Client, a.workDir(p.ID), a.update)
 	}
 	if !st.ProcsAt || now.Sub(st.ListedAt) >= paneinfo.ProcsTick {
-		paneinfo.ReadProcs(st, a.hostOf(p.ID).cl, p, a.update)
+		paneinfo.ReadProcs(st, a.hostOf(p.ID).Client, p, a.update)
 	}
 	c.After(paneinfo.ProcsTick / 2)
 }
@@ -182,7 +183,7 @@ func infoValue(c *ui.Context, pal *theme.Palette, value string) {
 // infoDir is the Info view's working directory, with what opens it: its
 // own name as the card's title, its parent after, and the ways to it,
 // each a button.
-func (a *App) infoDir(c *ui.Context, pal *theme.Palette, s *proto.Session, h *host, p *proto.Pane, st *paneinfo.State) {
+func (a *App) infoDir(c *ui.Context, pal *theme.Palette, s *proto.Session, h *host.Host, p *proto.Pane, st *paneinfo.State) {
 	dir := st.Dir
 	if dir == "" {
 		dir = p.WorkDir()
@@ -214,7 +215,7 @@ func (a *App) infoDir(c *ui.Context, pal *theme.Palette, s *proto.Session, h *ho
 				editor = "Vim"
 			}
 			a.infoAction(c, pal, "editor", locales.InfoOpenEditor(editor), editorGlyph(editor), func() {
-				a.split(s, proto.CreateParams{Split: p.ID, Direction: "right", Command: editorCommand(h, dir)})
+				a.split(s, proto.CreateParams{Split: p.ID, Direction: "right", Command: host.EditorCommand(h, dir)})
 			})
 			a.infoAction(c, pal, "copy-dir", locales.InfoCopyPath(), glyph.InfoCopy, copyDir)
 			a.infoAction(c, pal, "reveal", locales.InfoReveal(), glyph.Folder, func() { platform.RevealPath(dir) })
@@ -289,7 +290,7 @@ func openInZed(dir string) {
 
 // editorName names the editor the editor button opens the directory in:
 // the shell's, $VISUAL or $EDITOR, by its command's name.
-func editorName(h *host) string {
+func editorName(h *host.Host) string {
 	if runtime.GOOS != "darwin" {
 		return "vi"
 	}

@@ -13,8 +13,6 @@ import (
 
 	"github.com/egoist/mygo/transfer"
 
-	"hyla/internal/shell"
-
 	"hyla/locales"
 )
 
@@ -30,22 +28,6 @@ func shellEscape(p string) string {
 		b.WriteRune(r)
 	}
 	return b.String()
-}
-
-// pastedPath writes a path of a host as one word of its shells: of a
-// POSIX shell, else, on Windows, of PowerShell, the shell of its panes:
-// in single quotes, in which nothing expands, unless it is all letters,
-// digits and . _ - : \ /.
-func pastedPath(h *host, p string) string {
-	if !h.windows() {
-		return shellEscape(p)
-	}
-	for _, r := range p {
-		if !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || strings.ContainsRune(`._-:\/`, r)) {
-			return shell.PSQuote(p)
-		}
-	}
-	return p
 }
 
 // pasteDir is where the images pasted into panes are kept, as files a

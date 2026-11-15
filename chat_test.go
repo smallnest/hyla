@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"hyla/internal/app/host"
 	"io"
 	"net"
 	"os"
@@ -167,8 +168,8 @@ func chatApp(t *testing.T) (*App, *fakeHylad) {
 	}
 	t.Cleanup(func() { cl.Close() })
 	h := a.local()
-	h.cl = cl
-	h.conn = connReady
+	h.Client = cl
+	h.Conn = host.StateReady
 	// The pane's terminal, whose program is a pipe here, takes the chat's
 	// prompts, as the user would type them.
 	f.prog = &pipe{}

@@ -107,7 +107,7 @@ func (a *App) paneSession() string {
 	if p == nil || p.Agent == "" {
 		return ""
 	}
-	cl := a.hostOf(p.ID).cl
+	cl := a.hostOf(p.ID).Client
 	if cl == nil {
 		return ""
 	}

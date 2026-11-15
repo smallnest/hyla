@@ -1,6 +1,7 @@
 package main
 
 import (
+	"hyla/internal/app/host"
 	"os"
 	"path/filepath"
 	"strings"
@@ -22,9 +23,9 @@ const (
 // program runs too.
 func (a *App) pasteDrop(id string, dropped []string) {
 	h := a.hostOf(id)
-	cl := h.cl
+	cl := h.Client
 	if cl == nil {
-		a.toast(locales.HostNotConnected(h.label()))
+		a.toast(locales.HostNotConnected(h.Label()))
 		return
 	}
 	go func() {
@@ -33,7 +34,7 @@ func (a *App) pasteDrop(id string, dropped []string) {
 			a.main(func() { a.toast(err.Error()) })
 			return
 		}
-		if !h.windows() && !filepath.IsAbs(pd.Dir) {
+		if !h.Windows() && !filepath.IsAbs(pd.Dir) {
 			a.main(func() { a.toast(locales.DropDirUnknown()) })
 			return
 		}
@@ -47,10 +48,10 @@ func (a *App) pasteDrop(id string, dropped []string) {
 	}()
 }
 
-func pastedLine(h *host, dir string, names []string) string {
+func pastedLine(h *host.Host, dir string, names []string) string {
 	words := make([]string, len(names))
 	for i, n := range names {
-		words[i] = pastedPath(h, filepath.Join(dir, n))
+		words[i] = host.PastedPath(h, filepath.Join(dir, n))
 	}
 	return strings.Join(words, " ")
 }

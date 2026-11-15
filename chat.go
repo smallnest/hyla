@@ -1,6 +1,7 @@
 package main
 
 import (
+	"hyla/internal/app/host"
 	"strconv"
 	"strings"
 	"time"
@@ -59,11 +60,11 @@ func (a *App) toolOpen(session string, at int, open bool) bool {
 
 // chatFeed is a session's chat window, as the host in it read it.
 type chatFeed struct {
-	h    *host     // the host of the read
-	at   time.Time // when the last read answered
-	busy bool      // a read is under way
-	got  bool      // a read answered: the turns of the chat are as it says
-	err  string    // why the last read failed
+	h    *host.Host // the host of the read
+	at   time.Time  // when the last read answered
+	busy bool       // a read is under way
+	got  bool       // a read answered: the turns of the chat are as it says
+	err  string     // why the last read failed
 	feed proto.FeishuFeed
 	pick string       // the chat the user chose, "" for the session's window
 	list ui.ListState // the conversation's place, which follows its end
@@ -85,7 +86,7 @@ func (a *App) chatOf(id string) *chatFeed {
 
 // chatChanged tells the view that a host shows a new state: the hosts'
 // chat windows read their turns again, as a chat's turn ends.
-func (a *App) chatChanged(h *host) {
+func (a *App) chatChanged(h *host.Host) {
 	for id, f := range a.Side.chat.feeds {
 		if a.hostOf(id) == h {
 			f.got = false
@@ -101,12 +102,12 @@ func (a *App) readChat(s *proto.Session) {
 	if f.busy || f.got && len(f.feed.Lines) > 0 && time.Since(f.at) < chatRefresh {
 		return
 	}
-	if h.cl == nil {
+	if h.Client == nil {
 		// A host that connects reads it as it does.
 		return
 	}
 	f.busy, f.got, f.h = true, true, h
-	cl := h.cl
+	cl := h.Client
 	params := proto.FeishuFeedParams{Session: s.ID, Chat: f.pick}
 	// It reads from a goroutine of its own: a call from the frame's would
 	// wait on the frame.

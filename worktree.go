@@ -1,6 +1,7 @@
 package main
 
 import (
+	"hyla/internal/app/host"
 	"strings"
 
 	"github.com/egoist/mygo/ui"
@@ -19,7 +20,7 @@ import (
 type worktreeAsk struct {
 	open   bool
 	branch string
-	host   *host
+	host   *host.Host
 	p      proto.CreateParams
 }
 
@@ -28,8 +29,8 @@ type worktreeAsk struct {
 // host's first project.
 func (a *App) newWorktreeSession() {
 	h := a.selectedHost()
-	if h.cl == nil {
-		a.toast(locales.HostNotConnected(h.label()))
+	if h.Client == nil {
+		a.toast(locales.HostNotConnected(h.Label()))
 		return
 	}
 	var p proto.CreateParams
@@ -91,7 +92,7 @@ func (a *App) worktreeView(c *ui.Context, pal *theme.Palette) {
 // changes. A worktree another session works in stays, unasked.
 func (a *App) askCloseWorktree(id string) {
 	s, h := a.session(id), a.hostOf(id)
-	cl := h.cl
+	cl := h.Client
 	if s == nil || cl == nil {
 		return
 	}
@@ -111,7 +112,7 @@ func (a *App) askCloseWorktree(id string) {
 			remove := func(force bool) func() {
 				return func() { a.endSession(id, proto.CloseParams{ID: id, RemoveWorktree: true, Force: force}) }
 			}
-			path := h.shortDir(wc.Path)
+			path := h.ShortDir(wc.Path)
 			cf := &confirmation{open: true, title: locales.WorktreeRemoveTitle(name),
 				action: locales.WorktreeRemove(), run: remove(false), alt: locales.WorktreeKeep(), altRun: keep}
 			switch {

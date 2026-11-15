@@ -145,7 +145,7 @@ func (a *App) addSSHHost() {
 		d.err = locales.SshHostOnly()
 		return
 	}
-	if a.local().cl == nil {
+	if a.local().Client == nil {
 		d.err = locales.SshNoService()
 		return
 	}
@@ -176,11 +176,11 @@ func (a *App) withSSHProject(fn func(proto.Project)) {
 	h := a.local()
 	// Its state has not come: the project may be one the app cannot see
 	// yet, and a second one would follow it.
-	if h.cl == nil || !h.loaded {
+	if h.Client == nil || !h.Loaded {
 		a.toast(locales.SshNoService())
 		return
 	}
-	cl := h.cl
+	cl := h.Client
 	go func() {
 		p, err := sshProject(cl, sshProjectName())
 		a.main(func() {
@@ -275,12 +275,12 @@ func (a *App) startSSH(host sshHost) {
 		return
 	}
 	h := a.local()
-	if h.cl == nil {
+	if h.Client == nil {
 		a.toast(locales.SshNoService())
 		return
 	}
 	a.withSSHProject(func(p proto.Project) {
-		cl := h.cl
+		cl := h.Client
 		go func() {
 			var s proto.Session
 			err := cl.Call("create", proto.CreateParams{Project: p.ID, Dir: proto.Home(), Name: host.Name, Command: sshArgs(addr)}, &s)

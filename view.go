@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"hyla/internal/app/gitinfo"
+	"hyla/internal/app/host"
 	"hyla/internal/platform"
 	"math"
 	"runtime"
@@ -136,9 +137,9 @@ func (a *App) view(c *ui.Context) {
 		a.Chrome = chromeFor(progress, a.Prefs.SidebarWidth, bar)
 		w := a.Chrome.sideW
 		side := ui.Row(c).Width(w).Shrink(0).AlignItems(ui.Stretch).ClipX()
-		if h := a.local(); h.conn == connReady && h.cl != nil && !a.Prefs.SidebarHidden && !a.Pal.open && !a.Picker.open && a.SshAsk == nil && a.K8sAsk == nil && (a.Confirm == nil || !a.Confirm.open) {
+		if h := a.local(); h.Conn == host.StateReady && h.Client != nil && !a.Prefs.SidebarHidden && !a.Pal.open && !a.Picker.open && a.SshAsk == nil && a.K8sAsk == nil && (a.Confirm == nil || !a.Confirm.open) {
 			if files := side.DroppedFiles(); len(files) > 0 {
-				go a.openProjectDirs(h, h.cl, slices.Clone(files), true)
+				go a.openProjectDirs(h, h.Client, slices.Clone(files), true)
 			}
 			if side.FileDragOver() {
 				side.Background(pal.Accent.Alpha(0.08)).Draw(func(p *ui.Painter, r ui.Rect) {
@@ -309,12 +310,12 @@ func (a *App) sidebar(c *ui.Context, pal *theme.Palette, bar ui.TitleBar) {
 		gi := 0 // the groups shown, the first of which sits higher
 		// This machine's projects first, unlabeled; then each host's,
 		// under its name.
-		if local := a.local(); local.loaded {
+		if local := a.local(); local.Loaded {
 			for _, g := range a.hostGroups(local) {
 				a.groupView(c, pal, g, gi, &n)
 				gi++
 			}
-			if len(a.St.Sessions) == 0 && local.conn == connReady {
+			if len(a.St.Sessions) == 0 && local.Conn == host.StateReady {
 				ui.Text(c, locales.SidebarNoSessions()).FontSize(12.5).TextColor(pal.TextFaint).Padding(8, 10)
 			}
 		}
@@ -326,7 +327,7 @@ func (a *App) sidebar(c *ui.Context, pal *theme.Palette, bar ui.TitleBar) {
 			}
 			a.remoteHostHeader(c, pal, h, top)
 			gi++
-			if h.conn != connReady {
+			if h.Conn != host.StateReady {
 				continue
 			}
 			for _, g := range a.hostGroups(h) {
@@ -438,7 +439,7 @@ func (a *App) sessionSidebar(c *ui.Context, pal *theme.Palette, group string, n 
 	gi := 0
 	local := a.local()
 	for _, h := range a.Hosts {
-		if h == local && !h.loaded {
+		if h == local && !h.Loaded {
 			continue
 		}
 		empty := true
@@ -450,7 +451,7 @@ func (a *App) sessionSidebar(c *ui.Context, pal *theme.Palette, group string, n 
 				if gi == 0 && *n == 0 {
 					top = 2
 				}
-				a.dateHeader(c, pal, "date-"+h.name+"-"+dateLabel(dg.day, c.Now()), dateLabel(dg.day, c.Now()), len(dg.sessions), top)
+				a.dateHeader(c, pal, "date-"+h.Name+"-"+dateLabel(dg.day, c.Now()), dateLabel(dg.day, c.Now()), len(dg.sessions), top)
 				gi++
 				for _, s := range dg.sessions {
 					a.sessionRow(c, pal, s, n, rowInset, "")
@@ -463,7 +464,7 @@ func (a *App) sessionSidebar(c *ui.Context, pal *theme.Palette, group string, n 
 				a.sessionRow(c, pal, s, n, rowInset, "")
 			}
 		}
-		if h == local && empty && h.conn == connReady && len(a.Hosts) == 1 {
+		if h == local && empty && h.Conn == host.StateReady && len(a.Hosts) == 1 {
 			ui.Text(c, locales.SidebarNoSessions()).FontSize(12.5).TextColor(pal.TextFaint).Padding(8, 10)
 		}
 	}
@@ -712,7 +713,7 @@ func (a *App) projectTip(g group) string {
 	if g.project.ID != "" && (g.project.ID == a.Prefs.SSHProject || g.project.ID == a.Prefs.K8sProject) {
 		return g.project.Name
 	}
-	return g.host.shortDir(g.project.Dir)
+	return g.host.ShortDir(g.project.Dir)
 }
 
 // projectBadges are the squares before project names: muted colors, far
@@ -819,7 +820,7 @@ func (a *App) sessionRow(c *ui.Context, pal *theme.Palette, s *proto.Session, n 
 			a.defer_(func() { a.reorderSession(d, target, after) })
 		}
 	}
-	tip := a.hostOf(s.ID).shortDir(s.WorkDir())
+	tip := a.hostOf(s.ID).ShortDir(s.WorkDir())
 	// An SSH or K8s terminal says where it runs to, here and below.
 	sshAddr := ""
 	if h := a.sshHostOfSession(s.ID); h != nil {
@@ -912,7 +913,7 @@ func (a *App) sessionRow(c *ui.Context, pal *theme.Palette, s *proto.Session, n 
 					when()
 					trailing()
 				})
-				line, msg := rowDetail(s, g, a.hostOf(s.ID).shortDir(s.WorkDir()))
+				line, msg := rowDetail(s, g, a.hostOf(s.ID).ShortDir(s.WorkDir()))
 				switch {
 				case ssh:
 					// An SSH terminal's second line is the address ssh
@@ -1028,7 +1029,7 @@ func (a *App) sessionMenu(m *ui.Menu, s *proto.Session) {
 	}
 	if s.Unread {
 		if m.Item(locales.SessionMarkRead()).Chosen() {
-			a.call(id, "view", proto.ViewParams{ID: id}, func(error) { a.hostOf(id).viewSent = nil; a.reportView() })
+			a.call(id, "view", proto.ViewParams{ID: id}, func(error) { a.hostOf(id).ViewSent = nil; a.reportView() })
 		}
 	}
 	h := a.hostOf(id)
@@ -1079,8 +1080,8 @@ func (a *App) sidebarFooter(c *ui.Context, pal *theme.Palette) {
 		iconButton(c, "palette", glyph.Search, a.tip(locales.ActionGoToSession(), "palette.open"), pal, a.openPalette)
 		iconButton(c, "settings", glyph.Gear, a.tip(locales.SettingsTitle(), "settings.open"), pal, func() { a.openSettings("") })
 		ui.Spacer(c)
-		switch a.local().conn {
-		case connReady:
+		switch a.local().Conn {
+		case host.StateReady:
 			if a.daemonStale() {
 				a.restartChip(c, pal)
 			}
@@ -1090,7 +1091,7 @@ func (a *App) sidebarFooter(c *ui.Context, pal *theme.Palette) {
 			a.footerChip(c, pal, proto.Waiting, false, waiting, pal.Attention, locales.FooterNeedsYou, a.tip(locales.FooterGoToIt(), "session.attention"), a.jumpToAttention)
 			a.footerChip(c, pal, proto.Working, false, working, pal.TextMuted, locales.FooterWorking, locales.FooterGoToIt(), nil)
 			a.footerChip(c, pal, proto.Idle, true, done, pal.TextMuted, locales.FooterDone, locales.FooterGoToIt(), nil)
-		case connConnecting:
+		case host.StateConnecting:
 			a.footerNote(c, pal, pal.TextFaint, locales.StatusConnecting())
 		default:
 			a.footerNote(c, pal, pal.Danger, locales.StatusDisconnected())
@@ -1373,7 +1374,7 @@ func (a *App) cardFor(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown 
 	if s != nil {
 		h = a.hostOf(s.ID)
 	}
-	if s != nil && h.conn != connVersion && a.Loaded {
+	if s != nil && h.Conn != host.StateVersion && a.Loaded {
 		// Files dropped on the content go to the session's panes, on them,
 		// between them or on the panel beside them (drop_files.go).
 		box := ui.Column(c.Key("card")).Grow(1).Basis(0).MinWidth(0).MinHeight(0)
@@ -1423,10 +1424,10 @@ func (a *App) cardFor(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown 
 		})
 		ui.Column(c).Grow(1).MinHeight(0).Children(func() {
 			switch {
-			case h.conn == connVersion:
+			case h.Conn == host.StateVersion:
 				a.message(c, pal, locales.UpdatedTitle(), locales.UpdatedDetail(), locales.CommonRestartService(), a.restartDaemon)
-			case h.conn == connFailed && h.cl == nil:
-				a.message(c, pal, locales.ConnCantReach(), h.err, locales.CommonTryAgain(), func() { h.retries = 0; h.conn = connConnecting; a.connect() })
+			case h.Conn == host.StateFailed && h.Client == nil:
+				a.message(c, pal, locales.ConnCantReach(), h.Err, locales.CommonTryAgain(), func() { h.Retries = 0; h.Conn = host.StateConnecting; a.connect() })
 			case !a.Loaded:
 				ui.Column(c).Fill().Center().Children(func() {
 					ui.Spinner(c).Label(locales.StatusConnectingLabel())

@@ -50,16 +50,16 @@ type feishuDraft struct {
 // feishuRead asks this machine's hylad for the bot's state.
 func (a *App) feishuRead() {
 	h := a.local()
-	if h.cl == nil {
+	if h.Client == nil {
 		return
 	}
 	// A call of its own, which decodes the state: Go reports only errors.
-	h.cl.Go("feishu.status", nil, func(err error) {
+	h.Client.Go("feishu.status", nil, func(err error) {
 		if err != nil {
 			return
 		}
 		a.update(func() {
-			if st, ok := a.feishuState(h.cl); ok {
+			if st, ok := a.feishuState(h.Client); ok {
 				a.Ss.feishu.st, a.Ss.feishu.known = st, true
 			}
 		})

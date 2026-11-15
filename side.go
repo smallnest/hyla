@@ -433,7 +433,7 @@ func (a *App) changesView(c *ui.Context, pal *theme.Palette, s *proto.Session, w
 	// seconds while an agent works in the session, as a file can change
 	// without its count of lines.
 	stale := scope != ch.scope || stamp != ch.stamp || working && time.Since(ch.fetched) > 5*time.Second
-	if stale && !ch.busy && a.hostOf(pane.ID).cl != nil {
+	if stale && !ch.busy && a.hostOf(pane.ID).Client != nil {
 		a.fetchChanges(scope, stamp, pane.ID, ch.base)
 	}
 	if working {
@@ -608,7 +608,7 @@ func (a *App) syncFiles(c *ui.Context, scope string, pane *proto.Pane, files []p
 			sf = &sideFile{pane: pane.ID, base: ch.base, f: f}
 			ch.files[key] = sf
 		}
-		if a.fileCollapsed(scope, f) || sf.busy || sf.writing || a.hostOf(pane.ID).cl == nil {
+		if a.fileCollapsed(scope, f) || sf.busy || sf.writing || a.hostOf(pane.ID).Client == nil {
 			continue
 		}
 		known := sf.hash
@@ -726,7 +726,7 @@ func (a *App) fetchChanges(scope, stamp, pane, base string) {
 	if ch.scope != scope {
 		ch.err = ""
 	}
-	cl := a.hostOf(pane).cl
+	cl := a.hostOf(pane).Client
 	if cl == nil {
 		ch.busy = false
 		return
@@ -829,7 +829,7 @@ func (a *App) sideMessage(c *ui.Context, pal *theme.Palette, title, detail strin
 // the hash of the text shown, which hylad then sends again only when it
 // changed.
 func (a *App) fetchFile(sf *sideFile, known string) {
-	cl := a.hostOf(sf.pane).cl
+	cl := a.hostOf(sf.pane).Client
 	if cl == nil {
 		return
 	}
@@ -1020,7 +1020,7 @@ func hunkButton(c *ui.Context, key string, svg *ui.SVG, label, tip string, pal *
 // changed, to the file, through hylad, which writes it only as the file
 // was shown: one changed meanwhile is shown anew instead.
 func (a *App) writeBack(sf *sideFile) {
-	cl := a.hostOf(sf.pane).cl
+	cl := a.hostOf(sf.pane).Client
 	if cl == nil {
 		return
 	}

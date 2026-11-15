@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"hyla/internal/app/host"
 	"path"
 	"strings"
 	"time"
@@ -56,7 +57,7 @@ func (a *App) startCreate(s *proto.Session, pane, dir, rel string, folder bool) 
 	if folder {
 		op = editNewFolder
 	}
-	a.Side.files.edit = &nameEdit{op: op, session: s.ID, pane: pane, host: h.name, dir: dir, rel: rel}
+	a.Side.files.edit = &nameEdit{op: op, session: s.ID, pane: pane, host: h.Name, dir: dir, rel: rel}
 	a.Side.files.open[filesKey(h, dir)] = true
 	// The field shows at once, as its click came in a button, which the
 	// tree then shows without; it takes the focus, and the row clicked
@@ -66,7 +67,7 @@ func (a *App) startCreate(s *proto.Session, pane, dir, rel string, folder bool) 
 
 // startRenameEntry puts the field for an entry's new name in its place.
 func (a *App) startRenameEntry(s *proto.Session, pane string, it fileItem) {
-	a.Side.files.edit = &nameEdit{op: editRename, session: s.ID, pane: pane, host: a.hostOf(pane).name, dir: it.parent, rel: it.parentRel,
+	a.Side.files.edit = &nameEdit{op: editRename, session: s.ID, pane: pane, host: a.hostOf(pane).Name, dir: it.parent, rel: it.parentRel,
 		path: it.path, oldRel: it.rel, dirEnt: it.Dir, name: it.Name}
 }
 
@@ -126,13 +127,13 @@ func (a *App) commitName() {
 		return
 	}
 	h := a.hostOf(e.pane)
-	cl := h.cl
+	cl := h.Client
 	if cl == nil {
 		return
 	}
 	to := e.dir
 	for _, p := range parts {
-		to = h.joinPath(to, p)
+		to = h.JoinPath(to, p)
 	}
 	rel := path.Join(append([]string{e.rel}, parts...)...)
 	go func() {
@@ -174,7 +175,7 @@ func (a *App) commitName() {
 
 // renamed follows an entry of a host renamed, from to to: the files the
 // viewers show in it, and its folders unfolded.
-func (a *App) renamed(h *host, from, to, fromRel, toRel string) {
+func (a *App) renamed(h *host.Host, from, to, fromRel, toRel string) {
 	moved := func(p string) (string, bool) {
 		switch {
 		case p == from:
@@ -223,13 +224,13 @@ func (a *App) askDelete(pane string, it fileItem) {
 }
 
 // deleteEntry deletes a file or folder, as askDelete says.
-func (a *App) deleteEntry(h *host, it fileItem) {
+func (a *App) deleteEntry(h *host.Host, it fileItem) {
 	go func() {
 		var err error
-		if h.remote() && h.cl != nil {
+		if h.Remote() && h.Client != nil {
 			// The machine's own hylad deletes it there: another machine's
 			// file is not this one's to put in its trash.
-			err = h.cl.Call("fs.delete", proto.FSDeleteParams{Path: it.path}, nil)
+			err = h.Client.Call("fs.delete", proto.FSDeleteParams{Path: it.path}, nil)
 		} else {
 			err = mygo.Shell.TrashItem(it.path)
 		}

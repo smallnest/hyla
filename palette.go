@@ -2,6 +2,7 @@ package main
 
 import (
 	"cmp"
+	"hyla/internal/app/host"
 	"hyla/internal/ui/fuzzy"
 	"hyla/internal/ui/settings/search"
 	"math"
@@ -40,7 +41,7 @@ type paletteState struct {
 
 // hostConversation is a conversation a host's hylad remembers.
 type hostConversation struct {
-	host *host
+	host *host.Host
 	proto.Conversation
 }
 
@@ -77,7 +78,7 @@ func (a *App) openConversations() {
 func (a *App) loadConversations() {
 	gen := a.Pal.gen
 	for _, h := range a.Hosts {
-		cl := h.cl
+		cl := h.Client
 		if cl == nil {
 			continue
 		}
@@ -134,10 +135,10 @@ func (a *App) conversationItems() []paletteItem {
 
 // resumeConversation shows the session running a conversation of a
 // host's, or starts one resuming it, beside the session shown.
-func (a *App) resumeConversation(h *host, cv proto.Conversation) {
-	cl := h.cl
+func (a *App) resumeConversation(h *host.Host, cv proto.Conversation) {
+	cl := h.Client
 	if cl == nil {
-		a.toast(locales.HostNotConnected(h.name))
+		a.toast(locales.HostNotConnected(h.Name))
 		return
 	}
 	p := proto.ConversationParams{Agent: cv.Agent, ID: cv.ID}
@@ -179,7 +180,7 @@ func (a *App) paletteItems() []paletteItem {
 				detail += " · " + s.Process
 			}
 			h := a.hostOf(id)
-			items = append(items, paletteItem{session: s, title: s.DisplayName(a.Settings.SessionName), detail: detail + " · " + h.shortDir(s.WorkDir()),
+			items = append(items, paletteItem{session: s, title: s.DisplayName(a.Settings.SessionName), detail: detail + " · " + h.ShortDir(s.WorkDir()),
 				run: func() { delete(a.Prefs.Collapsed, s.Project); a.selectSession(id) }})
 		}
 	}
@@ -210,7 +211,7 @@ func (a *App) paletteItems() []paletteItem {
 		words: en.PaletteRestartService() + " " + en.PaletteRestartServiceDetail(), run: a.restartDaemon})
 	for _, p := range a.St.Projects {
 		id := p.ID
-		detail := a.local().shortDir(p.Dir)
+		detail := a.local().ShortDir(p.Dir)
 		cmds = append(cmds, paletteItem{title: locales.NewSessionIn(p.Name), detail: detail, words: en.NewSessionIn(p.Name), run: func() { a.newSession(id) }})
 	}
 	convs := a.conversationItems()

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"hyla/internal/app/host"
 	"log"
 	"math"
 	"sync/atomic"
@@ -231,17 +232,17 @@ func (a *App) attachQuick() {
 		if q.creating {
 			return
 		}
-		if h.cl == nil || h.conn == connFailed || h.conn == connVersion {
+		if h.Client == nil || h.Conn == host.StateFailed || h.Conn == host.StateVersion {
 			// It shows that, with Try Again, instead of a spinner that
 			// never ends. Connecting goes on to a terminal, or this.
-			q.err = h.err
-			if h.conn != connFailed {
-				q.err = locales.HostNotConnected(h.label())
+			q.err = h.Err
+			if h.Conn != host.StateFailed {
+				q.err = locales.HostNotConnected(h.Label())
 			}
 			return
 		}
 		q.creating = true
-		cl := h.cl
+		cl := h.Client
 		go func() {
 			var s proto.Session
 			err := cl.Call("create", proto.CreateParams{Dir: proto.Home(), Name: locales.ActionQuickTerminal()}, &s)
@@ -271,7 +272,7 @@ func (a *App) attachQuick() {
 	e := &termEntry{started: time.Now()}
 	q.e, q.pane = e, p.ID
 	id := p.ID
-	dialer := h.dialer()
+	dialer := h.Dialer()
 	go func() {
 		stream, err := client.AttachVia(dialer, id)
 		if err != nil {

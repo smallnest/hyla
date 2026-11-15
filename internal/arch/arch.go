@@ -123,6 +123,7 @@ var Layers = []Layer{
 		Name: "daemon",
 		Package: []string{
 			"hyla/internal/actions",
+			"hyla/internal/app/host",
 			"hyla/internal/adblock",
 			"hyla/internal/app/filepane",
 			"hyla/internal/app/magpie",
@@ -156,6 +157,7 @@ var Layers = []Layer{
 		Name: "ui",
 		Package: []string{
 			"hyla/internal/actions",
+			"hyla/internal/app/host",
 			"hyla/internal/adblock",
 			"hyla/internal/app/filepane",
 			"hyla/internal/app/magpie",
@@ -198,6 +200,7 @@ var Layers = []Layer{
 		Name: "cli",
 		Package: []string{
 			"hyla/internal/actions",
+			"hyla/internal/app/host",
 			"hyla/internal/adblock",
 			"hyla/internal/app/filepane",
 			"hyla/internal/app/magpie",
@@ -243,6 +246,7 @@ var layerNames = map[string]string{
 	"hyla/internal/adblock":            "base",
 	"hyla/internal/app/filepane":       "daemon",
 	"hyla/internal/app/gitinfo":        "engine",
+	"hyla/internal/app/host":           "daemon",
 	"hyla/internal/app/magpie":         "engine",
 	"hyla/internal/app/paneinfo":       "daemon",
 	"hyla/internal/app/petspot":        "engine",

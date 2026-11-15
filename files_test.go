@@ -137,7 +137,7 @@ func TestViewerImageAndOpen(t *testing.T) {
 	}
 
 	a.Prefs.Side = sideFiles
-	a.local().cl = cl
+	a.local().Client = cl
 	pane := s.Panes[0].ID
 	fv := &fileView{pane: pane, path: "/tmp/demo/logo.png", rel: "logo.png", bm: bm, open: true, fetched: time.Now()}
 	a.Side.files.views = map[string]*fileView{s.ID: fv}
@@ -203,7 +203,7 @@ func TestFilesIconsAndMenu(t *testing.T) {
 		return nil, err
 	})
 	defer stop()
-	a.local().cl = cl
+	a.local().Client = cl
 	a.Side.files.open[filesKey(h, "/tmp/demo/src")] = true
 	for _, c := range []struct {
 		label, op, name string

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"hyla/internal/app/host"
 	"net"
 	"net/url"
 	"slices"
@@ -67,7 +68,7 @@ func (d tcpDialer) Dial() (net.Conn, error) {
 // syncRemoteHosts follows the machines the app reaches: it connects to
 // those added, and lets go of those removed or changed.
 func (a *App) syncRemoteHosts() {
-	keep := []*host{a.local()}
+	keep := []*host.Host{a.local()}
 	for _, r := range a.Prefs.RemoteHosts {
 		addr := strings.TrimSpace(r.Addr)
 		if addr == "" || r.Name == "" {
@@ -80,16 +81,16 @@ func (a *App) syncRemoteHosts() {
 		}
 		code := remote.TailcatCode(addr)
 		h := a.hostNamed(r.Name)
-		if h != nil && (h.addr != addr || h.token != r.Token || h.tc != tc || h.port != port) {
+		if h != nil && (h.Addr != addr || h.Token != r.Token || h.TC != tc || h.Port != port) {
 			a.closeHost(h)
 			h = nil
 		}
 		if h == nil {
-			h = &host{name: r.Name, addr: addr, token: r.Token, tc: tc, code: code, port: port, conn: connConnecting}
+			h = &host.Host{Name: r.Name, Addr: addr, Token: r.Token, TC: tc, Code: code, Port: port, Conn: host.StateConnecting}
 		}
 		keep = append(keep, h)
 	}
-	added := []*host{}
+	added := []*host.Host{}
 	for _, h := range keep[1:] {
 		if !slices.Contains(a.Hosts, h) {
 			added = append(added, h)
@@ -111,15 +112,15 @@ func (a *App) syncRemoteHosts() {
 
 // closeHost lets go of a remote host: its connection, its terminals, and
 // its sessions in the sidebar.
-func (a *App) closeHost(h *host) {
-	h.gen++
+func (a *App) closeHost(h *host.Host) {
+	h.Gen++
 	a.dropTerms(h)
-	if h.cl != nil {
-		go h.cl.Close()
-		h.cl = nil
+	if h.Client != nil {
+		go h.Client.Close()
+		h.Client = nil
 	}
 	a.mergeState(h, proto.State{})
-	h.loaded = false
+	h.Loaded = false
 }
 
 // addRemoteHost saves a machine and connects to it: by the address and
@@ -372,20 +373,20 @@ func (a *App) remoteHosts(c *ui.Context, pal *theme.Palette) {
 
 // remoteHostHeader is another machine's name in the sidebar, above its
 // projects: how the app stands with it, and what the user may do about it.
-func (a *App) remoteHostHeader(c *ui.Context, pal *theme.Palette, h *host, top float32) {
-	hdr := ui.Row(c.Key("remote-"+h.name)).Height(28).Margin(top, 0, 3, 0).Padding(0, 6, 0, rowInset).Gap(6).AlignItems(ui.Center).Radius(6)
+func (a *App) remoteHostHeader(c *ui.Context, pal *theme.Palette, h *host.Host, top float32) {
+	hdr := ui.Row(c.Key("remote-"+h.Name)).Height(28).Margin(top, 0, 3, 0).Padding(0, 6, 0, rowInset).Gap(6).AlignItems(ui.Center).Radius(6)
 	hovered := hdr.Hovered()
 	if hovered {
 		hdr.Background(pal.RowHover)
 	}
-	pointerTooltip(c, hdr, "tip-remote-"+h.name, h.name+" "+h.addr)
+	pointerTooltip(c, hdr, "tip-remote-"+h.Name, h.Name+" "+h.Addr)
 	hdr.ContextMenu(func(m *ui.Menu) {
 		if m.Item(locales.HostReconnect()).Chosen() {
 			a.reconnectHost(h)
 		}
 		m.Separator()
 		if m.Item(locales.HostRemove()).Chosen() {
-			name := h.name
+			name := h.Name
 			a.Confirm = &confirmation{
 				open:    true,
 				title:   locales.HostRemoveTitle(name),
@@ -403,15 +404,15 @@ func (a *App) remoteHostHeader(c *ui.Context, pal *theme.Palette, h *host, top f
 	}
 	hdr.Children(func() {
 		ui.Icon(c, glyph.Host).Size(13, 13).TextColor(pal.TextMuted).Shrink(0)
-		ui.Text(c, h.name).FontSize(13).FontWeight(600).TextColor(pal.Text).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
+		ui.Text(c, h.Name).FontSize(13).FontWeight(600).TextColor(pal.Text).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 		ui.Spacer(c)
 		a.hostState(c, pal, h)
-		if h.conn == connReady {
+		if h.Conn == host.StateReady {
 			ui.Textf(c, "%d", len(a.sessionsOf(h))).FontSize(12.5).TextColor(pal.TextFaint).FontFeatures("tnum")
 		}
 		if hovered {
 			b := ui.ButtonBase(c.Key("add")).Size(20, 20).Radius(5).Center().TextColor(pal.TextMuted).
-				Label(locales.NewSessionIn(h.name)).Tooltip(locales.ActionNewSession())
+				Label(locales.NewSessionIn(h.Name)).Tooltip(locales.ActionNewSession())
 			if b.Hovered() {
 				b.Background(pal.RowHover).TextColor(pal.Text)
 			}
@@ -421,19 +422,19 @@ func (a *App) remoteHostHeader(c *ui.Context, pal *theme.Palette, h *host, top f
 			}
 		}
 	})
-	if h.conn != connReady && h.err != "" {
-		ui.Text(c, h.err).FontSize(12).TextColor(pal.TextMuted).Padding(2, 10).LineHeight(1.35)
+	if h.Conn != host.StateReady && h.Err != "" {
+		ui.Text(c, h.Err).FontSize(12).TextColor(pal.TextMuted).Padding(2, 10).LineHeight(1.35)
 	}
 }
 
 // reconnectHost connects to a remote host again, now.
-func (a *App) reconnectHost(h *host) {
+func (a *App) reconnectHost(h *host.Host) {
 	a.dropTerms(h)
-	if h.cl != nil {
-		go h.cl.Close()
-		h.cl = nil
+	if h.Client != nil {
+		go h.Client.Close()
+		h.Client = nil
 	}
-	h.retries, h.err = 0, ""
-	h.conn = connConnecting
+	h.Retries, h.Err = 0, ""
+	h.Conn = host.StateConnecting
 	a.connectHost(h)
 }

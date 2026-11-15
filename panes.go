@@ -1,6 +1,7 @@
 package main
 
 import (
+	"hyla/internal/app/host"
 	"math"
 	"time"
 
@@ -631,7 +632,7 @@ func (a *App) paneHeader(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, sho
 			}
 			// The home directory names itself "~", which the title may
 			// already say.
-			if dir := a.hostOf(p.ID).shortDir(p.WorkDir()); dir != title {
+			if dir := a.hostOf(p.ID).ShortDir(p.WorkDir()); dir != title {
 				ui.Text(c, dir).FontSize(13).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").Shrink(2).MinWidth(0)
 			}
 		})
@@ -859,7 +860,7 @@ func (a *App) split(s *proto.Session, p proto.CreateParams) {
 			p.Cols = max(p.Cols/2, 10)
 		}
 	}
-	cl := h.cl
+	cl := h.Client
 	if cl == nil {
 		return
 	}
@@ -891,7 +892,7 @@ func (a *App) split(s *proto.Session, p proto.CreateParams) {
 
 // replaceSession puts a session as hylad answered into the state, before
 // the state that has it comes.
-func (a *App) replaceSession(h *host, ns proto.Session) {
+func (a *App) replaceSession(h *host.Host, ns proto.Session) {
 	for i := range a.St.Sessions {
 		if a.St.Sessions[i].ID == ns.ID {
 			a.St.Sessions[i] = ns

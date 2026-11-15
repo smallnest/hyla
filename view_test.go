@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"hyla/internal/app/host"
 	"image"
 	"image/color"
 	"image/draw"
@@ -50,7 +51,7 @@ func testApp(t *testing.T) *App {
 		}},
 	}
 	a.Loaded, a.Selected = true, "s1"
-	a.local().loaded = true
+	a.local().Loaded = true
 	return a
 }
 
@@ -82,9 +83,9 @@ func shot(t *testing.T, tt *ui.Tester, name string) {
 func testDropApp(t *testing.T) *App {
 	t.Helper()
 	a := testApp(t)
-	a.local().conn = connReady
+	a.local().Conn = host.StateReady
 	a.Terms["a"], a.Terms["b"] = &termEntry{}, &termEntry{}
-	a.local().cl, _ = projectClient(t, func(method string, _ json.RawMessage) (any, error) {
+	a.local().Client, _ = projectClient(t, func(method string, _ json.RawMessage) (any, error) {
 		return nil, fmt.Errorf("test daemon rejected %s", method)
 	})
 	return a
@@ -116,16 +117,16 @@ func TestSidebarRejectsUnavailableDrops(t *testing.T) {
 		set  func(*App)
 	}{
 		{"hidden", func(a *App) { a.Prefs.SidebarHidden = true }},
-		{"connecting", func(a *App) { a.local().conn = connConnecting }},
-		{"disconnected", func(a *App) { a.local().conn = connFailed }},
-		{"no client", func(a *App) { a.local().cl = nil }},
+		{"connecting", func(a *App) { a.local().Conn = host.StateConnecting }},
+		{"disconnected", func(a *App) { a.local().Conn = host.StateFailed }},
+		{"no client", func(a *App) { a.local().Client = nil }},
 		{"palette", func(a *App) { a.Pal.open = true }},
 		{"folder picker", func(a *App) { a.Picker = folderPicker{open: true, host: a.local()} }},
 		{"only remote connected", func(a *App) {
-			h := &host{name: "remote", conn: connReady, cl: a.local().cl, loaded: true}
+			h := &host.Host{Name: "remote", Conn: host.StateReady, Client: a.local().Client, Loaded: true}
 			a.Hosts = append(a.Hosts, h)
-			a.Owner = map[string]*host{"s1": h, "p1": h, "a": h, "b": h}
-			a.local().conn, a.local().cl = connFailed, nil
+			a.Owner = map[string]*host.Host{"s1": h, "p1": h, "a": h, "b": h}
+			a.local().Conn, a.local().Client = host.StateFailed, nil
 		}},
 		{"confirmation", func(a *App) { a.Confirm = &confirmation{open: true, title: "Confirm", action: "Close"} }},
 	} {
@@ -144,9 +145,9 @@ func TestSidebarRejectsUnavailableDrops(t *testing.T) {
 
 func TestSidebarLocalDropWithRemoteSelected(t *testing.T) {
 	a := testDropApp(t)
-	h := &host{name: "remote", conn: connFailed, loaded: true}
+	h := &host.Host{Name: "remote", Conn: host.StateFailed, Loaded: true}
 	a.Hosts = append(a.Hosts, h)
-	a.Owner = map[string]*host{"s1": h, "p1": h, "a": h, "b": h}
+	a.Owner = map[string]*host.Host{"s1": h, "p1": h, "a": h, "b": h}
 	tt := ui.NewTester(a.view, 1100, 640)
 	tt.Frame()
 	if !tt.DropFiles(30, 400, t.TempDir()) {
@@ -340,7 +341,7 @@ func TestCopyOnSelectToast(t *testing.T) {
 // K8s pod to connect to, which the foot no longer holds as buttons.
 func TestSidebarNewSessionMenu(t *testing.T) {
 	a := testApp(t)
-	a.local().conn = connReady
+	a.local().Conn = host.StateReady
 	tt := ui.NewTester(a.view, 1100, 700)
 	tt.Frame()
 	if err := tt.Click(locales.ActionNewSession()); err != nil {
@@ -360,7 +361,7 @@ func TestSidebarNewSessionMenu(t *testing.T) {
 // next session of it, and says nothing while nothing does ($HYLA_SHOTS).
 func TestSidebarFooter(t *testing.T) {
 	a := testApp(t)
-	a.local().conn = connReady
+	a.local().Conn = host.StateReady
 	tt := ui.NewTester(a.view, 1100, 700)
 	tt.Frame()
 	for _, txt := range tt.Texts() {
@@ -517,7 +518,7 @@ func TestSessionTooltipAtPointer(t *testing.T) {
 // first while a program runs, as the restart ends it.
 func TestRestartStaleDaemon(t *testing.T) {
 	a := testApp(t)
-	a.local().conn, a.local().daemonApp = connReady, "1.9.0"
+	a.local().Conn, a.local().DaemonApp = host.StateReady, "1.9.0"
 	a.St.Sessions[0].Process = "claude"
 	tt := ui.NewTester(a.view, 1100, 640)
 	tt.Frame()
@@ -529,7 +530,7 @@ func TestRestartStaleDaemon(t *testing.T) {
 		t.Fatalf("no question before the restart: %+v", a.Confirm)
 	}
 
-	a.Confirm, a.local().daemonApp = nil, mygo.App.Version()
+	a.Confirm, a.local().DaemonApp = nil, mygo.App.Version()
 	tt.Frame()
 	if tt.HasText("Restart Service") {
 		t.Error("a chip to restart a hylad of this version")
@@ -1181,7 +1182,7 @@ func TestReorderSession(t *testing.T) {
 		t.Errorf("p2 holds %v, want s3", got[1])
 	}
 	// This machine's sessions of no project drag under "other:<host>".
-	a.reorderSession(sessionDrag{group: "other:" + a.local().name, id: "s5"}, "s4", false)
+	a.reorderSession(sessionDrag{group: "other:" + a.local().Name, id: "s5"}, "s4", false)
 	if got := order(); !slices.Equal(got[2], []string{"s5", "s4"}) {
 		t.Errorf("the sessions of no project are %v, want s5 s4", got[2])
 	}
@@ -1317,7 +1318,7 @@ func TestCollapseSelectedProject(t *testing.T) {
 // else its branch and changes; a compact one keeps to one line.
 func TestSidebarRows(t *testing.T) {
 	a := testApp(t)
-	a.local().conn = connReady
+	a.local().Conn = host.StateReady
 	a.St.Sessions[0].Dir = "/Users/someone/dev/demo"
 	base := a.St.Sessions[0]
 	add := func(id, name string, st proto.Status, msg string, g *proto.GitInfo) {

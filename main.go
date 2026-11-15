@@ -9,6 +9,7 @@ package main
 
 import (
 	"fmt"
+	"hyla/internal/app/host"
 	"hyla/internal/platform"
 	"log"
 	"os"
@@ -186,6 +187,6 @@ func (a *App) openWindow() {
 }
 
 // newSessionIn starts a session in a directory of a host, in its project.
-func (a *App) newSessionIn(h *host, dir string) { a.create(h, proto.CreateParams{Dir: dir}, "") }
+func (a *App) newSessionIn(h *host.Host, dir string) { a.create(h, proto.CreateParams{Dir: dir}, "") }
 
 func stopDaemon() error { return cli.StopDaemon() }

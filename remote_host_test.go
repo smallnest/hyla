@@ -104,19 +104,19 @@ func TestRemoteHost(t *testing.T) {
 		t.Fatalf("hosts %+v", a.Hosts)
 	}
 	// The app connects, as its window's loop would: the test drives it.
-	cl, err := client.ConnectVia(h.dialer())
+	cl, err := client.ConnectVia(h.Dialer())
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { cl.Close() })
-	a.connected(h, h.gen, cl, nil)
+	a.connected(h, h.Gen, cl, nil)
 	var st proto.State
 	if err := cl.Call("state", nil, &st); err != nil {
 		t.Fatal(err)
 	}
 	// As setState does, without the badge the app's own loop takes: a test
 	// has none.
-	h.loaded = true
+	h.Loaded = true
 	a.mergeState(h, st)
 	if got := a.sessionsOf(h); len(got) != 1 || got[0].ID != "rs" {
 		t.Fatalf("the machine holds %+v", got)
@@ -129,7 +129,7 @@ func TestRemoteHost(t *testing.T) {
 	if a.hostOf("s1") == h {
 		t.Error("a session of this machine is the machine's")
 	}
-	stream, err := client.AttachVia(h.dialer(), "rpp")
+	stream, err := client.AttachVia(h.Dialer(), "rpp")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -162,7 +162,7 @@ func TestRemoteHostWrongPassword(t *testing.T) {
 		t.Fatal(err)
 	}
 	h := a.hostNamed("studio")
-	if _, err := client.ConnectVia(h.dialer()); err == nil {
+	if _, err := client.ConnectVia(h.Dialer()); err == nil {
 		t.Fatal("a wrong password connected")
 	}
 	if got := a.sessionsOf(h); len(got) != 0 {
@@ -212,20 +212,20 @@ func TestAddRemoteHost(t *testing.T) {
 	if err := a.addRemoteHost("relay", code, "", ""); err != nil {
 		t.Fatal(err)
 	}
-	if h := a.hostNamed("relay"); h == nil || !h.tc || h.code != code || h.port == "" || h.addr != "tailcat://"+code {
+	if h := a.hostNamed("relay"); h == nil || !h.TC || h.Code != code || h.Port == "" || h.Addr != "tailcat://"+code {
 		t.Errorf("the pair code is %+v", h)
 	}
 	if err := a.addRemoteHost("", "hyla://pair?code="+code+"&name=scanned", "", "7400"); err != nil {
 		t.Fatal(err)
 	}
-	if h := a.hostNamed("scanned"); h == nil || h.code != code || h.port != "7400" {
+	if h := a.hostNamed("scanned"); h == nil || h.Code != code || h.Port != "7400" {
 		t.Errorf("the scanned code is %+v", h)
 	}
 	// A whole code pasted in the address field takes its password.
 	if err := a.addRemoteHost("code", "tcp://192.168.1.7:7297?token=s3cret-pass", "", ""); err != nil {
 		t.Fatal(err)
 	}
-	if h := a.hostNamed("code"); h == nil || h.addr != "192.168.1.7:7297" || h.token != "s3cret-pass" {
+	if h := a.hostNamed("code"); h == nil || h.Addr != "192.168.1.7:7297" || h.Token != "s3cret-pass" {
 		t.Errorf("the code is %+v", h)
 	}
 	for _, c := range []struct{ name, addr, token string }{

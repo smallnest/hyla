@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"hyla/internal/app/host"
 	"io"
 	"net"
 	"path/filepath"
@@ -22,7 +23,7 @@ import (
 func TestSplitRightWithoutSessionStartsOne(t *testing.T) {
 	a := testApp(t)
 	a.St.Sessions, a.Selected = nil, ""
-	a.local().conn = connReady
+	a.local().Conn = host.StateReady
 	calls := make(chan string, 2)
 	cl, stop := projectClient(t, func(method string, raw json.RawMessage) (any, error) {
 		switch method {
@@ -44,7 +45,7 @@ func TestSplitRightWithoutSessionStartsOne(t *testing.T) {
 			return nil, errors.New("unexpected method " + method)
 		}
 	})
-	a.local().cl = cl
+	a.local().Client = cl
 	defer stop()
 
 	a.run("pane.split.right", nil)
@@ -175,7 +176,7 @@ func TestOpenProjectDirectories(t *testing.T) {
 			return nil, errors.New("unexpected method")
 		}
 	})
-	a.local().cl = cl
+	a.local().Client = cl
 	a.openProjectDirs(a.local(), cl, []string{first, invalid, alias, "", "relative", "file:///tmp/project", failed, packaged, second}, true)
 	stop()
 	if want := []string{first, second}; !slices.Equal(opened, want) {
@@ -210,7 +211,7 @@ func TestOpenProjectRemotePaths(t *testing.T) {
 					return nil, errors.New("unexpected method")
 				}
 			})
-			h := &host{name: "remote", cl: cl, conn: connReady}
+			h := &host.Host{Name: "remote", Client: cl, Conn: host.StateReady}
 			a.Hosts = append(a.Hosts, h)
 			a.openProjectDirs(h, cl, []string{dir}, false)
 			stop()

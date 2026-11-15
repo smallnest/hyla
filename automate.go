@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hyla/internal/app/host"
 
 	"strings"
 	"time"
@@ -22,7 +23,7 @@ const browseTimeout = 10 * time.Second
 // answers: what waits on the page waits off the main thread. It is a
 // remote control of the app, as hyla do is, and takes the user's leave
 // as hyla do does.
-func (a *App) browse(h *host, r *proto.BrowserRequest, answer func(*proto.BrowserResult, error)) {
+func (a *App) browse(h *host.Host, r *proto.BrowserRequest, answer func(*proto.BrowserResult, error)) {
 	fail := func(format string, args ...any) { answer(nil, fmt.Errorf(format, args...)) }
 	if !a.remoteControl(h) {
 		fail("Remote Control is off: turn it on in Hyla's Settings › Agents")

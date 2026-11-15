@@ -2,6 +2,7 @@ package main
 
 import (
 	"cmp"
+	"hyla/internal/app/host"
 	"hyla/internal/platform"
 	"slices"
 	"time"
@@ -20,32 +21,32 @@ const endedShown = 5
 
 // hostEnded is a conversation of a host, for the sidebar.
 type hostEnded struct {
-	h *host
+	h *host.Host
 	c proto.Conversation
 }
 
 // loadHostConversations asks a host's hylad for the conversations it
 // remembers, for the sidebar, as of the host's count of the changes to
 // them gen: a later answer, or a turn of Session history off, drops it.
-func (a *App) loadHostConversations(h *host, gen uint64) {
-	h.convAsked = true
-	cl := h.cl
+func (a *App) loadHostConversations(h *host.Host, gen uint64) {
+	h.ConvAsked = true
+	cl := h.Client
 	if cl == nil {
-		h.convAsked = false
+		h.ConvAsked = false
 		return
 	}
 	go func() {
 		var list []proto.Conversation
 		err := cl.Call("conversations", nil, &list)
 		a.update(func() {
-			if h.convGen != gen || !h.convAsked {
+			if h.ConvGen != gen || !h.ConvAsked {
 				return
 			}
-			h.convAsked = false
+			h.ConvAsked = false
 			if err != nil {
 				return
 			}
-			h.convs, h.convKnown = list, true
+			h.Convs, h.ConvKnown = list, true
 		})
 	}()
 }
@@ -54,17 +55,17 @@ func (a *App) loadHostConversations(h *host, gen uint64) {
 // every host, while Session history is on.
 func (a *App) syncEnded() {
 	for _, h := range a.Hosts {
-		if h.cl == nil || h.convAsked || h.convKnown {
+		if h.Client == nil || h.ConvAsked || h.ConvKnown {
 			continue
 		}
-		a.loadHostConversations(h, h.convGen)
+		a.loadHostConversations(h, h.ConvGen)
 	}
 }
 
 func (a *App) endedSections(c *ui.Context, pal *theme.Palette) {
 	var ended, archived []hostEnded
 	for _, h := range a.Hosts {
-		for _, cv := range h.convs {
+		for _, cv := range h.Convs {
 			// A conversation a pane runs is in the sidebar's sessions.
 			if cv.Session != "" {
 				continue
@@ -132,10 +133,10 @@ func (a *App) endedSection(c *ui.Context, pal *theme.Palette, key, title string,
 	}
 }
 
-func (a *App) endedRow(c *ui.Context, pal *theme.Palette, h *host, cv proto.Conversation, now time.Time) {
-	key := "e-" + h.name + "-" + cv.Agent + "-" + cv.ID
+func (a *App) endedRow(c *ui.Context, pal *theme.Palette, h *host.Host, cv proto.Conversation, now time.Time) {
+	key := "e-" + h.Name + "-" + cv.Agent + "-" + cv.ID
 	row := ui.Row(c.Key(key)).Height(44).Padding(0, 6, 0, rowInset).Gap(10).Radius(8).AlignItems(ui.Center)
-	pointerTooltip(c, row, "tip-"+key, h.shortDir(cv.Dir))
+	pointerTooltip(c, row, "tip-"+key, h.ShortDir(cv.Dir))
 	hovered := row.Hovered()
 	if hovered {
 		row.Background(pal.RowHover)
@@ -168,7 +169,7 @@ func (a *App) endedRow(c *ui.Context, pal *theme.Palette, h *host, cv proto.Conv
 
 // conversationCall asks a host to forget or archive a conversation, as
 // the sidebar's menus do.
-func (a *App) conversationCall(h *host, method string, cv proto.Conversation, run func()) {
+func (a *App) conversationCall(h *host.Host, method string, cv proto.Conversation, run func()) {
 	a.callOn(h, method, proto.ConversationParams{Agent: cv.Agent, ID: cv.ID, Archived: method == "conversation.archive"}, func(err error) {
 		if err != nil {
 			a.toast(err.Error())
@@ -180,7 +181,7 @@ func (a *App) conversationCall(h *host, method string, cv proto.Conversation, ru
 	})
 }
 
-func (a *App) endedMenu(m *ui.Menu, h *host, cv proto.Conversation) {
+func (a *App) endedMenu(m *ui.Menu, h *host.Host, cv proto.Conversation) {
 	if m.Item(locales.EndedResume()).Chosen() {
 		a.resumeConversation(h, cv)
 	}

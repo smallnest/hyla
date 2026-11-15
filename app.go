@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hyla/internal/app/host"
 	"hyla/internal/app/paneinfo"
 	"hyla/internal/platform"
 	"maps"
@@ -39,15 +40,6 @@ import (
 )
 
 // connState is how the app stands with hylad.
-type connState int
-
-const (
-	connConnecting connState = iota
-	connReady
-	connVersion // hylad of another version runs
-	connFailed
-)
-
 // prefs are what the app remembers between runs; the sessions themselves
 // are hylad's.
 type prefs struct {
@@ -128,8 +120,8 @@ type App struct {
 	// hosts are the hylads the app shows, this machine's first; st is
 	// what they hold, each host's sessions and projects after the one's
 	// before, and owner the host of each session, pane and project.
-	Hosts  []*host
-	Owner  map[string]*host
+	Hosts  []*host.Host
+	Owner  map[string]*host.Host
 	St     proto.State
 	Loaded bool // a state came
 
@@ -238,7 +230,7 @@ type App struct {
 	SwitchAt time.Time
 	// from is the host whose program asked for the action being run (hyla
 	// do), nil for the user's.
-	From   *host
+	From   *host.Host
 	Picker folderPicker // the folders of a host, to open a project in
 	Side   sideState    // the side panel, beside a session's panes
 	// info is what the Info views read, by pane (info.go).
@@ -288,7 +280,7 @@ func newApp() *App {
 	a.Ss.problems = settings.Problems()
 	a.Applied = a.Settings.Clone()
 	a.Selected = a.Prefs.Selected
-	a.Hosts = []*host{{conn: connConnecting}}
+	a.Hosts = []*host.Host{{Conn: host.StateConnecting}}
 	return a
 }
 
@@ -340,8 +332,8 @@ func (a *App) main(fn func()) {
 	a.update(fn)
 }
 
-func (a *App) event(h *host, cl *client.Client, m proto.Message) {
-	if h.cl != cl {
+func (a *App) event(h *host.Host, cl *client.Client, m proto.Message) {
+	if h.Client != cl {
 		return
 	}
 	switch m.Event {
@@ -404,9 +396,9 @@ func (a *App) event(h *host, cl *client.Client, m proto.Message) {
 }
 
 // setState takes a host's state.
-func (a *App) setState(h *host, st proto.State) {
-	first, hostFirst := !a.Loaded, !h.loaded
-	h.loaded = true
+func (a *App) setState(h *host.Host, st proto.State) {
+	first, hostFirst := !a.Loaded, !h.Loaded
+	h.Loaded = true
 	// A divider dragged keeps the ratios it set, which the daemon hears of
 	// only once it is let go.
 	var dragged *proto.Layout
@@ -440,7 +432,7 @@ func (a *App) setState(h *host, st proto.State) {
 		a.syncEnded()
 	} else {
 		for _, h := range a.Hosts {
-			h.convs, h.convKnown, h.convAsked = nil, false, false
+			h.Convs, h.ConvKnown, h.ConvAsked = nil, false, false
 		}
 	}
 	a.quickChanged()
@@ -530,7 +522,7 @@ func (a *App) notify(first bool) {
 		case s.Status == proto.Idle && prev == proto.Working && s.Unread && a.Settings.NotifyDone && (s.Agent != "" || s.Message != ""):
 			title, body = locales.NotifyDoneTitle(a.hostedName(s)), s.Message
 			if body == "" {
-				body = locales.NotifyDoneBody(s.Agent, a.hostOf(s.ID).shortDir(s.WorkDir()))
+				body = locales.NotifyDoneBody(s.Agent, a.hostOf(s.ID).ShortDir(s.WorkDir()))
 			}
 		default:
 			continue
@@ -585,7 +577,7 @@ func (a *App) project(id string) *proto.Project {
 
 // group is a project with its sessions, as the sidebar lists them.
 type group struct {
-	host     *host
+	host     *host.Host
 	project  proto.Project
 	sessions []*proto.Session
 	// first: the first of its host's in the sidebar, whose header tells
@@ -600,7 +592,7 @@ func (g group) key() string { return g.project.ID }
 // sessions of no project have none of, so it takes their host's name.
 func (g group) dragKey() string {
 	if g.project.ID == "" {
-		return "other:" + g.host.name
+		return "other:" + g.host.Name
 	}
 	return g.project.ID
 }
@@ -615,7 +607,7 @@ func (a *App) groups() []group {
 }
 
 // hostGroups returns a host's projects, with their sessions.
-func (a *App) hostGroups(h *host) []group {
+func (a *App) hostGroups(h *host.Host) []group {
 	var projects []proto.Project
 	for _, p := range a.St.Projects {
 		if a.hostOf(p.ID) == h {
@@ -719,7 +711,7 @@ func (a *App) orderSessions(ss []*proto.Session) {
 // projectDrag is a project dragged by its name to another place under the
 // same host.
 type projectDrag struct {
-	host *host
+	host *host.Host
 	id   string
 }
 
@@ -844,7 +836,7 @@ func sessionUpdated(s *proto.Session) int64 {
 
 // flatSessions are a host's sessions, ordered, for a sidebar that does
 // not group them by project.
-func (a *App) flatSessions(h *host) []*proto.Session {
+func (a *App) flatSessions(h *host.Host) []*proto.Session {
 	var out []*proto.Session
 	for i := range a.St.Sessions {
 		if a.hostOf(a.St.Sessions[i].ID) == h {
@@ -863,7 +855,7 @@ type dateGroup struct {
 
 // dateGroups groups a host's sessions by the day they were created, the
 // newest day first, with each day's sessions in the chosen order.
-func (a *App) dateGroups(h *host) []dateGroup {
+func (a *App) dateGroups(h *host.Host) []dateGroup {
 	var all []*proto.Session
 	for i := range a.St.Sessions {
 		if a.hostOf(a.St.Sessions[i].ID) == h {
@@ -984,7 +976,7 @@ func (a *App) watching(id string) bool {
 func (a *App) reportView() {
 	shown := a.selectedHost()
 	for _, h := range a.Hosts {
-		if h.cl == nil {
+		if h.Client == nil {
 			continue
 		}
 		id := ""
@@ -994,11 +986,11 @@ func (a *App) reportView() {
 		case a.watching(a.Selected) && h == shown:
 			id = a.Selected
 		}
-		if h.viewSent != nil && *h.viewSent == id {
+		if h.ViewSent != nil && *h.ViewSent == id {
 			continue
 		}
-		h.viewSent = &id
-		h.cl.Go("view", proto.ViewParams{ID: id}, nil)
+		h.ViewSent = &id
+		h.Client.Go("view", proto.ViewParams{ID: id}, nil)
 	}
 }
 
@@ -1050,12 +1042,12 @@ func (g *gated) Read(p []byte) (int, error) {
 // ensureTerm attaches a terminal to a session, unless one is.
 func (a *App) ensureTerm(id string) {
 	h := a.hostOf(id)
-	if a.Terms[id] != nil || h.conn != connReady || a.shows(id) {
+	if a.Terms[id] != nil || h.Conn != host.StateReady || a.shows(id) {
 		return
 	}
 	e := &termEntry{started: time.Now()}
 	a.Terms[id] = e
-	dialer := h.dialer()
+	dialer := h.Dialer()
 	go func() {
 		stream, err := client.AttachVia(dialer, id)
 		if err != nil {
@@ -1683,10 +1675,10 @@ func (a *App) call(id, method string, params any, done func(err error)) {
 }
 
 // callOn calls a method of a host's hylad.
-func (a *App) callOn(h *host, method string, params any, done func(err error)) {
-	if h.cl == nil {
+func (a *App) callOn(h *host.Host, method string, params any, done func(err error)) {
+	if h.Client == nil {
 		// What the app showed at once comes back as the host does: say so.
-		err := errors.New(locales.HostNotConnected(h.label()))
+		err := errors.New(locales.HostNotConnected(h.Label()))
 		if done != nil {
 			done(err)
 		} else {
@@ -1694,7 +1686,7 @@ func (a *App) callOn(h *host, method string, params any, done func(err error)) {
 		}
 		return
 	}
-	h.cl.Go(method, params, func(err error) {
+	h.Client.Go(method, params, func(err error) {
 		if done != nil || err != nil {
 			a.update(func() {
 				if done != nil {
@@ -1744,8 +1736,8 @@ func (a *App) newSession(projectID string) {
 
 // newSessionOn starts a session on a host, in a project of its, "" for
 // the one of the session shown there, else the first.
-func (a *App) newSessionOn(h *host, projectID string) {
-	if h.cl == nil {
+func (a *App) newSessionOn(h *host.Host, projectID string) {
+	if h.Client == nil {
 		return
 	}
 	// The SSH and K8s projects' New Session adds a machine or a pod,
@@ -1780,8 +1772,8 @@ func (a *App) newSessionOn(h *host, projectID string) {
 
 // create starts a session on a host, and shows it, opening the project
 // expand in the sidebar.
-func (a *App) create(h *host, p proto.CreateParams, expand string) {
-	cl := h.cl
+func (a *App) create(h *host.Host, p proto.CreateParams, expand string) {
+	cl := h.Client
 	if cl == nil {
 		return
 	}
@@ -1805,7 +1797,7 @@ func (a *App) create(h *host, p proto.CreateParams, expand string) {
 
 // addPending puts a session just created into the state until its host's
 // comes with it.
-func (a *App) addPending(h *host, s proto.Session) {
+func (a *App) addPending(h *host.Host, s proto.Session) {
 	if a.session(s.ID) != nil {
 		return
 	}
@@ -1820,7 +1812,7 @@ func (a *App) addPending(h *host, s proto.Session) {
 // of any machine, with the app's picker, from the shown session's.
 func (a *App) openProject() {
 	h := a.local()
-	if h.cl == nil {
+	if h.Client == nil {
 		return
 	}
 	win := a.Win
@@ -1837,8 +1829,8 @@ func (a *App) openProject() {
 }
 
 // openProjectAt starts a session in a folder of a host, in its project.
-func (a *App) openProjectAt(h *host, dir string) {
-	cl, local := h.cl, true
+func (a *App) openProjectAt(h *host.Host, dir string) {
+	cl, local := h.Client, true
 	if cl == nil {
 		return
 	}
@@ -1846,7 +1838,7 @@ func (a *App) openProjectAt(h *host, dir string) {
 }
 
 // openProjectDirs runs off the UI thread with the host and client captured.
-func (a *App) openProjectDirs(h *host, cl *client.Client, dirs []string, local bool) {
+func (a *App) openProjectDirs(h *host.Host, cl *client.Client, dirs []string, local bool) {
 	seen := map[string]bool{}
 	var errs []error
 	for _, dir := range dirs {
@@ -1870,7 +1862,7 @@ func (a *App) openProjectDirs(h *host, cl *client.Client, dirs []string, local b
 			continue
 		}
 		a.update(func() {
-			if h.cl != cl {
+			if h.Client != cl {
 				return
 			}
 			delete(a.Prefs.Collapsed, p.ID)
@@ -1883,7 +1875,7 @@ func (a *App) openProjectDirs(h *host, cl *client.Client, dirs []string, local b
 	}
 	if err := errors.Join(errs...); err != nil {
 		a.update(func() {
-			if h.cl == cl {
+			if h.Client == cl {
 				a.toast(err.Error())
 			}
 		})
@@ -1901,7 +1893,7 @@ func (a *App) closeSession(id string, ask bool) {
 	if s == nil {
 		return
 	}
-	if ask && s.Worktree != nil && a.hostOf(id).cl != nil {
+	if ask && s.Worktree != nil && a.hostOf(id).Client != nil {
 		a.askCloseWorktree(id)
 		return
 	}
@@ -2199,7 +2191,7 @@ func (a *App) quitEndsSession() {
 // app asks before it ends this machine's.
 func (a *App) hostsLoaded() bool {
 	for _, h := range a.Hosts {
-		if h.conn == connConnecting || (h.cl != nil && !h.loaded) {
+		if h.Conn == host.StateConnecting || (h.Client != nil && !h.Loaded) {
 			return false
 		}
 	}
@@ -2209,7 +2201,7 @@ func (a *App) hostsLoaded() bool {
 // daemonStale reports whether hylad runs another version of Hyla than
 // this one, as after an update: it speaks the protocol, but runs the code
 // of before until it restarts.
-func (a *App) daemonStale() bool { return a.local().stale() }
+func (a *App) daemonStale() bool { return a.local().Stale() }
 
 // offerRestart restarts hylad into this version of Hyla, asking first
 // while programs run in sessions, as the restart ends them.
@@ -2221,8 +2213,8 @@ func (a *App) offerRestart() {
 		return
 	}
 	was := locales.RestartEarlierVersion()
-	if h.daemonApp != "" {
-		was = h.daemonApp
+	if h.DaemonApp != "" {
+		was = h.DaemonApp
 	}
 	a.Confirm = &confirmation{
 		open:    true,
@@ -2236,7 +2228,7 @@ func (a *App) offerRestart() {
 
 // busyCount counts a host's sessions whose programs a restart of its
 // hylad would end.
-func (a *App) busyCount(h *host) int {
+func (a *App) busyCount(h *host.Host) int {
 	n := 0
 	for _, s := range a.sessionsOf(h) {
 		if busy(&s) {
@@ -2259,12 +2251,12 @@ func (a *App) restartFeishu() {
 // scrollback.
 func (a *App) restartDaemon() {
 	h := a.local()
-	h.conn = connConnecting
+	h.Conn = host.StateConnecting
 	go func() {
 		err := stopDaemon()
 		a.update(func() {
 			if err != nil {
-				h.conn, h.err = connFailed, err.Error()
+				h.Conn, h.Err = host.StateFailed, err.Error()
 				a.toast(locales.HostRestartFailed(err.Error()))
 				return
 			}
@@ -2294,7 +2286,7 @@ func (a *App) quitAndEnd() {
 // Sessions: the app does not wait on it.
 func (a *App) endSessionsAndQuit() {
 	h := a.local()
-	cl := h.cl
+	cl := h.Client
 	// The daemon may take its time ending the sessions: the app leaves
 	// within quitGrace whatever it answers.
 	a.armQuitTimer()

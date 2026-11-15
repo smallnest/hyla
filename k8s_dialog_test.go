@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hyla/internal/app/host"
 	"reflect"
 	"slices"
 	"testing"
@@ -20,7 +21,7 @@ import (
 // typed, in the sidebar's one K8s project, named for the pod.
 func TestAddK8sPodFromSidebar(t *testing.T) {
 	a := testApp(t)
-	a.local().conn = connReady
+	a.local().Conn = host.StateReady
 	creates := make(chan proto.CreateParams, 1)
 	cl, stop := projectClient(t, func(method string, raw json.RawMessage) (any, error) {
 		switch method {
@@ -45,7 +46,7 @@ func TestAddK8sPodFromSidebar(t *testing.T) {
 		}
 	})
 	defer stop()
-	a.local().cl = cl
+	a.local().Client = cl
 
 	tt := ui.NewTester(a.view, 1100, 700)
 	tt.Frame()
@@ -100,7 +101,7 @@ func TestAddK8sPodFromSidebar(t *testing.T) {
 // shows its terminal, and adds no second row.
 func TestAddK8sPodOnce(t *testing.T) {
 	a := testApp(t)
-	a.local().conn = connReady
+	a.local().Conn = host.StateReady
 	projects, creates := 0, 0
 	cl, stop := projectClient(t, func(method string, raw json.RawMessage) (any, error) {
 		switch method {
@@ -119,7 +120,7 @@ func TestAddK8sPodOnce(t *testing.T) {
 		}
 	})
 	defer stop()
-	a.local().cl = cl
+	a.local().Client = cl
 
 	for i := range 2 {
 		a.K8sAsk = &k8sAsk{open: true, cmd: "kubectl exec -it web-0 -n prod -- /bin/bash"}
@@ -201,7 +202,7 @@ func TestK8sCommand(t *testing.T) {
 // add one.
 func TestSidebarK8sPod(t *testing.T) {
 	a := testApp(t)
-	a.local().conn = connReady
+	a.local().Conn = host.StateReady
 	a.mergeState(a.local(), proto.State{Projects: []proto.Project{{ID: "p-k8s", Name: locales.K8sPodsProject()}}})
 	a.Prefs.K8sProject = "p-k8s"
 	a.Prefs.K8sPods = []k8sPod{{Name: "web-0", Command: "kubectl exec -it web-0 -n prod -- /bin/bash"}}
@@ -218,7 +219,7 @@ func TestSidebarK8sPod(t *testing.T) {
 		return proto.Session{ID: "k8s-s", Project: p.Project, Name: p.Name}, nil
 	})
 	defer stop()
-	a.local().cl = cl
+	a.local().Client = cl
 
 	tt := ui.NewTester(a.view, 1100, 700)
 	tt.Frame()
@@ -298,7 +299,7 @@ func TestK8sPodDrag(t *testing.T) {
 func TestK8sPodReconnect(t *testing.T) {
 	for _, open := range []bool{false, true} {
 		a := testApp(t)
-		a.local().conn = connReady
+		a.local().Conn = host.StateReady
 		st := proto.State{Projects: []proto.Project{{ID: "p-k8s", Name: locales.K8sPodsProject()}}}
 		status := proto.Exited
 		if open {
@@ -324,7 +325,7 @@ func TestK8sPodReconnect(t *testing.T) {
 			creates <- p
 			return proto.Session{ID: "k8s-s2", Project: p.Project, Name: p.Name}, nil
 		})
-		a.local().cl = cl
+		a.local().Client = cl
 
 		tt := ui.NewTester(a.view, 1100, 700)
 		tt.Frame()

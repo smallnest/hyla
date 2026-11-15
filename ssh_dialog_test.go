@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hyla/internal/app/host"
 	"reflect"
 	"slices"
 	"testing"
@@ -22,7 +23,7 @@ import (
 // machine it reaches needs no Hyla.
 func TestAddSSHHostFromSidebar(t *testing.T) {
 	a := testApp(t)
-	a.local().conn = connReady
+	a.local().Conn = host.StateReady
 	creates := make(chan proto.CreateParams, 1)
 	cl, stop := projectClient(t, func(method string, raw json.RawMessage) (any, error) {
 		switch method {
@@ -47,7 +48,7 @@ func TestAddSSHHostFromSidebar(t *testing.T) {
 		}
 	})
 	defer stop()
-	a.local().cl = cl
+	a.local().Client = cl
 
 	tt := ui.NewTester(a.view, 1100, 700)
 	tt.Frame()
@@ -108,7 +109,7 @@ func TestAddSSHHostFromSidebar(t *testing.T) {
 // shows its terminal, and adds no second row.
 func TestAddSSHHostOnce(t *testing.T) {
 	a := testApp(t)
-	a.local().conn = connReady
+	a.local().Conn = host.StateReady
 	projects, creates := 0, 0
 	cl, stop := projectClient(t, func(method string, raw json.RawMessage) (any, error) {
 		switch method {
@@ -127,7 +128,7 @@ func TestAddSSHHostOnce(t *testing.T) {
 		}
 	})
 	defer stop()
-	a.local().cl = cl
+	a.local().Client = cl
 
 	for i := range 2 {
 		a.SshAsk = &sshAsk{open: true, addr: "root@example.com:2222", name: "buildbox"}
@@ -191,7 +192,7 @@ func TestSidebarSSHHost(t *testing.T) {
 		t.Skip("a terminal")
 	}
 	a := testApp(t)
-	a.local().conn = connReady
+	a.local().Conn = host.StateReady
 	a.mergeState(a.local(), proto.State{Projects: []proto.Project{{ID: "p-ssh", Name: locales.SshHostsProject()}}})
 	a.Prefs.SSHProject = "p-ssh"
 	a.Prefs.SSHHosts = []sshHost{{Name: "example.com", Addr: "root@example.com:2222"}}
@@ -208,7 +209,7 @@ func TestSidebarSSHHost(t *testing.T) {
 		return proto.Session{ID: "ssh-s", Project: p.Project, Name: p.Name}, nil
 	})
 	defer stop()
-	a.local().cl = cl
+	a.local().Client = cl
 
 	tt := ui.NewTester(a.view, 1100, 700)
 	tt.Frame()
@@ -265,7 +266,7 @@ func TestSSHHostDrag(t *testing.T) {
 // drops, offers to reconnect it, and reconnecting starts a new terminal.
 func TestSSHHostReconnect(t *testing.T) {
 	a := testApp(t)
-	a.local().conn = connReady
+	a.local().Conn = host.StateReady
 	a.mergeState(a.local(), proto.State{
 		Projects: []proto.Project{{ID: "p-ssh", Name: locales.SshHostsProject()}},
 		Sessions: []proto.Session{{
@@ -289,7 +290,7 @@ func TestSSHHostReconnect(t *testing.T) {
 		return proto.Session{ID: "ssh-s2", Project: p.Project, Name: p.Name}, nil
 	})
 	defer stop()
-	a.local().cl = cl
+	a.local().Client = cl
 
 	tt := ui.NewTester(a.view, 1100, 700)
 	tt.Frame()
@@ -326,7 +327,7 @@ func TestSSHHostReconnect(t *testing.T) {
 // the old, as ssh's does when the connection drops mid-session.
 func TestSSHHostReconnectOpen(t *testing.T) {
 	a := testApp(t)
-	a.local().conn = connReady
+	a.local().Conn = host.StateReady
 	a.mergeState(a.local(), proto.State{
 		Projects: []proto.Project{{ID: "p-ssh", Name: locales.SshHostsProject()}},
 		Sessions: []proto.Session{{
@@ -350,7 +351,7 @@ func TestSSHHostReconnectOpen(t *testing.T) {
 		return proto.Session{ID: "ssh-s2", Project: p.Project, Name: p.Name}, nil
 	})
 	defer stop()
-	a.local().cl = cl
+	a.local().Client = cl
 
 	tt := ui.NewTester(a.view, 1100, 700)
 	tt.Frame()
@@ -383,7 +384,7 @@ func TestSSHHostReconnectOpen(t *testing.T) {
 // with it, while its row stays, and a click on the row connects again.
 func TestSSHHostDisconnect(t *testing.T) {
 	a := testApp(t)
-	a.local().conn = connReady
+	a.local().Conn = host.StateReady
 	a.mergeState(a.local(), proto.State{
 		Projects: []proto.Project{{ID: "p-ssh", Name: locales.SshHostsProject()}},
 		Sessions: []proto.Session{{
@@ -407,7 +408,7 @@ func TestSSHHostDisconnect(t *testing.T) {
 		return nil, nil
 	})
 	defer stop()
-	a.local().cl = cl
+	a.local().Client = cl
 
 	tt := ui.NewTester(a.view, 1100, 700)
 	tt.Frame()

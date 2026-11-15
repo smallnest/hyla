@@ -1,6 +1,7 @@
 package main
 
 import (
+	"hyla/internal/app/host"
 	"hyla/internal/ui/fuzzy"
 	"slices"
 	"strings"
@@ -21,7 +22,7 @@ import (
 // system's dialog does this machine's: hylad there lists them (fs.list).
 type folderPicker struct {
 	open bool
-	host *host
+	host *host.Host
 	// list is the folder listed, nil while it comes, and err why it did
 	// not; gen tells the listing asked for last.
 	list *proto.FSList
@@ -43,9 +44,9 @@ type pickerItem struct {
 
 // openProjectOn lists a host's folders, from its home, to open a project
 // in one.
-func (a *App) openProjectOn(h *host) {
-	if h.cl == nil {
-		a.toast(locales.HostNotConnected(h.name))
+func (a *App) openProjectOn(h *host.Host) {
+	if h.Client == nil {
+		a.toast(locales.HostNotConnected(h.Name))
 		return
 	}
 	a.Picker = folderPicker{open: true, host: h}
@@ -58,9 +59,9 @@ func (a *App) pickerGo(dir string) {
 	p.gen++
 	gen, hidden := p.gen, p.hidden
 	p.err, p.query, p.index, p.reveal = "", "", 0, true
-	cl := p.host.cl
+	cl := p.host.Client
 	if cl == nil {
-		p.err = locales.HostNotConnected(p.host.name)
+		p.err = locales.HostNotConnected(p.host.Name)
 		return
 	}
 	go func() {
@@ -105,7 +106,7 @@ func (a *App) pickerItems() []pickerItem {
 		if sc < 0 {
 			continue
 		}
-		found = append(found, scored{pickerItem{name: e.Name, path: p.host.joinPath(p.list.Dir, e.Name), repo: e.Repo}, sc})
+		found = append(found, scored{pickerItem{name: e.Name, path: p.host.JoinPath(p.list.Dir, e.Name), repo: e.Repo}, sc})
 	}
 	if q != "" {
 		slices.SortStableFunc(found, func(x, y scored) int { return y.score - x.score })
@@ -138,14 +139,14 @@ func (a *App) pickerView(c *ui.Context, pal *theme.Palette) {
 	ui.DialogBase(c.Key("picker"), &p.open, func(backdrop, panel ui.Element) {
 		backdrop.Background(pal.Overlay).Justify(ui.Start).Padding(84, 0, 0, 0)
 		style.Floating(panel.Width(600).MaxHeight(500).Radius(14).Background(pal.Popover), pal).Clip().
-			Label(locales.PickerTitle(h.label()))
+			Label(locales.PickerTitle(h.Label()))
 		ui.Row(c).Height(42).Shrink(0).Padding(0, 16).Gap(8).AlignItems(ui.Center).Children(func() {
 			ui.Icon(c, glyph.Host).Size(14, 14).TextColor(pal.TextMuted)
 			{
-				ui.Text(c, locales.PickerTitle(h.label())).FontSize(13).FontWeight(600).TextColor(pal.Text).SingleLine().Shrink(0)
+				ui.Text(c, locales.PickerTitle(h.Label())).FontSize(13).FontWeight(600).TextColor(pal.Text).SingleLine().Shrink(0)
 			}
 			if p.list != nil {
-				ui.Text(c, h.shortDir(p.list.Dir)).FontSize(12.5).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
+				ui.Text(c, h.ShortDir(p.list.Dir)).FontSize(12.5).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 			}
 			ui.Spacer(c)
 			label := locales.PickerShowHidden()
@@ -181,7 +182,7 @@ func (a *App) pickerView(c *ui.Context, pal *theme.Palette) {
 				openDir = a.pickerChosen(items)
 			case in.Submitted() || c.Shortcut(0, ui.KeyEnter) || c.Shortcut(0, ui.KeyTab):
 				switch {
-				case isPathQuery(q, h.windows()):
+				case isPathQuery(q, h.Windows()):
 					goTo = q
 				case len(items) > 0:
 					goTo = items[p.index].path
@@ -266,11 +267,11 @@ func (a *App) pickerChosen(items []pickerItem) string {
 
 // pickerHosts is the picker's switch of machines: the one it lists, and
 // each other, which a click lists instead.
-func (a *App) pickerHosts(c *ui.Context, pal *theme.Palette, shown *host) {
+func (a *App) pickerHosts(c *ui.Context, pal *theme.Palette, shown *host.Host) {
 	ui.Row(c.Key("hosts")).Gap(2).AlignItems(ui.Center).MinWidth(0).Shrink(1).Children(func() {
 		for _, h := range a.Hosts {
-			label := h.label()
-			b := ui.ButtonBase(c.Key("host-"+h.name)).Height(24).Padding(0, 8).Radius(6).AlignItems(ui.Center).
+			label := h.Label()
+			b := ui.ButtonBase(c.Key("host-"+h.Name)).Height(24).Padding(0, 8).Radius(6).AlignItems(ui.Center).
 				Label(locales.PickerTitle(label))
 			fg := pal.TextMuted
 			switch {
