@@ -443,7 +443,7 @@ func printHelp(args []string) error {
 			if c.hidden || c.group != g.key {
 				continue
 			}
-			fmt.Printf("  %-24s %s\n", c.name, c.summary)
+			fmt.Printf("  %-24s %s\n", nameWithAliases(c), c.summary)
 		}
 	}
 	fmt.Println()
@@ -451,6 +451,21 @@ func printHelp(args []string) error {
 	fmt.Println()
 	fmt.Println(helpFooter)
 	return nil
+}
+
+// nameWithAliases is a command's name and the other names it answers to, as
+// the list shows them: the ones that read as commands, not as flags.
+func nameWithAliases(c command) string {
+	var also []string
+	for _, a := range c.aliases {
+		if !strings.HasPrefix(a, "-") {
+			also = append(also, a)
+		}
+	}
+	if len(also) == 0 {
+		return c.name
+	}
+	return c.name + " (" + strings.Join(also, ", ") + ")"
 }
 
 // printCommand prints one command's usage.
