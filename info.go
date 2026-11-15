@@ -18,7 +18,7 @@ func (a *App) WorkDir(id string) string { return a.workDir(id) }
 
 func (a *App) FocusOf(s *proto.Session) string { return a.focusOf(s) }
 
-func (a *App) Scroll() *ui.ScrollState { return &a.Side.info.scroll }
+func (a *App) Scroll() *ui.ScrollState { return &a.Side.Info.Scroll }
 
 func (a *App) Folded() map[string]bool {
 	if a.Prefs.InfoFolded == nil {

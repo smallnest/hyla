@@ -14,6 +14,7 @@ import (
 	"hyla/internal/actions"
 	"hyla/internal/client"
 	"hyla/internal/proto"
+	"hyla/internal/ui/side"
 	"hyla/internal/ui/theme"
 
 	"hyla/locales"
@@ -130,9 +131,9 @@ func (a *App) quickFrame() mygo.Rectangle {
 		sideW, pad := int(a.Chrome.sideW), int(a.Chrome.mainPad)
 		w := b.Width - sideW - pad - cardGap
 		if a.rightShown() {
-			w -= int(a.sideWidth(a.Side.rowW)) + sideGap
+			w -= int(a.sideWidth(a.Side.RowW)) + sideGap
 		}
-		if w >= minPanes {
+		if w >= side.MinPanes {
 			return mygo.Rectangle{X: b.X + sideW + pad, Y: b.Y + cardGap, Width: w, Height: b.Height / 2}
 		}
 	}

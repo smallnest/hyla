@@ -22,11 +22,11 @@ import (
 var _ chat.App = (*App)(nil)
 
 // Chat is the view's state.
-func (a *App) Chat() *chat.State { return &a.Side.chat }
+func (a *App) Chat() *chat.State { return &a.Side.Chat }
 
 // Feed is a session's chat window.
 func (a *App) Feed(id string) *chat.Feed {
-	ch := &a.Side.chat
+	ch := &a.Side.Chat
 	if ch.Feeds == nil {
 		ch.Feeds = map[string]*chat.Feed{}
 	}

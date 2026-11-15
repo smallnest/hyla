@@ -29,7 +29,7 @@ func TestFilesTab(t *testing.T) {
 	s.Panes[0].Git, s.Panes[1].Git = g, g
 	a.Prefs.Side = sideFiles
 	h := a.hostOf(s.ID)
-	fs := &a.Side.files
+	fs := &a.Side.Files
 	fs.Dirs = map[string]*files.DirList{
 		filesKeyShim(h, "/tmp/demo"): {Entries: []proto.FSEntry{
 			{Name: ".git", Dir: true}, {Name: "internal", Dir: true}, {Name: "main.go"},
@@ -141,7 +141,7 @@ func TestViewerImageAndOpen(t *testing.T) {
 	a.local().Client = cl
 	pane := s.Panes[0].ID
 	fv := &files.View{Pane: pane, Path: "/tmp/demo/logo.png", Rel: "logo.png", BM: bm, Open: true, Fetched: time.Now()}
-	a.Side.files.Views = map[string]*files.View{s.ID: fv}
+	a.Side.Files.Views = map[string]*files.View{s.ID: fv}
 	tt := ui.NewTester(a.view, 1280, 720)
 	tt.Frame()
 	if !tt.HasText("logo.png") {
@@ -180,7 +180,7 @@ func TestFilesIconsAndMenu(t *testing.T) {
 	s.Panes[1].Git = g
 	a.Prefs.Side = sideFiles
 	h := a.hostOf(s.ID)
-	a.Side.files.Dirs = map[string]*files.DirList{
+	a.Side.Files.Dirs = map[string]*files.DirList{
 		filesKeyShim(h, "/tmp/demo"): {Entries: []proto.FSEntry{{Name: "src", Dir: true}, {Name: "main.go"}}},
 	}
 	tt := ui.NewTester(a.view, 1280, 720)
@@ -205,7 +205,7 @@ func TestFilesIconsAndMenu(t *testing.T) {
 	})
 	defer stop()
 	a.local().Client = cl
-	a.Side.files.Open[filesKeyShim(h, "/tmp/demo/src")] = true
+	a.Side.Files.Open[filesKeyShim(h, "/tmp/demo/src")] = true
 	for _, c := range []struct {
 		label, op, name string
 		dir             bool
@@ -214,10 +214,10 @@ func TestFilesIconsAndMenu(t *testing.T) {
 			t.Fatalf("click %s: %v", c.label, err)
 		}
 		tt.Frame()
-		if e := a.Side.files.Edit; e == nil || e.Op != c.op || e.Dir != "/tmp/demo" {
+		if e := a.Side.Files.Edit; e == nil || e.Op != c.op || e.Dir != "/tmp/demo" {
 			t.Fatalf("%s put %+v", c.label, e)
 		}
-		if !a.Side.files.Open[filesKeyShim(h, "/tmp/demo")] {
+		if !a.Side.Files.Open[filesKeyShim(h, "/tmp/demo")] {
 			t.Fatalf("%s didn't unfold the root", c.label)
 		}
 		// The field takes the focus, which settles in a frame or two,
@@ -225,12 +225,12 @@ func TestFilesIconsAndMenu(t *testing.T) {
 		time.Sleep(20 * time.Millisecond)
 		tt.TypeKey(0, ui.Key(c.name[0]), c.name)
 		tt.Frame()
-		if e := a.Side.files.Edit; e == nil || e.Name != c.name {
+		if e := a.Side.Files.Edit; e == nil || e.Name != c.name {
 			t.Fatalf("%s: the field shows %+v after typing %q", c.label, e, c.name)
 		}
 		tt.Key(0, ui.KeyEnter)
 		tt.Frame()
-		if e := a.Side.files.Edit; e != nil {
+		if e := a.Side.Files.Edit; e != nil {
 			t.Fatalf("%s: Enter left %+v", c.label, e)
 		}
 	}
@@ -248,12 +248,12 @@ func TestFilesIconsAndMenu(t *testing.T) {
 		t.Errorf("the folder is %+v", p)
 	}
 	// Collapse folds the folders the tree has open.
-	a.Side.files.Open[filesKeyShim(h, "/tmp/demo/src")] = true
+	a.Side.Files.Open[filesKeyShim(h, "/tmp/demo/src")] = true
 	if err := tt.Click(locales.FilesCollapseFolders()); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.Side.files.Open[filesKeyShim(h, "/tmp/demo/src")] {
+	if a.Side.Files.Open[filesKeyShim(h, "/tmp/demo/src")] {
 		t.Error("Collapse Folders left src unfolded")
 	}
 
@@ -270,10 +270,10 @@ func TestFilesIconsAndMenu(t *testing.T) {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if e := a.Side.files.Edit; e == nil || e.Op != files.EditRename || e.Path != "/tmp/demo/main.go" {
-		t.Fatalf("Rename put %+v", a.Side.files.Edit)
+	if e := a.Side.Files.Edit; e == nil || e.Op != files.EditRename || e.Path != "/tmp/demo/main.go" {
+		t.Fatalf("Rename put %+v", a.Side.Files.Edit)
 	}
-	a.Side.files.Edit = nil
+	a.Side.Files.Edit = nil
 	if err := tt.RightClick("src"); err != nil {
 		t.Fatal(err)
 	}
@@ -299,7 +299,7 @@ func TestPanelMakesRoom(t *testing.T) {
 		tt.Frame()
 	}
 	settle()
-	if a.Side.crowded {
+	if a.Side.Crowded {
 		t.Fatal("the window crowds the panel")
 	}
 	// The cards, as the panel shows beside them, come in from the sidebar.
@@ -309,12 +309,12 @@ func TestPanelMakesRoom(t *testing.T) {
 	}
 	tt.SetSize(640, 720)
 	settle()
-	if !a.Side.crowded || a.Prefs.Side != sideFiles || a.rightShown() {
-		t.Fatalf("a narrow window left the panel crowded %v, shown %v, opened %q", a.Side.crowded, a.rightShown(), a.Prefs.Side)
+	if !a.Side.Crowded || a.Prefs.Side != sideFiles || a.rightShown() {
+		t.Fatalf("a narrow window left the panel crowded %v, shown %v, opened %q", a.Side.Crowded, a.rightShown(), a.Prefs.Side)
 	}
 	a.toggleSide("")
 	settle()
-	if !a.rightShown() || !a.Side.forced {
+	if !a.rightShown() || !a.Side.Forced {
 		t.Fatal("toggling didn't show the panel in a narrow window")
 	}
 	// Room again, then narrow again, hides it.

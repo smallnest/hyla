@@ -40,6 +40,7 @@ import (
 	"hyla/internal/ui/palette"
 	"hyla/internal/ui/picker"
 	uisettings "hyla/internal/ui/settings"
+	"hyla/internal/ui/side"
 	"hyla/internal/ui/theme"
 	"hyla/internal/ui/worktree"
 
@@ -240,7 +241,7 @@ type App struct {
 	// do), nil for the user's.
 	From   *host.Host
 	Picker picker.State // the folders of a host, to open a project in
-	Side   sideState    // the side panel, beside a session's panes
+	Side   side.State   // the side panel, beside a session's panes
 	// info is what the Info views read, by pane (info.go).
 	Info paneinfo.Panes
 	// magpie is what Magpie shows of itself (magpie.go), nil until the

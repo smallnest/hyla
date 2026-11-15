@@ -12,7 +12,7 @@ import (
 // The app, as the Changes view asks it.
 var _ changesview.App = (*App)(nil)
 
-func (a *App) ChangesState() *changesview.State { return &a.Side.changes }
+func (a *App) ChangesState() *changesview.State { return &a.Side.Changes }
 
 func (a *App) ChangesView(c *ui.Context, pal *theme.Palette, s *proto.Session, width float32) {
 	changesview.View(a, c, pal, s, width)

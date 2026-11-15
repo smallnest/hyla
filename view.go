@@ -20,6 +20,7 @@ import (
 
 	"hyla/internal/ui/marks"
 	"hyla/internal/ui/paints"
+	"hyla/internal/ui/side"
 	"hyla/internal/ui/style"
 	"hyla/locales"
 
@@ -129,10 +130,10 @@ func (a *App) view(c *ui.Context) {
 	// frame's, as its bounds have it: the last frame's would lag a frame
 	// as the window resizes.
 	winW, _ := c.Size()
-	a.Side.crowded = winW > 0 && sideRowW(winW, a.Chrome) < minCards
-	a.Side.rowW = sideRowW(winW, a.Chrome)
-	if !a.Side.crowded {
-		a.Side.forced = false
+	a.Side.Crowded = winW > 0 && sideRowW(winW, a.Chrome) < side.MinCards
+	a.Side.RowW = sideRowW(winW, a.Chrome)
+	if !a.Side.Crowded {
+		a.Side.Forced = false
 	}
 	row.Children(func() {
 		progress = ui.Column(c.Key("sidebar")).AnimateTo("shown", b2f(!a.Prefs.SidebarHidden), sidebarMotion)
@@ -1209,8 +1210,8 @@ func (a *App) cardFor(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown 
 			// The panes, then the side panel, which takes the window's
 			// right edge.
 			row := ui.Row(c.Key("with-side")).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Bind(a.paneRef("with-side"))
-			w := a.Side.rowW
-			if a.Side.rowW == 0 {
+			w := a.Side.RowW
+			if a.Side.RowW == 0 {
 				w = a.paneRef("with-side").Bounds(c).W
 			}
 			row.Children(func() {

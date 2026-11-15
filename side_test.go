@@ -34,7 +34,7 @@ func TestSidePanel(t *testing.T) {
 	a.Prefs.Side = sideChanges
 
 	// What hylad would answer.
-	ch := &a.Side.changes
+	ch := &a.Side.Changes
 	turnScope := changesview.Scope(&s.Panes[0], git.BaseTurn)
 	ch.Base, ch.Scope, ch.Stamp = git.BaseTurn, turnScope, paints.Stamp(g)+"|abc"
 	ch.Res = &proto.GitChanges{Root: "/tmp/demo", Files: []proto.GitFile{
@@ -211,7 +211,7 @@ func TestChangesFollowWorktree(t *testing.T) {
 	g := &proto.GitInfo{Root: "/tmp/demo", Branch: "main", Default: "main", Files: 40, Added: 400}
 	s.Panes[0].Git, s.Panes[1].Git = g, g
 	a.Prefs.Side = sideChanges
-	ch := &a.Side.changes
+	ch := &a.Side.Changes
 	scope := changesview.Scope(&s.Panes[0], git.BaseHead)
 	if scope != changesview.Scope(&s.Panes[1], git.BaseHead) {
 		t.Fatal("two panes of one worktree list different changes")
@@ -261,7 +261,7 @@ func TestStickyHeaderStaysInList(t *testing.T) {
 	g := &proto.GitInfo{Root: "/tmp/demo", Branch: "main", Default: "main", Files: 3, Added: 60}
 	s.Panes[0].Git, s.Panes[1].Git = g, g
 	a.Prefs.Side = sideChanges
-	ch := &a.Side.changes
+	ch := &a.Side.Changes
 	scope := changesview.Scope(&s.Panes[0], git.BaseHead)
 	ch.Base, ch.Scope, ch.Stamp = git.BaseHead, scope, paints.Stamp(g)
 	ch.Res = &proto.GitChanges{Root: "/tmp/demo"}
@@ -324,7 +324,7 @@ func TestStickyHeaderAsFoldShortensList(t *testing.T) {
 	g := &proto.GitInfo{Root: "/tmp/demo", Branch: "main", Default: "main", Files: 3, Added: 180}
 	s.Panes[0].Git, s.Panes[1].Git = g, g
 	a.Prefs.Side = sideChanges
-	ch := &a.Side.changes
+	ch := &a.Side.Changes
 	scope := changesview.Scope(&s.Panes[0], git.BaseHead)
 	ch.Base, ch.Scope, ch.Stamp = git.BaseHead, scope, paints.Stamp(g)
 	ch.Res = &proto.GitChanges{Root: "/tmp/demo"}

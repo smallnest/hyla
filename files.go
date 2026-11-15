@@ -13,7 +13,7 @@ import (
 // The app, as the Files tab reads and runs what it shows.
 var _ files.App = (*App)(nil)
 
-func (a *App) FilesState() *files.State { return &a.Side.files }
+func (a *App) FilesState() *files.State { return &a.Side.Files }
 
 // AskDelete asks to delete a file or folder, before the app does it.
 func (a *App) AskDelete(title, detail, action string, run func()) {

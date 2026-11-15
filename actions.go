@@ -63,7 +63,7 @@ func (a *App) run(id string, args map[string]string) {
 		a.closeSession(a.Selected, true)
 	case "find.open":
 		// In the changes panel, its diff's find bar.
-		if f := a.Side.changes.Focus; a.Side.focused && f != nil && f.D != nil {
+		if f := a.Side.Changes.Focus; a.Side.Focused && f != nil && f.D != nil {
 			f.D.Find("")
 			break
 		}
