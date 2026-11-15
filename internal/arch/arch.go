@@ -128,6 +128,33 @@ var Layers = []Layer{
 		},
 	},
 	{
+		// The views, which draw the app's windows.
+		Name: "ui",
+		Package: []string{
+			"hyla/internal/actions",
+			"hyla/internal/adblock",
+			"hyla/internal/build",
+			"hyla/internal/claude",
+			"hyla/internal/clilink",
+			"hyla/internal/client",
+			"hyla/internal/daemon",
+			"hyla/internal/detach",
+			"hyla/internal/detect",
+			"hyla/internal/feishu",
+			"hyla/internal/git",
+			"hyla/internal/pets",
+			"hyla/internal/pocket",
+			"hyla/internal/proto",
+			"hyla/internal/remote",
+			"hyla/internal/service",
+			"hyla/internal/settings",
+			"hyla/internal/shell",
+			"hyla/internal/sync",
+			"hyla/internal/ui/wash",
+			"hyla/internal/update",
+		},
+	},
+	{
 		// The hyla CLI, which drives hylad from a shell or an agent.
 		Name: "cli",
 		Package: []string{
@@ -188,6 +215,7 @@ var layerNames = map[string]string{
 	"hyla/internal/daemon":   "daemon",
 	"hyla/internal/pocket":   "daemon",
 	"hyla/internal/cli":      "cli",
+	"hyla/internal/ui/wash":  "ui",
 }
 
 // LayerOf finds the layer of a package of this module.

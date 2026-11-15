@@ -137,7 +137,7 @@ type App struct {
 	terms      map[string]*termEntry
 	webs       map[string]*webEntry // browser panes' pages, by pane
 	files      filePaneStates       // file panes' files, by pane
-	ads        adblock.State         // what their pages block
+	ads        adblock.State        // what their pages block
 	icons      favicons             // and the icons they show
 	lru        []string
 	refs       map[string]*ui.Handle // panes' terminals, and splits, by id
@@ -166,7 +166,7 @@ type App struct {
 	renaming        string
 	renamingProject string
 	renameBuf       string
-	sync            syncState // this machine's configuration, kept with the others' 
+	sync            syncState // this machine's configuration, kept with the others'
 
 	renameFrames int
 	chrome       chrome // where the sidebar's animation puts things

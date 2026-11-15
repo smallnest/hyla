@@ -7,17 +7,18 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/settings"
+	"hyla/internal/ui/wash"
 )
 
 // Every background the settings offer has a wash, in both themes: its
 // stops start opaque and even, and its glow a color.
 func TestEveryBackgroundHasAWash(t *testing.T) {
 	for _, b := range settings.Backgrounds {
-		if _, ok := washTable[b.ID]; !ok {
+		if _, ok := wash.Table[b.ID]; !ok {
 			t.Errorf("%s has no wash", b.ID)
 		}
 		for _, dark := range []bool{false, true} {
-			base, glow := washes(b.ID, dark)
+			base, glow := wash.Washes(b.ID, dark)
 			if len(base.Stops) < 2 || base.Stops[0].At != 0 || base.Stops[len(base.Stops)-1].At != 1 {
 				t.Errorf("%s (dark=%v): stops %+v", b.ID, dark, base.Stops)
 			}
@@ -104,18 +105,18 @@ func TestBackgroundTilesShot(t *testing.T) {
 // they are. The backdrop fades a copy of a translucent wash's stops, never
 // the wash the theme has.
 func TestWashesAreKept(t *testing.T) {
-	base, _ := washOf("rex", false)
-	again, _ := washOf("rex", false)
+	base, _ := wash.Washes("rex", false)
+	again, _ := wash.Washes("rex", false)
 	if &base.Stops[0] != &again.Stops[0] {
 		t.Fatal("washes made twice")
 	}
-	other, _ := washOf("mist", false)
+	other, _ := wash.Washes("mist", false)
 	if &other.Stops[0] == &base.Stops[0] {
 		t.Fatal("two backgrounds have one wash")
 	}
 	// Faded, as the backdrop fades it, they stay.
-	faded(base.Stops, 0.4)
-	if after, _ := washOf("rex", false); after.Stops[0] != base.Stops[0] {
+	wash.Faded(base.Stops, 0.4)
+	if after, _ := wash.Washes("rex", false); after.Stops[0] != base.Stops[0] {
 		t.Errorf("the wash's first stop %v, then %v: a fade changed it", base.Stops[0], after.Stops[0])
 	}
 }

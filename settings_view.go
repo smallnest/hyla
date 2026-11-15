@@ -27,6 +27,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/settings"
 	"hyla/internal/shell"
+	"hyla/internal/ui/wash"
 
 	"hyla/locales"
 )
@@ -870,11 +871,11 @@ func (a *App) backgroundTile(c *ui.Context, pal *palette, id, name string) {
 	}
 	tile.Children(func() {
 		sw := raised(ui.Box(c).Size(104, 68).Radius(12), pal).Clip()
-		base, glow := washes(id, pal.dark)
+		base, glow := wash.Washes(id, pal.dark)
 		sw.LinearGradient(base)
 		sw.Children(func() {
 			ui.Box(c).Absolute().Top(0).Left(0).Right(0).Bottom(0).LinearGradient(glow)
-			if scene := washTable[id].scene; scene != nil {
+			if scene := wash.Table[id].Scene; scene != nil {
 				// The tile is little: the scene at its size, as the window
 				// has it.
 				ui.Box(c).Absolute().Top(0).Left(0).Right(0).Bottom(0).Draw(func(p *ui.Painter, r ui.Rect) { scene(p, r, pal.dark, 1) })

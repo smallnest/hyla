@@ -12,6 +12,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/settings"
+	"hyla/internal/ui/wash"
 )
 
 // A translucent terminal's card has a material, and an opaque one none, in
@@ -77,7 +78,7 @@ func TestPaneFrost(t *testing.T) {
 	pal := &lightPalette
 	s := settings.Settings{Vibrancy: true, PaneOpacity: 0.5, PaneBlur: true, PaneMaterial: "glass"}
 	m := paneGlass(pal, s, nil)
-	f, ok := m.(paneFrost)
+	f, ok := m.(wash.PaneFrost)
 	if !ok {
 		t.Fatalf("terminal blur has no glass: %T", m)
 	}
@@ -88,11 +89,11 @@ func TestPaneFrost(t *testing.T) {
 		t.Errorf("the frost's glass is %+v, %v", spec, ok)
 	}
 	s.PaneMaterial = "glass-clear"
-	if spec, ok := paneGlass(pal, s, nil).(paneFrost).NativeGlass(); !ok || spec.Style != int(glass.Clear) {
+	if spec, ok := paneGlass(pal, s, nil).(wash.PaneFrost).NativeGlass(); !ok || spec.Style != int(glass.Clear) {
 		t.Errorf("the clear frost's glass is %+v, %v", spec, ok)
 	}
 	s.PaneBlur = false
-	if _, ok := paneGlass(pal, s, nil).(*paneWash); !ok {
+	if _, ok := paneGlass(pal, s, nil).(*wash.PaneWash); !ok {
 		t.Errorf("without terminal blur, the card is %T", paneGlass(pal, s, nil))
 	}
 }
@@ -102,7 +103,7 @@ func TestPanePlastic(t *testing.T) {
 	pal := &lightPalette
 	s := settings.Settings{Vibrancy: true, PaneOpacity: 0.5, PaneBlur: true, PaneMaterial: "plastic"}
 	m := paneGlass(pal, s, nil)
-	p, ok := m.(panePlastic)
+	p, ok := m.(wash.PanePlastic)
 	if !ok {
 		t.Fatalf("plastic is %T", m)
 	}
@@ -118,20 +119,20 @@ func TestPanePicture(t *testing.T) {
 	pal := &lightPalette
 	s := settings.Settings{PaneImage: "/tmp/picture.png", PaneImageOpacity: 0.6}
 	m := paneGlass(pal, s, nil)
-	p, ok := m.(*panePicture)
-	if !ok || p.bm != nil || p.opacity != 0.6 || p.base != pal.card {
+	p, ok := m.(*wash.PanePicture)
+	if !ok || p.Bitmap != nil || p.Opacity != 0.6 || p.Base != pal.card {
 		t.Fatalf("a picture while it comes: %#v", m)
 	}
 	pic := image.NewRGBA(image.Rect(0, 0, 40, 80))
 	withBM := &sidebarArt{path: s.PaneImage, bm: ui.NewBitmap(pic)}
-	if ready := paneGlass(pal, s, withBM).(*panePicture); ready.bm == nil || ready.opacity != 0.6 {
+	if ready := paneGlass(pal, s, withBM).(*wash.PanePicture); ready.Bitmap == nil || ready.Opacity != 0.6 {
 		t.Errorf("a picture ready: %#v", ready)
 	}
 	// A dimmed card's color shows under it.
 	dim := pal.cardDim
 	art := &sidebarArt{path: s.PaneImage, card: &dim}
-	if dimmed := paneGlass(pal, s, art).(*panePicture); dimmed.base != dim {
-		t.Errorf("dimmed card: base %v, want %v", dimmed.base, dim)
+	if dimmed := paneGlass(pal, s, art).(*wash.PanePicture); dimmed.Base != dim {
+		t.Errorf("dimmed card: base %v, want %v", dimmed.Base, dim)
 	}
 
 	// The card shows it in place of the window's background: a picture
@@ -139,7 +140,7 @@ func TestPanePicture(t *testing.T) {
 	a := testApp(t)
 	a.set.PaneImage, a.set.PaneImageOpacity = s.PaneImage, 1
 	a.paneArt = sidebarArt{path: a.set.PaneImage, bm: ui.NewBitmap(pic)}
-	if p := a.paneBackground(pal, pal.card, &a.st.Sessions[0].Panes[0]).(*panePicture); p.bm == nil || p.base != pal.card {
+	if p := a.paneBackground(pal, pal.card, &a.st.Sessions[0].Panes[0]).(*wash.PanePicture); p.Bitmap == nil || p.Base != pal.card {
 		t.Errorf("the pane's card: %#v", p)
 	}
 	// A window that is not translucent: the card's color alone.
@@ -163,7 +164,7 @@ func TestPanePicturePaints(t *testing.T) {
 			pic.Set(x, y, c)
 		}
 	}
-	m := &panePicture{bm: ui.NewBitmap(pic), opacity: 1, base: lightPalette.card}
+	m := &wash.PanePicture{Bitmap: ui.NewBitmap(pic), Opacity: 1, Base: lightPalette.card}
 	box := ui.Rect{X: 0, Y: 0, W: 200, H: 100}
 	render := func() *image.RGBA {
 		return ui.Render(func(c *ui.Context) {
@@ -180,7 +181,7 @@ func TestPanePicturePaints(t *testing.T) {
 		t.Errorf("the card's bottom: %v, want the picture's green", c)
 	}
 	// At half its opacity, the card's color shows through.
-	m.opacity = 0.5
+	m.Opacity = 0.5
 	img = render()
 	if c := img.RGBAAt(100, 2); c.G < 60 || c.R < 120 {
 		t.Errorf("at half opacity: %v, want the picture and the card's color mixed", c)
@@ -203,7 +204,7 @@ func TestPanePictureFits(t *testing.T) {
 	}
 	box := ui.Rect{X: 0, Y: 0, W: 200, H: 100}
 	render := func(fit string) *image.RGBA {
-		m := &panePicture{bm: ui.NewBitmap(pic), opacity: 1, fit: fit, base: lightPalette.card}
+		m := &wash.PanePicture{Bitmap: ui.NewBitmap(pic), Opacity: 1, Fit: fit, Base: lightPalette.card}
 		return ui.Render(func(c *ui.Context) {
 			ui.Box(c).Fill().Material(m)
 		}, int(box.W), int(box.H), 1)
