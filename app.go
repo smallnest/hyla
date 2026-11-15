@@ -1520,7 +1520,7 @@ func (a *App) closeSession(id string, ask bool) {
 		return
 	}
 	if ask && s.Worktree != nil && a.hostOf(id).Client != nil {
-		a.askCloseWorktree(id)
+		worktree.AskCloseSession(a, id)
 		return
 	}
 	if ask && a.settingsIn.ConfirmClose && busy(s) {

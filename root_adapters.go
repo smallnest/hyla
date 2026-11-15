@@ -6,11 +6,14 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/app/host"
+	"hyla/internal/proto"
 	"hyla/internal/settings"
+	"hyla/internal/ui/confirm"
 	"hyla/internal/ui/layout"
 	"hyla/internal/ui/root"
 	"hyla/internal/ui/side"
 	"hyla/internal/ui/theme"
+	"hyla/internal/ui/worktree"
 	"hyla/locales"
 )
 
@@ -86,9 +89,20 @@ func (a *App) PickerView(c *ui.Context, pal *theme.Palette) { a.pickerView(c, pa
 func (a *App) ConfirmDialog(c *ui.Context, pal *theme.Palette) {
 	a.confirmView(c, pal)
 }
-func (a *App) Worktree(c *ui.Context, pal *theme.Palette) { a.worktreeView(c, pal) }
-func (a *App) SSH(c *ui.Context, pal *theme.Palette)      { a.sshView(c, pal) }
-func (a *App) K8s(c *ui.Context, pal *theme.Palette)      { a.k8sView(c, pal) }
+
+// Worktree draws the ask of a new session's branch.
+func (a *App) Worktree(c *ui.Context, pal *theme.Palette) { worktree.ViewOf(a, a.WtAsk, c, pal) }
+
+// The ask of a new session's branch, as worktree asks it.
+func (a *App) AskNew(w *worktree.Ask) { a.WtAsk = w }
+
+func (a *App) AskClose(cf *confirm.Ask) { a.Confirm = cf }
+
+func (a *App) SelectedHost() *host.Host { return a.selectedHost() }
+
+func (a *App) EndSession(id string, p proto.CloseParams) { a.endSession(id, p) }
+func (a *App) SSH(c *ui.Context, pal *theme.Palette)     { a.sshView(c, pal) }
+func (a *App) K8s(c *ui.Context, pal *theme.Palette)     { a.k8sView(c, pal) }
 
 // Undo is a removal's words and what puts back what it took away.
 func (a *App) Undo() (msg, undo string, act func(), ok bool) {
@@ -128,3 +142,6 @@ func (a *App) EndFrame(c *ui.Context) {
 }
 
 func (a *App) view(c *ui.Context) { root.View(a, c) }
+
+// Create starts a session, as the worktree dialog's.
+func (a *App) Create(h *host.Host, p proto.CreateParams, project string) { a.create(h, p, project) }
