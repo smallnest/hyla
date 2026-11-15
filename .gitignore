@@ -1,4 +1,8 @@
 /build/
+# The copy of hylad's code that package buildinfo embeds, which the
+# build makes, and a commit of changed hylad code skips (git diff
+# -- ':!internal/buildinfo/_hyladSource').
+/internal/buildinfo/_hyladSource/
 /.mygo/
 mygo_windows_*.syso
 node_modules/

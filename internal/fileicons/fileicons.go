@@ -1,4 +1,4 @@
-package main
+package fileicons
 
 import (
 	"embed"
@@ -80,12 +80,12 @@ func fileIconSVG(icon string, dark bool) *ui.SVG {
 	return svg
 }
 
-// fileIconImage shows a file's icon, or a folder's, open or not, in a
-// tree's row.
-func fileIconImage(c *ui.Context, pal *palette, name string, dir, open bool) ui.Element {
+// Image shows a file's icon, or a folder's, open or not, in a tree's
+// row, in the appearance dark names.
+func Image(c *ui.Context, name string, dir, open, dark bool) ui.Element {
 	icon := fileIconTheme.fileIconOf(name)
 	if dir {
 		icon = fileIconTheme.folderIconOf(name, open)
 	}
-	return ui.Image(c, fileIconSVG(icon, pal.dark)).Size(16, 16).Shrink(0)
+	return ui.Image(c, fileIconSVG(icon, dark)).Size(16, 16).Shrink(0)
 }

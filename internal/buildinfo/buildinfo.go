@@ -1,4 +1,7 @@
-package main
+// Package buildinfo tells what hylad's code is made of, for hylad to
+// tell its clients and for the app to know when the hylad it talks to
+// runs other code than its own: after an update that changed it.
+package buildinfo
 
 import (
 	"crypto/sha256"
@@ -21,8 +24,23 @@ import (
 // hyladSource is the code of Hyla's packages that hylad runs (go list
 // -deps ./internal/daemon), which TestHyladSource keeps whole.
 //
-//go:embed internal/actions internal/adblock internal/build internal/clilink internal/daemon internal/detach internal/detect internal/feishu internal/git internal/proto internal/remote internal/settings internal/shell internal/update
+// An embed pattern reaches only files of the package's own directory, and
+// the code is the module's, so scripts/sync-buildinfo.sh copies it into
+// _hyladSource/, as it is, and a release runs it first. The copy is no
+// package of this module: go list names it ./_hyladSource, which ./... and
+// so go vet and go test leave out. TestSourceSync reports a stale copy.
+//
+//go:embed _hyladSource
 var hyladSource embed.FS
+
+// The copy is a build's input, as a generated file is: `go generate
+// ./internal/buildinfo` makes it, and a build fails without it.
+//
+//go:generate sh ../../scripts/sync-buildinfo.sh
+
+// SourceDir is where the copy of hylad's code is, in hyladSource: what
+// an embed pattern needs it for.
+const SourceDir = "_hyladSource"
 
 // hyladModules are the other modules whose code hylad runs, which
 // TestHyladSource keeps whole too.
@@ -84,15 +102,19 @@ var hyladModules = []string{
 	"tailscale.com",
 }
 
-func init() { build.Daemon = hyladBuild() }
+func init() { build.Daemon = fingerprint() }
 
-// hyladBuild fingerprints the code hylad runs on this platform: its
+// Source reads a file of hylad's code, at its path from the module's
+// root, as "internal/daemon/daemon.go".
+func Source(p string) ([]byte, error) { return hyladSource.ReadFile(SourceDir + "/" + p) }
+
+// fingerprint computes the code hylad runs on this platform: its
 // packages' files, less tests and files of other platforms, the versions
 // of its modules, and Go's.
-func hyladBuild() string {
+func fingerprint() string {
 	h := sha256.New()
 	fmt.Fprintln(h, runtime.Version())
-	fs.WalkDir(hyladSource, ".", func(p string, d fs.DirEntry, err error) error {
+	fs.WalkDir(hyladSource, SourceDir, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -103,10 +125,10 @@ func hyladBuild() string {
 			return nil
 		}
 		b, err := hyladSource.ReadFile(p)
-		if err != nil || !builds(p, b) {
+		if err != nil || !builds(strings.TrimPrefix(p, SourceDir+"/"), b) {
 			return err
 		}
-		fmt.Fprintln(h, p, len(b))
+		fmt.Fprintln(h, strings.TrimPrefix(p, SourceDir+"/"), len(b))
 		h.Write(b)
 		return nil
 	})
@@ -130,9 +152,9 @@ var (
 	unixGoos = []string{"aix", "android", "darwin", "dragonfly", "freebsd", "illumos", "ios", "linux", "netbsd", "openbsd", "solaris"}
 )
 
-// builds reports whether a file of hyladSource is code built on this
-// platform: no test, and of no other platform by its name or its
-// constraint. Files that are no Go count, as code may embed them.
+// builds reports whether a file is code built on this platform: no test,
+// and of no other platform by its name or its constraint. Files that are
+// no Go count, as code may embed them.
 func builds(p string, b []byte) bool {
 	if !strings.HasSuffix(p, ".go") {
 		return true
@@ -164,11 +186,11 @@ func builds(p string, b []byte) bool {
 	return true
 }
 
-// hyladStale reports whether hylad, of the version and fingerprint its
+// Stale reports whether hylad, of the version and fingerprint its
 // Welcome tells, runs other code than this app's, as after an update that
 // changed it: an earlier hylad, which tells no fingerprint, of another
 // version.
-func hyladStale(app, fp string) bool {
+func Stale(app, fp string) bool {
 	if fp != "" {
 		return fp != build.Daemon
 	}

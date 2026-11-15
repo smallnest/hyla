@@ -14,6 +14,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/actions"
+	"hyla/internal/adblock"
 	"hyla/internal/settings"
 
 	"hyla/locales"
@@ -916,29 +917,25 @@ func TestAdsCompileAgainAfterAFailure(t *testing.T) {
 	var calls atomic.Int32
 	fail := atomic.Bool{}
 	fail.Store(true)
-	adblockRules = func(ids []string) ([]*mygo.ContentRules, error) {
+	// The app's window's loop takes each page's end, which this stands
+	// in for: a page's load answers once, after its compile, or with
+	// none started.
+	done := make(chan struct{}, 8)
+	// The wait after a failed compile ends at once: a test need not wait.
+	var now atomic.Int64
+	now.Store(time.Now().UnixNano())
+	// The hooks the app's pages compile through.
+	t.Cleanup(adblock.Hook(func(lists []string, dir string) ([]*mygo.ContentRules, error) {
 		calls.Add(1)
 		if fail.Load() {
 			return nil, fmt.Errorf("no network")
 		}
 		return nil, nil
-	}
-	// The app's window's loop takes each page's end, which this stands
-	// in for: a page's load answers once, after its compile, or with
-	// none started.
-	done := make(chan struct{}, 8)
-	adblockDone = func() { done <- struct{}{} }
-	// The wait after a failed compile ends at once: a test need not wait.
-	var now atomic.Int64
-	now.Store(time.Now().UnixNano())
-	adNow = func() time.Time { return time.Unix(0, now.Load()) }
-	t.Cleanup(func() {
-		adblockRules, adblockDone, adNow = compileAdBlock, func() {}, time.Now
-	})
+	}, func() { done <- struct{}{} }, func() time.Time { return time.Unix(0, now.Load()) }))
 	// page is a page's load, which starts a compile or finds the lists
 	// compiled, with its answer taken.
 	page := func() int32 {
-		a.main(func() { a.compileAds() })
+		a.main(func() { a.adRules() })
 		select {
 		case <-done:
 		case <-time.After(5 * time.Second):
@@ -950,7 +947,7 @@ func TestAdsCompileAgainAfterAFailure(t *testing.T) {
 		t.Fatalf("a failed compile ran once: %d calls", n)
 	}
 	fail.Store(false)
-	now.Add(int64(adRetry))
+	now.Add(int64(adblock.Retry))
 	if n := page(); n != 2 {
 		t.Fatalf("the page after the wait compiles the lists again: %d calls", n)
 	}
@@ -971,23 +968,19 @@ func TestAdsWaitAfterAFailure(t *testing.T) {
 	var calls atomic.Int32
 	fail := atomic.Bool{}
 	fail.Store(true)
-	adblockRules = func(ids []string) ([]*mygo.ContentRules, error) {
+	done := make(chan struct{}, 8)
+	var now atomic.Int64
+	now.Store(time.Now().UnixNano())
+	// The hooks the app's pages compile through.
+	t.Cleanup(adblock.Hook(func(lists []string, dir string) ([]*mygo.ContentRules, error) {
 		calls.Add(1)
 		if fail.Load() {
 			return nil, fmt.Errorf("no network")
 		}
 		return nil, nil
-	}
-	done := make(chan struct{}, 8)
-	adblockDone = func() { done <- struct{}{} }
-	var now atomic.Int64
-	now.Store(time.Now().UnixNano())
-	adNow = func() time.Time { return time.Unix(0, now.Load()) }
-	t.Cleanup(func() {
-		adblockRules, adblockDone, adNow = compileAdBlock, func() {}, time.Now
-	})
+	}, func() { done <- struct{}{} }, func() time.Time { return time.Unix(0, now.Load()) }))
 	page := func() int32 {
-		a.main(func() { a.compileAds() })
+		a.main(func() { a.adRules() })
 		select {
 		case <-done:
 		case <-time.After(5 * time.Second):
@@ -1003,18 +996,18 @@ func TestAdsWaitAfterAFailure(t *testing.T) {
 	}
 	// The wait over, the lists go again, and fail again.
 	t0 := now.Load()
-	now.Store(t0 + int64(adRetry))
+	now.Store(t0 + int64(adblock.Retry))
 	if n := page(); n != 2 {
 		t.Fatalf("the page after the wait ran %d compiles, want 2", n)
 	}
 	// The second failure waits twice as long: a page inside the second
 	// wait does not go.
 	t1 := now.Load()
-	now.Store(t1 + int64(adRetry+adRetry/2))
+	now.Store(t1 + int64(adblock.Retry+adblock.Retry/2))
 	if n := page(); n != 2 {
 		t.Fatalf("the page inside the second wait ran %d compiles, want 2", n)
 	}
-	now.Store(t1 + int64(2*adRetry))
+	now.Store(t1 + int64(2*adblock.Retry))
 	fail.Store(false)
 	if n := page(); n != 3 {
 		t.Fatalf("the page after the waits ran %d compiles, want 3", n)

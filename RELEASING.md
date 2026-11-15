@@ -7,6 +7,14 @@ it all in a draft release, which it publishes once every job succeeded.
 
 ## Steps
 
+Before a build, and before the tests, make the copy of hylad's code that
+package `buildinfo` embeds. The CI and release workflows do it; a local
+build does it with:
+
+```sh
+go generate ./internal/buildinfo
+```
+
 1. Pick the version: a patch (2.1.4 → 2.1.5) for fixes and small
    changes, a minor for features.
 2. Set it in `mygo.json` (`"version"`).

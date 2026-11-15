@@ -188,9 +188,6 @@ func TestFilesIconsAndMenu(t *testing.T) {
 	if r, _ := tt.Find(locales.FilesCollapseFolders()); r.Y < 40 {
 		t.Errorf("the header still has a menu, at %v", r)
 	}
-	if fileIconTheme.fileIconOf("main.go") != "lang-go" || fileIconTheme.fileIconOf("x.png") != "image-duo" {
-		t.Error("the tree shows one icon for files of different kinds")
-	}
 
 	// The root's buttons put a field for a new file's, a new folder's,
 	// at the top of the root, which they unfold; and fold its folders.

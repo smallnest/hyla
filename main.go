@@ -25,6 +25,7 @@ import (
 	"hyla/internal/clilink"
 	"hyla/internal/daemon"
 	_ "hyla/internal/pocket"
+	"hyla/internal/profiling"
 	"hyla/internal/proto"
 
 	"hyla/locales"
@@ -89,7 +90,7 @@ func runApp() {
 	if !mygo.App.RequestSingleInstanceLock() {
 		return
 	}
-	startAppProfiling()
+	profiling.Start()
 	cli.SyncSkill()
 	// Updates from Hyla's GitHub releases, in a window of native UI.
 	mygo.Use(native.Plugin)

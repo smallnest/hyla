@@ -12,6 +12,7 @@ import (
 	"github.com/egoist/mygo/ui/editor"
 
 	"hyla/internal/client"
+	"hyla/internal/fileicons"
 	"hyla/internal/proto"
 
 	"hyla/locales"
@@ -341,7 +342,7 @@ func (a *App) treeFolder(c *ui.Context, pal *palette, name, tip string, depth in
 	row.Children(func() {
 		chev := ui.Icon(c, chevronIcon).Size(9, 9).TextColor(pal.textFaint).Shrink(0)
 		chev.Rotate(chev.AnimateTo("turn", 90*b2f(open), ui.Snappy))
-		fileIconImage(c, pal, name, true, open)
+		fileicons.Image(c, name, true, open, pal.dark)
 		ui.Text(c, name).FontSize(12.5).TextColor(pal.textMuted).SingleLine().Ellipsis("…").MinWidth(0)
 	})
 	return row
@@ -356,7 +357,7 @@ func (a *App) treeEntry(c *ui.Context, pal *palette, it fileItem, current bool, 
 	}
 	row.Children(func() {
 		ui.Box(c).Size(9, 9).Shrink(0)
-		fileIconImage(c, pal, it.Name, false, false)
+		fileicons.Image(c, it.Name, false, false, pal.dark)
 		ui.Text(c, it.Name).FontSize(12.5).TextColor(pal.text).SingleLine().Ellipsis("…").MinWidth(0)
 	})
 	return row
@@ -426,7 +427,7 @@ func (a *App) fileViewer(c *ui.Context, pal *palette, s *proto.Session, fv *file
 
 	dir, name := path.Split(fv.rel)
 	ui.Row(c.Key("hdr")).Height(headerH).Shrink(0).AlignItems(ui.Center).Padding(0, 10, 0, 10).Gap(8).Children(func() {
-		fileIconImage(c, pal, name, false, false)
+		fileicons.Image(c, name, false, false, pal.dark)
 		ui.Text(c, name).FontSize(14).FontWeight(600).TextColor(pal.text).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
 		if dir = strings.TrimSuffix(dir, "/"); dir != "" {
 			ui.Text(c, dir).FontSize(13).TextColor(pal.textFaint).SingleLine().Ellipsis("…").Shrink(2).MinWidth(0).Tooltip(fv.path)

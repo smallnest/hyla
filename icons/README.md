@@ -6,9 +6,9 @@
 - `octicon-*.svg`: [Octicons](https://primer.style/octicons) (MIT, © GitHub), for what Framework7 has no icon of, as a file's diff.
 - `lucide-*.svg`: [Lucide](https://lucide.dev) (ISC, © Lucide Contributors), with a heavier stroke than Iconify serves (`stroke-width`), as SF Symbols' semibold: 2.5 for `chevrons-up-down`, 3 for `check`.
 
-- `files/`: [Pierre Icons](https://diffs.com/icons) (MIT, © The Pierre Computer Company, `files/LICENSE.md`), the file and folder icons of the Files tree: the complete theme, in its colors for the light appearance (`*_light.svg`) and the dark one. `go run ./scripts/fileicons <checkout>` brings them from a checkout of [pierrecomputer/vscode-icons](https://github.com/pierrecomputer/vscode-icons) built with `node scripts/build-icon-theme.mjs`, with the names and extensions they are for (`fileicons_gen.go`).
+- The Files tree's file and folder icons are [Pierre Icons](https://diffs.com/icons) (MIT, © The Pierre Computer Company, `internal/fileicons/icons/files/LICENSE.md`): the complete theme, in its colors for the light appearance (`*_light.svg`) and the dark one. `go run ./scripts/fileicons <checkout>` brings them from a checkout of [pierrecomputer/vscode-icons](https://github.com/pierrecomputer/vscode-icons) built with `node scripts/build-icon-theme.mjs`, with the names and extensions they are for (`internal/fileicons/fileicons_gen.go`).
 
-All but `files/` as [Iconify](https://iconify.design) serves them: `https://api.iconify.design/f7/<name>.svg`.
+All but the Files tree's as [Iconify](https://iconify.design) serves them: `https://api.iconify.design/f7/<name>.svg`.
 
 `resources/icons/agents/` holds the marks of the coding agents, which the sidebar puts before a session's name in the agent's own colour, the logo its makers drew: Simple Icons' SVGs too, but drawn as the brand draws them rather than in the text's colour. `resources/icons/agents/README.md` tells which one is whose.
 

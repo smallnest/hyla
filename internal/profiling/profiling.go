@@ -1,6 +1,6 @@
 //go:build !windows
 
-package main
+package profiling
 
 import (
 	"log"
@@ -37,7 +37,7 @@ var appProfiles appProfiler
 
 // startAppProfiling attaches the signals to the window's profiles, when
 // $HYLA_PROFILE says where to write them.
-func startAppProfiling() {
+func Start() {
 	dir := os.Getenv(appProfileDirEnv)
 	if dir == "" || !mygo.IsDev() {
 		return

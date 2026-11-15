@@ -23,6 +23,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/actions"
+	"hyla/internal/adblock"
 	"hyla/internal/client"
 	"hyla/internal/pets"
 	"hyla/internal/proto"
@@ -136,7 +137,7 @@ type App struct {
 	terms      map[string]*termEntry
 	webs       map[string]*webEntry // browser panes' pages, by pane
 	files      filePaneStates       // file panes' files, by pane
-	ads        adBlock              // what their pages block
+	ads        adblock.State         // what their pages block
 	icons      favicons             // and the icons they show
 	lru        []string
 	refs       map[string]*ui.Handle // panes' terminals, and splits, by id
@@ -1501,7 +1502,7 @@ func (a *App) apply(s settings.Settings, save bool) {
 	}
 	// Only once a browser pane showed a page: until then, no lists are
 	// downloaded.
-	if (old.BlockAds != s.BlockAds || !slices.Equal(old.AdLists, s.AdLists)) && (a.ads.started || len(a.webs) > 0) {
+	if (old.BlockAds != s.BlockAds || !slices.Equal(old.AdLists, s.AdLists)) && (a.ads.Started() || len(a.webs) > 0) {
 		a.applyAdBlock()
 	}
 	// The bot's commands run in this window's environment, which a token

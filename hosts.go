@@ -13,6 +13,7 @@ import (
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 
+	"hyla/internal/buildinfo"
 	"hyla/internal/client"
 	"hyla/internal/proto"
 	"hyla/internal/settings"
@@ -468,5 +469,5 @@ func (h *host) stale() bool {
 	if h.remote() || h.conn != connReady || h.daemonApp == "" {
 		return false
 	}
-	return hyladStale(h.daemonApp, h.daemonFP)
+	return buildinfo.Stale(h.daemonApp, h.daemonFP)
 }

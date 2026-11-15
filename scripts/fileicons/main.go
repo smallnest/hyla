@@ -1,8 +1,9 @@
 // Command fileicons brings Pierre's file icons (github.com/pierrecomputer/vscode-icons,
 // MIT) into hyla: from a checkout of theirs, built with `node
 // scripts/build-icon-theme.mjs`, the icons of the complete theme, in their
-// light and dark colors, go to icons/files, and the names, extensions and
-// defaults they are for to fileicons_gen.go.
+// light and dark colors, go to internal/fileicons/icons/files, and the
+// names, extensions and defaults they are for to
+// internal/fileicons/fileicons_gen.go.
 //
 //	go run ./scripts/fileicons ~/src/vscode-icons
 package main
@@ -48,7 +49,7 @@ func main() {
 
 	// The icons, by their names: name.svg for the dark appearance,
 	// name_light.svg for the light one.
-	out := filepath.Join("icons", "files")
+	out := filepath.Join("internal", "fileicons", "icons", "files")
 	os.RemoveAll(out)
 	if err := os.MkdirAll(out, 0o755); err != nil {
 		log.Fatal(err)
@@ -83,7 +84,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := os.WriteFile("fileicons_gen.go", src2, 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join("internal", "fileicons", "fileicons_gen.go"), src2, 0o644); err != nil {
 		log.Fatal(err)
 	}
 	fmt.Printf("%d icons, %d names, %d extensions\n", len(t.IconDefinitions), len(t.FileNames), len(t.FileExtensions))
