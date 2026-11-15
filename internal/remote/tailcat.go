@@ -68,17 +68,14 @@ type TailcatKey struct {
 func TailcatKeyPath() string { return filepath.Join(proto.Dir(), "tailcat.json") }
 
 // LocalTailcatAddress is this machine's tailcat address, as hylad's key
-// makes it: "tailcat://…", for hylad's listener at the settings' port.
+// makes it: the pair code alone, which TailcatCode takes with or without
+// its "tailcat://", for hylad's listener at the settings' port.
 func LocalTailcatAddress(ctx context.Context) (string, error) {
 	k, err := TailcatKeyAt(ctx, TailcatKeyPath())
 	if err != nil {
 		return "", err
 	}
-	code, err := TailcatAddress(ctx, k)
-	if err != nil {
-		return "", err
-	}
-	return "tailcat://" + code, nil
+	return TailcatAddress(ctx, k)
 }
 
 // LoadTailcatKey reads hylad's tailcat key at path, or makes one, which

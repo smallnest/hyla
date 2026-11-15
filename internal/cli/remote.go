@@ -65,7 +65,7 @@ func p2pCmd(args []string) error {
 		default:
 			fmt.Printf("p2p: listening on %s (port %s)\n", spec, port)
 			if code, err := localPairCode(); err == nil {
-				fmt.Printf("  pair code: %s\n", code)
+				fmt.Printf("  pair code: tailcat://%s\n", code)
 			} else {
 				fmt.Printf("  pair code: %v\n", err)
 			}
@@ -83,7 +83,7 @@ func p2pCmd(args []string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Println(code)
+		fmt.Println("tailcat://" + code)
 		fmt.Fprintln(os.Stderr, "the pair code is the secret: anyone with it can connect; hyla p2p rotate makes a new one")
 		if !on {
 			fmt.Fprintln(os.Stderr, "hylad does not listen for peers here: hyla p2p enable")

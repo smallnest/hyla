@@ -866,7 +866,7 @@ func daemonCmd(args []string) error {
 			if err != nil {
 				fmt.Println("tailcat:", err)
 			} else {
-				fmt.Println("tailcat:", code)
+				fmt.Println("tailcat: tailcat://" + code)
 			}
 		}
 		return nil

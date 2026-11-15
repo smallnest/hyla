@@ -108,3 +108,20 @@ func TestTailcatKeyRegionKept(t *testing.T) {
 		t.Errorf("rotated key %+v, %v", rk, err)
 	}
 }
+
+// LocalTailcatAddress is a pair code alone: what a code URL takes, and a
+// view adds "tailcat://" to, once.
+func TestLocalTailcatAddressIsBare(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	code, err := LocalTailcatAddress(ctx)
+	if err != nil {
+		t.Skip("no relay: ", err)
+	}
+	if !LooksLikePairCode(code) || TailcatCode("tailcat://"+code) != code {
+		t.Fatalf("address %q", code)
+	}
+	if TailcatCode(code) != code {
+		t.Errorf("address %q keeps its scheme", code)
+	}
+}

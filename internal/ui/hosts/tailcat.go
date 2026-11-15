@@ -206,8 +206,8 @@ func TailcatCode(a App) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		code, err := remote.LocalTailcatAddress(ctx)
 		cancel()
-		// The code drawn as a phone's camera reads it: the key alone here,
-		// since nothing else adds the scheme a pair code needs.
+		// The code drawn as a phone's camera reads it: its scheme, which
+		// the code alone does not carry.
 		var qr *qrcode.Code
 		if err == nil {
 			qr, _ = qrcode.Encode("tailcat://"+code, qrcode.L)
@@ -240,7 +240,7 @@ func RotateTailcatCode(a App) {
 		a.Update(func() {
 			d.Code, d.CodeErr, d.At = errorText(err), errorText(err), time.Now()
 			if err == nil {
-				d.Code = "tailcat://" + code
+				d.Code = code
 			}
 		})
 	}()
