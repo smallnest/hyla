@@ -1,29 +1,16 @@
 package main
 
 import (
-	"hyla/internal/app/host"
-	"strings"
-
 	"github.com/egoist/mygo/ui"
 
+	"hyla/internal/app/host"
 	"hyla/internal/proto"
 	"hyla/internal/ui/confirm"
 	"hyla/internal/ui/theme"
+	"hyla/internal/ui/worktree"
 
-	"hyla/internal/ui/controls"
-	"hyla/internal/ui/style"
 	"hyla/locales"
 )
-
-// worktreeAsk asks the name of the branch a new session checks out in a
-// worktree of its own (plans/git.md, Phase 3), to start it on a host
-// with p.
-type worktreeAsk struct {
-	open   bool
-	branch string
-	host   *host.Host
-	p      proto.CreateParams
-}
 
 // newWorktreeSession asks a branch's name for a session in a worktree of
 // its own, of the repository of the session the user is in, else of its
@@ -42,46 +29,21 @@ func (a *App) newWorktreeSession() {
 	if a.settingsIn.WorktreeBase == "current" {
 		p.Base = "HEAD"
 	}
-	a.WtAsk = &worktreeAsk{open: true, host: h, p: p}
+	a.WtAsk = &worktree.Ask{Open: true, Host: h, P: p}
 }
+
+var _ worktree.App = (*App)(nil)
+
+// Create starts a session, as the worktree dialog's.
+func (a *App) Create(h *host.Host, p proto.CreateParams, project string) { a.create(h, p, project) }
 
 func (a *App) worktreeView(c *ui.Context, pal *theme.Palette) {
 	w := a.WtAsk
-	if w == nil {
-		return
+	if branch, made := worktree.View(a, c, pal, w); made {
+		w.P.Worktree = branch
+		a.create(w.Host, w.P, w.P.Project)
 	}
-	create := false
-	ui.DialogBase(c.Key("worktree"), &w.open, func(backdrop, panel ui.Element) {
-		backdrop.Background(pal.Overlay)
-		style.Floating(panel.Width(420).Padding(22).Gap(8).Radius(14).Background(pal.Popover), pal).Label(locales.WorktreeTitle())
-		ui.Text(c, locales.WorktreeTitle()).FontSize(15).FontWeight(650).TextColor(pal.Text)
-		detail := locales.WorktreeDetailDefault()
-		if w.p.Base == "HEAD" {
-			detail = locales.WorktreeDetailCurrent()
-		}
-		ui.Text(c, detail).FontSize(13).TextColor(pal.TextMuted).LineHeight(1.4)
-		ui.Row(c).Margin(8, 0, 0, 0).Children(func() {
-			in := controls.TextField(c, "branch", &w.branch, locales.WorktreeBranch(), 0, pal)
-			in.AutoFocus()
-			if in.Submitted() {
-				create = true
-			}
-		})
-		ui.Row(c).Gap(8).Justify(ui.End).Margin(14, 0, 0, 0).Children(func() {
-			if style.Button(c, "cancel", locales.CommonCancel(), "esc", false, pal) {
-				w.open = false
-			}
-			if style.Button(c, "ok", locales.WorktreeCreate(), "↩", true, pal) {
-				create = true
-			}
-		})
-	})
-	if branch := strings.TrimSpace(w.branch); create && branch != "" {
-		w.open = false
-		w.p.Worktree = branch
-		a.create(w.host, w.p, w.p.Project)
-	}
-	if !w.open {
+	if w != nil && !w.Open {
 		a.WtAsk = nil
 		a.focusTerminal()
 	}

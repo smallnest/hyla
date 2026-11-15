@@ -39,6 +39,7 @@ import (
 	"hyla/internal/ui/picker"
 	uisettings "hyla/internal/ui/settings"
 	"hyla/internal/ui/theme"
+	"hyla/internal/ui/worktree"
 
 	"hyla/locales"
 )
@@ -175,9 +176,9 @@ type App struct {
 	Pal     palette.State
 	Find    findState
 	Confirm *confirm.Ask
-	WtAsk   *worktreeAsk
-	SshAsk  *sshAsk // the sidebar's add-a-host-over-SSH dialog
-	K8sAsk  *k8sAsk // the sidebar's add-a-kubectl-exec-pod dialog
+	WtAsk   *worktree.Ask // the new session's branch, while asked
+	SshAsk  *sshAsk       // the sidebar's add-a-host-over-SSH dialog
+	K8sAsk  *k8sAsk       // the sidebar's add-a-kubectl-exec-pod dialog
 	// endedAll shows all of the sidebar's Ended; skillMissing tells, as
 	// of skillsAt, that no kind of agent has Hyla's skill (ended.go).
 	// This fork has no Ended (session history): the fields stay for

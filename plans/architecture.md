@@ -122,6 +122,9 @@ behaviour, and `go vet ./...` and `go test ./...` pass.
   - Also: the Settings window's groups, rows, segmented control and the
     search's marks are `internal/ui/settings/kit`, which the pages, the
     Sync page and the hosts' forms draw with.
+  - Also: the dialog of a new session's worktree is
+    `internal/ui/worktree`; its closing question stays in the root, with
+    the confirm dialog.
   - Also: the Settings window is `internal/ui/settings` — its state
     (`State`, with the hosts' and Feishu's drafts), its pages, the
     keyboard's shortcut recording and the window's opening. It asks an

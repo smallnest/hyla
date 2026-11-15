@@ -199,6 +199,7 @@ var Layers = []Layer{
 			"hyla/internal/ui/settings/search",
 			"hyla/internal/ui/style",
 			"hyla/internal/ui/theme",
+			"hyla/internal/ui/worktree",
 			"hyla/internal/ui/wash",
 			"hyla/internal/update",
 		},
@@ -309,6 +310,7 @@ var layerNames = map[string]string{
 	"hyla/internal/ui/style":           "ui",
 	"hyla/internal/ui/theme":           "ui",
 	"hyla/internal/ui/wash":            "ui",
+	"hyla/internal/ui/worktree":        "ui",
 	"hyla/internal/update":             "base",
 }
 
