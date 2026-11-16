@@ -4,6 +4,17 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.12.0
+
+- The Info view has a Timeline card: the turns of the coding agent in the
+  pane you are in, each with its tools, reasoning and subagents as bars
+  from start to end, a turn that runs reaching now, and the approvals that
+  wait or the tools that failed named under their turn. It reads Claude
+  Code's and DeepSeek Harness's records; another agent's pane says so.
+- The same timeline has a window of its own, Pane › Timeline Window
+  (⌥⌘T), or `hyla do timeline.open`. It follows the pane and session you
+  are in while it is open.
+
 ## 3.11.3
 
 - Antigravity's logo in the sidebar, and beside its plan in Magpie's card,
