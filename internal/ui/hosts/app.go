@@ -41,8 +41,13 @@ type App interface {
 	PaletteSelectSession(id string)
 	NewSessionOn(h *host.Host, projectID string)
 	HostState(c *ui.Context, pal *theme.Palette, h *host.Host)
-	// SetConfirm asks the app's confirmation.
+	// SetConfirm asks the app's confirmation, in the sidebar that asks it.
 	SetConfirm(a *confirm.Ask)
+	// SettingsConfirm and SettingsToast ask and tell in the Settings
+	// window, where the pages that ask them show: the main window may
+	// stand behind Settings, where neither would be seen.
+	SettingsConfirm(a *confirm.Ask)
+	SettingsToast(msg string)
 	// HostDraft, PairCodeDraft, TailcatDraft and P2PDraft are the forms'
 	// drafts, and SettingsNow are the settings the pages change.
 	SettingsNow() *settings.Settings

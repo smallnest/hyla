@@ -22,7 +22,9 @@ import (
 	"hyla/internal/settings"
 	"hyla/internal/ui/hosts"
 	uisettings "hyla/internal/ui/settings"
+	"hyla/internal/ui/settings/draft"
 	"hyla/internal/ui/settings/kit"
+	"hyla/locales"
 )
 
 // aRemoteHylad answers as another machine's hylad at a tcp:// listener:
@@ -363,4 +365,42 @@ func toggleP2P(t *testing.T, a *App) {
 	}
 	a.SetSettingsNow(settings.Load())
 	hosts.ResetP2P(a)
+}
+
+// The question a page asks is the Settings window's own, over the page:
+// the main window may stand behind Settings, where the question, and the
+// news after it, would not be seen.
+func TestTailcatCodeChangeAskedInSettings(t *testing.T) {
+	a := testApp(t)
+	s := a.SettingsNow().Clone()
+	s.Tailcat = true
+	s.SetTailcatListen("7473")
+	a.SetSettingsNow(s)
+	a.Ss.Page = "hosts"
+	a.Ss.Tailcat = draft.TailcatDraft{ListenPort: "7473", Code: "tc" + strings.Repeat("x", 20), At: time.Now()}
+
+	kit.Reset()
+	tt := ui.NewTester(uisettings.View(a), 820, 2600)
+	tt.Frame()
+	if err := tt.Click(locales.SetTailcatChange()); err != nil {
+		t.Fatalf("the change button: %v", err)
+	}
+	tt.Frame()
+	if a.Ss.Confirm == nil || !a.Ss.Confirm.Open || a.Ss.Confirm.Title != locales.SetTailcatChange() {
+		t.Fatalf("Settings asked %+v", a.Ss.Confirm)
+	}
+	if a.Confirm != nil {
+		t.Errorf("the question went to the main window, behind Settings: %+v", a.Confirm)
+	}
+	// Answered or not, it shows over the page it was asked on.
+	if !tt.HasText(locales.SetTailcatChange()) {
+		t.Errorf("Settings draws no question; texts %q", tt.Texts())
+	}
+
+	// The news of a page is Settings' too.
+	a.Ss.Confirm = nil
+	hosts.RotateTailcatCode(a)
+	if a.Ss.Toast == "" {
+		t.Error("the news of a new pair code went to the main window")
+	}
 }

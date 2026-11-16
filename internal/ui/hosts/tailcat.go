@@ -172,7 +172,7 @@ func TailcatListen(a App, c *ui.Context, pal *theme.Palette, d *draft.TailcatDra
 				}()
 			})
 			paints.IconButton(c, "change-tailcat", glyph.Reload, locales.SetTailcatChange(), pal, func() {
-				a.SetConfirm(&confirm.Ask{
+				a.SettingsConfirm(&confirm.Ask{
 					Open:    true,
 					Title:   locales.SetTailcatChange(),
 					Action:  locales.SetTailcatChange(),
@@ -218,7 +218,7 @@ func TailcatCode(a App) {
 // one's no longer opens.
 func RotateTailcatCode(a App) {
 	if _, err := remote.RotateTailcatKey(remote.TailcatKeyPath()); err != nil {
-		a.Toast(err.Error())
+		a.SettingsToast(err.Error())
 		return
 	}
 	d := a.TailcatDraft()
@@ -240,7 +240,7 @@ func RotateTailcatCode(a App) {
 			}
 		})
 	}()
-	a.Toast(locales.SetTailcatChanged())
+	a.SettingsToast(locales.SetTailcatChanged())
 	// hylad starts its listener with the key again, which follow finds.
 	s := a.SettingsNow().Clone()
 	s.TailcatRotate = !s.TailcatRotate
@@ -336,7 +336,7 @@ func TCPListen(a App, c *ui.Context, pal *theme.Palette, d *draft.P2PDraft) {
 			paints.IconButton(c, "new-token", glyph.Reload, locales.SetTCPNew(), pal, func() {
 				token, err := remote.RandomToken()
 				if err != nil {
-					a.Toast(err.Error())
+					a.SettingsToast(err.Error())
 					return
 				}
 				s := a.SettingsNow().Clone()

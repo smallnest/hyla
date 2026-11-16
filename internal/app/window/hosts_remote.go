@@ -9,6 +9,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/ui/hostlink"
 	"hyla/internal/ui/hosts"
+	"hyla/internal/ui/confirm"
 	"hyla/internal/ui/settings/draft"
 	"hyla/internal/ui/theme"
 )
@@ -72,3 +73,10 @@ func (a *App) RemoteHostHeader(c *ui.Context, pal *theme.Palette, h *host.Host, 
 }
 
 func (a *App) reconnectHost(h *host.Host) { hosts.Reconnect(a, h) }
+
+// SettingsConfirm asks q in the Settings window, where the machines'
+// pages are: the question shows over the page, not behind it.
+func (a *App) SettingsConfirm(q *confirm.Ask) { a.Ss.Confirm = q }
+
+// SettingsToast tells msg in the Settings window.
+func (a *App) SettingsToast(msg string) { a.Ss.Toast = msg }
