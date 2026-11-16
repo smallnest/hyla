@@ -89,10 +89,12 @@ func InfoOf(a App, p *proto.Pane) *Info {
 }
 
 // Tick reads a pane's timeline as it falls due: every tick while its last
-// turn runs, else every idle.
+// turn runs or the pane works, else every idle. A pane that works again
+// after an idle turn reads its timeline at once, rather than at the end of
+// the idle.
 func Tick(a App, c *ui.Context, st *Info, p *proto.Pane) {
 	due := idle
-	if runs(st.Timely) {
+	if runs(st.Timely) || p.Status != proto.Idle {
 		due = tick
 	}
 	if st.Busy || time.Since(st.ReadAt) >= due {

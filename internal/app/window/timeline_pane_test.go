@@ -10,6 +10,7 @@ import (
 
 	"hyla/internal/app/host"
 	"hyla/internal/proto"
+	"hyla/internal/ui/timelineview"
 	"hyla/locales"
 )
 
@@ -152,6 +153,49 @@ func TestTimelinePaneNoAgent(t *testing.T) {
 	tt.Frame()
 	if _, ok := tt.Find(locales.InfoTimelineUnread("gemini")); !ok {
 		t.Errorf("the timeline pane shows no word of an agent whose records Hyla does not read; texts %q", tt.Texts())
+	}
+}
+
+// A pane that works again reads its timeline at once, though its last turn
+// ended: the timeline shows the new turn within a tick, not at the end of
+// the idle.
+func TestTimelineReadsWhenTheAgentWorks(t *testing.T) {
+	a := testApp(t)
+	s := a.session("s1")
+	s.Panes[0].Agent = "claude"
+	s.Panes = append(s.Panes, proto.Pane{ID: "t", Timeline: "a", Dir: "/tmp", Status: proto.Idle, Progress: -1})
+	s.Layout = s.Layout.Split("a", "t", "right", 0)
+	reads := make(chan string, 4)
+	cl, stop := projectClient(t, func(method string, raw json.RawMessage) (any, error) {
+		if method == "timeline.get" {
+			var p proto.TimelineParams
+			json.Unmarshal(raw, &p)
+			reads <- p.Pane
+		}
+		return nil, nil
+	})
+	a.Local().Client = cl
+	defer stop()
+	// A turn that ended five seconds ago: an idle pane would read it in
+	// thirty.
+	read := func(status proto.Status) bool {
+		a.SetTimeline("a", &timelineview.Info{Pane: "a", ReadAt: time.Now().Add(-5 * time.Second)})
+		a.session("s1").Panes[0].Status = status
+		tt := ui.NewTester(a.view, 1280, 720)
+		tt.Frame()
+		tt.Frame()
+		select {
+		case <-reads:
+			return true
+		case <-time.After(300 * time.Millisecond):
+			return false
+		}
+	}
+	if !read(proto.Working) {
+		t.Error("a working pane's timeline was not read")
+	}
+	if read(proto.Idle) {
+		t.Error("an idle pane's timeline was read again too soon")
 	}
 }
 
