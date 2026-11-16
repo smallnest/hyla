@@ -45,7 +45,6 @@ func (a *App) openTimelineWindow() {
 // machine's records alone: the window says so, as its own does.
 func (a *App) timelineWindow(c *ui.Context) {
 	pal := theme.For(c)
-	p := a.timelinePane()
 	ui.Column(c).MinWidth(0).Grow(1).AlignItems(ui.Stretch).Children(func() {
 		ui.Row(c).Height(44).Padding(0, 16).Gap(8).AlignItems(ui.Center).Children(func() {
 			title := locales.InfoTimeline()
@@ -53,12 +52,6 @@ func (a *App) timelineWindow(c *ui.Context) {
 				title = a.TimelineMark
 			}
 			ui.Text(c, title).FontSize(13).FontWeight(600).TextColor(pal.Text).SingleLine()
-			ui.Spacer(c)
-			if p != nil {
-				if dir := a.workDir(p.ID); dir != "" {
-					ui.Text(c, dir).FontSize(11.5).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
-				}
-			}
 		})
 		ui.Box(c).Height(1).Background(pal.Text.Alpha(0.07))
 		timelineview.Window(a, c, pal, a.timelineNote, func(p *proto.Pane) { a.TimelineMark = p.Agent })
@@ -71,12 +64,4 @@ func (a *App) timelineNote(c *ui.Context, pal *theme.Palette, text string) {
 	ui.Column(c).Grow(1).Center().Padding(24).Children(func() {
 		ui.Text(c, text).FontSize(12.5).TextColor(pal.TextMuted).TextAlign(ui.Center).Wrap()
 	})
-}
-
-// timelinePane is the pane the window shows: the one the user is in.
-func (a *App) timelinePane() *proto.Pane {
-	if s := a.session(a.Selected); s != nil {
-		return s.PaneByID(a.focusOf(s))
-	}
-	return nil
 }

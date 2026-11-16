@@ -571,12 +571,15 @@ func paneHeader(x App, c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown
 				x.StartRename(s.ID)
 			}
 			// The home directory names itself "~", which the title may
-			// already say.
-			if dir := x.HostOf(p.ID).ShortDir(p.WorkDir()); dir != title {
-				ui.Text(c, dir).FontSize(13).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").Shrink(2).MinWidth(0)
+			// already say. A timeline names the agent alone: the pane it
+			// shows sits beside it with the directory and the branch.
+			if !p.TimelinePane() {
+				if dir := x.HostOf(p.ID).ShortDir(p.WorkDir()); dir != title {
+					ui.Text(c, dir).FontSize(13).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").Shrink(2).MinWidth(0)
+				}
 			}
 		})
-		if p.Git != nil {
+		if p.Git != nil && !p.TimelinePane() {
 			x.GitChip(c, pal, s, p)
 		}
 		// The header's empty stretch moves the window, as a title bar
