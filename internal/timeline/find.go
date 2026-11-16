@@ -10,14 +10,17 @@ import (
 
 // Find returns the path of the records of a pane's agent, as the agent
 // keeps them: Claude Code's transcript of the conversation in conv, else
-// the newest of dir's, and DeepSeek Harness's log of dir's newest session.
-// It returns "" where it finds none.
+// the newest of dir's; DeepSeek Harness's log of dir's newest session; and
+// OpenCode's store, which keeps every conversation. It returns "" where it
+// finds none.
 func Find(agent, conv, dir string) string {
 	switch agent {
 	case "claude":
 		return claudeTranscript(conv, dir)
 	case "dsh":
 		return dshSession(dir)
+	case "opencode":
+		return openCodeDB()
 	}
 	return ""
 }

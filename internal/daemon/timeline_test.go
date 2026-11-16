@@ -2,6 +2,7 @@ package daemon
 
 import (
 	"bytes"
+	"database/sql"
 	"os"
 	"path/filepath"
 	"testing"
@@ -13,7 +14,8 @@ import (
 
 // A pane's timeline is the turns of the records its agent keeps: Claude
 // Code's transcript of the pane's conversation, in the project of its
-// directory; and DeepSeek Harness's log of the newest session there.
+// directory; DeepSeek Harness's log of the newest session there; and
+// OpenCode's store, of the conversation the pane names.
 func TestTimelineOf(t *testing.T) {
 	// The agents' directories, as the environment tells them: the first,
 	// which some caches keep, is the test's.
@@ -83,6 +85,49 @@ func TestTimelineOf(t *testing.T) {
 	tm, err = d.timelineOf(proto.TimelineParams{Pane: "p3"})
 	if err != nil || len(tm.Turns) != 1 || tm.Turns[0].Title != "Audit" {
 		t.Fatalf("dsh timeline %+v, %v", tm, err)
+	}
+
+	// OpenCode's store, which keeps every conversation: the newest of the
+	// pane's directory, and the one the pane names.
+	store := filepath.Join(home, "opencode")
+	if err := os.MkdirAll(store, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	db, err := sql.Open("sqlite", filepath.Join(store, "opencode.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	for _, q := range []string{
+		`create table session_v2 (id text primary key, directory text, parent_id text, time_updated integer)`,
+		`create table session_message (id text primary key, session_id text, type text, seq integer, time_created integer, data text)`,
+		`insert into session_v2 (id, directory, time_updated) values ('ses_1', '/tmp/my-proj', 1)`,
+		`insert into session_message (id, session_id, type, seq, time_created, data) values
+			('m1', 'ses_1', 'user', 1, 1763287200000, '{"text":"Ship it"}')`,
+		`insert into session_message (id, session_id, type, seq, time_created, data) values
+			('m2', 'ses_1', 'assistant', 2, 1763287201000, '{"time":{"completed":1763287205000},"content":[
+				{"type":"tool","name":"bash","state":{"status":"completed","input":{"command":"go test"}},"time":{"created":1763287202000,"completed":1763287204000}}]}')`,
+	} {
+		if _, err := db.Exec(q); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Setenv("OPENCODE_DATA_DIR", store)
+	oc := &pane{info: proto.Pane{ID: "p4", Dir: dir, Agent: "opencode", AgentSessionID: "ses_1"}}
+	d.panes["p4"] = oc
+	tm, err = d.timelineOf(proto.TimelineParams{Pane: "p4"})
+	if err != nil || len(tm.Turns) != 1 || tm.Turns[0].Title != "Ship it" {
+		t.Fatalf("opencode timeline %+v, %v", tm, err)
+	}
+	if c := tm.Turns[0].Children; len(c) != 1 || c[0].Kind != proto.TimelineTool {
+		t.Errorf("opencode turn %+v", tm.Turns[0])
+	}
+	// An OpenCode pane whose conversation the store has not seen has no
+	// turns.
+	oc.info.AgentSessionID = "ses_unknown"
+	oc.info.Dir = "/tmp/elsewhere"
+	if tm, err := d.timelineOf(proto.TimelineParams{Pane: "p4"}); err != nil || len(tm.Turns) != 0 {
+		t.Fatalf("opencode timeline of no conversation %+v, %v", tm, err)
 	}
 
 	// A pane that does not exist is an error.
