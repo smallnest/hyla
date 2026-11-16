@@ -23,7 +23,7 @@
   "actionSplitDown": "Split Down",
   "actionNewBrowser": "New Browser Pane",
   "actionTimeline": "Timeline Window",
-  "actionTimelinePane": "Timeline Pane",
+  "actionTimelinePane": "Open Timeline Pane",
   "actionTimelineWindow": "New Timeline Window",
   "actionOpenLocation": "Open Location…",
   "actionZoomPane": "Zoom Pane",

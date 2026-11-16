@@ -83,14 +83,13 @@ To browse without blocking, turn off **Block ads** in **Settings › Browser**, 
 
 A timeline pane shows what the coding agent in another pane did, turn by turn: each turn with its tools, reasoning and subagents as bars from start to end, a turn that runs reaching now, and the approvals that wait or the tools that failed named under their turn.
 
-| Action              | Shortcut                               |
-| ------------------- | -------------------------------------- |
-| Timeline pane       | <kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>T</kbd> |
-| New timeline window | None: from the Pane menu               |
+| Action             | Shortcut                               |
+| ------------------ | -------------------------------------- |
+| Open timeline pane | <kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>T</kbd> |
 
 It splits beside the pane you are in and shows that pane's agent, and it stays with that agent: split another timeline beside the agent you want to watch. It splits, zooms, moves and closes like any other pane, and comes back beside its pane when Hyla restarts. Ask for a pane's timeline again and Hyla puts you in the one it made instead of splitting a second.
 
-Hyla reads Claude Code's and DeepSeek Harness's records, beside the agent's conversation. A pane that runs no agent Hyla reads says so in place of the turns. The same turns fold into the Info view's Timeline card, and **Pane › New Timeline Window** shows them in a window of its own, for another screen.
+Hyla reads Claude Code's and DeepSeek Harness's records, beside the agent's conversation. A pane that runs no agent Hyla reads says so in place of the turns. The same turns fold into the Info view's Timeline card; `hyla do timeline.window` shows them in a window of its own, for another screen.
 
 From a shell, or an agent, `hyla do timeline.open` splits one.
 

@@ -266,11 +266,11 @@ func (msgs Messages) ActionTimeline() string {
 	return Catalog.Format(msgs.locale, "actionTimeline", nil)
 }
 
-// ActionTimelinePane says "Timeline Pane"
+// ActionTimelinePane says "Open Timeline Pane"
 // in the language the app shows.
 func ActionTimelinePane() string { return In(i18n.Locale()).ActionTimelinePane() }
 
-// ActionTimelinePane says "Timeline Pane"
+// ActionTimelinePane says "Open Timeline Pane"
 // in the language of msgs.
 func (msgs Messages) ActionTimelinePane() string {
 	return Catalog.Format(msgs.locale, "actionTimelinePane", nil)
