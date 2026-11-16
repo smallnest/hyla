@@ -158,7 +158,6 @@ var ActionWords = map[string]string{
 	"pane.split.right":     "vertical horizontal side by side new pane",
 	"pane.split.down":      "horizontal vertical below new pane",
 	"pane.browser":         "browser web page url preview localhost open",
-	"browser.address":      "browser web url address go to navigate",
 	"pane.zoom":            "maximize fullscreen focus expand",
 	"pane.next":            "switch focus forward",
 	"pane.previous":        "switch focus back backward",

@@ -65,16 +65,6 @@ func (a *App) openBrowser(url string) {
 	a.split(s, proto.CreateParams{Split: at, Direction: "right", URL: url})
 }
 
-// focusAddress gives the address bar of the browser the user is in the
-// keyboard.
-func (a *App) focusAddress() {
-	if s := a.session(a.Selected); s != nil {
-		if e := a.Webs[a.focusOf(s)]; e != nil {
-			e.FocusAddress = true
-		}
-	}
-}
-
 func (a *App) ensureWeb(p *proto.Pane) *webpane.Entry { return webpane.Ensure(a, p) }
 
 func (a *App) DropWeb(id string) { webpane.DropWeb(a, id) }

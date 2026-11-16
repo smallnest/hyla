@@ -286,16 +286,6 @@ func (msgs Messages) ActionTimelineWindow() string {
 	return Catalog.Format(msgs.locale, "actionTimelineWindow", nil)
 }
 
-// ActionOpenLocation says "Open Location…"
-// in the language the app shows.
-func ActionOpenLocation() string { return In(i18n.Locale()).ActionOpenLocation() }
-
-// ActionOpenLocation says "Open Location…"
-// in the language of msgs.
-func (msgs Messages) ActionOpenLocation() string {
-	return Catalog.Format(msgs.locale, "actionOpenLocation", nil)
-}
-
 // ActionZoomPane says "Zoom Pane"
 // in the language the app shows.
 func ActionZoomPane() string { return In(i18n.Locale()).ActionZoomPane() }

@@ -35,8 +35,8 @@ type Entry struct {
 	Loading    bool
 	Back, Fwd  bool
 	// Address is the address bar's text: the page's URL, unless the user
-	// is typing in it (editing); focusAddress has it take the keyboard,
-	// its text selected, as Command-L does.
+	// is typing in it (editing); FocusAddress has it take the keyboard,
+	// its text selected, as a blank page asks for.
 	Address      string
 	Editing      bool
 	FocusAddress bool

@@ -731,8 +731,8 @@ func TestNestedSplitKeys(t *testing.T) {
 }
 
 // A browser pane shows a toolbar over its page, as its header, with an
-// address bar that a blank page asks to type in and Open Location gives
-// the keyboard; it attaches no terminal.
+// address bar that a blank page asks to type in and a new browser pane
+// gives the keyboard; it attaches no terminal.
 func TestBrowserPane(t *testing.T) {
 	a := testApp(t)
 	s := &a.St.Sessions[0]
@@ -772,10 +772,10 @@ func TestBrowserPane(t *testing.T) {
 	if tt.HasText("Vite App") || tt.HasText("browser") || !tt.HasText(locales.BrowserAddress()) {
 		t.Errorf("a browser pane shows a title bar; texts %q", tt.Texts())
 	}
-	// Open Location gives the browser's address bar the keyboard, with
-	// what it holds to type over.
+	// A new browser pane, in a browser, gives its address bar the
+	// keyboard, with what it holds to type over.
 	a.setFocus(s, "b")
-	a.run("browser.address", nil)
+	a.run("pane.browser", nil)
 	tt.Frame()
 	tt.Type("kero.sh")
 	tt.Key(0, ui.KeyEnter)

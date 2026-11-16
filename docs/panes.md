@@ -51,7 +51,6 @@ A browser pane shows a web page beside your terminals: the dev server an agent i
 | Action           | Shortcut                               |
 | ---------------- | -------------------------------------- |
 | New browser pane | <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>B</kbd> |
-| Open location    | <kbd>⌘</kbd> <kbd>L</kbd>              |
 
 Type an address in its bar, such as `localhost:3000` or `github.com`, or words to search for. An address typed in the command palette (<kbd>⌘</kbd> <kbd>P</kbd>) opens in a new browser pane too. <kbd>⌘</kbd> <kbd>F</kbd> finds text in the page.
 
