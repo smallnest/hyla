@@ -4,6 +4,18 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.12.1
+
+- A Tailcat pair code carries the relay's own region again: a relay set
+  that names a node by a number, as derper's does, made a code point at a
+  region nobody was in, and it reached no machine. A code the CLI makes,
+  `hyla tailcat code`, now uses the relay the configuration names, as the
+  app and hylad do, instead of tailcat's public relays.
+- Settings › Hosts asked its questions on the app's main window, which
+  stands behind Settings: the question before a new Tailcat pair code, and
+  the word after it, showed where nobody saw them. They ask and tell in the
+  Settings window now, as its own pages do.
+
 ## 3.12.0
 
 - The Info view has a Timeline card: the turns of the coding agent in the
