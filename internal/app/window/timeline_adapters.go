@@ -29,3 +29,7 @@ func (a *App) SetTimeline(pane string, st *timelineview.Info) {
 
 // InfoTimeline draws the timeline's card.
 func (a *App) InfoTimeline(c *ui.Context, pal *theme.Palette) { timelineview.Card(a, c, pal) }
+
+// TimelineNone tells whether the Info view shows no timeline of the pane:
+// the pane runs no agent whose records the timeline reads.
+func (a *App) TimelineNone(p *proto.Pane) bool { return !timelineview.Agents(p) }

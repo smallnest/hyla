@@ -22,6 +22,7 @@
   "actionSplitRight": "Split Right",
   "actionSplitDown": "Split Down",
   "actionNewBrowser": "New Browser Pane",
+  "actionTimeline": "Timeline Window",
   "actionOpenLocation": "Open Location…",
   "actionZoomPane": "Zoom Pane",
   "actionShowTerminal": "Show Terminal",

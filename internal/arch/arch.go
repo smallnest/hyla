@@ -297,6 +297,7 @@ var Layers = []Layer{
 			"hyla/internal/ui/k8sdialog",
 			"hyla/internal/ui/layout",
 			"hyla/internal/ui/magpieview",
+			"hyla/internal/ui/marks",
 			"hyla/internal/ui/menus",
 			"hyla/internal/app/paneinfo",
 			"hyla/internal/app/favicon",

@@ -22,6 +22,7 @@
   "actionSplitRight": "向右拆分",
   "actionSplitDown": "向下拆分",
   "actionNewBrowser": "新建浏览器面板",
+  "actionTimeline": "时间线窗口",
   "actionOpenLocation": "打开位置…",
   "actionZoomPane": "放大窗格",
   "actionShowTerminal": "显示终端",

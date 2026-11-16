@@ -54,8 +54,11 @@ type App interface {
 	Copied() *string
 	// Split splits a pane, with the session's params.
 	Split(s *proto.Session, p proto.CreateParams)
-	// InfoTimeline draws the coding agent's timeline.
+	// InfoTimeline draws the coding agent's timeline of the pane, and
+	// TimelineNone, which the Info view shows in place of it while no pane
+	// runs an agent whose records the timeline reads.
 	InfoTimeline(c *ui.Context, pal *theme.Palette)
+	TimelineNone(p *proto.Pane) bool
 	// InfoMagpie draws Magpie's card.
 	InfoMagpie(c *ui.Context, pal *theme.Palette)
 	// InfoFeishu draws the Feishu bot's card.
@@ -107,7 +110,11 @@ func Body(c *ui.Context, x App, pal *theme.Palette, s *proto.Session, p *proto.P
 		infoDir(c, x, pal, s, x.HostOf(p.ID), p, st)
 		infoProcs(c, x, pal, p, st)
 		infoPorts(c, x, pal, p, st)
-		x.InfoTimeline(c, pal)
+		if x.TimelineNone(p) {
+			x.SideMessage(c, pal, locales.InfoTimeline(), locales.InfoTimelineNoAgent())
+		} else {
+			x.InfoTimeline(c, pal)
+		}
 		x.InfoMagpie(c, pal)
 		x.InfoFeishu(c, pal, p)
 	})

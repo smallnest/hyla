@@ -255,8 +255,12 @@ type App struct {
 	// Info view shows.
 	Magpie *magpieInfo
 	// Timelines is what the Info view shows of the panes' timelines, by
-	// pane (timeline_adapters.go).
-	Timelines map[string]*timelineview.Info
+	// pane (timeline_adapters.go), and TimelineWin the timeline's window,
+	// while it is open (timeline_window.go), which TimelineMark says the
+	// agent of.
+	Timelines    map[string]*timelineview.Info
+	TimelineWin  *mygo.Window
+	TimelineMark string
 
 	// quitting is set while the quit quit-ends-sessions makes ends the
 	// sessions, either while it asks or once its answer does.

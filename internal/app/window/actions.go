@@ -103,6 +103,8 @@ func (a *App) run(id string, args map[string]string) {
 		a.splitPane(s, "", "down")
 	case "pane.browser":
 		a.openBrowser(args["url"])
+	case "timeline.open":
+		a.openTimeline()
 	case "browser.address":
 		a.focusAddress()
 	case "pane.zoom":

@@ -12,9 +12,10 @@ import (
 	"hyla/locales"
 )
 
-// TestInfoTimelineDemo lays out the Info view with the timeline of a
-// running agent, for a look at it with HYLA_SHOTS.
-func TestInfoTimelineDemo(t *testing.T) {
+// timelineDemo gives a test app the timeline of a turn that ended and of
+// one that runs, of its first session's focused pane, an agent's.
+func timelineDemo(t *testing.T) *App {
+	t.Helper()
 	a := testApp(t)
 	s := a.session("s1")
 	s.Focus = "a"
@@ -61,6 +62,13 @@ func TestInfoTimelineDemo(t *testing.T) {
 			},
 		},
 	})
+	return a
+}
+
+// TestInfoTimelineDemo lays out the Info view with the timeline of a
+// running agent, for a look at it with HYLA_SHOTS.
+func TestInfoTimelineDemo(t *testing.T) {
+	a := timelineDemo(t)
 	a.showSide(sideInfo)
 	tt := ui.NewTester(a.view, 1100, 900)
 	for i := 0; i < 30 && tt.FramePending(); i++ {

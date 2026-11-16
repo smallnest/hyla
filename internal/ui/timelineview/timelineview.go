@@ -1,6 +1,7 @@
-// Package timelineview holds the timeline's card in the Info view: what
-// the pane's coding agent did, turn by turn, from the records its agent
-// keeps beside its conversation, as hylad reads them.
+// Package timelineview holds the timeline's card in the Info view and the
+// window the menu opens: what the pane's coding agent did, turn by turn,
+// from the records its agent keeps beside its conversation, as hylad
+// reads them.
 package timelineview
 
 import (
@@ -136,9 +137,10 @@ func read(a App, st *Info, p *proto.Pane) {
 	}()
 }
 
-// Card draws the timeline's card: the turns of the agent in the pane the
-// user is in, the newest first, each a line of steps. A card has no body
-// while no pane runs an agent whose records Hyla reads.
+// Card draws the timeline's card in the Info view: what Window's shows,
+// of the pane the user is in. A card has no body while no pane runs an
+// agent whose records Hyla reads, and the Info view's button for it
+// shows no card of an agent's but those.
 func Card(a App, c *ui.Context, pal *theme.Palette) {
 	p := pane(a)
 	if p == nil {
@@ -165,7 +167,7 @@ func Card(a App, c *ui.Context, pal *theme.Palette) {
 		case len(t.Turns) == 0:
 			info.Empty(c, pal, locales.InfoTimelineEmpty())
 		default:
-			turns(c, pal, t, st.Err)
+			turns(c, pal, t, st.Err, shown)
 		}
 	})
 }
@@ -173,11 +175,12 @@ func Card(a App, c *ui.Context, pal *theme.Palette) {
 // shown is how many turns the card lists, the newest first.
 const shown = 12
 
-// turns lists a timeline's turns, the newest first.
-func turns(c *ui.Context, pal *theme.Palette, t *proto.Timeline, down string) {
+// turns lists a timeline's turns, the newest first: all of them in the
+// window, and the ones the card holds.
+func turns(c *ui.Context, pal *theme.Palette, t *proto.Timeline, down string, most int) {
 	info.Rows(c, func() {
 		n := len(t.Turns)
-		for i := n - 1; i >= 0 && n-i <= shown; i-- {
+		for i := n - 1; i >= 0 && n-i <= most; i-- {
 			if i != n-1 {
 				info.Rule(c, pal)
 			}
@@ -384,4 +387,73 @@ func stateColor(pal *theme.Palette, state string) ui.Color {
 		return pal.Text
 	}
 	return pal.TextFaint
+}
+
+// Agents tells whether a pane runs an agent whose records the timeline
+// reads: the Info view shows the card of one, and the menu's window shows
+// none while the pane the user is in runs another.
+func Agents(p *proto.Pane) bool { return p != nil && proto.StartsTimeline(p.Agent) }
+
+// Window is the timeline in a window of its own, as the menu opens it.
+//
+// It takes the pane some other shows: the one the user is in. Window
+// reads it, and paints again while its agent runs, for its bars to blink.
+// Where the pane runs no agent, the window shows why, in place of it.
+func Window(a App, c *ui.Context, pal *theme.Palette, note func(c *ui.Context, pal *theme.Palette, text string), sel func(p *proto.Pane)) {
+	p := pane(a)
+	if !Agents(p) {
+		// The window shows the pane the user is in alone: an agent there
+		// whose records Hyla does not read is the reason it says.
+		if s := a.SelectedSession(); s != nil {
+			q := a.AgentPane(s)
+			if q != nil && q.Agent != "" {
+				note(c, pal, why(q))
+				return
+			}
+		}
+		note(c, pal, why(p))
+		return
+	}
+	st := InfoOf(a, p)
+	Tick(a, c, st, p)
+	sel(p)
+	t := st.Timely
+	if t == nil {
+		note(c, pal, locales.InfoTimelineEmpty())
+		return
+	}
+	if runs(t) {
+		c.After(tick / 3)
+	}
+	ui.Scroll(c.Key("timeline")).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
+		ui.Column(c).Padding(8, 16, 16, 16).AlignItems(ui.Stretch).Children(func() {
+			ui.Column(c).Radius(12).Background(pal.Chip).Clip().Children(func() {
+				info.Rows(c, func() {
+					switch {
+					case len(t.Turns) == 0 && t.Note != "":
+						info.Empty(c, pal, t.Note)
+					case len(t.Turns) == 0:
+						info.Empty(c, pal, locales.InfoTimelineEmpty())
+					default:
+						turns(c, pal, t, st.Err, all)
+					}
+				})
+			})
+		})
+	})
+}
+
+// all is how many turns the window lists, the newest first.
+const all = 100
+
+// why is what the window says of a pane that runs no agent of its own: the
+// agent's, whose records Hyla does not read, or none at all.
+func why(p *proto.Pane) string {
+	switch {
+	case p == nil:
+		return locales.InfoTimelineNoPane()
+	case p.Agent == "":
+		return locales.InfoTimelineNoAgent()
+	}
+	return locales.InfoTimelineUnread(p.Agent)
 }

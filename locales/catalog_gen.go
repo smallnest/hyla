@@ -256,6 +256,16 @@ func (msgs Messages) ActionNewBrowser() string {
 	return Catalog.Format(msgs.locale, "actionNewBrowser", nil)
 }
 
+// ActionTimeline says "Timeline Window"
+// in the language the app shows.
+func ActionTimeline() string { return In(i18n.Locale()).ActionTimeline() }
+
+// ActionTimeline says "Timeline Window"
+// in the language of msgs.
+func (msgs Messages) ActionTimeline() string {
+	return Catalog.Format(msgs.locale, "actionTimeline", nil)
+}
+
 // ActionOpenLocation says "Open Location…"
 // in the language the app shows.
 func ActionOpenLocation() string { return In(i18n.Locale()).ActionOpenLocation() }
