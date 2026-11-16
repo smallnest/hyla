@@ -2,11 +2,16 @@ package remote
 
 import (
 	"context"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/tailscale/tailcat"
 )
 
 // A pair code names the key of a tailcat listener, as its region does.
@@ -34,6 +39,55 @@ func TestTailcatCode(t *testing.T) {
 	}
 	if !LooksLikePairCode(code) || LooksLikePairCode("nope") {
 		t.Errorf("LooksLikePairCode(%q)", code)
+	}
+}
+
+// A relay set may name a region's node with a number, as derper's does
+// with its region: the pair code carries that node, its host and ports,
+// and not a region made up from the number alone, which reaches nobody.
+func TestTailcatCodeCarriesRelayNode(t *testing.T) {
+	mapJSON := `{"Regions":{"901":{"RegionID":901,"RegionCode":"901","RegionName":"test",` +
+		`"Nodes":[{"Name":"901","RegionID":901,"HostName":"relay.example","DERPPort":8443,"STUNPort":3478}]}},` +
+		`"OmitDefaultRegions":true}`
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, mapJSON)
+	}))
+	defer srv.Close()
+	defer SetRelay("")
+	SetRelay(srv.URL + "/derpmap.json")
+
+	k, err := NewTailcatKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	k.Region = "901"
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	code, err := TailcatAddress(ctx, k)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ci, err := tailcat.ParseAddr(tailcat.Addr(code))
+	if err != nil {
+		t.Fatalf("code %q: %v", code, err)
+	}
+	if len(ci.Region) != 1 {
+		t.Fatalf("the code carries %d regions", len(ci.Region))
+	}
+	nodes := ci.Region[0].Nodes
+	if len(nodes) != 1 {
+		t.Fatalf("the region carries %d nodes", len(nodes))
+	}
+	n := nodes[0]
+	if n.HostName != "relay.example" || n.DERPPort != 8443 || n.STUNPort != 3478 {
+		t.Errorf("the code carries %q's node %q, derp %d, stun %d", ci.Region[0].RegionCode, n.HostName, n.DERPPort, n.STUNPort)
+	}
+	// The region the key kept is the map's, so the next code is the same.
+	if k.Region != "901" {
+		t.Errorf("the key keeps %q", k.Region)
+	}
+	if again, err := TailcatAddress(ctx, k); err != nil || again != code {
+		t.Errorf("again %q, %v, was %q", again, err, code)
 	}
 }
 

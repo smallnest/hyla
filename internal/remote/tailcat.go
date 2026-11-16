@@ -219,8 +219,10 @@ func NewTailcatKey() (*TailcatKey, error) {
 
 // TailcatAddress is k's pair code at the region k keeps, as "derp302" in
 // the relay set's list, and at the nearest one if k has none, which it
-// then keeps, for TailcatKeyAt to save with the key. The code names the
-// region without its details, which a client finds in its relay set.
+// then keeps, for TailcatKeyAt to save with the key. The code carries the
+// region as the relay set has it, its nodes and their ports: a client
+// that has the code fetches no map, so a region made up from the number
+// alone, as a map may name a node, would reach nobody.
 func TailcatAddress(ctx context.Context, k *TailcatKey) (string, error) {
 	t := &tailcat.PrivateKey{Public: tailcat.ConnInfo{RegionID: -1}}
 	if err := t.Private.UnmarshalText([]byte(k.Key)); err != nil {
@@ -229,25 +231,23 @@ func TailcatAddress(ctx context.Context, k *TailcatKey) (string, error) {
 	if err := t.Public.PresharedKey.UnmarshalText([]byte(k.PSK)); err != nil {
 		return "", fmt.Errorf("tailcat key's pre-shared key: %w", err)
 	}
-	region := hostRegion(k.Region)
+	dm, err := tailcat.FetchDERPMap(ctx, tailcat.DERPMapURL(relayURL()))
+	if err != nil {
+		return "", fmt.Errorf("the tailcat relay: %w", err)
+	}
+	// The region the key kept, as the listener joined it, and as the
+	// relay set has it; the nearest, for a key that has none, or one the
+	// relay set no longer names.
+	region := relayRegion(dm, k.Region)
 	if region == nil {
-		dm, err := tailcat.FetchDERPMap(ctx, tailcat.DERPMapURL(relayURL()))
+		id, err := tailcat.PickBestRegion(ctx, dm)
 		if err != nil {
 			return "", fmt.Errorf("the tailcat relay: %w", err)
 		}
-		// The region the key kept, as the listener joined it; the
-		// nearest, for a key that has none, or one the relay set no
-		// longer names.
-		if region = relayRegion(dm, k.Region); region == nil {
-			id, err := tailcat.PickBestRegion(ctx, dm)
-			if err != nil {
-				return "", fmt.Errorf("the tailcat relay: %w", err)
-			}
-			if region = dm.Regions[id]; region == nil {
-				return "", errors.New("the tailcat relay: no region reached")
-			}
-			k.Region = regionNode(region)
+		if region = dm.Regions[id]; region == nil {
+			return "", errors.New("the tailcat relay: no region reached")
 		}
+		k.Region = regionNode(region)
 	}
 	t.Public.ServerPublic = tailcat.NodePublic{NodePublic: t.Private.Public()}
 	t.Public.ServerDiscoPublic = tailcat.DiscoPublicForNode(t.Private)
@@ -267,22 +267,6 @@ func relayRegion(dm *tailcfg.DERPMap, node string) *tailcfg.DERPRegion {
 		}
 	}
 	return nil
-}
-
-// hostRegion is the region k saved: the one of a node of the region,
-// which tailcat takes for a region of the client's relay map. The node's
-// name is the region's number, as the map's are.
-func hostRegion(saved string) *tailcfg.DERPRegion {
-	id, err := strconv.ParseInt(saved, 10, 64)
-	if err != nil || !tailcfg.DERPRegionID(id).IsValid() {
-		return nil
-	}
-	return &tailcfg.DERPRegion{
-		RegionID:   tailcfg.DERPRegionID(id),
-		RegionCode: "hyla",
-		RegionName: "Tailcat relay",
-		Nodes:      []*tailcfg.DERPNode{{Name: saved, HostName: "relay", RegionID: tailcfg.DERPRegionID(id)}},
-	}
 }
 
 // regionNode is the name k keeps of a region: its first node's name, its

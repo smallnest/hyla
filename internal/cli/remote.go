@@ -51,6 +51,9 @@ func versionCmd() error {
 // machine, not one under two names, so each command says its own name.
 func tailcatCmd(args []string) error {
 	set := settings.Load()
+	// The relay the configuration names is the one the code is made at,
+	// as hylad's listener and the app make theirs.
+	remote.SetRelay(set.TailcatRelay)
 	spec, port, on := set.TailcatListen()
 	sub := "status"
 	if len(args) > 0 {
