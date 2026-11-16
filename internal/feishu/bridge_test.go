@@ -1,6 +1,7 @@
 package feishu
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -1426,6 +1427,108 @@ func TestAnotherBotsMention(t *testing.T) {
 	if len(luna.sent) == 0 {
 		t.Fatal("the bot took no prompt from its own mention")
 	}
+}
+
+// A bot that has read no identity of its own leaves a group's mention of
+// a bot alone, which may be another bot's: taking it answered messages
+// the bot was not sent.
+func TestNoIdentityTakesNoMention(t *testing.T) {
+	b, luna, msgs := newBot(t)
+	b.cfg.Allow = []string{"ou_me"}
+	b.botID, b.botName = "", ""
+	bindChat(b, "g1", binding{Session: "s1"})
+	b.leave("g1")
+	m := textMsg("g1", "ou_me", "read this")
+	*m.Event.Message.ChatType = "group"
+	m.Event.Message.MessageId = str("om_maybe")
+	m.Event.Message.Mentions = []*larkim.MentionEvent{{Key: str("@_user_1"), Id: &larkim.UserId{OpenId: str("ou_maybe")}, MentionedType: str("bot")}}
+	b.onMessage(nil, m)
+	if n := len(luna.sent); n != 0 {
+		t.Fatalf("a bot that read no identity ran a mention: %+v", luna.sent)
+	}
+	if len(msgs.cards) != 0 {
+		t.Fatalf("a bot that read no identity answered a mention: %v", msgs.cards)
+	}
+	if !b.noIDWarned {
+		t.Error("nothing says that the identity was not read")
+	}
+}
+
+// infoAnswer is one answer of Feishu's about the bot's own identity.
+type infoAnswer struct {
+	id, name string
+	err      error
+}
+
+// fakeInfo is Feishu's answer of the bot's own identity, which the first
+// answers fail as a network's do.
+type fakeInfo struct {
+	calls   int
+	answers []infoAnswer
+}
+
+func (f *fakeInfo) Info(ctx context.Context) (string, string, error) {
+	f.calls++
+	a := f.answers[min(f.calls, len(f.answers))-1]
+	return a.id, a.name, a.err
+}
+
+// The identity Feishu reads is kept for the connections after this one,
+// and the read that fails is tried again.
+func TestFetchBotReadsAndKeeps(t *testing.T) {
+	b, _, _ := newBot(t)
+	b.botID, b.botName = "", ""
+	shortInfoWaits(t)
+	var kept []string
+	b.onBot = func(id, name string) error {
+		kept = []string{id, name}
+		return nil
+	}
+	info := &fakeInfo{answers: []infoAnswer{{err: errors.New("no such host")}, {id: "ou_bot", name: "hyla"}}}
+	b.info = info
+	b.fetchBot()
+	if info.calls != 2 {
+		t.Errorf("the identity was read %d times, want 2: a failed read is tried again", info.calls)
+	}
+	if b.botID != "ou_bot" || b.botName != "hyla" {
+		t.Errorf("the bot is %q, %s", b.botName, b.botID)
+	}
+	if len(kept) != 2 || kept[0] != "ou_bot" || kept[1] != "hyla" {
+		t.Errorf("the identity kept is %v", kept)
+	}
+}
+
+// A connection that cannot read the bot's identity goes on with the one
+// the app kept.
+func TestFetchBotKeepsTheIdentityItHad(t *testing.T) {
+	b, _, _ := newBot(t)
+	shortInfoWaits(t)
+	var kept []string
+	b.onBot = func(id, name string) error {
+		kept = []string{id, name}
+		return nil
+	}
+	info := &fakeInfo{answers: []infoAnswer{{err: errors.New("no such host")}}}
+	b.info = info
+	b.fetchBot()
+	if b.botID != "ou_bot" || b.botName != "hyla" {
+		t.Errorf("the bot lost the identity it had: %q, %s", b.botName, b.botID)
+	}
+	if len(kept) != 0 {
+		t.Errorf("an identity that was not read was kept: %v", kept)
+	}
+	if want := len(infoWaits) + 1; info.calls != want {
+		t.Errorf("the identity was read %d times, want %d", info.calls, want)
+	}
+}
+
+// shortInfoWaits takes the waits between reads of the bot's own identity
+// out of the tests' time.
+func shortInfoWaits(t *testing.T) {
+	t.Helper()
+	was := infoWaits
+	infoWaits = []time.Duration{0, 0}
+	t.Cleanup(func() { infoWaits = was })
 }
 
 // A prompt in a group's topic shows there: the turn's card goes into the

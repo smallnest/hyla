@@ -110,6 +110,11 @@ func feishuSetup(args []string) error {
 	}
 	fmt.Println("Feishu knows the app.")
 	saved := settings.FeishuSecret{AppID: app, AppSecret: appSecret, Me: secret.Me}
+	if secret.AppID == app {
+		// The same app keeps the bot it named, which a connection reads
+		// again anyway: a network that fails that read goes on with it.
+		saved.BotID, saved.BotName = secret.BotID, secret.BotName
+	}
 	if err := settings.SaveFeishuSecret(saved); err != nil {
 		return err
 	}

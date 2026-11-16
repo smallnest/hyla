@@ -263,12 +263,27 @@ func (b *Bot) mentioned(m *larkim.EventMessage) bool {
 				return true
 			}
 		default:
-			// A bot that could not read its own identity takes the
-			// mentions it did before.
-			return true
+			// Neither was read, and a mention of some bot may be
+			// another's: taking it would answer a message the bot was
+			// not sent, as two agents did at each other. A message that
+			// answers the bot reaches it still.
+			b.warnNoIdentity()
+			return false
 		}
 	}
 	return false
+}
+
+// warnNoIdentity says once that the bot's own identity was not read, so
+// that a group's mentions of it are left alone until it is.
+func (b *Bot) warnNoIdentity() {
+	b.mu.Lock()
+	said := b.noIDWarned
+	b.noIDWarned = true
+	b.mu.Unlock()
+	if !said {
+		b.logf("feishu: the bot's own identity is not read: a group's mention of it waits, and one of another bot is left to that bot")
+	}
 }
 
 // withoutMentions is a text message's text without its @-mentions, as

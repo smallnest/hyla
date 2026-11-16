@@ -263,6 +263,13 @@ type FeishuSecret struct {
 	// Me is the open_id of the person who ran setup, the only one allowed
 	// until feishu-allow names others.
 	Me string `json:"me,omitempty"`
+	// BotID and BotName are the bot's own, which Feishu's mentions of it
+	// name: the open_id a group's mention carries, and the name it shows.
+	// The app keeps them, so that a connection whose read of them fails,
+	// as a network that fails it does, still knows which mentions are the
+	// bot's own.
+	BotID   string `json:"botId,omitempty"`
+	BotName string `json:"botName,omitempty"`
 }
 
 // FeishuSecretPath is where the App Secret goes: next to hylad's lock and
@@ -311,6 +318,20 @@ func SaveFeishuSecret(s FeishuSecret) error {
 
 // ErrFeishuNotConfigured is no App Secret kept: hyla feishu setup writes it.
 var ErrFeishuNotConfigured = errors.New("Feishu is not set up: run `hyla feishu setup`")
+
+// SaveFeishuBot keeps the bot's own identity beside the App Secret, which
+// a connection that cannot read it again goes on with.
+func SaveFeishuBot(id, name string) error {
+	s, err := LoadFeishuSecret()
+	if err != nil {
+		return err
+	}
+	if s.BotID == id && s.BotName == name {
+		return nil
+	}
+	s.BotID, s.BotName = id, name
+	return SaveFeishuSecret(s)
+}
 
 // SetFeishu writes the Feishu keys of the configuration, keeping the
 // others and the file's comments and order.

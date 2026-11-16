@@ -353,7 +353,13 @@ func connect(x App, d *draft.FeishuDraft) {
 // keep saves the app's secret, keeping who set it up, writes the
 // app to the configuration, and connects the bot.
 func keep(x App, d *draft.FeishuDraft, app, secret, me string) {
-	if err := settings.SaveFeishuSecret(settings.FeishuSecret{AppID: app, AppSecret: secret, Me: me}); err != nil {
+	s := settings.FeishuSecret{AppID: app, AppSecret: secret, Me: me}
+	if old, err := settings.LoadFeishuSecret(); err == nil && old.AppID == app {
+		// The same app keeps the bot it named, which a connection reads
+		// again anyway: a network that fails that read goes on with it.
+		s.BotID, s.BotName = old.BotID, old.BotName
+	}
+	if err := settings.SaveFeishuSecret(s); err != nil {
 		d.Err = err.Error()
 		return
 	}

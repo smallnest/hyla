@@ -213,6 +213,7 @@ The Settings window shows the app's name, the connection state, and who may use 
 - By default, one machine receives the events of a chat: the machine the chat is bound to.
 - When several machines connect to one app, `feishu-host` names the host that the chat's messages go to, and `/host` changes it in the chat.
 - A group message acts only when it @-mentions the bot; a message that @s another bot is not for it. A reply goes to the thread of the conversation, not to the group at large.
+- The bot's own identity, the `open_id` a mention of it carries, is kept in `feishu.json` beside the App Secret. A connection that cannot read it at Feishu, as a network that fails does, goes on with the one kept rather than taking every bot's mention for its own; with none kept, a group's mention of a bot is no message to it.
 
 ## Security
 

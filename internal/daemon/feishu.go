@@ -61,6 +61,7 @@ func (d *Daemon) startFeishu() {
 		Luna:     &botLuna{d: d},
 		Log:      func(f string, a ...any) { d.log.Printf(f, a...) },
 		Env:      d.botEnv(),
+		OnBot:    settings.SaveFeishuBot,
 	})
 	d.mu.Lock()
 	d.bot, d.feishu = b, conn

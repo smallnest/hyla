@@ -112,6 +112,30 @@ func TestFeishuSecret(t *testing.T) {
 	}
 }
 
+// The bot's own identity is kept beside the App Secret, which a
+// connection that cannot read it again goes on with.
+func TestSaveFeishuBot(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HYLA_HOME", dir)
+	t.Setenv("HYLA_CONFIG", filepath.Join(dir, "config"))
+	if err := SaveFeishuSecret(FeishuSecret{AppID: "cli_a", AppSecret: "s3cret", Me: "ou_me"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := SaveFeishuBot("ou_bot", "hyla"); err != nil {
+		t.Fatal(err)
+	}
+	got, err := LoadFeishuSecret()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.BotID != "ou_bot" || got.BotName != "hyla" {
+		t.Errorf("the bot kept is %+v", got)
+	}
+	if got.AppSecret != "s3cret" || got.Me != "ou_me" {
+		t.Errorf("the secret lost what it had: %+v", got)
+	}
+}
+
 // feishu-yolo runs every agent without its permission prompts, by the
 // agent's own option, unless an agent's setting turns it off: the
 // sessions take it before their arguments.

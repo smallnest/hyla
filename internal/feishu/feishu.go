@@ -150,8 +150,15 @@ type Bot struct {
 	// a message that @s another bot is no message to this one.
 	botID   string
 	botName string
-	logf    func(format string, args ...any)
-	sync    bool // turns run in the handler's goroutine, for tests
+	// info reads that identity, which a network that fails it is asked
+	// again; onBot keeps what it read, for the connections after this one.
+	info  BotInfo
+	onBot func(id, name string) error
+	// noIDWarned is whether the log has said that no identity was read,
+	// which every group's mention would otherwise say again.
+	noIDWarned bool
+	logf       func(format string, args ...any)
+	sync       bool // turns run in the handler's goroutine, for tests
 	// noOC tells a bot that starts no OpenCode server, as a test's: its
 	// turns show what the command reports alone.
 	noOC bool
@@ -276,6 +283,10 @@ type Config struct {
 	Settings settings.Feishu
 	Secret   settings.FeishuSecret
 	Luna     Luna
+	// OnBot keeps the bot's own identity, which it reads from Feishu, for
+	// the connections after this one: nil when there is none to keep, as
+	// in a test.
+	OnBot func(id, name string) error
 	// Yolo is feishu-yolo, the configuration's switch for every agent's
 	// yolo mode, which the agent's own settings set against.
 	Yolo bool
@@ -296,6 +307,9 @@ func New(c Config) *Bot {
 		env:      c.Env,
 		api:      c.Luna,
 		me:       c.Secret.Me,
+		botID:    c.Secret.BotID,
+		botName:  c.Secret.BotName,
+		onBot:    c.OnBot,
 		logf:     c.Log,
 		chats:    map[string]*chat{},
 		bindings: map[string]binding{},
@@ -311,6 +325,7 @@ func New(c Config) *Bot {
 	}
 	b.lark = lark.NewClient(c.Secret.AppID, c.Secret.AppSecret, lark.WithLogLevel(larkcore.LogLevelError))
 	b.msgs = &larkAPI{c: b.lark}
+	b.info = larkBotInfo{c: b.lark}
 	b.Chats = larkChats{c: b.lark}.Chats
 	b.files = b.msgs
 	b.noticeSend = b.msgs.Send
@@ -336,29 +351,91 @@ func (b *Bot) Run(ctx context.Context) error {
 
 // fetchBot reads the bot's own identity, which Feishu's mentions of it
 // name: the open_id in a group's mention of the bot, and the name it
-// shows. A bot that cannot read it takes every mention of a bot, as it
-// did before, rather than none.
+// shows. A read that fails is tried again, since a network that fails it
+// once fails it for a moment; a bot that cannot read it goes on with the
+// identity the app kept, and one that has none leaves a group's mention
+// of a bot to that bot, which the mention may be.
 func (b *Bot) fetchBot() {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	for attempt := 0; ; attempt++ {
+		id, name, err := b.readBot()
+		if err == nil {
+			b.keepBot(id, name)
+			return
+		}
+		if attempt == len(infoWaits) {
+			if b.botID != "" || b.botName != "" {
+				b.logf("feishu: the bot's identity: %v; it stays %q, %s", err, b.botName, b.botID)
+			} else {
+				b.logf("feishu: the bot's identity: %v; a group's mention of a bot is no mention of it until it reads one", err)
+			}
+			return
+		}
+		b.logf("feishu: the bot's identity: %v; reading it again in %s", err, infoWaits[attempt])
+		time.Sleep(infoWaits[attempt])
+	}
+}
+
+// infoWaits are the waits between reads of the bot's own identity: a
+// connection is no good without it, and a network's failure is the
+// moment's.
+var infoWaits = []time.Duration{time.Second, 3 * time.Second}
+
+// readBot asks Feishu who the bot is: a connection waits for it, so each
+// read is brief, and a failed one is asked again.
+func (b *Bot) readBot() (string, string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	res, err := b.lark.Get(ctx, "/open-apis/bot/v3/info", nil, larkcore.AccessTokenTypeTenant)
-	if err != nil {
-		b.logf("feishu: the bot's identity: %v", err)
+	return b.info.Info(ctx)
+}
+
+// keepBot takes the identity Feishu read, and has the app keep it for a
+// connection that cannot read it again.
+func (b *Bot) keepBot(id, name string) {
+	b.logf("feishu: the bot is %q, %s", name, id)
+	if id == b.botID && name == b.botName {
 		return
 	}
+	b.botID, b.botName = id, name
+	if b.onBot == nil {
+		return
+	}
+	if err := b.onBot(id, name); err != nil {
+		b.logf("feishu: the bot's identity, kept for the next connection: %v", err)
+	}
+}
+
+// BotInfo reads the bot's own identity from Feishu.
+type BotInfo interface {
+	// Info is the bot's open_id and the name it shows.
+	Info(ctx context.Context) (id, name string, err error)
+}
+
+// larkBotInfo reads the bot's own identity from Feishu.
+type larkBotInfo struct{ c *lark.Client }
+
+func (i larkBotInfo) Info(ctx context.Context) (string, string, error) {
+	res, err := i.c.Get(ctx, "/open-apis/bot/v3/info", nil, larkcore.AccessTokenTypeTenant)
+	if err != nil {
+		return "", "", err
+	}
 	var out struct {
-		Code int `json:"code"`
+		Code int    `json:"code"`
+		Msg  string `json:"msg"`
 		Bot  struct {
 			OpenID  string `json:"open_id"`
 			AppName string `json:"app_name"`
 		} `json:"bot"`
 	}
-	if err := json.Unmarshal(res.RawBody, &out); err != nil || out.Code != 0 {
-		b.logf("feishu: the bot's identity: %v %d", err, out.Code)
-		return
+	if err := json.Unmarshal(res.RawBody, &out); err != nil {
+		return "", "", err
 	}
-	b.botID, b.botName = out.Bot.OpenID, out.Bot.AppName
-	b.logf("feishu: the bot is %q, %s", b.botName, b.botID)
+	if out.Code != 0 {
+		return "", "", fmt.Errorf("Feishu answered %d %s", out.Code, out.Msg)
+	}
+	if out.Bot.OpenID == "" {
+		return "", "", errors.New("Feishu named no bot")
+	}
+	return out.Bot.OpenID, out.Bot.AppName, nil
 }
 
 // Files downloads the messages' files from Feishu.
