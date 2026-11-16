@@ -300,15 +300,18 @@ func spanOf(s proto.TimelineStep, start, span int64) (at, width float64, ok bool
 func barColor(p *ui.Painter, pal *theme.Palette, s proto.TimelineStep) ui.Color {
 	switch s.State {
 	case proto.TimelineWaiting:
-		return pal.Attention
+		return pal.TlWait
 	case proto.TimelineFailed:
-		return pal.Danger
+		return pal.TlFail
 	case proto.TimelineRunning:
-		p.After(600 * time.Millisecond)
-		if p.Now().UnixMilli()/600%2 == 0 {
-			return pal.Text.Alpha(0.75)
+		// A bar that runs breathes rather than blinks: its own colour,
+		// a little deeper and a little lighter by turns.
+		p.After(800 * time.Millisecond)
+		c := kindColor(pal, s.Kind)
+		if p.Now().UnixMilli()/800%2 == 0 {
+			return c.Alpha(0.55)
 		}
-		return pal.Text.Alpha(0.4)
+		return c
 	}
 	return kindColor(pal, s.Kind)
 }
@@ -363,26 +366,26 @@ func clock(ms int64) string {
 func kindColor(pal *theme.Palette, kind string) ui.Color {
 	switch kind {
 	case proto.TimelineTool:
-		return pal.TextMuted.Alpha(0.5)
+		return pal.TlTool
 	case proto.TimelineThink:
-		return pal.TextMuted.Alpha(0.22)
+		return pal.TlThink
 	case proto.TimelineText:
-		return pal.TextMuted.Alpha(0.35)
+		return pal.TlText
 	case proto.TimelineSubagent:
-		return pal.Done.Alpha(0.6)
+		return pal.TlSub
 	case proto.TimelineExchange:
-		return pal.TextMuted.Alpha(0.2)
+		return pal.TlThink.Alpha(0.5)
 	}
-	return pal.TextMuted.Alpha(0.3)
+	return pal.TlTool
 }
 
 // stateColor is a step's colour for its state.
 func stateColor(pal *theme.Palette, state string) ui.Color {
 	switch state {
 	case proto.TimelineWaiting:
-		return pal.Attention
+		return pal.TlWait
 	case proto.TimelineFailed:
-		return pal.Danger
+		return pal.TlFail
 	case proto.TimelineRunning:
 		return pal.Text
 	}

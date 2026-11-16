@@ -52,6 +52,15 @@ type Palette struct {
 	// its rows' names, which it tells apart.
 	Group ui.Color
 
+	// The timeline's bars, by what a step is and what it waits for: soft
+	// colours, which a card of turns is read at a glance and no alarm.
+	TlThink ui.Color // the agent's reasoning
+	TlText  ui.Color // what the agent wrote
+	TlTool  ui.Color // the tools it ran
+	TlSub   ui.Color // the agents it gave its work to
+	TlWait  ui.Color // a tool that waits for the user
+	TlFail  ui.Color // a tool that failed
+
 	Overlay   ui.Color // behind dialogs
 	Popover   ui.Color
 	Kbd       ui.Color
@@ -83,6 +92,12 @@ var Light = Palette{
 	Divider:       ui.RGBA(0, 0, 0, 0.06),
 	Chip:          ui.RGBA(0, 0, 0, 0.045),
 
+	TlThink:   ui.RGBA(150, 143, 210, 0.80),
+	TlText:    ui.RGBA(110, 165, 145, 0.80),
+	TlTool:    ui.RGBA(190, 175, 150, 0.90),
+	TlSub:     ui.RGBA(120, 155, 200, 0.80),
+	TlWait:    ui.RGBA(214, 160, 74, 0.85),
+	TlFail:    ui.RGBA(203, 118, 112, 0.85),
 	Attention: ui.Hex("#c27b0f"),
 	AttnSoft:  ui.RGBA(232, 154, 40, 0.13),
 	Done:      ui.Hex("#1d1d1f"),
@@ -124,6 +139,12 @@ var Dark = Palette{
 	Divider:      ui.RGBA(255, 255, 255, 0.07),
 	Chip:         ui.RGBA(255, 255, 255, 0.07),
 
+	TlThink:   ui.RGBA(140, 132, 200, 0.85),
+	TlText:    ui.RGBA(120, 172, 152, 0.85),
+	TlTool:    ui.RGBA(168, 155, 134, 0.85),
+	TlSub:     ui.RGBA(126, 156, 196, 0.85),
+	TlWait:    ui.RGBA(206, 154, 70, 0.85),
+	TlFail:    ui.RGBA(190, 120, 114, 0.85),
 	Attention: ui.Hex("#f0a33a"),
 	AttnSoft:  ui.RGBA(240, 163, 58, 0.15),
 	Done:      ui.Hex("#ececf0"),
