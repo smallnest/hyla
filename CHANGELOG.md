@@ -4,6 +4,17 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.12.4
+
+- The Pane menu's timeline entry says what it does now: Pane › Open
+  Timeline Pane splits a pane, where 3.12.3's entry named only the pane.
+- The Pane menu keeps no timeline window: `hyla do timeline.window` opens
+  one, for another screen.
+- Pane › Open Location… is gone, ⌘L with it: it gave the address bar the
+  keyboard only in a browser pane, and did nothing, said nothing, anywhere
+  else. A browser pane's address bar still takes the keyboard when it
+  opens blank, and a click on it works as before.
+
 ## 3.12.3
 
 - The timeline is a pane now: Pane › Timeline (⌥⌘T) splits it beside the
