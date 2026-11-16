@@ -4,6 +4,17 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.13.0
+
+- The timeline reads OpenCode's records: Open Timeline Pane beside an
+  OpenCode pane shows its turns, what it reasoned, the tools it ran with
+  their times, the subtasks it gave away, and a tool that waits on you.
+  Hyla reads OpenCode's store read only, so the running agent goes on
+  writing it.
+- The timeline reads Codex's records too: its turns, what it reasoned and
+  wrote, each command from the call to its output, failed where the exit
+  code was no 0, and a turn the user interrupted as failed.
+
 ## 3.12.4
 
 - The Pane menu's timeline entry says what it does now: Pane › Open
