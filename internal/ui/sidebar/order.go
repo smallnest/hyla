@@ -6,6 +6,7 @@ package sidebar
 import (
 	"slices"
 	"sort"
+	"strings"
 	"time"
 
 	"hyla/internal/app/host"
@@ -22,17 +23,104 @@ type Prefs struct {
 	// ProjectOrder and SessionOrder are the ids as the user dragged them.
 	ProjectOrder []string
 	SessionOrder []string
+	// SessionProjects are the sessions the user put among others of a
+	// project they moved to, by session id: the ids of the sessions they
+	// come after and before in the project's list, one empty for none.
+	SessionProjects map[string]string
+	// HiddenProjects are the machines' projects the sidebar lists none
+	// of: the SSH and K8s ones.
+	HiddenProjects map[string]bool
 	// SidebarGroup is how the sidebar lists the sessions: by project,
 	// by none, or by date, and SidebarOrder whether the ones created
 	// first or updated last come first.
 	SidebarGroup string
 	SidebarOrder string
 	// SetProjectOrder and SetSessionOrder make an order the app's, which
-	// Save keeps.
-	SetProjectOrder func(order []string)
-	SetSessionOrder func(order []string)
+	// Save keeps, and SetSessionProjects the projects a session moved to.
+	SetProjectOrder    func(order []string)
+	SetSessionOrder    func(order []string)
+	SetSessionProjects func(m map[string]string)
 	// Save keeps the preferences.
 	Save func()
+}
+
+// MoveSessionTo puts a session among the sessions of a project, which it
+// joins: before or after target's, when target is one of that project's.
+// No session moves to or from an SSH or K8s project, where the terminals
+// are the machines and pods themselves.
+func MoveSessionTo(a App, id, project, target string, after bool) {
+	if id == "" || project == "" || id == target {
+		return
+	}
+	s := a.Session(id)
+	if s == nil || s.Project == project {
+		return
+	}
+	p := a.PrefsNow()
+	if p.HiddenProjects[s.Project] || p.HiddenProjects[project] {
+		return
+	}
+	// The places the other sessions moved to were their old project's,
+	// whose list this move is made in: the last one's alone lasts.
+	p.SetSessionProjects(map[string]string{})
+	a.MoveSession(id, project)
+	// The session came last in its project, where a move without a
+	// target puts it, which the list of the project's order follows: the
+	// place the user gave it, if any, is the other one's there.
+	if target == "" {
+		return
+	}
+	var order []string
+	for _, g := range Groups(a) {
+		if g.Project.ID == project {
+			order = slices.Clone(g.Sessions)
+			break
+		}
+	}
+	// The session's row may be a copy the app still lists, the one the move
+	// took it from: join the one the project lists.
+	order = slices.DeleteFunc(order, func(o string) bool { return o == id })
+	if !slices.Contains(order, target) {
+		return
+	}
+	j := slices.Index(order, target)
+	if after {
+		j++
+	}
+	order = slices.Insert(order, j, id)
+	prev, next := "", ""
+	if j > 0 {
+		prev = order[j-1]
+	}
+	if j+1 < len(order) {
+		next = order[j+1]
+	}
+	// The drag order it joins comes last, which says the session moved:
+	// the app keeps the place of the session the order ends with. The
+	// sessions it does not name come before its own, in the order the
+	// sidebar gives them.
+	rest := slices.DeleteFunc(slices.Clone(p.SessionOrder), func(o string) bool { return o == id })
+	// A session the order does not name was not dragged: the project's
+	// sessions as the sidebar gives them name it.
+	if !slices.Contains(p.SessionOrder, id) {
+		rest = slices.Clone(order)
+		rest = slices.DeleteFunc(rest, func(o string) bool { return o == id })
+	}
+	p.SetSessionOrder(append(rest, id))
+	p.SetSessionProjects(map[string]string{id: prev + "\x00" + next})
+	p.Save()
+}
+
+// SessionProjectsOf returns the sessions a moved session follows and
+// comes before, as MoveSessionTo kept them, one empty for the session
+// that comes first or last.
+func SessionProjectsOf(p map[string]string, id string) (prev, next string, ok bool) {
+	v, ok := p[id]
+	if !ok {
+		return "", "", false
+	}
+	prev, next, _ = strings.Cut(v, "\x00")
+	return prev, next, true
 }
 
 // App is what the sidebar's order asks of the app.
@@ -50,6 +138,9 @@ type App interface {
 	PrefsNow() Prefs
 	// SelectedID is the session the window shows.
 	SelectedID() string
+	// MoveSession moves a session to a project of its host, which the
+	// daemon keeps.
+	MoveSession(id, project string)
 }
 
 // Group is a project with its sessions, as the sidebar lists them.
@@ -123,7 +214,42 @@ func HostGroups(a App, h *host.Host) []Group {
 		OrderSessions(a, other.Sessions)
 		gs = append(gs, other)
 	}
+	// The sessions the user moved into a project sit where they left
+	// them, which the daemon's order of them, the order they moved in,
+	// does not say.
+	for i := range gs {
+		JoinSessions(a, gs[i].Sessions)
+	}
 	return gs
+}
+
+// JoinSessions puts the sessions the user moved into a project among the
+// ones they left them by, from the end back to the start, so that each
+// follows a session that is already there: after the one it follows, or
+// before the one it comes before.
+func JoinSessions(a App, ids []string) {
+	moved := a.PrefsNow().SessionProjects
+	out := slices.Clone(ids)
+	for k := len(out) - 1; k >= 0; k-- {
+		id := out[k]
+		prev, next, ok := SessionProjectsOf(moved, id)
+		if !ok {
+			continue
+		}
+		out = slices.Delete(out, k, k+1)
+		at := -1
+		if i := slices.Index(out, prev); prev != "" && prev != id && i >= 0 {
+			at = i + 1
+		} else if i := slices.Index(out, next); next != "" && next != id && i >= 0 {
+			at = i
+		}
+		if at < 0 {
+			out = append(out, id)
+			continue
+		}
+		out = slices.Insert(out, at, id)
+	}
+	copy(ids, out)
 }
 
 // OrderProjects sorts ps as the user dragged them, by the ids in

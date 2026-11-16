@@ -115,6 +115,9 @@ type App interface {
 	CloseAllSessions(g sidebar.Group)
 	RestartSession(id string)
 	MoveSession(id, project string)
+	// LocalHost is this machine, whose projects' sessions MoveSession
+	// moves among.
+	LocalHost() *host.Host
 	// FocusTerminal gives the keyboard to the pane the user is in, and
 	// FocusOf is that pane of a session.
 	FocusTerminal()
@@ -397,9 +400,11 @@ func groupView(x App, c *ui.Context, pal *theme.Palette, g sidebar.Group, gi int
 	p := x.PrefsNowAll()
 	id, key := g.Project.ID, g.Key()
 	// The SSH and K8s projects open terminals of their own, not shells:
-	// their rows are the machines and pods they list.
+	// their rows are the machines and pods they list, which take no
+	// session, and so a session dropped on their header that leaves.
 	ssh := id != "" && id == p.SSHProject
 	k8s := id != "" && id == p.K8sProject
+	moves := id != "" && !ssh && !k8s && g.Host == x.LocalHost()
 	collapsed := p.Collapsed[key]
 	// current says this project holds the session in the card; folded, its
 	// badge keeps a dot for it.
@@ -432,6 +437,17 @@ func groupView(x App, c *ui.Context, pal *theme.Palette, g sidebar.Group, gi int
 		hdr.Drag(sidebar.ProjectDrag{Host: g.Host, ID: id}).Cursor(ui.CursorGrab)
 		if hdr.Dragging() {
 			hdr.Opacity(0.35)
+		}
+	}
+	if moves {
+		// A session dragged over the project's name moves to it: there is
+		// none that leaves, as the SSH and K8s projects' sessions do.
+		if d, over := ui.DragOver[sidebar.SessionDrag](hdr); over && d.ID != "" && !slices.Contains(g.Sessions, d.ID) {
+			x.Drag().At, x.Drag().After = id, false
+			hdr.Background(pal.RowHover)
+		}
+		if d, ok := ui.Drop[sidebar.SessionDrag](hdr); ok && d.ID != "" {
+			x.Later_(func() { sidebar.MoveSessionTo(app{x, x.Root()}, d.ID, id, "", false) })
 		}
 	}
 	if id != "" {
@@ -647,9 +663,10 @@ func sessionRow(x App, c *ui.Context, pal *theme.Palette, s *proto.Session, n *i
 	if row.DoubleClicked() {
 		x.StartRename(s.ID)
 	}
-	// The row is its session's handle within its project: dragged, it
-	// moves the session to another place there, past the row of the one
-	// it is dropped on, above or below its middle.
+	// The row is its session's handle: dragged, it moves the session to
+	// another place in its project, or to another of this machine's
+	// projects, past the row of the one it is dropped on, above or below
+	// its middle.
 	if group != "" && x.RenameState().Session != s.ID {
 		drag := sidebar.SessionDrag{Group: group, ID: s.ID}
 		row.Drag(drag).Cursor(ui.CursorGrab)
@@ -663,15 +680,31 @@ func sessionRow(x App, c *ui.Context, pal *theme.Palette, s *proto.Session, n *i
 			row.Background(pal.RowHover)
 			sidebar.DragLine(row, pal, after)
 		}
-		if d, ok := ui.Drop[sidebar.SessionDrag](row); ok && d.Group == group && d.ID != s.ID {
-			_, y, _ := row.PointerPosition()
-			after := y > h/2
-			if x.Drag().At == s.ID {
-				// The side the insertion line last showed.
-				after = x.Drag().After
+		if d, ok := ui.Drop[sidebar.SessionDrag](row); ok && d.ID != s.ID {
+			if d.Group == group {
+				_, y, _ := row.PointerPosition()
+				after := y > h/2
+				if x.Drag().At == s.ID {
+					// The side the insertion line last showed.
+					after = x.Drag().After
+				}
+				target := s.ID
+				x.Later_(func() { sidebar.ReorderSession(app{x, x.Root()}, d, target, after) })
+			} else {
+				// Another project of this machine's: the session moves
+				// there, where this row is, above or below it.
+				_, y, _ := row.PointerPosition()
+				after := y > h/2
+				pid := s.Project
+				if pid == "" {
+					return
+				}
+				if p := x.PrefsNowAll(); pid == p.SSHProject || pid == p.K8sProject {
+					return
+				}
+				target := s.ID
+				x.Later_(func() { sidebar.MoveSessionTo(app{x, x.Root()}, d.ID, pid, target, after) })
 			}
-			target := s.ID
-			x.Later_(func() { sidebar.ReorderSession(app{x, x.Root()}, d, target, after) })
 		}
 	}
 	tip := x.HostOf(s.ID).ShortDir(s.WorkDir())
@@ -904,8 +937,14 @@ func sessionMenu(x App, m *ui.Menu, s *proto.Session) {
 	}
 	h := x.HostOf(id)
 	m.Submenu(locales.SessionMoveToProject(), func(m *ui.Menu) {
-		// A session moves among its host's projects alone.
+		// A session moves among its host's projects alone, which for
+		// this machine's are the SSH and K8s projects' neighbours: their
+		// own sessions are the machines and pods they list.
+		hidden := x.PrefsNowAll()
 		for _, p := range x.ProjectsOf(h) {
+			if p.ID == hidden.SSHProject || p.ID == hidden.K8sProject {
+				continue
+			}
 			if m.Item(p.Name).Checked(p.ID == s.Project).Disabled(p.ID == s.Project).Chosen() {
 				pid := p.ID
 				x.Later_(func() { x.MoveSession(id, pid) })

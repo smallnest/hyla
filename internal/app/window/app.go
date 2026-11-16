@@ -103,6 +103,10 @@ type prefs struct {
 	// in, "" until one is made; SSHHosts are the machines it lists.
 	SSHProject string    `json:"sshProject,omitempty"`
 	SSHHosts   []sshHost `json:"sshHostList,omitempty"`
+	// MovedSessions are the sessions the user moved among the ones of a
+	// project they moved the session to, as sidebar.Prefs.SessionProjects
+	// keeps them: the side of the session there before this move.
+	MovedSessions map[string]string `json:"movedSessions,omitempty"`
 	// K8sProject is the software project the sidebar's kubectl terminals
 	// open in, "" until one is made; K8sPods are the pods it lists.
 	K8sProject string   `json:"k8sProject,omitempty"`
@@ -1880,6 +1884,15 @@ func (a *App) PrefsNowAll() sidebarview.Prefs {
 			Collapsed:    a.Prefs.Collapsed,
 			ProjectOrder: a.Prefs.ProjectOrder,
 			SessionOrder: a.Prefs.SessionOrder,
+			// A session's place in the project it moved to lasts while the
+			// user keeps the order it moved among, which every drag of the
+			// sessions sets anew: the drag order of one session, the one
+			// that moved.
+			SessionProjects: a.movedSessions(),
+			HiddenProjects: map[string]bool{
+				a.Prefs.SSHProject: true,
+				a.Prefs.K8sProject: true,
+			},
 			SidebarGroup: a.Prefs.SidebarGroup,
 			SidebarOrder: a.Prefs.SidebarOrder,
 			SetProjectOrder: func(o []string) {
@@ -1887,6 +1900,9 @@ func (a *App) PrefsNowAll() sidebarview.Prefs {
 			},
 			SetSessionOrder: func(o []string) {
 				a.Prefs.SessionOrder = o
+			},
+			SetSessionProjects: func(m map[string]string) {
+				a.Prefs.MovedSessions = m
 			},
 			Save: a.savePrefs,
 		},
@@ -1896,3 +1912,18 @@ func (a *App) PrefsNowAll() sidebarview.Prefs {
 }
 
 func (a *App) SelectedID() string { return a.Selected }
+
+// movedSessions are the sessions a drag moved into their project: the
+// last drag's session alone, whose place the drag order it moved among
+// keeps, and none for another.
+func (a *App) movedSessions() map[string]string {
+	if len(a.Prefs.SessionOrder) == 0 {
+		return a.Prefs.MovedSessions
+	}
+	last := a.Prefs.SessionOrder[len(a.Prefs.SessionOrder)-1]
+	out := map[string]string{}
+	if v, ok := a.Prefs.MovedSessions[last]; ok {
+		out[last] = v
+	}
+	return out
+}
