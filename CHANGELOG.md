@@ -4,6 +4,15 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.12.2
+
+- Hyla's bot in a group answered a message that @-mentioned another app's
+  bot: a connection whose read of its own `open_id` at Feishu failed, as a
+  network that fails does, took every bot's mention for its own, and two
+  agents went at one task. The bot's identity is kept beside the App Secret
+  now, a read that fails is tried again, and a bot that has read none
+  leaves a mention of another bot to that bot.
+
 ## 3.12.1
 
 - A Tailcat pair code carries the relay's own region again: a relay set
