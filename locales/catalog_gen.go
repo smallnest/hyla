@@ -8450,6 +8450,106 @@ func (msgs Messages) InfoMagpieDown() string {
 	return Catalog.Format(msgs.locale, "infoMagpieDown", nil)
 }
 
+// InfoTimeline says "Timeline"
+// in the language the app shows.
+func InfoTimeline() string { return In(i18n.Locale()).InfoTimeline() }
+
+// InfoTimeline says "Timeline"
+// in the language of msgs.
+func (msgs Messages) InfoTimeline() string {
+	return Catalog.Format(msgs.locale, "infoTimeline", nil)
+}
+
+// InfoTimelineEmpty says "Nothing yet"
+// in the language the app shows.
+func InfoTimelineEmpty() string { return In(i18n.Locale()).InfoTimelineEmpty() }
+
+// InfoTimelineEmpty says "Nothing yet"
+// in the language of msgs.
+func (msgs Messages) InfoTimelineEmpty() string {
+	return Catalog.Format(msgs.locale, "infoTimelineEmpty", nil)
+}
+
+// InfoTimelineDown says "Hyla cannot read the timeline"
+// in the language the app shows.
+func InfoTimelineDown() string { return In(i18n.Locale()).InfoTimelineDown() }
+
+// InfoTimelineDown says "Hyla cannot read the timeline"
+// in the language of msgs.
+func (msgs Messages) InfoTimelineDown() string {
+	return Catalog.Format(msgs.locale, "infoTimelineDown", nil)
+}
+
+// InfoTimelineTurns says "{n} turns"
+// in the language the app shows.
+func InfoTimelineTurns(n string) string { return In(i18n.Locale()).InfoTimelineTurns(n) }
+
+// InfoTimelineTurns says "{n} turns"
+// in the language of msgs.
+func (msgs Messages) InfoTimelineTurns(n string) string {
+	return Catalog.Format(msgs.locale, "infoTimelineTurns", map[string]any{"n": n})
+}
+
+// InfoTimelineWaiting says "waiting"
+// in the language the app shows.
+func InfoTimelineWaiting() string { return In(i18n.Locale()).InfoTimelineWaiting() }
+
+// InfoTimelineWaiting says "waiting"
+// in the language of msgs.
+func (msgs Messages) InfoTimelineWaiting() string {
+	return Catalog.Format(msgs.locale, "infoTimelineWaiting", nil)
+}
+
+// InfoTimelineFailed says "failed"
+// in the language the app shows.
+func InfoTimelineFailed() string { return In(i18n.Locale()).InfoTimelineFailed() }
+
+// InfoTimelineFailed says "failed"
+// in the language of msgs.
+func (msgs Messages) InfoTimelineFailed() string {
+	return Catalog.Format(msgs.locale, "infoTimelineFailed", nil)
+}
+
+// InfoTimelineUnread says "Hyla does not read {agent} records"
+// in the language the app shows.
+func InfoTimelineUnread(agent string) string { return In(i18n.Locale()).InfoTimelineUnread(agent) }
+
+// InfoTimelineUnread says "Hyla does not read {agent} records"
+// in the language of msgs.
+func (msgs Messages) InfoTimelineUnread(agent string) string {
+	return Catalog.Format(msgs.locale, "infoTimelineUnread", map[string]any{"agent": agent})
+}
+
+// InfoTimelineNone says "No records in {dir}"
+// in the language the app shows.
+func InfoTimelineNone(dir string) string { return In(i18n.Locale()).InfoTimelineNone(dir) }
+
+// InfoTimelineNone says "No records in {dir}"
+// in the language of msgs.
+func (msgs Messages) InfoTimelineNone(dir string) string {
+	return Catalog.Format(msgs.locale, "infoTimelineNone", map[string]any{"dir": dir})
+}
+
+// InfoTimelineNoAgent says "No coding agent runs in the pane"
+// in the language the app shows.
+func InfoTimelineNoAgent() string { return In(i18n.Locale()).InfoTimelineNoAgent() }
+
+// InfoTimelineNoAgent says "No coding agent runs in the pane"
+// in the language of msgs.
+func (msgs Messages) InfoTimelineNoAgent() string {
+	return Catalog.Format(msgs.locale, "infoTimelineNoAgent", nil)
+}
+
+// InfoTimelineNoPane says "No pane"
+// in the language the app shows.
+func InfoTimelineNoPane() string { return In(i18n.Locale()).InfoTimelineNoPane() }
+
+// InfoTimelineNoPane says "No pane"
+// in the language of msgs.
+func (msgs Messages) InfoTimelineNoPane() string {
+	return Catalog.Format(msgs.locale, "infoTimelineNoPane", nil)
+}
+
 // SwitchSlide says "Slide"
 // in the language the app shows.
 func SwitchSlide() string { return In(i18n.Locale()).SwitchSlide() }

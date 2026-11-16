@@ -453,6 +453,13 @@ func (d *Daemon) call(c *controlConn, method string, raw json.RawMessage) (any, 
 		}
 		return d.wait(c, pn, p)
 
+	case "timeline.get":
+		var p proto.TimelineParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return d.timelineOf(p)
+
 	case "pane.agentSession":
 		var p proto.AgentSessionParams
 		if err := decode(&p); err != nil {

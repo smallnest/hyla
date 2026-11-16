@@ -47,6 +47,7 @@ import (
 	"hyla/internal/ui/sidebar"
 	"hyla/internal/ui/sidebarview"
 	"hyla/internal/ui/theme"
+	"hyla/internal/ui/timelineview"
 	"hyla/internal/ui/webpane"
 	"hyla/internal/ui/worktree"
 
@@ -253,6 +254,9 @@ type App struct {
 	// magpie is what Magpie shows of itself (magpie.go), nil until the
 	// Info view shows.
 	Magpie *magpieInfo
+	// Timelines is what the Info view shows of the panes' timelines, by
+	// pane (timeline_adapters.go).
+	Timelines map[string]*timelineview.Info
 
 	// quitting is set while the quit quit-ends-sessions makes ends the
 	// sessions, either while it asks or once its answer does.

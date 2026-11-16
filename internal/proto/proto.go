@@ -602,6 +602,16 @@ func (p *Pane) WorkDir() string {
 	return p.Dir
 }
 
+// StartsTimeline tells whether the agent's name is one the timeline reads
+// the records of: Claude Code's and DeepSeek Harness's.
+func StartsTimeline(agent string) bool {
+	switch agent {
+	case "claude", "dsh":
+		return true
+	}
+	return false
+}
+
 // What names a session the user or an agent didn't (settings'
 // session-name).
 const (

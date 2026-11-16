@@ -1,0 +1,81 @@
+package daemon
+
+import (
+	"os"
+	"time"
+
+	"hyla/internal/proto"
+	"hyla/internal/timeline"
+	"hyla/locales"
+)
+
+// timelineOf is a pane's timeline, from the records its agent keeps beside
+// its conversation. An agent whose records the timeline does not read has
+// a note in place of the turns.
+func (d *Daemon) timelineOf(p proto.TimelineParams) (proto.Timeline, error) {
+	pn := d.findPane(p.Pane)
+	if pn == nil && p.Pane != "" {
+		return proto.Timeline{}, os.ErrNotExist
+	}
+	var agent, conv, dir string
+	if pn != nil {
+		pn.mu.Lock()
+		agent, conv, dir = pn.info.Agent, pn.info.AgentSessionID, pn.info.Dir
+		pn.mu.Unlock()
+		if pdir := paneDirOf(pn); pdir.Dir != "" {
+			dir = pdir.Dir
+		}
+	}
+	now := time.Now()
+	at := now.UnixMilli()
+	t := proto.Timeline{Session: p.Session, Agent: agent, Read: at}
+	if pn != nil {
+		t.Pane = pn.info.ID
+	}
+	var steps []timeline.Step
+	var err error
+	switch {
+	case pn == nil:
+		t.Note = locales.InfoTimelineNoPane()
+	case !proto.StartsTimeline(agent):
+		if agent == "" {
+			t.Note = locales.InfoTimelineNoAgent()
+		} else {
+			t.Note = locales.InfoTimelineUnread(agent)
+		}
+	default:
+		file := timeline.Find(agent, conv, dir)
+		if file == "" {
+			t.Note = locales.InfoTimelineNone(dir)
+			break
+		}
+		switch agent {
+		case "dsh":
+			steps, err = timeline.DSHFile(file, now)
+		default:
+			steps, err = timeline.ClaudeFile(file, now)
+		}
+	}
+	if err != nil {
+		return proto.Timeline{}, err
+	}
+	t.Turns = timelineSteps(steps)
+	return t, nil
+}
+
+// timelineSteps is steps as the app reads them.
+func timelineSteps(steps []timeline.Step) []proto.TimelineStep {
+	out := make([]proto.TimelineStep, len(steps))
+	for i, s := range steps {
+		out[i] = proto.TimelineStep{
+			Kind:     string(s.Kind),
+			Title:    s.Title,
+			Detail:   s.Detail,
+			Start:    s.Start,
+			End:      s.End,
+			State:    string(s.State),
+			Children: timelineSteps(s.Children),
+		}
+	}
+	return out
+}

@@ -54,6 +54,8 @@ type App interface {
 	Copied() *string
 	// Split splits a pane, with the session's params.
 	Split(s *proto.Session, p proto.CreateParams)
+	// InfoTimeline draws the coding agent's timeline.
+	InfoTimeline(c *ui.Context, pal *theme.Palette)
 	// InfoMagpie draws Magpie's card.
 	InfoMagpie(c *ui.Context, pal *theme.Palette)
 	// InfoFeishu draws the Feishu bot's card.
@@ -105,6 +107,7 @@ func Body(c *ui.Context, x App, pal *theme.Palette, s *proto.Session, p *proto.P
 		infoDir(c, x, pal, s, x.HostOf(p.ID), p, st)
 		infoProcs(c, x, pal, p, st)
 		infoPorts(c, x, pal, p, st)
+		x.InfoTimeline(c, pal)
 		x.InfoMagpie(c, pal)
 		x.InfoFeishu(c, pal, p)
 	})
@@ -186,6 +189,7 @@ const (
 	FoldProcs      = "procs"
 	FoldPorts      = "ports"
 	FoldMagpie     = "magpie"
+	FoldTimeline   = "timeline"
 	FoldFeishu     = "feishu"
 	infoFoldFeishu = "feishu"
 )
