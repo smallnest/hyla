@@ -7,11 +7,16 @@ package marks
 
 import (
 	"embed"
+	"errors"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
 
 	"github.com/egoist/mygo/ui"
+
+	"hyla/internal/proto"
 )
 
 // Size is how large a mark is, and the slot every session row keeps for
@@ -219,4 +224,140 @@ func Tint(brand ui.Color, dark bool, text ui.Color) ui.Color {
 		return brand.Mix(ui.Hex("#000000"), 0.3)
 	}
 	return brand
+}
+
+// --- the user's own marks ---
+
+// User marks are the logos the user gives the agents Hyla has none for,
+// as an image of any size, kept as a file named after the agent, as
+// acme.png, in MarksDir: the set's logos win for an agent the set has
+// one for.
+var (
+	userMu    sync.RWMutex
+	userMarks = map[string]*ui.Bitmap{}
+)
+
+// LogoOf is an agent's logo, as the sidebar and a card draw it: its own
+// mark where the set has it, else the user's where they gave it. known
+// is false for an agent whose logo is neither.
+func LogoOf(agent string) (src ui.ImageSource, known bool) {
+	if _, _, ok := Agent(agent); ok {
+		return nil, true
+	}
+	if b := userMark(agent); b != nil {
+		return b, true
+	}
+	return nil, false
+}
+
+// MarksDir is where the user's marks are: "marks" in the app's directory.
+func MarksDir() string { return filepath.Join(proto.Dir(), "marks") }
+
+// LoadUserMarks reads the user's marks in dir into the cache, replacing
+// those it read before: the window calls it as it starts, and a mark the
+// user gives.
+func LoadUserMarks(dir string) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		userMu.Lock()
+		userMarks = map[string]*ui.Bitmap{}
+		userMu.Unlock()
+		return
+	}
+	next := map[string]*ui.Bitmap{}
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		name := e.Name()
+		ext := strings.ToLower(filepath.Ext(name))
+		switch ext {
+		case ".png", ".jpg", ".jpeg", ".gif", ".webp":
+		default:
+			continue
+		}
+		agent := strings.ToLower(strings.TrimSuffix(name, filepath.Ext(name)))
+		if agent == "" {
+			continue
+		}
+		if b := readBitmap(filepath.Join(dir, name)); b != nil {
+			next[agent] = b
+		}
+	}
+	userMu.Lock()
+	userMarks = next
+	userMu.Unlock()
+}
+
+// SetUserMark gives an agent the logo in a file, which it keeps in dir
+// under the agent's name: a name the set has no mark for keeps its file's
+// extension. The file must be an image DecodeImage reads.
+func SetUserMark(dir, agent, file string) error {
+	agent = strings.ToLower(strings.TrimSpace(agent))
+	if agent == "" {
+		return errors.New("no agent")
+	}
+	data, err := os.ReadFile(file)
+	if err != nil {
+		return err
+	}
+	if _, err := ui.DecodeImage(data); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	ext := strings.ToLower(filepath.Ext(file))
+	switch ext {
+	case ".png", ".jpg", ".jpeg", ".gif", ".webp":
+	default:
+		ext = ".png"
+	}
+	dst := filepath.Join(dir, agent+ext)
+	if err := os.WriteFile(dst, data, 0o644); err != nil {
+		return err
+	}
+	LoadUserMarks(dir)
+	return nil
+}
+
+// RemoveUserMark forgets an agent's own logo, as ClearUserMark does with
+// the directory's files, and the agent's mark when the file is gone.
+func RemoveUserMark(agent string) { ClearUserMark(MarksDir(), agent) }
+
+// ClearUserMark forgets an agent's own logo, if it has one.
+func ClearUserMark(dir, agent string) {
+	agent = strings.ToLower(strings.TrimSpace(agent))
+	for _, ext := range []string{".png", ".jpg", ".jpeg", ".gif", ".webp"} {
+		_ = os.Remove(filepath.Join(dir, agent+ext))
+	}
+	LoadUserMarks(dir)
+}
+
+// userMark is the user's logo of an agent, if any.
+func userMark(agent string) *ui.Bitmap {
+	agent = strings.ToLower(strings.TrimSpace(agent))
+	if agent == "" {
+		return nil
+	}
+	userMu.RLock()
+	defer userMu.RUnlock()
+	return userMarks[agent]
+}
+
+// readBitmap decodes a file as a logo, if it is one DecodeImage reads.
+func readBitmap(path string) *ui.Bitmap {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil
+	}
+	src, err := ui.DecodeImage(data)
+	if err != nil {
+		return nil
+	}
+	b, ok := src.(*ui.Bitmap)
+	if !ok {
+		return nil
+	}
+	return b
 }

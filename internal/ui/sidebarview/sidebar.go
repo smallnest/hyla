@@ -704,6 +704,13 @@ func sessionRow(x App, c *ui.Context, pal *theme.Palette, s *proto.Session, n *i
 	// shows none rather than another agent's.
 	agentLogo, agentBrand, agentKnown := marks.Agent(s.Agent)
 	agentFull, _ := marks.MarkFull(s.Agent)
+	// The user's own logo of an agent the set has none for, which the
+	// slot draws instead of nothing.
+	agentUser, userKnown := marks.LogoOf(s.Agent)
+	if agentKnown {
+		agentUser = nil
+	}
+	agentKnown = agentKnown || userKnown
 	// The mark's slot is every row's, whether or not this session has an
 	// agent, and as wide as the badge a project's name follows: x project's
 	// names and its sessions' start at one place. gap is the row's own.
@@ -715,6 +722,10 @@ func sessionRow(x App, c *ui.Context, pal *theme.Palette, s *proto.Session, n *i
 		slot.Children(func() {
 			if agentFull != nil {
 				ui.Image(c, agentFull).Size(marks.Size, marks.Size).Shrink(0)
+				return
+			}
+			if agentUser != nil {
+				ui.Image(c, agentUser).Size(marks.Size, marks.Size).Radius(3).Shrink(0)
 				return
 			}
 			ui.Icon(c, agentLogo).Size(marks.Size, marks.Size).TextColor(marks.Tint(agentBrand, pal.Dark, pal.Text))

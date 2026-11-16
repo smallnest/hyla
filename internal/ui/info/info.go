@@ -63,6 +63,8 @@ type App interface {
 	InfoMagpie(c *ui.Context, pal *theme.Palette)
 	// InfoFeishu draws the Feishu bot's card.
 	InfoFeishu(c *ui.Context, pal *theme.Palette, p *proto.Pane)
+	// InfoAgents draws the agents' logos card.
+	InfoAgents(c *ui.Context, pal *theme.Palette, p *proto.Pane)
 }
 
 // paneInfoOf returns a pane's Info view, made for the pane as it is now.
@@ -117,6 +119,7 @@ func Body(c *ui.Context, x App, pal *theme.Palette, s *proto.Session, p *proto.P
 		}
 		x.InfoMagpie(c, pal)
 		x.InfoFeishu(c, pal, p)
+		x.InfoAgents(c, pal, p)
 	})
 }
 
@@ -198,6 +201,7 @@ const (
 	FoldMagpie     = "magpie"
 	FoldTimeline   = "timeline"
 	FoldFeishu     = "feishu"
+	FoldAgents     = "agents"
 	infoFoldFeishu = "feishu"
 )
 
