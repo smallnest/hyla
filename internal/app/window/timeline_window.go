@@ -5,7 +5,6 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/proto"
-	"hyla/internal/ui/marks"
 	"hyla/internal/ui/theme"
 	"hyla/internal/ui/timelineview"
 	"hyla/locales"
@@ -40,22 +39,15 @@ func (a *App) openTimelineWindow() {
 	})
 }
 
-// timelineWindow draws the window: its title, the agent's mark and name in
-// the pane the user is in, and the timeline's card, whole. A pane of
-// another machine's has the timeline of this machine's records alone: the
-// window says so, as its own does.
+// timelineWindow draws the window: the name of the agent in the pane the
+// user is in, and the timeline's card, whole: no program's mark, as the
+// window runs none. A pane of another machine's has the timeline of this
+// machine's records alone: the window says so, as its own does.
 func (a *App) timelineWindow(c *ui.Context) {
 	pal := theme.For(c)
 	p := a.timelinePane()
 	ui.Column(c).MinWidth(0).Grow(1).AlignItems(ui.Stretch).Children(func() {
 		ui.Row(c).Height(44).Padding(0, 16).Gap(8).AlignItems(ui.Center).Children(func() {
-			if a.TimelineMark != "" {
-				if full, _ := marks.MarkFull(a.TimelineMark); full != nil {
-					ui.Image(c, full).Size(marks.Size, marks.Size).Shrink(0)
-				} else if logo, brand, ok := marks.Agent(a.TimelineMark); ok {
-					ui.Icon(c, logo).Size(16, 16).TextColor(marks.Tint(brand, pal.Dark, pal.Text)).Shrink(0)
-				}
-			}
 			title := locales.InfoTimeline()
 			if a.TimelineMark != "" {
 				title = a.TimelineMark

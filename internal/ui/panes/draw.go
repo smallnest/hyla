@@ -541,15 +541,15 @@ func paneHeader(x App, c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown
 			}
 		}
 		grip.Children(func() {
-			// A timeline's header wears the mark and name of the agent
-			// whose turns it shows.
+			// A timeline's header names the agent whose turns it shows,
+			// and wears no program's icon: the pane runs none.
 			mark := p
 			if p.TimelinePane() {
 				if q := s.TimelineShown(p); q != nil {
 					mark = q
 				}
 			}
-			if multi {
+			if multi && !p.TimelinePane() {
 				if p.Status != proto.Idle || p.Unread {
 					paints.StatusP(c, pal, p.Status, p.Unread, p.Progress, 13)
 				} else {
