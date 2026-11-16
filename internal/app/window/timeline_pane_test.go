@@ -145,12 +145,12 @@ func TestTimelinePaneDemo(t *testing.T) {
 func TestTimelinePaneNoAgent(t *testing.T) {
 	a := testApp(t)
 	s := a.session("s1")
-	s.Panes[0].Agent = "codex"
+	s.Panes[0].Agent = "gemini"
 	s.Panes = append(s.Panes, proto.Pane{ID: "t", Timeline: "a", Dir: "/tmp", Status: proto.Idle, Progress: -1})
 	s.Layout = s.Layout.Split("a", "t", "right", 0)
 	tt := ui.NewTester(a.view, 1280, 720)
 	tt.Frame()
-	if _, ok := tt.Find(locales.InfoTimelineUnread("codex")); !ok {
+	if _, ok := tt.Find(locales.InfoTimelineUnread("gemini")); !ok {
 		t.Errorf("the timeline pane shows no word of an agent whose records Hyla does not read; texts %q", tt.Texts())
 	}
 }

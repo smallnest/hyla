@@ -30,12 +30,12 @@ func TestTimelineWindowDemo(t *testing.T) {
 // why, beside the agent's name.
 func TestTimelineWindowNoAgent(t *testing.T) {
 	a := testApp(t)
-	a.TimelineMark = "codex"
+	a.TimelineMark = "gemini"
 	s := a.session("s1")
-	s.FocusPane().Agent = "codex"
+	s.FocusPane().Agent = "gemini"
 	tt := ui.NewTester(a.timelineWindow, 680, 760)
 	tt.Frame()
-	if _, ok := tt.Find(locales.InfoTimelineUnread("codex")); !ok {
+	if _, ok := tt.Find(locales.InfoTimelineUnread("gemini")); !ok {
 		t.Error("the window shows no word of an agent whose records Hyla does not read")
 	}
 }

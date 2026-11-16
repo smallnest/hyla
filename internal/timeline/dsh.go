@@ -292,7 +292,7 @@ func DSH(data []byte, now time.Time) []Step {
 func arguments(raw string) string {
 	var m map[string]any
 	if json.Unmarshal([]byte(raw), &m) == nil {
-		for _, k := range []string{"command", "file_path", "path", "pattern", "query", "url", "description"} {
+		for _, k := range []string{"cmd", "command", "file_path", "path", "pattern", "query", "url", "description"} {
 			if s, ok := m[k].(string); ok && s != "" {
 				return s
 			}

@@ -629,10 +629,11 @@ func (p *Pane) WorkDir() string {
 }
 
 // StartsTimeline tells whether the agent's name is one the timeline reads
-// the records of: Claude Code's, DeepSeek Harness's and OpenCode's.
+// the records of: Claude Code's, Codex's, DeepSeek Harness's and
+// OpenCode's.
 func StartsTimeline(agent string) bool {
 	switch agent {
-	case "claude", "dsh", "opencode":
+	case "claude", "codex", "dsh", "opencode":
 		return true
 	}
 	return false

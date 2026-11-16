@@ -52,6 +52,8 @@ func (d *Daemon) timelineOf(p proto.TimelineParams) (proto.Timeline, error) {
 		switch agent {
 		case "dsh":
 			steps, err = timeline.DSHFile(file, now)
+		case "codex":
+			steps, err = timeline.CodexFile(file, now)
 		case "opencode":
 			steps, err = timeline.OpenCode(file, conv, dir, now)
 		default:

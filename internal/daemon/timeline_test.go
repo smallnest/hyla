@@ -14,8 +14,9 @@ import (
 
 // A pane's timeline is the turns of the records its agent keeps: Claude
 // Code's transcript of the pane's conversation, in the project of its
-// directory; DeepSeek Harness's log of the newest session there; and
-// OpenCode's store, of the conversation the pane names.
+// directory; DeepSeek Harness's log of the newest session there; Codex's
+// rollout of the conversation; and OpenCode's store, of the conversation
+// the pane names.
 func TestTimelineOf(t *testing.T) {
 	// The agents' directories, as the environment tells them: the first,
 	// which some caches keep, is the test's.
@@ -128,6 +129,33 @@ func TestTimelineOf(t *testing.T) {
 	oc.info.Dir = "/tmp/elsewhere"
 	if tm, err := d.timelineOf(proto.TimelineParams{Pane: "p4"}); err != nil || len(tm.Turns) != 0 {
 		t.Fatalf("opencode timeline of no conversation %+v, %v", tm, err)
+	}
+
+	// Codex's rollout, by the conversation the pane names.
+	codexHome := filepath.Join(home, ".codex")
+	rolloutDir := filepath.Join(codexHome, "sessions", "2026", "11", "16")
+	if err := os.MkdirAll(rolloutDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	rollout := `{"timestamp":"2026-11-16T10:00:00.000Z","type":"session_meta","payload":{"session_id":"sess-codex","cwd":"/tmp/my-proj"}}
+{"timestamp":"2026-11-16T10:00:01.000Z","type":"event_msg","payload":{"type":"task_started","turn_id":"t1"}}
+{"timestamp":"2026-11-16T10:00:02.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"Audit the build"}]}}
+{"timestamp":"2026-11-16T10:00:03.000Z","type":"response_item","payload":{"type":"function_call","name":"exec_command","arguments":"{\"cmd\":\"go build ./...\"}","call_id":"c1"}}
+{"timestamp":"2026-11-16T10:00:09.000Z","type":"response_item","payload":{"type":"function_call_output","call_id":"c1","output":"Process exited with code 0\nOutput:\nok"}}
+{"timestamp":"2026-11-16T10:00:20.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t1"}}
+`
+	if err := os.WriteFile(filepath.Join(rolloutDir, "rollout-2026-11-16T10-00-00-sess-codex.jsonl"), []byte(rollout), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("CODEX_HOME", codexHome)
+	cx := &pane{info: proto.Pane{ID: "p5", Dir: dir, Agent: "codex", AgentSessionID: "sess-codex"}}
+	d.panes["p5"] = cx
+	tm, err = d.timelineOf(proto.TimelineParams{Pane: "p5"})
+	if err != nil || len(tm.Turns) != 1 || tm.Turns[0].Title != "Audit the build" {
+		t.Fatalf("codex timeline %+v, %v", tm, err)
+	}
+	if c := tm.Turns[0].Children; len(c) != 1 || c[0].Kind != proto.TimelineTool {
+		t.Errorf("codex turn %+v", tm.Turns[0])
 	}
 
 	// A pane that does not exist is an error.
