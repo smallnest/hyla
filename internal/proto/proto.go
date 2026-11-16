@@ -169,7 +169,8 @@ type Project struct {
 // pseudo-terminal, one of a session's; or, with a URL, a browser, which
 // the app shows and the daemon only keeps the place and page of; or, with
 // a File, a file, which the app shows and the daemon only keeps the path
-// of.
+// of; or, with a Timeline, the timeline of another pane's coding agent,
+// which the app shows.
 type Pane struct {
 	ID    string `json:"id"`
 	Title string `json:"title,omitempty"` // set by the program (OSC 0/2), or the page
@@ -177,9 +178,12 @@ type Pane struct {
 	// the pane runs no shell.
 	URL string `json:"url,omitempty"`
 	// File is the path a file pane shows: set, the pane runs no shell.
-	File    string   `json:"file,omitempty"`
-	Dir     string   `json:"dir,omitempty"` // the shell's working directory
-	Command []string `json:"command,omitempty"`
+	File string `json:"file,omitempty"`
+	// Timeline is the pane a timeline pane shows the agent's turns of:
+	// set, the pane runs no shell.
+	Timeline string   `json:"timeline,omitempty"`
+	Dir      string   `json:"dir,omitempty"` // the shell's working directory
+	Command  []string `json:"command,omitempty"`
 	// Process is the foreground program, "" while the shell is.
 	Process string `json:"process,omitempty"`
 	// ProcessDir is the foreground program's working directory, as a
@@ -508,6 +512,20 @@ func (s *Session) PaneByID(id string) *Pane {
 	return nil
 }
 
+// TimelineShown is the pane a timeline pane shows: the pane it names, or,
+// once that one closed, the session's own pane; nil when it has none.
+func (s *Session) TimelineShown(p *Pane) *Pane {
+	if q := s.PaneByID(p.Timeline); q != nil && !q.TimelinePane() {
+		return q
+	}
+	for i := range s.Panes {
+		if q := &s.Panes[i]; !q.TimelinePane() {
+			return q
+		}
+	}
+	return nil
+}
+
 // FocusPane returns the pane the user was in last, else the first.
 func (s *Session) FocusPane() *Pane {
 	if p := s.PaneByID(s.Focus); p != nil {
@@ -556,6 +574,11 @@ func (p *Pane) PaneName() string {
 	if p.FilePane() {
 		return DirName(p.File)
 	}
+	if p.TimelinePane() {
+		// The agent's name, where the pane it shows runs one, is the app's
+		// to say; this is the name of a timeline of a shell's.
+		return "timeline"
+	}
 	if p.Browser() {
 		if t := strings.TrimSpace(p.Title); t != "" {
 			return t
@@ -589,9 +612,12 @@ func (p *Pane) Browser() bool { return p.URL != "" }
 // FilePane reports whether the pane shows a file, not a terminal.
 func (p *Pane) FilePane() bool { return p.File != "" }
 
+// TimelinePane reports whether the pane shows a timeline, not a terminal.
+func (p *Pane) TimelinePane() bool { return p.Timeline != "" }
+
 // Shown reports whether the pane shows what the app draws rather than a
-// program's cells: a browser's page, or a file.
-func (p *Pane) Shown() bool { return p.Browser() || p.FilePane() }
+// program's cells: a browser's page, a file, or a timeline.
+func (p *Pane) Shown() bool { return p.Browser() || p.FilePane() || p.TimelinePane() }
 
 // WorkDir is where the pane works: the foreground program's directory,
 // else the shell's.
@@ -903,9 +929,11 @@ type (
 		Command []string `json:"command,omitempty"`
 		Env     []string `json:"env,omitempty"`
 		// URL makes a browser pane showing it, instead of a shell; File
-		// a file pane, showing the path.
+		// a file pane, showing the path; Timeline a timeline pane,
+		// showing the agent's turns of the pane it names.
 		URL      string `json:"url,omitempty"`
 		File     string `json:"file,omitempty"`
+		Timeline string `json:"timeline,omitempty"`
 		After    string `json:"after,omitempty"` // put it after this session
 		Cols     int    `json:"cols,omitempty"`
 		Rows     int    `json:"rows,omitempty"`

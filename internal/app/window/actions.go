@@ -105,6 +105,8 @@ func (a *App) run(id string, args map[string]string) {
 		a.openBrowser(args["url"])
 	case "timeline.open":
 		a.openTimeline()
+	case "timeline.window":
+		a.openTimelineWindow()
 	case "browser.address":
 		a.focusAddress()
 	case "pane.zoom":

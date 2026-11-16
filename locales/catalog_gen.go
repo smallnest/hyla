@@ -266,6 +266,26 @@ func (msgs Messages) ActionTimeline() string {
 	return Catalog.Format(msgs.locale, "actionTimeline", nil)
 }
 
+// ActionTimelinePane says "Timeline Pane"
+// in the language the app shows.
+func ActionTimelinePane() string { return In(i18n.Locale()).ActionTimelinePane() }
+
+// ActionTimelinePane says "Timeline Pane"
+// in the language of msgs.
+func (msgs Messages) ActionTimelinePane() string {
+	return Catalog.Format(msgs.locale, "actionTimelinePane", nil)
+}
+
+// ActionTimelineWindow says "New Timeline Window"
+// in the language the app shows.
+func ActionTimelineWindow() string { return In(i18n.Locale()).ActionTimelineWindow() }
+
+// ActionTimelineWindow says "New Timeline Window"
+// in the language of msgs.
+func (msgs Messages) ActionTimelineWindow() string {
+	return Catalog.Format(msgs.locale, "actionTimelineWindow", nil)
+}
+
 // ActionOpenLocation says "Open Location…"
 // in the language the app shows.
 func ActionOpenLocation() string { return In(i18n.Locale()).ActionOpenLocation() }

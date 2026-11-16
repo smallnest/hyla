@@ -243,14 +243,14 @@ func (d *Daemon) cleanDir(dir string) (string, error) {
 }
 
 // startPane makes a pane and starts its shell; a browser's has none, nor
-// a file's.
+// a file's, nor a timeline's.
 func (d *Daemon) startPane(sid string, p proto.CreateParams, dir string) (*pane, error) {
 	now := time.Now().UnixMilli()
 	info := proto.Pane{
 		ID: newID(), Dir: dir, Command: p.Command, Status: proto.Idle, Since: now, Created: now,
 		Cols: p.Cols, Rows: p.Rows,
 	}
-	if p.URL != "" && p.File == "" {
+	if p.URL != "" && p.File == "" && p.Timeline == "" {
 		info.URL, info.Command = proto.BrowserURL(p.URL), nil
 	}
 	if p.File != "" {
@@ -258,6 +258,11 @@ func (d *Daemon) startPane(sid string, p proto.CreateParams, dir string) (*pane,
 		if info.Dir == "" {
 			info.Dir = filepath.Dir(p.File)
 		}
+	}
+	if p.Timeline != "" {
+		// The pane it shows names it, and a pane of another session shows
+		// nothing rather than a stranger's turns.
+		info.URL, info.File, info.Timeline, info.Command = "", "", p.Timeline, nil
 	}
 	pn, err := newPane(d, sid, info)
 	if err != nil || pn.info.Shown() {

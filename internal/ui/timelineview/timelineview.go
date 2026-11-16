@@ -394,7 +394,8 @@ func stateColor(pal *theme.Palette, state string) ui.Color {
 // none while the pane the user is in runs another.
 func Agents(p *proto.Pane) bool { return p != nil && proto.StartsTimeline(p.Agent) }
 
-// Window is the timeline in a window of its own, as the menu opens it.
+// Window is the timeline in a window of its own, as the menu opens one
+// for another screen.
 //
 // It takes the pane some other shows: the one the user is in. Window
 // reads it, and paints again while its agent runs, for its bars to blink.
@@ -414,9 +415,21 @@ func Window(a App, c *ui.Context, pal *theme.Palette, note func(c *ui.Context, p
 		note(c, pal, why(p))
 		return
 	}
+	sel(p)
+	Pane(a, c, pal, p, note)
+}
+
+// Pane is the timeline in a pane of its own, as the user splits one: the
+// agent's turns of the pane it shows, which the app reads, and paints
+// again while its agent runs, for its bars to blink. Where that pane runs
+// no agent, the pane shows why, in place of it.
+func Pane(a App, c *ui.Context, pal *theme.Palette, p *proto.Pane, note func(c *ui.Context, pal *theme.Palette, text string)) {
+	if !Agents(p) {
+		note(c, pal, why(p))
+		return
+	}
 	st := InfoOf(a, p)
 	Tick(a, c, st, p)
-	sel(p)
 	t := st.Timely
 	if t == nil {
 		note(c, pal, locales.InfoTimelineEmpty())

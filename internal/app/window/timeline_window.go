@@ -11,10 +11,12 @@ import (
 	"hyla/locales"
 )
 
-// openTimeline shows the timeline's window, as the menu opens it: the
-// turns of the agent in the pane the user is in, which it follows from
-// pane to pane and session to session while it is open.
-func (a *App) openTimeline() {
+// openTimelineWindow shows the timeline in a window of its own, as the
+// menu opens one for another screen: the turns of the agent in the pane
+// the user is in, which it follows from pane to pane and session to
+// session while it is open. A pane of the window's own is the usual way
+// (timeline_pane.go).
+func (a *App) openTimelineWindow() {
 	if a.TimelineWin != nil {
 		a.TimelineWin.Show()
 		a.TimelineWin.Focus()

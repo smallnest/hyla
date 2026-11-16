@@ -283,6 +283,9 @@ func PaneCard(x App, c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown f
 		if p.FilePane() {
 			dragging = paneHeader(x, c, pal, bar, shown, s, p, top, left, right, multi, focused, hovered)
 			x.FilePane(c, pal, s, p)
+		} else if p.TimelinePane() {
+			dragging = paneHeader(x, c, pal, bar, shown, s, p, top, left, right, multi, focused, hovered)
+			x.TimelineBody(c, pal, s, p)
 		} else if p.Browser() {
 			// A browser's address bar is its header.
 			dragging = x.PaneBrowser(c, pal, bar, shown, s, p, top, left, right, multi, focused, hovered)
@@ -334,7 +337,7 @@ func PaneCard(x App, c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown f
 // user chose one, else the translucent glass while there is one. A
 // browser's page and a file's pane keep their own.
 func PaneBackground(x App, pal *theme.Palette, bg ui.Color, p *proto.Pane) ui.Material {
-	if p.Browser() || p.FilePane() {
+	if p.Shown() {
 		return nil
 	}
 	st := x.Settings()
@@ -538,14 +541,25 @@ func paneHeader(x App, c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown
 			}
 		}
 		grip.Children(func() {
+			// A timeline's header wears the mark and name of the agent
+			// whose turns it shows.
+			mark := p
+			if p.TimelinePane() {
+				if q := s.TimelineShown(p); q != nil {
+					mark = q
+				}
+			}
 			if multi {
 				if p.Status != proto.Idle || p.Unread {
 					paints.StatusP(c, pal, p.Status, p.Unread, p.Progress, 13)
 				} else {
-					ui.Icon(c, glyph.ProgramIcon(p)).Size(14, 14).TextColor(pal.TextFaint)
+					ui.Icon(c, glyph.ProgramIcon(mark)).Size(14, 14).TextColor(pal.TextFaint)
 				}
 			}
 			title, size := p.PaneName(), float32(13.5)
+			if p.TimelinePane() && mark.Agent != "" {
+				title = mark.Agent
+			}
 			if !multi {
 				title, size = s.DisplayName(x.Settings().SessionName), 14
 			}
