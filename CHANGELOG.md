@@ -4,6 +4,19 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.13.1
+
+- The timeline's bars have soft colours of their own now: a dusty violet
+  for what the agent reasons, a sage for what it writes, a sand for the
+  tools, a blue for the subagents, an amber for what waits on you and a
+  rose for what failed. A bar that runs breathes in its own colour rather
+  than blinking in the text's.
+- The timeline's header holds the agent's name alone: no program's icon, no
+  directory and no branch, which belong to the pane it shows, beside it.
+- The timeline reads the agent's records again as soon as the agent works
+  again, within three seconds, rather than at the end of the thirty an idle
+  pane waits: a new turn shows as it starts.
+
 ## 3.13.0
 
 - The timeline reads OpenCode's records: Open Timeline Pane beside an
