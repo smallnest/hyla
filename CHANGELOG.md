@@ -4,6 +4,16 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.12.3
+
+- The timeline is a pane now: Pane › Timeline (⌥⌘T) splits it beside the
+  agent, like a browser pane, and the layout, the zooming, the dragging and
+  the closing of any pane are its own. It comes back beside its pane when
+  Hyla restarts, it shows the agent of the pane it was split from, and
+  asking again puts you in the pane it made rather than splitting a second.
+- Pane › New Timeline Window keeps the window of 3.12.0 for a timeline on
+  another screen.
+
 ## 3.12.2
 
 - Hyla's bot in a group answered a message that @-mentioned another app's
