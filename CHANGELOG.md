@@ -4,6 +4,17 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.14.0
+
+- A session moves to another project of this machine: drag its row onto
+  the project's name, and it goes last there, or onto a session's row,
+  and it takes that row's place, above or below its middle. The SSH and
+  K8s projects keep their own rows, of machines and pods, and sessions do
+  not move in or out of them.
+- An agent Hyla has no logo for can wear one the user gives it: in the
+  Info view's Agents card, Choose Image… picks an image file, and the
+  sidebar then shows it beside the agent's name. Remove takes it back.
+
 ## 3.13.1
 
 - The timeline's bars have soft colours of their own now: a dusty violet

@@ -9,7 +9,7 @@ require (
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be
 	github.com/coder/websocket v1.8.15
 	github.com/ebitengine/purego v0.11.3
-	github.com/egoist/mygo v0.9.1
+	github.com/egoist/mygo v0.9.2
 	github.com/klauspost/compress v1.20.4
 	github.com/larksuite/oapi-sdk-go/v3 v3.12.2
 	github.com/tailscale/tailcat v0.7.0
