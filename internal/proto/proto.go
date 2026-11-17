@@ -180,10 +180,12 @@ type Pane struct {
 	// File is the path a file pane shows: set, the pane runs no shell.
 	File string `json:"file,omitempty"`
 	// Timeline is the pane a timeline pane shows the agent's turns of:
-	// set, the pane runs no shell.
-	Timeline string   `json:"timeline,omitempty"`
-	Dir      string   `json:"dir,omitempty"` // the shell's working directory
-	Command  []string `json:"command,omitempty"`
+	// set, the pane runs no shell. Subagents shows the session's
+	// subagents, which runs no shell either.
+	Timeline  string   `json:"timeline,omitempty"`
+	Subagents bool     `json:"subagents,omitempty"`
+	Dir       string   `json:"dir,omitempty"` // the shell's working directory
+	Command   []string `json:"command,omitempty"`
 	// Process is the foreground program, "" while the shell is.
 	Process string `json:"process,omitempty"`
 	// ProcessDir is the foreground program's working directory, as a
@@ -515,11 +517,11 @@ func (s *Session) PaneByID(id string) *Pane {
 // TimelineShown is the pane a timeline pane shows: the pane it names, or,
 // once that one closed, the session's own pane; nil when it has none.
 func (s *Session) TimelineShown(p *Pane) *Pane {
-	if q := s.PaneByID(p.Timeline); q != nil && !q.TimelinePane() {
+	if q := s.PaneByID(p.Timeline); q != nil && !q.TimelinePane() && !q.SubagentsPane() {
 		return q
 	}
 	for i := range s.Panes {
-		if q := &s.Panes[i]; !q.TimelinePane() {
+		if q := &s.Panes[i]; !q.TimelinePane() && !q.SubagentsPane() {
 			return q
 		}
 	}
@@ -579,6 +581,9 @@ func (p *Pane) PaneName() string {
 		// to say; this is the name of a timeline of a shell's.
 		return "timeline"
 	}
+	if p.SubagentsPane() {
+		return "subagents"
+	}
 	if p.Browser() {
 		if t := strings.TrimSpace(p.Title); t != "" {
 			return t
@@ -615,9 +620,15 @@ func (p *Pane) FilePane() bool { return p.File != "" }
 // TimelinePane reports whether the pane shows a timeline, not a terminal.
 func (p *Pane) TimelinePane() bool { return p.Timeline != "" }
 
+// SubagentsPane reports whether the pane shows the session's subagents, not
+// a terminal.
+func (p *Pane) SubagentsPane() bool { return p.Subagents }
+
 // Shown reports whether the pane shows what the app draws rather than a
-// program's cells: a browser's page, a file, or a timeline.
-func (p *Pane) Shown() bool { return p.Browser() || p.FilePane() || p.TimelinePane() }
+// program's cells: a browser's page, a file, a timeline, or the subagents.
+func (p *Pane) Shown() bool {
+	return p.Browser() || p.FilePane() || p.TimelinePane() || p.SubagentsPane()
+}
 
 // WorkDir is where the pane works: the foreground program's directory,
 // else the shell's.
@@ -931,15 +942,17 @@ type (
 		Env     []string `json:"env,omitempty"`
 		// URL makes a browser pane showing it, instead of a shell; File
 		// a file pane, showing the path; Timeline a timeline pane,
-		// showing the agent's turns of the pane it names.
-		URL      string `json:"url,omitempty"`
-		File     string `json:"file,omitempty"`
-		Timeline string `json:"timeline,omitempty"`
-		After    string `json:"after,omitempty"` // put it after this session
-		Cols     int    `json:"cols,omitempty"`
-		Rows     int    `json:"rows,omitempty"`
-		Worktree string `json:"worktree,omitempty"`
-		Base     string `json:"base,omitempty"`
+		// showing the agent's turns of the pane it names; Subagents a
+		// pane showing the session's subagents.
+		URL       string `json:"url,omitempty"`
+		File      string `json:"file,omitempty"`
+		Timeline  string `json:"timeline,omitempty"`
+		Subagents bool   `json:"subagents,omitempty"`
+		After     string `json:"after,omitempty"` // put it after this session
+		Cols      int    `json:"cols,omitempty"`
+		Rows      int    `json:"rows,omitempty"`
+		Worktree  string `json:"worktree,omitempty"`
+		Base      string `json:"base,omitempty"`
 	}
 	// BackgroundParams are a background command's: the id it is known by,
 	// as a chat's, and Out, the file its output goes to; the session is

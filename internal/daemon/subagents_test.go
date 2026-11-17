@@ -81,3 +81,23 @@ func TestRecordedSubagents(t *testing.T) {
 		t.Errorf("again %+v", again)
 	}
 }
+
+// A subagents pane runs no shell: the daemon makes it as a pane that shows
+// the session's subagents, and a restore brings it back as one.
+func TestSubagentsPane(t *testing.T) {
+	d := testDaemon(t)
+	pn, err := d.startPane("s1", proto.CreateParams{Subagents: true}, "/tmp")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !pn.info.SubagentsPane() || pn.term != nil || pn.proc != nil {
+		t.Fatalf("pane %+v, term %v", pn.info, pn.term != nil)
+	}
+	if pn.info.URL != "" || pn.info.File != "" || pn.info.Timeline != "" {
+		t.Errorf("a subagents pane shows something else: %+v", pn.info)
+	}
+	r := d.restorePane("s1", savedPane{ID: "p2", Dir: "/tmp", Subagents: true})
+	if r == nil || !r.info.SubagentsPane() || r.term != nil {
+		t.Fatalf("restored %+v", r.info)
+	}
+}

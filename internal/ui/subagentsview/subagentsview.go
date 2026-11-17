@@ -61,17 +61,14 @@ func Side(x App, c *ui.Context, pal *theme.Palette, s *proto.Session) {
 	})
 }
 
-// Window draws the Subagents view in a window of its own, as the menu
-// opens one for another screen: the same view, of the session the window
-// follows, on the card the window's lists stand on.
-func Window(x App, c *ui.Context, pal *theme.Palette, s *proto.Session) {
+// Pane draws the view in a pane of the session's own: the pane's card
+// holds it, so it takes no card of its own.
+func Pane(x App, c *ui.Context, pal *theme.Palette, s *proto.Session) {
 	st := InfoOf(x, s)
 	tickRead(x, c, st, s)
-	ui.Scroll(c.Key("subagents-window")).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
-		ui.Column(c).Padding(8, 16, 16, 16).AlignItems(ui.Stretch).Children(func() {
-			ui.Column(c).Radius(12).Background(pal.Chip).Clip().Children(func() {
-				list(x, c, pal, s, st)
-			})
+	ui.Scroll(c.Key("subagents-pane")).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
+		ui.Column(c).Padding(2, 6, 6, 6).AlignItems(ui.Stretch).Children(func() {
+			list(x, c, pal, s, st)
 		})
 	})
 }

@@ -45,11 +45,13 @@ type savedPane struct {
 	Dir     string   `json:"dir,omitempty"`
 	Command []string `json:"command,omitempty"`
 	// URL and Title are a browser pane's page; File a file pane's path;
-	// Timeline the pane a timeline pane shows.
-	URL      string `json:"url,omitempty"`
-	Title    string `json:"title,omitempty"`
-	File     string `json:"file,omitempty"`
-	Timeline string `json:"timeline,omitempty"`
+	// Timeline the pane a timeline pane shows; Subagents the session's
+	// subagents, which a pane shows.
+	URL       string `json:"url,omitempty"`
+	Title     string `json:"title,omitempty"`
+	File      string `json:"file,omitempty"`
+	Timeline  string `json:"timeline,omitempty"`
+	Subagents bool   `json:"subagents,omitempty"`
 	// Background tells a pane that runs a session's commands instead of a
 	// terminal, which it starts none of.
 	Background bool `json:"background,omitempty"`
@@ -93,7 +95,7 @@ func (d *Daemon) saveState() {
 		ss := savedSession{ID: s.id, Project: s.project, Name: s.name, AgentNamed: s.agentNamed, Created: s.created, Layout: s.layout, Focus: s.focus}
 		for _, p := range s.panes {
 			p.mu.Lock()
-			sp := savedPane{ID: p.info.ID, Dir: p.info.Dir, Command: p.info.Command, URL: p.info.URL, File: p.info.File, Timeline: p.info.Timeline, Background: p.bg != nil,
+			sp := savedPane{ID: p.info.ID, Dir: p.info.Dir, Command: p.info.Command, URL: p.info.URL, File: p.info.File, Timeline: p.info.Timeline, Subagents: p.info.Subagents, Background: p.bg != nil,
 				Agent: p.info.AgentSession, Turn: p.info.Turn, Created: p.info.Created, Cols: p.info.Cols, Rows: p.info.Rows}
 			if p.info.Browser() {
 				sp.Title = p.info.Title
@@ -198,13 +200,14 @@ func (d *Daemon) restore() {
 
 // restorePane starts a pane of the last daemon again, under its
 // scrollback, in its directory, with the agent it ran resumed; a browser
-// pane comes back on its page, a file pane on its file, and a timeline
-// pane on its pane's timeline, which the app shows.
+// pane comes back on its page, a file pane on its file, a timeline pane on
+// its pane's timeline and the subagents' pane on the subagents, which the
+// app shows.
 func (d *Daemon) restorePane(sid string, sp savedPane) *pane {
 	now := time.Now().UnixMilli()
-	if sp.URL != "" || sp.File != "" || sp.Timeline != "" {
+	if sp.URL != "" || sp.File != "" || sp.Timeline != "" || sp.Subagents {
 		p, _ := newPane(d, sid, proto.Pane{
-			ID: sp.ID, Dir: sp.Dir, URL: sp.URL, File: sp.File, Timeline: sp.Timeline, Title: sp.Title, Status: proto.Idle, Since: now,
+			ID: sp.ID, Dir: sp.Dir, URL: sp.URL, File: sp.File, Timeline: sp.Timeline, Subagents: sp.Subagents, Title: sp.Title, Status: proto.Idle, Since: now,
 			Created: sp.Created, Restored: true,
 		})
 		return p

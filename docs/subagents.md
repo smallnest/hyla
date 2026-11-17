@@ -13,7 +13,9 @@ Press <kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>A</kbd> (<kbd>Ctrl</kbd> <kbd>Alt</kbd>
 
 `hyla do subagents.toggle` opens it from a shell.
 
-**View › New Subagents Window** (`hyla do subagents.window`) opens the same view in a window of its own, for another screen: the window follows the selected session, and its header names it. Unlike the side panel's, it takes no room from the panes.
+**Pane › Open Subagents Pane** (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>S</kbd>, `hyla do subagents.open`) puts the same list in a [pane](./panes.md#subagents-panes) of the session, beside the agents, for a second screen or a wider look. It splits, zooms, moves and closes like any other pane, and comes back with the session.
+
+The side panel's view and the pane show the same list, of the same session: the pane takes room from the panes, and the panel from the window's edge.
 
 ## What it shows
 

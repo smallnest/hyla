@@ -92,6 +92,18 @@ Hyla reads Claude Code's, Codex's, DeepSeek Harness's and OpenCode's records, be
 
 From a shell, or an agent, `hyla do timeline.open` splits one.
 
+## Subagents panes
+
+A subagents pane shows the agents the session's coding agents gave their work to: which run, what each was asked, how long it has run or has been running, and the step it runs now.
+
+| Action              | Shortcut                               |
+| ------------------- | -------------------------------------- |
+| Open subagents pane | <kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>S</kbd> |
+
+It splits beside the pane you are in, and it is the session's rather than one pane's: it shows the subagents of every pane's agent. It splits, zooms, moves and closes like any other pane, and comes back when Hyla restarts. Ask for it again and Hyla puts you in the one it made instead of splitting a second.
+
+From a shell, or an agent, `hyla do subagents.open` splits one. The same list is the side panel's [Subagents view](./subagents.md), which is also where the subagents' facts come from.
+
 ## The Info view
 
 The side panel shows an Info view of the session's pane. The view shows three sections:

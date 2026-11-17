@@ -50,7 +50,7 @@ way:
 | **Feishu and Lark** | One Feishu app, one machine's `hylad`: a chat runs an agent's turns in Hyla's own sessions, with cards, permission buttons, choices and transcripts, and a footer of what each turn used. |
 | **Tailcat** | Reach a host with a pair code through a relay, with no account on either machine and no port open on its network; or, on a network you trust, by the address and the password of a tcp listener. Off until you turn it on. |
 | **Files view** | A Files tab in the side panel shows the session's folder as a tree, and shows the file you pick, without leaving the window. |
-| **Subagents view** | A Subagents tab in the side panel shows the agents a session's coding agents gave work to: what each was asked, how long it ran, and the step it runs now. |
+| **Subagents view** | A Subagents tab in the side panel, and a pane of its own, show the agents a session's coding agents gave work to: what each was asked, how long it ran, and the step it runs now. |
 | **Sidebar order** | Group the sidebar by project or by date, or list it flat; order it by creation or last use; give each project a colored badge; and fold its sessions. |
 | **Background opacity and blur** | The window's background goes from opaque to translucent to blurred, apart from the panes' own opacity. |
 | **Installed fonts** | The font menu lists the monospaced fonts installed on the machine, not a fixed few. |

@@ -286,6 +286,9 @@ func PaneCard(x App, c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown f
 		} else if p.TimelinePane() {
 			dragging = paneHeader(x, c, pal, bar, shown, s, p, top, left, right, multi, focused, hovered)
 			x.TimelineBody(c, pal, s, p)
+		} else if p.SubagentsPane() {
+			dragging = paneHeader(x, c, pal, bar, shown, s, p, top, left, right, multi, focused, hovered)
+			x.SubagentsBody(c, pal, s, p)
 		} else if p.Browser() {
 			// A browser's address bar is its header.
 			dragging = x.PaneBrowser(c, pal, bar, shown, s, p, top, left, right, multi, focused, hovered)
@@ -540,16 +543,18 @@ func paneHeader(x App, c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown
 				grip.Background(pal.RowHover).Cursor(ui.CursorGrab)
 			}
 		}
+		bare := p.TimelinePane() || p.SubagentsPane()
 		grip.Children(func() {
 			// A timeline's header names the agent whose turns it shows,
-			// and wears no program's icon: the pane runs none.
+			// and wears no program's icon: the pane runs none. The
+			// subagents' wears none either, and names the view.
 			mark := p
 			if p.TimelinePane() {
 				if q := s.TimelineShown(p); q != nil {
 					mark = q
 				}
 			}
-			if multi && !p.TimelinePane() {
+			if multi && !bare {
 				if p.Status != proto.Idle || p.Unread {
 					paints.StatusP(c, pal, p.Status, p.Unread, p.Progress, 13)
 				} else {
@@ -559,6 +564,9 @@ func paneHeader(x App, c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown
 			title, size := p.PaneName(), float32(13.5)
 			if p.TimelinePane() && mark.Agent != "" {
 				title = mark.Agent
+			}
+			if p.SubagentsPane() {
+				title = locales.SideSubagents()
 			}
 			if !multi {
 				title, size = s.DisplayName(x.Settings().SessionName), 14
@@ -573,13 +581,13 @@ func paneHeader(x App, c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown
 			// The home directory names itself "~", which the title may
 			// already say. A timeline names the agent alone: the pane it
 			// shows sits beside it with the directory and the branch.
-			if !p.TimelinePane() {
+			if !bare {
 				if dir := x.HostOf(p.ID).ShortDir(p.WorkDir()); dir != title {
 					ui.Text(c, dir).FontSize(13).TextColor(pal.TextFaint).SingleLine().Ellipsis("…").Shrink(2).MinWidth(0)
 				}
 			}
 		})
-		if p.Git != nil && !p.TimelinePane() {
+		if p.Git != nil && !bare {
 			x.GitChip(c, pal, s, p)
 		}
 		// The header's empty stretch moves the window, as a title bar

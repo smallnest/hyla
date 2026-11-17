@@ -97,7 +97,7 @@ var titles = map[string]func() string{
 	"files.toggle":        locales.ActionToggleFiles,
 	"info.toggle":         locales.ActionToggleInfo,
 	"subagents.toggle":    locales.ActionToggleSubagents,
-	"subagents.window":    locales.ActionSubagentsWindow,
+	"subagents.open":      locales.ActionSubagentsOpen,
 	"text.bigger":         locales.ActionBigger,
 	"text.smaller":        locales.ActionSmaller,
 	"text.reset":          locales.ActionActualSize,
@@ -156,7 +156,6 @@ func Menu(a App) *mygo.Menu {
 			Item(a, "app.quitAll")}}
 	}
 	view := append(Items(a, "View", []string{"sidebar.toggle", "side.toggle", "changes.toggle", "files.toggle", "info.toggle", "subagents.toggle", "pet.toggle"},
-		[]string{"subagents.window"},
 		[]string{"text.bigger", "text.smaller", "text.reset"}, []string{QuickAction}),
 		mygo.Separator(), &mygo.MenuItem{Role: mygo.RoleToggleFullScreen})
 	// The inspector is a development build's: a production build leaves it
@@ -177,7 +176,7 @@ func Menu(a App) *mygo.Menu {
 			Items(a, "Edit", []string{"find.open", "find.next", "find.previous"})...)},
 		{Label: locales.MenuPane(), Submenu: Items(a, "Pane",
 			[]string{"pane.split.right", "pane.split.down"},
-			[]string{"pane.browser", "timeline.open"},
+			[]string{"pane.browser", "timeline.open", "subagents.open"},
 			[]string{"pane.zoom"},
 			[]string{"pane.next", "pane.previous", "pane.left", "pane.right", "pane.up", "pane.down"})},
 		{Label: locales.MenuView(), Submenu: view},

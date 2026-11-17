@@ -8350,16 +8350,6 @@ func (msgs Messages) SubagentsDown() string {
 	return Catalog.Format(msgs.locale, "subagentsDown", nil)
 }
 
-// SubagentsNoSession says "No session"
-// in the language the app shows.
-func SubagentsNoSession() string { return In(i18n.Locale()).SubagentsNoSession() }
-
-// SubagentsNoSession says "No session"
-// in the language of msgs.
-func (msgs Messages) SubagentsNoSession() string {
-	return Catalog.Format(msgs.locale, "subagentsNoSession", nil)
-}
-
 // SideChat says "Chat"
 // in the language the app shows.
 func SideChat() string { return In(i18n.Locale()).SideChat() }
@@ -8450,14 +8440,14 @@ func (msgs Messages) ActionToggleSubagents() string {
 	return Catalog.Format(msgs.locale, "actionToggleSubagents", nil)
 }
 
-// ActionSubagentsWindow says "New Subagents Window"
+// ActionSubagentsOpen says "Open Subagents Pane"
 // in the language the app shows.
-func ActionSubagentsWindow() string { return In(i18n.Locale()).ActionSubagentsWindow() }
+func ActionSubagentsOpen() string { return In(i18n.Locale()).ActionSubagentsOpen() }
 
-// ActionSubagentsWindow says "New Subagents Window"
+// ActionSubagentsOpen says "Open Subagents Pane"
 // in the language of msgs.
-func (msgs Messages) ActionSubagentsWindow() string {
-	return Catalog.Format(msgs.locale, "actionSubagentsWindow", nil)
+func (msgs Messages) ActionSubagentsOpen() string {
+	return Catalog.Format(msgs.locale, "actionSubagentsOpen", nil)
 }
 
 // InfoOpenEditor says "Open in {editor}"

@@ -269,10 +269,9 @@ type App struct {
 	TimelineWin  *mygo.Window
 	TimelineMark string
 	// Subagents is what the side panel's Subagents view shows, of the
-	// session it shows (subagents.go), and SubagentsWin its window, while
-	// it is open (subagents_window.go).
-	Subagents    *subagentsview.Info
-	SubagentsWin *mygo.Window
+	// session it shows (subagents.go), and what a subagents pane shows of
+	// its session (subagents_pane.go).
+	Subagents *subagentsview.Info
 
 	// quitting is set while the quit quit-ends-sessions makes ends the
 	// sessions, either while it asks or once its answer does.
