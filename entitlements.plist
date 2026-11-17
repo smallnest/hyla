@@ -8,5 +8,11 @@
 	<true/>
 	<key>com.apple.security.automation.apple-events</key>
 	<true/>
+	<!-- Programs in Hyla's sessions capture the screen and drive other
+	     apps (computer use). The user grants both to Hyla in System
+	     Settings, which needs no entitlement here; they stay listed so a
+	     signed build keeps what ad-hoc signing already ran with. -->
+	<key>com.apple.security.cs.disable-library-validation</key>
+	<true/>
 </dict>
 </plist>
