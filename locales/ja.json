@@ -865,7 +865,6 @@
   "infoNoPorts": "リッスン中のポートはありません",
   "infoNoProcesses": "プロセスなし",
   "actionToggleInfo": "情報を表示/非表示",
-  "actionToggleSubagents": "サブエージェントを表示/非表示",
   "actionSubagentsOpen": "サブエージェントペインを開く",
   "infoOpenEditor": "{editor} で開く",
   "infoNoShell": "端末はまだ起動していません",

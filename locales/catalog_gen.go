@@ -8470,16 +8470,6 @@ func (msgs Messages) ActionToggleInfo() string {
 	return Catalog.Format(msgs.locale, "actionToggleInfo", nil)
 }
 
-// ActionToggleSubagents says "Show/Hide Subagents"
-// in the language the app shows.
-func ActionToggleSubagents() string { return In(i18n.Locale()).ActionToggleSubagents() }
-
-// ActionToggleSubagents says "Show/Hide Subagents"
-// in the language of msgs.
-func (msgs Messages) ActionToggleSubagents() string {
-	return Catalog.Format(msgs.locale, "actionToggleSubagents", nil)
-}
-
 // ActionSubagentsOpen says "Open Subagents Pane"
 // in the language the app shows.
 func ActionSubagentsOpen() string { return In(i18n.Locale()).ActionSubagentsOpen() }

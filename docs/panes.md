@@ -102,7 +102,7 @@ A subagents pane shows the agents the session's coding agents gave their work to
 
 It splits beside the pane you are in, and it is the session's rather than one pane's: it shows the subagents of every pane's agent. It splits, zooms, moves and closes like any other pane, and comes back when Hyla restarts. Ask for it again and Hyla puts you in the one it made instead of splitting a second.
 
-From a shell, or an agent, `hyla do subagents.open` splits one. The same list is the side panel's [Subagents view](./subagents.md), which is also where the subagents' facts come from.
+From a shell, or an agent, `hyla do subagents.open` splits one. The pane's steps are the ones the [timeline](./panes.md#timeline-panes) reads, and what it says of them is in [Subagents](./subagents.md).
 
 ## Chat panes
 

@@ -40,62 +40,13 @@ func subagentsDemo(t *testing.T) *App {
 	return a
 }
 
-// TestSubagentsSide lays out the side panel's Subagents view: what the
-// pane's agent gave its work to, the step that runs now, and how long each
-// ran.
-func TestSubagentsSide(t *testing.T) {
-	a := subagentsDemo(t)
-	a.showSide(sideSubagents)
-	tt := ui.NewTester(a.view, 1100, 900)
-	for i := 0; i < 30 && tt.FramePending(); i++ {
-		tt.Frame()
-		tt.Advance(time.Second)
-	}
-	tt.Frame()
-	shot(t, tt, "subagents")
-	for _, want := range []string{
-		locales.SideSubagents(),
-		locales.SubagentsRunning("1") + " · " + locales.SubagentsDone("1"),
-		"Explore", "Look through the store's tests", "Grep",
-		"general-purpose", "Write the changelog",
-	} {
-		if _, ok := tt.Find(want); !ok {
-			t.Errorf("no %q in the view", want)
-		}
-	}
-}
-
-// A narrow panel names its views by their icons alone, which leaves the
-// header's close button its room, and shows the subagents as a wide one
-// does.
-func TestSubagentsSideNarrow(t *testing.T) {
-	a := subagentsDemo(t)
-	a.Prefs.SideWidth = 300
-	a.showSide(sideSubagents)
-	tt := ui.NewTester(a.view, 1100, 900)
-	for i := 0; i < 30 && tt.FramePending(); i++ {
-		tt.Frame()
-		tt.Advance(time.Second)
-	}
-	tt.Frame()
-	shot(t, tt, "subagents-narrow")
-	if _, ok := tt.Find(locales.SideSubagents()); ok {
-		t.Error("a narrow panel named its views")
-	}
-	for _, want := range []string{"Explore", "Look through the store's tests", "Write the changelog"} {
-		if _, ok := tt.Find(want); !ok {
-			t.Errorf("no %q in a narrow view", want)
-		}
-	}
-}
-
 // The View menu carries the side panel's views, the Subagents one too: a
 // view no menu opens is one the user cannot find.
 func TestViewMenuSubagents(t *testing.T) {
 	mygo.Use(updater.Plugin)
 	a := testApp(t)
 	m := a.Menu()
-	for _, id := range []string{"subagents.toggle", "subagents.open", "info.toggle", "files.toggle", "changes.toggle"} {
+	for _, id := range []string{"subagents.open", "info.toggle", "files.toggle", "changes.toggle"} {
 		if m.ItemByID(id) == nil {
 			t.Errorf("no %s in the menus", id)
 		}

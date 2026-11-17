@@ -1,21 +1,15 @@
 ---
 title: Subagents
-description: Watch the agents your coding agents gave their work to — which run, what each was asked, and what it does now — in the side panel.
+description: Watch the agents your coding agents gave their work to — which run, what each was asked, and what it does now — in a pane of its own.
 ---
 
 # Subagents
 
-An agent that splits its work gives parts of it to subagents. Hyla shows them in the side panel's **Subagents** view: every agent a session's coding agents started, from when to when it ran, what it runs now, and how long it has been at it.
+An agent that splits its work gives parts of it to subagents. Hyla shows them in a **subagents pane**: every agent a session's coding agents started, from when to when it ran, what it runs now, and how long it has been at it.
 
-## Opening the view
+## Opening the pane
 
-Press <kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>A</kbd> (<kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>A</kbd> on Windows and Linux), choose **View › Toggle Subagents**, or press the Subagents button in the side panel's header. The view follows the selected session: its panes, and the subagents of each.
-
-`hyla do subagents.toggle` opens it from a shell.
-
-**Pane › Open Subagents Pane** (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>S</kbd>, `hyla do subagents.open`) puts the same list in a [pane](./panes.md#subagents-panes) of the session, beside the agents, for a second screen or a wider look. It splits, zooms, moves and closes like any other pane, and comes back with the session.
-
-The side panel's view and the pane show the same list, of the same session: the pane takes room from the panes, and the panel from the window's edge.
+**Pane › Open Subagents Pane** (<kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>S</kbd>, `hyla do subagents.open`) splits it beside the pane you are in. It follows the session: its panes, and the subagents of each. It splits, zooms, moves and closes like any other pane, and comes back when Hyla restarts.
 
 ## What it shows
 

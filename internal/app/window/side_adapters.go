@@ -14,10 +14,9 @@ var _ side.App = (*App)(nil)
 
 // The views' ids, as prefs.SideTab holds one.
 const (
-	sideChanges   = side.Changes
-	sideFiles     = side.Files
-	sideInfo      = side.Info
-	sideSubagents = side.Subagents
+	sideChanges = side.Changes
+	sideFiles   = side.Files
+	sideInfo    = side.Info
 )
 
 // Panel is the side panel's state.

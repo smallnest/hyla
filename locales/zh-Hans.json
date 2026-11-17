@@ -865,7 +865,6 @@
   "infoNoPorts": "没有监听中的端口",
   "infoNoProcesses": "没有进程",
   "actionToggleInfo": "显示或隐藏信息",
-  "actionToggleSubagents": "显示或隐藏子代理",
   "actionSubagentsOpen": "打开子代理面板",
   "infoOpenEditor": "用 {editor} 打开",
   "infoNoShell": "终端尚未启动",

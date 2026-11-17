@@ -18,10 +18,9 @@ import (
 
 // The views' ids, as prefs.SideTab holds one.
 const (
-	Changes   = "changes"
-	Files     = "files"
-	Info      = "info"
-	Subagents = "subagents"
+	Changes = "changes"
+	Files   = "files"
+	Info    = "info"
 )
 
 const (
@@ -72,12 +71,11 @@ type App interface {
 	// SettingsOf is the settings the panel draws with, and CardGapIn is
 	// the room between a card and the window's edge, which RowW takes.
 	SettingsOf() *settings.Settings
-	// ChangesSide, FilesSide, InfoSide and SubagentsSide are the views,
-	// in a session's pane.
+	// ChangesSide, FilesSide and InfoSide are the views, in a session's
+	// pane.
 	ChangesSide(c *ui.Context, pal *theme.Palette, s *proto.Session, width float32)
 	FilesSide(c *ui.Context, pal *theme.Palette, s *proto.Session)
 	InfoSide(c *ui.Context, pal *theme.Palette, s *proto.Session)
-	SubagentsSide(c *ui.Context, pal *theme.Palette, s *proto.Session)
 }
 
 // State is the panel's, beside the prefs that open it and size it.
@@ -142,7 +140,7 @@ func Tab(x App) string {
 	if tab == "" {
 		tab = *x.SideTabPref()
 	}
-	if tab != Files && tab != Info && tab != Subagents {
+	if tab != Files && tab != Info {
 		tab = Changes
 	}
 	return tab
@@ -251,7 +249,6 @@ func Panel(x App, c *ui.Context, pal *theme.Palette, s *proto.Session, width flo
 			tabButton(x, c, pal, Info, locales.SideInfo(), glyph.Info, view == Info, "info.toggle", labels, func() { set = Info })
 			tabButton(x, c, pal, Changes, locales.SideChanges(), glyph.Diff, view == Changes, "changes.toggle", labels, func() { set = Changes })
 			tabButton(x, c, pal, Files, locales.SideFiles(), glyph.Folder, view == Files, "files.toggle", labels, func() { set = Files })
-			tabButton(x, c, pal, Subagents, locales.SideSubagents(), glyph.Subagents, view == Subagents, "subagents.toggle", labels, func() { set = Subagents })
 			if set != "" {
 				x.RunLater(func() { Show(x, set) })
 			}
@@ -283,9 +280,6 @@ func Panel(x App, c *ui.Context, pal *theme.Palette, s *proto.Session, width flo
 				return
 			case Info:
 				x.InfoSide(c, pal, s)
-				return
-			case Subagents:
-				x.SubagentsSide(c, pal, s)
 				return
 			}
 			x.ChangesSide(c, pal, s, width)

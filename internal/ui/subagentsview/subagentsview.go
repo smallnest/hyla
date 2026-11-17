@@ -1,6 +1,6 @@
-// Package subagentsview holds the side panel's Subagents view: the agents a
-// session's coding agents gave their work to, what each was asked, from when
-// to when it ran, and the step it runs now while it runs.
+// Package subagentsview holds the subagents pane: the agents a session's
+// coding agents gave their work to, what each was asked, from when to when
+// it ran, and the step it runs now while it runs.
 package subagentsview
 
 import (
@@ -52,17 +52,8 @@ type Info struct {
 	Err     string
 }
 
-// Side draws the Subagents view of a session, in the side panel.
-func Side(x App, c *ui.Context, pal *theme.Palette, s *proto.Session) {
-	st := InfoOf(x, s)
-	tickRead(x, c, st, s)
-	ui.Scroll(c.Key("subagents")).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
-		list(x, c, pal, s, st)
-	})
-}
-
-// Pane draws the view in a pane of the session's own: the pane's card
-// holds it, so it takes no card of its own.
+// Pane draws the subagents in a pane of the session's own: the pane's card
+// holds them, so they take no card of their own.
 func Pane(x App, c *ui.Context, pal *theme.Palette, s *proto.Session) {
 	st := InfoOf(x, s)
 	tickRead(x, c, st, s)

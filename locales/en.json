@@ -1471,7 +1471,6 @@
   "infoNoPorts": "No listening ports",
   "infoNoProcesses": "No processes",
   "actionToggleInfo": "Show/Hide Info",
-  "actionToggleSubagents": "Show/Hide Subagents",
   "actionSubagentsOpen": "Open Subagents Pane",
   "infoOpenEditor": "Open in {editor}",
   "infoNoShell": "No shell to list yet",

@@ -95,7 +95,6 @@ var titles = map[string]func() string{
 	"changes.toggle":      locales.ActionToggleChanges,
 	"files.toggle":        locales.ActionToggleFiles,
 	"info.toggle":         locales.ActionToggleInfo,
-	"subagents.toggle":    locales.ActionToggleSubagents,
 	"subagents.open":      locales.ActionSubagentsOpen,
 	"pane.chat":           locales.ActionToggleChat,
 	"text.bigger":         locales.ActionBigger,
@@ -155,7 +154,7 @@ func Menu(a App) *mygo.Menu {
 			{Label: locales.MenuQuit(), Accelerator: QuitKeys, ToolTip: locales.MenuQuitTip(), Click: func(*mygo.MenuItem, *mygo.Window) { mygo.App.Quit() }},
 			Item(a, "app.quitAll")}}
 	}
-	view := append(Items(a, "View", []string{"sidebar.toggle", "side.toggle", "changes.toggle", "files.toggle", "info.toggle", "subagents.toggle", "pet.toggle"},
+	view := append(Items(a, "View", []string{"sidebar.toggle", "side.toggle", "changes.toggle", "files.toggle", "info.toggle", "pet.toggle"},
 		[]string{"text.bigger", "text.smaller", "text.reset"}, []string{QuickAction}),
 		mygo.Separator(), &mygo.MenuItem{Role: mygo.RoleToggleFullScreen})
 	// The inspector is a development build's: a production build leaves it

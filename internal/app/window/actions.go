@@ -123,8 +123,6 @@ func (a *App) run(id string, args map[string]string) {
 		a.toggleSide(sideFiles)
 	case "info.toggle":
 		a.toggleSide(sideInfo)
-	case "subagents.toggle":
-		a.toggleSide(sideSubagents)
 	case "subagents.open":
 		a.openSubagents()
 	case "pane.chat":
