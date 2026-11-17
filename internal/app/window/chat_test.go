@@ -241,7 +241,7 @@ func TestChatView(t *testing.T) {
 	}
 	// The composer's prompt goes to the pane's program, as one typed in
 	// the terminal would.
-	a.SendPane("a", "Fix the build")
+	a.SendPane("s1", "a", "Fix the build")
 	chatSettle(tt, func() bool { return strings.Contains(f.typed(), "Fix the build\r") })
 	if got := f.typed(); !strings.Contains(got, "Fix the build\r") {
 		t.Errorf("the pane's program got %q", got)

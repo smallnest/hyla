@@ -150,6 +150,7 @@
   "chatStop": "停止",
   "chatPlaceholder": "何でも聞いてください…",
   "chatNoInput": "このセッションはまだここでプロンプトを受け付けません。チャットで一度実行すると会話が始まります。",
+  "chatSendFailed": "プロンプトを送れませんでした: {error}",
   "chatOutput": "出力",
   "chatReadingNow": "読み込み中…",
   "chatSessionNone": "このセッションは Feishu のチャットとまだつながっていません。選ぶか、Feishu で /use か /new を送ってください。",

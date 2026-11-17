@@ -205,6 +205,7 @@
   "chatStop": "Stop",
   "chatPlaceholder": "Ask anything…",
   "chatNoInput": "This session takes no prompt here yet: a chat's first turn starts its conversation.",
+  "chatSendFailed": "The prompt did not go: {error}",
   "chatOutput": "Output",
   "chatReadingNow": "Reading…",
   "chatSessionNone": "This session is with no Feishu chat. Choose one, or send /new to one.",

@@ -56,8 +56,10 @@ type Feed struct {
 	Got  bool       // a read answered
 	Err  string     // why the last read failed
 	Chat proto.Chat
-	// Draft is the prompt being written, which Enter sends.
-	Draft string
+	// Draft is the prompt being written, which Enter sends, and SendErr
+	// why the last one did not go.
+	Draft   string
+	SendErr string
 	// List is the conversation's place, which follows its end.
 	List ui.ListState
 }
@@ -73,9 +75,9 @@ type App interface {
 	// Main runs fn on the main thread.
 	Main(fn func())
 	// StopPane interrupts the program in a pane, as its terminal's
-	// interrupt key does, and SendPane types a prompt into it.
+	// interrupt key does, and SendPane sends a prompt to its agent.
 	StopPane(pane string)
-	SendPane(pane, text string)
+	SendPane(session, pane, text string)
 }
 
 // Changed tells the view that a host shows a new state: its conversations
@@ -115,10 +117,14 @@ func composer(x App, c *ui.Context, pal *theme.Palette, f *Feed, pane string) {
 		if text == "" {
 			return
 		}
-		f.Draft = ""
-		x.SendPane(pane, text)
+		f.Draft, f.SendErr = "", ""
+		x.SendPane(f.Chat.Session, pane, text)
 	}
-	ui.Column(c).Padding(0, 16, 12, 16).Children(func() {
+	ui.Column(c).Padding(0, 16, 12, 16).Gap(6).Children(func() {
+		if f.SendErr != "" {
+			ui.Text(c, locales.ChatSendFailed(f.SendErr)).FontSize(11.5).TextColor(pal.Danger).
+				TextAlign(ui.Center).MaxWidth(Width).Wrap()
+		}
 		box := ui.Row(c.Key("composer")).AlignSelf(ui.Center).WidthPercent(100).MaxWidth(Width).MinHeight(44).Radius(14).
 			Background(pal.Text.Alpha(0.05)).Padding(0, 6, 0, 12).Gap(6).AlignItems(ui.Center)
 		box.Children(func() {

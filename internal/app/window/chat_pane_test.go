@@ -134,3 +134,25 @@ func TestChatNoInput(t *testing.T) {
 		t.Error("a pane that takes no prompt shows the composer")
 	}
 }
+
+// A prompt that did not go says why, under the box, and keeps its words.
+func TestChatSendFails(t *testing.T) {
+	a := chatDemo(t)
+	f := a.Side.Chat.Feeds["s1"]
+	f.Draft = "hello"
+	// A daemon that answers no: the pane takes no prompt.
+	a.Local().Client = nil
+	a.SendPane("s1", f.Chat.Pane, "hello")
+	if f.SendErr == "" {
+		t.Fatal("a prompt that did not go says nothing")
+	}
+	if f.Draft != "hello" {
+		t.Errorf("the prompt went with the failure: draft %q", f.Draft)
+	}
+	tt := ui.NewTester(a.view, 1280, 760)
+	tt.Frame()
+	tt.Frame()
+	if _, ok := tt.Find(locales.ChatSendFailed(f.SendErr)); !ok {
+		t.Errorf("the view says nothing of the failure: %v", tt.Texts())
+	}
+}

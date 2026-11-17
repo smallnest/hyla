@@ -27,9 +27,11 @@ func (d *Daemon) chatOf(p proto.ChatParams) (proto.Chat, error) {
 		if s := d.findSessionLocked(p.Session); s != nil {
 			for _, q := range append([]*pane{focusedLocked(s)}, s.panes...) {
 				q.mu.Lock()
-				agent := q.info.Agent
+				agent, conv := q.info.Agent, q.info.AgentSessionID
 				q.mu.Unlock()
-				if proto.StartsTimeline(agent) {
+				// A pane that runs its agent without a terminal, as a
+				// chat's does, names no agent: its conversation does.
+				if proto.StartsTimeline(agent) || conv != "" {
 					pn = q
 					break
 				}

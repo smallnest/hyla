@@ -1556,6 +1556,16 @@ func (msgs Messages) ChatNoInput() string {
 	return Catalog.Format(msgs.locale, "chatNoInput", nil)
 }
 
+// ChatSendFailed says "The prompt did not go: {error}"
+// in the language the app shows.
+func ChatSendFailed(error string) string { return In(i18n.Locale()).ChatSendFailed(error) }
+
+// ChatSendFailed says "The prompt did not go: {error}"
+// in the language of msgs.
+func (msgs Messages) ChatSendFailed(error string) string {
+	return Catalog.Format(msgs.locale, "chatSendFailed", map[string]any{"error": error})
+}
+
 // ChatOutput says "Output"
 // in the language the app shows.
 func ChatOutput() string { return In(i18n.Locale()).ChatOutput() }

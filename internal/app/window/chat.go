@@ -1,6 +1,9 @@
 package window
 
 import (
+	"errors"
+	"strings"
+
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/app/host"
@@ -74,14 +77,41 @@ func (a *App) ChatBody(c *ui.Context, pal *theme.Palette, s *proto.Session, p *p
 
 // SendPane sends a prompt to a pane's agent, as the composer does: typed
 // into its terminal where it runs one, else a turn of the chat that drives
-// it.
-func (a *App) SendPane(pane, text string) {
+// it. A prompt that did not go says why, under the box it was written in.
+func (a *App) SendPane(session, pane, text string) {
 	h := a.hostOf(pane)
 	if h == nil || h.Client == nil {
+		a.sendFailed(session, text, "no host is connected for the pane")
 		return
 	}
 	cl := h.Client
-	go cl.Call("chat.send", proto.ChatSendParams{Pane: pane, Text: text}, nil)
+	go func() {
+		var ok bool
+		err := cl.Call("chat.send", proto.ChatSendParams{Session: session, Pane: pane, Text: text}, &ok)
+		if err == nil && !ok {
+			err = errNoPanePrompt
+		}
+		if err != nil {
+			a.main(func() { a.sendFailed(session, text, err.Error()) })
+			return
+		}
+		// The turn shows as it starts: the view reads the conversation
+		// again at once.
+		a.main(func() { a.Feed(session).Got = false })
+	}()
+}
+
+// errNoPanePrompt says that a pane took no prompt: it runs no terminal, and
+// no chat drives it.
+var errNoPanePrompt = errors.New("this pane takes no prompt")
+
+// sendFailed says why a prompt did not go, and gives its words back.
+func (a *App) sendFailed(session, text, why string) {
+	f := a.Feed(session)
+	f.SendErr = why
+	if strings.TrimSpace(f.Draft) == "" {
+		f.Draft = text
+	}
 }
 
 // StopPane stops the turn a pane runs: the program in its terminal, as its
