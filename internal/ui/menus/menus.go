@@ -83,7 +83,6 @@ var titles = map[string]func() string{
 	"pane.split.down":     locales.ActionSplitDown,
 	"pane.browser":        locales.ActionNewBrowser,
 	"timeline.open":       locales.ActionTimelinePane,
-	"timeline.window":     locales.ActionTimelineWindow,
 	"pane.zoom":           locales.ActionZoomPane,
 	"pane.next":           locales.ActionNextPane,
 	"pane.previous":       locales.ActionPreviousPane,

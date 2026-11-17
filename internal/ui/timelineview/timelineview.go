@@ -1,5 +1,5 @@
 // Package timelineview holds the timeline's card in the Info view and the
-// window the menu opens: what the pane's coding agent did, turn by turn,
+// pane the menu opens: what the pane's coding agent did, turn by turn,
 // from the records its agent keeps beside its conversation, as hylad
 // reads them.
 package timelineview
@@ -34,7 +34,7 @@ type App interface {
 	// it.
 	TimelineNow(pane string) *Info
 	SetTimeline(pane string, st *Info)
-	// SelectedSession is the session the window shows, whose FocusOf is
+	// SelectedSession is the session the app shows, whose FocusOf is
 	// the pane the user is in, and whose host HostOf is.
 	SelectedSession() *proto.Session
 	FocusOf(s *proto.Session) string
@@ -139,7 +139,8 @@ func read(a App, st *Info, p *proto.Pane) {
 	}()
 }
 
-// Card draws the timeline's card in the Info view: what Window's shows,
+// Card draws the timeline's card in the Info view: what a timeline pane
+// shows,
 // of the pane the user is in. A card has no body while no pane runs an
 // agent whose records Hyla reads, and the Info view's button for it
 // shows no card of an agent's but those.
@@ -178,7 +179,7 @@ func Card(a App, c *ui.Context, pal *theme.Palette) {
 const shown = 12
 
 // turns lists a timeline's turns, the newest first: all of them in the
-// window, and the ones the card holds.
+// pane, and the ones the card holds.
 func turns(c *ui.Context, pal *theme.Palette, t *proto.Timeline, down string, most int) {
 	info.Rows(c, func() {
 		n := len(t.Turns)
@@ -395,34 +396,9 @@ func stateColor(pal *theme.Palette, state string) ui.Color {
 }
 
 // Agents tells whether a pane runs an agent whose records the timeline
-// reads: the Info view shows the card of one, and the menu's window shows
-// none while the pane the user is in runs another.
+// reads: the Info view shows the card of one, and the menu's pane says why
+// it shows none.
 func Agents(p *proto.Pane) bool { return p != nil && proto.StartsTimeline(p.Agent) }
-
-// Window is the timeline in a window of its own, as the menu opens one
-// for another screen.
-//
-// It takes the pane some other shows: the one the user is in. Window
-// reads it, and paints again while its agent runs, for its bars to blink.
-// Where the pane runs no agent, the window shows why, in place of it.
-func Window(a App, c *ui.Context, pal *theme.Palette, note func(c *ui.Context, pal *theme.Palette, text string), sel func(p *proto.Pane)) {
-	p := pane(a)
-	if !Agents(p) {
-		// The window shows the pane the user is in alone: an agent there
-		// whose records Hyla does not read is the reason it says.
-		if s := a.SelectedSession(); s != nil {
-			q := a.AgentPane(s)
-			if q != nil && q.Agent != "" {
-				note(c, pal, why(q))
-				return
-			}
-		}
-		note(c, pal, why(p))
-		return
-	}
-	sel(p)
-	Pane(a, c, pal, p, note)
-}
 
 // Pane is the timeline in a pane of its own, as the user splits one: the
 // agent's turns of the pane it shows, which the app reads, and paints
@@ -461,10 +437,10 @@ func Pane(a App, c *ui.Context, pal *theme.Palette, p *proto.Pane, note func(c *
 	})
 }
 
-// all is how many turns the window lists, the newest first.
+// all is how many turns the pane lists, the newest first.
 const all = 100
 
-// why is what the window says of a pane that runs no agent of its own: the
+// why is what the pane says of a pane that runs no agent of its own: the
 // agent's, whose records Hyla does not read, or none at all.
 func why(p *proto.Pane) string {
 	switch {

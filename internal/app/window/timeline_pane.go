@@ -65,3 +65,11 @@ func (a *App) timelineShown(s *proto.Session, p *proto.Pane) *proto.Pane {
 func (a *App) TimelineBody(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane) {
 	timelineview.Pane(a, c, pal, a.timelineShown(s, p), a.timelineNote)
 }
+
+// timelineNote is the timeline's word where the pane runs no agent whose
+// records the timeline reads.
+func (a *App) timelineNote(c *ui.Context, pal *theme.Palette, text string) {
+	ui.Column(c).Grow(1).Center().Padding(24).Children(func() {
+		ui.Text(c, text).FontSize(12.5).TextColor(pal.TextMuted).TextAlign(ui.Center).Wrap()
+	})
+}

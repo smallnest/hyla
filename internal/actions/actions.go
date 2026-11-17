@@ -50,7 +50,6 @@ var All = []Action{
 	{ID: "pane.split.down", Title: "Split Down", Menu: "Pane", Keys: "CmdOrCtrl+Shift+D", Remote: true},
 	{ID: "pane.browser", Title: "New Browser Pane", Menu: "Pane", Keys: "CmdOrCtrl+Shift+B", Remote: true},
 	{ID: "timeline.open", Title: "Open Timeline Pane", Menu: "Pane", Keys: "CmdOrCtrl+Alt+T", Remote: true},
-	{ID: "timeline.window", Title: "New Timeline Window"},
 	{ID: "pane.zoom", Title: "Zoom Pane", Menu: "Pane", Keys: "CmdOrCtrl+Shift+Enter", Remote: true},
 	{ID: "pane.next", Title: "Next Pane", Menu: "Pane", Keys: "CmdOrCtrl+]", Remote: true},
 	{ID: "pane.previous", Title: "Previous Pane", Menu: "Pane", Keys: "CmdOrCtrl+[", Remote: true},

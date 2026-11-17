@@ -256,16 +256,6 @@ func (msgs Messages) ActionNewBrowser() string {
 	return Catalog.Format(msgs.locale, "actionNewBrowser", nil)
 }
 
-// ActionTimeline says "Timeline Window"
-// in the language the app shows.
-func ActionTimeline() string { return In(i18n.Locale()).ActionTimeline() }
-
-// ActionTimeline says "Timeline Window"
-// in the language of msgs.
-func (msgs Messages) ActionTimeline() string {
-	return Catalog.Format(msgs.locale, "actionTimeline", nil)
-}
-
 // ActionTimelinePane says "Open Timeline Pane"
 // in the language the app shows.
 func ActionTimelinePane() string { return In(i18n.Locale()).ActionTimelinePane() }
@@ -274,16 +264,6 @@ func ActionTimelinePane() string { return In(i18n.Locale()).ActionTimelinePane()
 // in the language of msgs.
 func (msgs Messages) ActionTimelinePane() string {
 	return Catalog.Format(msgs.locale, "actionTimelinePane", nil)
-}
-
-// ActionTimelineWindow says "New Timeline Window"
-// in the language the app shows.
-func ActionTimelineWindow() string { return In(i18n.Locale()).ActionTimelineWindow() }
-
-// ActionTimelineWindow says "New Timeline Window"
-// in the language of msgs.
-func (msgs Messages) ActionTimelineWindow() string {
-	return Catalog.Format(msgs.locale, "actionTimelineWindow", nil)
 }
 
 // ActionZoomPane says "Zoom Pane"
