@@ -73,6 +73,7 @@ func Claude(data []byte, start, now time.Time) []Step {
 					closeTurn(&turns[n-1], at(e))
 				}
 				begin(line(text, 120), at(e))
+				turns[len(turns)-1].Full = text
 				cur, tools = len(turns)-1, map[string]*Step{}
 				continue
 			}
@@ -87,6 +88,7 @@ func Claude(data []byte, start, now time.Time) []Step {
 					// what it said of itself.
 					if st.Kind != Subagent {
 						st.Detail = joinLines(st.Detail, resultText(part.Content))
+						st.Full = joinLines(st.Full, resultFull(part.Content))
 					}
 					if part.IsError {
 						st.State = Failed
@@ -101,11 +103,11 @@ func Claude(data []byte, start, now time.Time) []Step {
 			for _, part := range partsOf(e.Message.Content) {
 				switch part.Type {
 				case "thinking":
-					addStep(turns, cur, Step{Kind: Think, Title: line(part.Thinking, 80), Start: at(e), State: Running})
+					addStep(turns, cur, Step{Kind: Think, Title: line(part.Thinking, 80), Full: part.Thinking, Start: at(e), State: Running})
 				case "text":
-					addStep(turns, cur, Step{Kind: Text, Title: line(part.Text, 80), Start: at(e), State: Running})
+					addStep(turns, cur, Step{Kind: Text, Title: line(part.Text, 80), Full: part.Text, Start: at(e), State: Running})
 				case "tool_use":
-					st := Step{Kind: Tool, Title: part.Name, Detail: short(part.Input, 200), Start: at(e), State: Running}
+					st := Step{Kind: Tool, Title: part.Name, Detail: short(part.Input, 200), Full: string(part.Input), Start: at(e), State: Running}
 					if isSubagent(part.Name) {
 						st.Kind = Subagent
 					}
@@ -298,6 +300,28 @@ func subagentDetail(st Step, input json.RawMessage) Step {
 	return st
 }
 
+// resultFull is a tool result's text whole, as the chat view shows it.
+func resultFull(raw json.RawMessage) string {
+	var s string
+	if json.Unmarshal(raw, &s) == nil {
+		return s
+	}
+	var parts []struct {
+		Type string `json:"type"`
+		Text string `json:"text"`
+	}
+	if json.Unmarshal(raw, &parts) != nil {
+		return ""
+	}
+	var out []string
+	for _, p := range parts {
+		if p.Type == "text" && strings.TrimSpace(p.Text) != "" {
+			out = append(out, p.Text)
+		}
+	}
+	return strings.Join(out, "\n")
+}
+
 // resultText is a tool result's text: from a string, or from its parts.
 func resultText(raw json.RawMessage) string {
 	var s string
@@ -383,6 +407,37 @@ func readTail(path string, n int64) ([]byte, error) {
 		}
 	}
 	return b, nil
+}
+
+// ClaudeModel is the model a Claude Code conversation last ran, from its
+// transcript: "" where it tells none.
+func ClaudeModel(path string) string {
+	b, err := readTail(path, ClaudeRead)
+	if err != nil {
+		return ""
+	}
+	var e struct {
+		Type    string `json:"type"`
+		Message struct {
+			Model string `json:"model"`
+		} `json:"message"`
+	}
+	model := ""
+	for _, l := range bytes.Split(b, []byte("\n")) {
+		e = struct {
+			Type    string `json:"type"`
+			Message struct {
+				Model string `json:"model"`
+			} `json:"message"`
+		}{}
+		if json.Unmarshal(l, &e) != nil || e.Type != "assistant" {
+			continue
+		}
+		if e.Message.Model != "" {
+			model = e.Message.Model
+		}
+	}
+	return model
 }
 
 // ClaudeFile reads a Claude Code transcript as a timeline, the end of it

@@ -39,11 +39,28 @@ func (a *App) Feed(id string) *chat.Feed {
 	return f
 }
 
+// toggleChat gives the pane the user is in the conversation in place of its
+// terminal, or its terminal again.
+func (a *App) toggleChat() {
+	s := a.session(a.Selected)
+	if s == nil {
+		return
+	}
+	p := s.PaneByID(a.focusOf(s))
+	if p == nil || p.Browser() || p.FilePane() || p.TimelinePane() || p.SubagentsPane() {
+		return
+	}
+	if a.PaneChatMap == nil {
+		a.PaneChatMap = map[string]bool{}
+	}
+	a.PaneChatMap[p.ID] = !a.PaneChatMap[p.ID]
+}
+
 // readChat reads a session's chat window, as the view opens and after a
 // chat's turn, and as the host's state changes.
 func (a *App) readChat(s *proto.Session) {
 	f := a.Feed(s.ID)
-	chat.Read(a, s, f)
+	chat.Read(a, s, a.focusOf(s), f)
 }
 
 // chatChanged tells the view that a host shows a new state: the hosts'
@@ -51,8 +68,34 @@ func (a *App) readChat(s *proto.Session) {
 func (a *App) chatChanged(h *host.Host) { chat.Changed(a, h) }
 
 // ChatBody is the view, in a session's pane.
-func (a *App) ChatBody(c *ui.Context, pal *theme.Palette, s *proto.Session) {
-	chat.Body(a, c, pal, s)
+func (a *App) ChatBody(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane) {
+	chat.Body(a, c, pal, s, p.ID)
+}
+
+// SendPane types a prompt into a pane, and presses Enter: the chat's
+// composer sends the agent its next turn.
+func (a *App) SendPane(pane, text string) {
+	h := a.hostOf(pane)
+	if h == nil || h.Client == nil {
+		return
+	}
+	cl := h.Client
+	go func() {
+		if cl.Call("send", proto.SendParams{ID: pane, Data: text}, nil) == nil {
+			cl.Call("send", proto.SendParams{ID: pane, Data: "\r"}, nil)
+		}
+	}()
+}
+
+// StopPane interrupts the program in a pane, as its terminal's interrupt
+// key does: a turn the chat shows as running ends.
+func (a *App) StopPane(pane string) {
+	h := a.hostOf(pane)
+	if h == nil || h.Client == nil {
+		return
+	}
+	cl := h.Client
+	go cl.Call("send", proto.SendParams{ID: pane, Data: "\x03"}, nil)
 }
 
 var _ = locales.ChatNothing

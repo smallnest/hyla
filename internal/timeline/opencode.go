@@ -314,7 +314,7 @@ func openCodeTurns(msgs []openCodeMessage, now time.Time) []Step {
 	for _, m := range msgs {
 		switch m.Role {
 		case "user":
-			turns = append(turns, Step{Kind: Turn, Title: line(m.prompt(), 120), Start: m.Start, State: Running})
+			turns = append(turns, Step{Kind: Turn, Title: line(m.prompt(), 120), Full: m.prompt(), Start: m.Start, State: Running})
 			open = false
 		case "assistant":
 			if len(turns) == 0 {
@@ -376,6 +376,7 @@ func openCodeSteps(m openCodeMessage) []Step {
 func openCodeTool(p openCodePart) Step {
 	name := firstOf(p.Name, p.Tool)
 	st := Step{Kind: Tool, Title: name, Detail: line(firstOf(p.State.Title, short(p.State.Input, 200)), 200),
+		Full:  firstOf(firstOf(p.State.Output, p.State.Title), string(p.State.Input)),
 		Start: p.start(), End: p.end(), State: Running}
 	if st.Title == "" {
 		st.Title = "tool"
@@ -408,6 +409,7 @@ func openCodeTool(p openCodePart) Step {
 			st.End = max(p.at, st.Start)
 		}
 		st.Detail = joinLines(st.Detail, line(firstOf(p.State.Error, p.State.Output), 160))
+		st.Full = joinLines(st.Full, firstOf(p.State.Error, p.State.Output))
 	case "pending":
 		// It asks the user: the turn waits on it.
 		st.State, st.End = Waiting, 0

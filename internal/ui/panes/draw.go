@@ -216,7 +216,7 @@ func PaneCard(x App, c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown f
 	// one, shows the chat in its terminal's place, which sessionPanes lays
 	// out the one card for. Feishu being on alone says nothing: without
 	// the pane's own choice, its session keeps its terminal.
-	chat := focused && x.FeishuOn() && x.PaneChat()[p.ID] && (len(s.Zoomed) == 0 || s.Zoomed == p.ID)
+	chat := focused && x.PaneChat()[p.ID] && (len(s.Zoomed) == 0 || s.Zoomed == p.ID)
 	bg := pal.Card
 	// A browser's page stays opaque, so its toolbar does too, and neither
 	// fades: a page is read, not typed into, from beside it.
@@ -299,7 +299,7 @@ func PaneCard(x App, c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown f
 				// The session's conversation, as a chat, in the terminal's
 				// place (chat.go).
 				dropping = dropFiles(x, c, pal, s, p)
-				x.ChatBody(c, pal, s)
+				x.ChatBody(c, pal, s, p)
 			} else {
 				dropping = dropFiles(x, c, pal, s, p)
 				paneTerminal(x, c, pal, s, p)

@@ -171,6 +171,7 @@ var ActionWords = map[string]string{
 	"files.toggle":         "file tree browser folder explore panel",
 	"subagents.toggle":     "subagent subagents delegated parallel agent panel show hide",
 	"subagents.open":       "subagent subagents delegated parallel agent pane open",
+	"pane.chat":            "chat conversation transcript messages prompt agent talk",
 	"text.bigger":          "zoom in font size larger increase text",
 	"text.smaller":         "zoom out font size decrease text",
 	"text.reset":           "zoom reset font size default text",

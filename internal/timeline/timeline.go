@@ -39,6 +39,7 @@ type Step struct {
 	Kind     Kind
 	Title    string // the tool's name, or a line of the words
 	Detail   string // the tool's arguments or output, or what it waits for
+	Full     string // the words or the arguments whole, which a chat shows
 	Start    int64  // unix ms
 	End      int64  // unix ms, 0 while it runs
 	State    State

@@ -200,11 +200,11 @@ func Codex(data []byte, start, now time.Time) []Step {
 					if n := len(turns); n > 0 && turns[n-1].End == 0 {
 						codexEnd(turns, n-1, t, Done, nowMs)
 					}
-					turns = append(turns, Step{Kind: Turn, Title: line(text, 120), Start: t, State: Running})
+					turns = append(turns, Step{Kind: Turn, Title: line(text, 120), Full: text, Start: t, State: Running})
 					cur, tools = len(turns)-1, map[string]*Step{}
 				case "assistant":
 					if text := codexTextOf(p.Content); text != "" {
-						addStep(turns, cur, Step{Kind: Text, Title: line(text, 80), Start: t, State: Running})
+						addStep(turns, cur, Step{Kind: Text, Title: line(text, 80), Full: text, Start: t, State: Running})
 					}
 				}
 			case "reasoning":
@@ -213,10 +213,10 @@ func Codex(data []byte, start, now time.Time) []Step {
 					text = codexTextOf(p.Summary)
 				}
 				if text != "" {
-					addStep(turns, cur, Step{Kind: Think, Title: line(text, 80), Start: t, State: Running})
+					addStep(turns, cur, Step{Kind: Think, Title: line(text, 80), Full: text, Start: t, State: Running})
 				}
 			case "function_call":
-				st := Step{Kind: Tool, Title: p.Name, Detail: line(arguments(p.Arguments), 200), Start: t, State: Running}
+				st := Step{Kind: Tool, Title: p.Name, Detail: line(arguments(p.Arguments), 200), Full: arguments(p.Arguments), Start: t, State: Running}
 				if st.Title == "" {
 					st.Title = "tool"
 				}
@@ -235,6 +235,7 @@ func Codex(data []byte, start, now time.Time) []Step {
 						st.State = Failed
 					}
 					st.Detail = joinLines(st.Detail, line(codexSaid(p.Output), 160))
+					st.Full = joinLines(st.Full, codexSaid(p.Output))
 					delete(tools, p.CallID)
 				}
 			}

@@ -76,7 +76,7 @@ type App interface {
 	TimelineBody(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane)
 	SubagentsBody(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane)
 	PaneBrowser(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown float32, s *proto.Session, p *proto.Pane, top, left, right, multi, focused, hovered bool) (dragging bool)
-	ChatBody(c *ui.Context, pal *theme.Palette, s *proto.Session)
+	ChatBody(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane)
 
 	// Term is a pane's terminal, as it attaches; ImagePeek peeks at a
 	// path under the pointer, and FindBar shows its find.

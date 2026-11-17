@@ -104,6 +104,16 @@ It splits beside the pane you are in, and it is the session's rather than one pa
 
 From a shell, or an agent, `hyla do subagents.open` splits one. The same list is the side panel's [Subagents view](./subagents.md), which is also where the subagents' facts come from.
 
+## Chat panes
+
+A chat pane shows the session's conversation with its agent as a chat: what you asked, the words and reasoning the agent wrote, and the tools it ran, each with how long it took, from the agent's own records. Tools the agent ran one after another fold into one row, which a click opens; a step that runs now shows its length and a button that stops it.
+
+| Action      | Shortcut                               |
+| ----------- | -------------------------------------- |
+| Toggle Chat | <kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>C</kbd> |
+
+The prompt at its foot goes to the pane's terminal, as one typed there would: the agent runs it in a turn of its own. The button that a Feishu chat gives a pane opens the same view, and `hyla do pane.chat` toggles it.
+
 ## The Info view
 
 The side panel shows an Info view of the session's pane. The view shows three sections:

@@ -144,11 +144,11 @@ func DSH(data []byte, now time.Time) []Step {
 				switch part.Type {
 				case "reasoning", "thinking":
 					if strings.TrimSpace(part.Text) != "" {
-						add(st, Step{Kind: Think, Title: line(part.Text, 80), Start: t, State: Running})
+						add(st, Step{Kind: Think, Title: line(part.Text, 80), Full: part.Text, Start: t, State: Running})
 					}
 				case "text":
 					if strings.TrimSpace(part.Text) != "" {
-						add(st, Step{Kind: Text, Title: line(part.Text, 80), Start: t, State: Running})
+						add(st, Step{Kind: Text, Title: line(part.Text, 80), Full: part.Text, Start: t, State: Running})
 					}
 				case "tool_use":
 					if part.ToolName != "" {
@@ -183,7 +183,7 @@ func DSH(data []byte, now time.Time) []Step {
 				to = lastTurn()
 			}
 			// A tool's arguments as it read them: its command, its path.
-			st := add(to, Step{Kind: Tool, Title: d.Name, Detail: line(arguments(d.Arguments), 200), Start: t, State: Running})
+			st := add(to, Step{Kind: Tool, Title: d.Name, Detail: line(arguments(d.Arguments), 200), Full: arguments(d.Arguments), Start: t, State: Running})
 			if d.CallID != "" {
 				tools[d.CallID] = st
 			}

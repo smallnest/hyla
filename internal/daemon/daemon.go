@@ -106,6 +106,10 @@ type Daemon struct {
 	// agents that keep them, by the file (subagents.go).
 	subsMu   sync.Mutex
 	subsSeen map[string]subsRead
+	// chatMu guards chatSeen, the conversations read from the records the
+	// agents keep, by the file (chat.go).
+	chatMu   sync.Mutex
+	chatSeen map[string]chatRead
 	net      *listeners
 	changeCh chan struct{}
 	saveCh   chan struct{}

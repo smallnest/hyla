@@ -1496,6 +1496,46 @@ func (msgs Messages) ChatThought() string {
 	return Catalog.Format(msgs.locale, "chatThought", nil)
 }
 
+// ChatRanTools says "Ran {n} tools"
+// in the language the app shows.
+func ChatRanTools(n string) string { return In(i18n.Locale()).ChatRanTools(n) }
+
+// ChatRanTools says "Ran {n} tools"
+// in the language of msgs.
+func (msgs Messages) ChatRanTools(n string) string {
+	return Catalog.Format(msgs.locale, "chatRanTools", map[string]any{"n": n})
+}
+
+// ChatRunning says "Running"
+// in the language the app shows.
+func ChatRunning() string { return In(i18n.Locale()).ChatRunning() }
+
+// ChatRunning says "Running"
+// in the language of msgs.
+func (msgs Messages) ChatRunning() string {
+	return Catalog.Format(msgs.locale, "chatRunning", nil)
+}
+
+// ChatStop says "Stop"
+// in the language the app shows.
+func ChatStop() string { return In(i18n.Locale()).ChatStop() }
+
+// ChatStop says "Stop"
+// in the language of msgs.
+func (msgs Messages) ChatStop() string {
+	return Catalog.Format(msgs.locale, "chatStop", nil)
+}
+
+// ChatPlaceholder says "Ask anything…"
+// in the language the app shows.
+func ChatPlaceholder() string { return In(i18n.Locale()).ChatPlaceholder() }
+
+// ChatPlaceholder says "Ask anything…"
+// in the language of msgs.
+func (msgs Messages) ChatPlaceholder() string {
+	return Catalog.Format(msgs.locale, "chatPlaceholder", nil)
+}
+
 // ChatOutput says "Output"
 // in the language the app shows.
 func ChatOutput() string { return In(i18n.Locale()).ChatOutput() }

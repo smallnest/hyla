@@ -18,14 +18,14 @@ import (
 	"hyla/internal/client"
 	"hyla/internal/proto"
 	"hyla/internal/settings"
-	"hyla/locales"
 )
 
 // fakeHylad is a hylad that answers a chat window's methods, on a socket
 // of its own, where none runs.
 type fakeHylad struct {
 	mu    sync.Mutex
-	feed  proto.FeishuFeed
+	chat  proto.Chat
+	sends []proto.SendParams
 	chats proto.FeishuChats
 	sent  []proto.FeishuSend
 	seen  int
@@ -62,8 +62,17 @@ func (f *fakeHylad) answer(req proto.Request) proto.Message {
 	defer f.mu.Unlock()
 	var res any
 	switch req.Method {
-	case "feishu.feed":
-		res = f.feed
+	case "chat.get":
+		res = f.chat
+	case "send":
+		var p proto.SendParams
+		b, _ := json.Marshal(req.Params)
+		json.Unmarshal(b, &p)
+		f.sends = append(f.sends, p)
+		if f.prog != nil {
+			f.prog.Write([]byte(p.Data))
+		}
+		res = true
 	case "feishu.chats":
 		res = f.chats
 	case "feishu.send":
@@ -147,14 +156,13 @@ func chatApp(t *testing.T) (*App, *fakeHylad) {
 	set := settings.Load()
 	a.settingsIn.Feishu = set.Feishu
 	f := &fakeHylad{a: a}
-	f.feed = proto.FeishuFeed{ID: "s1", Chat: "oc_1", Name: "Hyla bot", Host: "mac", Pane: "a", Agent: "claude", Lines: []proto.FeishuLine{
-		{Kind: "note", Text: "Fix the build"},
-		{Kind: "think", Text: "The build broke."},
-		{Kind: "tool", Text: "Tool Bash", Title: "go build", Detail: `{"command":"go build","description":"Build it"}`},
-		{Kind: "tool", Text: "Result", Detail: "# hyla\n./main.go:3:1: syntax error"},
-		{Kind: "agent", Text: "I will look."},
-		{Kind: "agent", Text: "Here: **fixed** the `main.go` syntax:\n\n```go\nfunc main() {}\n```\n\n- one\n- two"},
-		{Kind: "agent", Text: "The build passes.", Answer: true},
+	f.chat = proto.Chat{Session: "s1", Pane: "a", Agent: "claude", Model: "claude-opus-5", Read: 1_761_285_600_000, Lines: []proto.ChatLine{
+		{Kind: proto.ChatUser, Text: "Fix the build"},
+		{Kind: proto.ChatThink, Text: "The build broke."},
+		{Kind: proto.ChatTool, Title: "Bash", Detail: `{"command":"go build","description":"Build it"}`},
+		{Kind: proto.ChatAgent, Text: "I will look."},
+		{Kind: proto.ChatAgent, Text: "Here: **fixed** the `main.go` syntax:\n\n```go\nfunc main() {}\n```\n\n- one\n- two"},
+		{Kind: proto.ChatAgent, Text: "The build passes."},
 	}}
 	f.chats = proto.FeishuChats{Host: "mac", Chats: []proto.FeishuChat{{ID: "oc_1", Name: "Hyla bot", Type: "p2p", Session: "s1"}, {ID: "oc_2", Name: "Team", Type: "group"}}}
 	ln, err := net.Listen("unix", filepath.Join(t.TempDir(), "hylad.sock"))
@@ -214,7 +222,8 @@ func TestChatView(t *testing.T) {
 		t.Fatal("the pane shows no chat")
 	}
 	// The agent's Markdown reads as it is written: no ** or ` about.
-	for _, want := range []string{"Fix the build", "Bash", "go build", locales.ChatOutput(), "The build passes.", "Here: fixed the main.go syntax:", "func main() {}", "one"} {
+	for _, want := range []string{"Fix the build", "Bash", `{"command":"go build","description":"Build it"}`,
+		"The build passes.", "Here: fixed the main.go syntax:", "func main() {}", "one", "Claude Opus 5"} {
 		if !tt.HasText(want) {
 			t.Errorf("the conversation lacks %q: %v", want, tt.Texts())
 		}
@@ -222,12 +231,20 @@ func TestChatView(t *testing.T) {
 	if tt.HasText("**fixed**") {
 		t.Errorf("the Markdown shows unread: %v", tt.Texts())
 	}
-	// The window only shows: it has no field to write a prompt in.
+	// The composer's prompt goes to the pane's program, as one typed in
+	// the terminal would.
+	a.SendPane("a", "Fix the build")
+	chatSettle(tt, func() bool { return strings.Contains(f.typed(), "Fix the build\r") })
+	if got := f.typed(); !strings.Contains(got, "Fix the build\r") {
+		t.Errorf("the pane's program got %q", got)
+	}
+}
+
+// typed is what the pane's program got.
+func (f *fakeHylad) typed() string {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	if f.prog.typed() != "" {
-		t.Errorf("the pane's program got %q", f.prog.typed())
-	}
+	return f.prog.typed()
 }
 
 // The Chat view lets the window be narrow: the conversation shrinks with
