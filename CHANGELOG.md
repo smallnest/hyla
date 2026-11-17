@@ -4,6 +4,30 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.15.0
+
+- The side panel has a Subagents view, ⌥⌘A or View › Show/Hide Subagents:
+  the agents a session's coding agents gave their work to, a pane after a
+  pane, each with what it was asked, how long it ran or has been running,
+  and the step it runs now. A click goes to its pane. Claude Code tells
+  Hyla when a subagent starts and ends, through the hooks an update adds
+  by itself; a pane whose agent keeps no such record says so, and the
+  agents' own records answer where no hook came.
+- Pane › Open Subagents Pane, ⌥⌘S, splits the same list in a pane of the
+  session's own, beside the agents: it splits, zooms, moves and closes
+  like any other pane, and comes back with the session.
+- The timeline's window is gone: the timeline is a pane, Pane › Open
+  Timeline Pane, ⌥⌘T, and a second screen takes a pane as it took the
+  window. `hyla do timeline.window` goes with it.
+- The Info view keeps what the pane is (its directory, its processes and
+  their ports) and the cards of Magpie and Feishu. The Timeline card goes,
+  its turns being a pane's, and the Agents card with it: a logo an agent
+  was given stays in the sidebar, and Hyla sets no new one for now.
+- A pane whose stream hylad closed, as when another client took it, takes
+  input again: the app drops the terminal at "[Disconnected]" and attaches
+  anew. The scrollback the app kept for that pane is what it does not
+  bring back.
+
 ## 3.14.0
 
 - A session moves to another project of this machine: drag its row onto
