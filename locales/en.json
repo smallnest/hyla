@@ -25,6 +25,7 @@
   "actionTimelinePane": "Open Timeline Pane",
   "actionZoomPane": "Zoom Pane",
   "actionShowTerminal": "Show Terminal",
+  "actionToggleChat": "Toggle Chat",
   "actionReconnectHost": "Reconnect Host",
   "actionDisconnectHost": "Disconnect Host",
   "actionFind": "Find…",

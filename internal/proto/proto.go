@@ -620,14 +620,6 @@ func (p *Pane) FilePane() bool { return p.File != "" }
 // TimelinePane reports whether the pane shows a timeline, not a terminal.
 func (p *Pane) TimelinePane() bool { return p.Timeline != "" }
 
-// FeishuChat reports whether a Feishu chat drives the pane now: a chat gave
-// it the file its turn's answer goes to, and the turn it drives runs, or
-// waits on the user. The file stays after the turn, for the chat's feed of
-// the conversation.
-func (p *Pane) FeishuChat() bool {
-	return p.FeishuAnswer != "" && (p.Status == Working || p.Status == Waiting)
-}
-
 // SubagentsPane reports whether the pane shows the session's subagents, not
 // a terminal.
 func (p *Pane) SubagentsPane() bool { return p.Subagents }

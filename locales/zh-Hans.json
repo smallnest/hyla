@@ -25,6 +25,7 @@
   "actionTimelinePane": "打开时间线面板",
   "actionZoomPane": "放大窗格",
   "actionShowTerminal": "显示终端",
+  "actionToggleChat": "显示或隐藏对话",
   "actionReconnectHost": "重连主机",
   "actionDisconnectHost": "断开主机",
   "actionFind": "查找…",

@@ -97,7 +97,7 @@ var titles = map[string]func() string{
 	"info.toggle":         locales.ActionToggleInfo,
 	"subagents.toggle":    locales.ActionToggleSubagents,
 	"subagents.open":      locales.ActionSubagentsOpen,
-	"pane.chat":           locales.ActionShowTerminal,
+	"pane.chat":           locales.ActionToggleChat,
 	"text.bigger":         locales.ActionBigger,
 	"text.smaller":        locales.ActionSmaller,
 	"text.reset":          locales.ActionActualSize,

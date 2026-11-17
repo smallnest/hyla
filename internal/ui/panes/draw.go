@@ -626,17 +626,6 @@ func PaneControls(x App, c *ui.Context, pal *theme.Palette, s *proto.Session, p 
 		if !show {
 			return
 		}
-		// The chat takes a terminal's place, and only a Feishu chat drives
-		// a pane: the turn it drives offers the button while it runs or
-		// waits, as does a pane whose chat shows, the terminal a click
-		// away. The turn over, the button goes.
-		if x.FeishuOn() && (p.FeishuChat() || x.PaneChat()[p.ID]) {
-			if x.PaneChat()[p.ID] {
-				paints.IconButton(c, "chat-toggle", glyph.Terminal, x.Tip(locales.ActionShowTerminal(), "pane.chat"), pal, func() { hidePaneChat(x, s, p.ID) })
-			} else {
-				paints.IconButton(c, "chat-toggle", glyph.Chat, x.Tip(locales.SideChat(), "pane.chat"), pal, func() { showPaneChat(x, s, p.ID) })
-			}
-		}
 		paints.IconButton(c, "split-r", glyph.SplitRight, x.Tip(locales.ActionSplitRight(), "pane.split.right"), pal, func() { SplitPane(x, s, p.ID, "right") })
 		paints.IconButton(c, "split-d", glyph.SplitDown, x.Tip(locales.ActionSplitDown(), "pane.split.down"), pal, func() { SplitPane(x, s, p.ID, "down") })
 		if multi {
@@ -668,15 +657,6 @@ func showPaneChat(x App, s *proto.Session, id string) {
 		s.Zoomed = id
 		x.SetFocus(s, id)
 		x.CallPane(s.ID, "zoom", proto.FocusParams{Session: s.ID, Pane: id}, nil)
-	}
-}
-
-// hidePaneChat shows the focused pane's terminal again, and the panes
-// side by side, zoomed only for the chat.
-func hidePaneChat(x App, s *proto.Session, id string) {
-	x.HidePaneChat(id)
-	if s.Zoomed == id {
-		ZoomPane(x, s, id)
 	}
 }
 

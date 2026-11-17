@@ -25,6 +25,7 @@
   "actionTimelinePane": "タイムラインペインを開く",
   "actionZoomPane": "ペインを拡大",
   "actionShowTerminal": "ターミナルを表示",
+  "actionToggleChat": "チャットの表示/非表示",
   "actionReconnectHost": "ホストに再接続",
   "actionDisconnectHost": "ホストを切断",
   "actionFind": "検索…",

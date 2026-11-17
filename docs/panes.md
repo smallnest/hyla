@@ -112,7 +112,7 @@ A chat pane shows the session's conversation with its agent as a chat: what you 
 | ----------- | -------------------------------------- |
 | Toggle Chat | <kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>C</kbd> |
 
-The prompt at its foot goes to the pane's terminal, as one typed there would: the agent runs it in a turn of its own. The button that a Feishu chat gives a pane opens the same view, and `hyla do pane.chat` toggles it.
+The prompt at its foot goes to the pane's terminal, as one typed there would: the agent runs it in a turn of its own. A pane whose agent runs without a terminal, as a Feishu chat's does, shows the chat as it opens, and `hyla do pane.chat` toggles it, as Pane › Toggle Chat does.
 
 ## The Info view
 

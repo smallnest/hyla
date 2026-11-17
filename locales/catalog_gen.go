@@ -286,6 +286,16 @@ func (msgs Messages) ActionShowTerminal() string {
 	return Catalog.Format(msgs.locale, "actionShowTerminal", nil)
 }
 
+// ActionToggleChat says "Toggle Chat"
+// in the language the app shows.
+func ActionToggleChat() string { return In(i18n.Locale()).ActionToggleChat() }
+
+// ActionToggleChat says "Toggle Chat"
+// in the language of msgs.
+func (msgs Messages) ActionToggleChat() string {
+	return Catalog.Format(msgs.locale, "actionToggleChat", nil)
+}
+
 // ActionReconnectHost says "Reconnect Host"
 // in the language the app shows.
 func ActionReconnectHost() string { return In(i18n.Locale()).ActionReconnectHost() }
