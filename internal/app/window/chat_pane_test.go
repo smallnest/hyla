@@ -1,6 +1,7 @@
 package window
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -26,7 +27,7 @@ func chatDemo(t *testing.T) *App {
 	s.Zoomed = p.ID // one pane, as wide as the window: the column floats in it
 	a.Side.Chat.Feeds = map[string]*chat.Feed{"s1": {
 		At: time.Now(), Got: true,
-		Chat: proto.Chat{Session: "s1", Pane: p.ID, Agent: "claude", Read: at(400), Model: "claude-opus-5",
+		Chat: proto.Chat{Session: "s1", Pane: p.ID, Agent: "claude", Read: at(400), Model: "claude-opus-5", Input: true,
 			Lines: []proto.ChatLine{
 				{Kind: proto.ChatUser, Text: "打开详情页点播放，进度条半天不走，要不要加 loading 提示？", Start: at(0)},
 				{Kind: proto.ChatAgent, Text: "I'll put the loading note under the controls, so it doesn't squeeze the seek bar.", Start: at(2), End: at(6)},
@@ -88,5 +89,48 @@ func TestOpenChatPanes(t *testing.T) {
 	a.openChatPanes()
 	if a.PaneChatMap[p.ID] {
 		t.Error("the chat reopened after the user closed it")
+	}
+}
+
+// The composer takes a prompt, and Enter sends it to the pane's program.
+func TestChatComposerSends(t *testing.T) {
+	a, f := chatApp(t)
+	a.ShowPaneChatIn(a.session("s1"), "a")
+	tt := ui.NewTester(a.view, 1200, 800)
+	tt.Frame()
+	chatSettle(tt, func() bool { return tt.HasText("Fix the build") })
+	// The composer is at the foot of the pane: a click gives it the keys.
+	if r, ok := tt.Find("Claude Opus 5"); ok {
+		tt.ClickAt(r.X-300, r.Y+r.H/2)
+	} else {
+		tt.ClickAt(800, 800-30)
+	}
+	tt.Frame()
+	tt.Type("hello")
+	tt.Frame()
+	tt.Key(0, ui.KeyEnter)
+	chatSettle(tt, func() bool { return strings.Contains(f.typed(), "hello\r") })
+	if got := f.typed(); !strings.Contains(got, "hello\r") {
+		t.Errorf("the pane's program got %q, want the prompt and Enter", got)
+	}
+}
+
+// A pane that runs no terminal, as a chat's does, takes no prompt here: it
+// says where the prompt goes instead, and has no composer.
+func TestChatNoInput(t *testing.T) {
+	a := chatDemo(t)
+	f := a.Side.Chat.Feeds["s1"]
+	f.Chat.Input = false
+	tt := ui.NewTester(a.view, 1280, 760)
+	for i := 0; i < 20 && tt.FramePending(); i++ {
+		tt.Frame()
+		tt.Advance(time.Second)
+	}
+	tt.Frame()
+	if _, ok := tt.Find(locales.ChatNoInput()); !ok {
+		t.Errorf("the pane says nothing of where a prompt goes: %v", tt.Texts())
+	}
+	if _, ok := tt.Find("Claude Opus 5"); ok {
+		t.Error("a pane that takes no prompt shows the composer")
 	}
 }

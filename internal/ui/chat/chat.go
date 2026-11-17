@@ -95,8 +95,15 @@ func Body(x App, c *ui.Context, pal *theme.Palette, s *proto.Session, pane strin
 	ui.Column(c.Key("lines")).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
 		lines(x, c, pal, s, f, pane)
 	})
-	if pane != "" && f.Chat.Note == "" {
+	switch {
+	case pane == "" || f.Chat.Note != "":
+	case f.Chat.Input:
 		composer(x, c, pal, f, pane)
+	default:
+		// A pane that runs no terminal, as a chat's does, takes no prompt
+		// here: the chat drives it, and the prompt goes there.
+		ui.Text(c, locales.ChatNoInput()).FontSize(11.5).TextColor(pal.TextFaint).
+			TextAlign(ui.Center).Padding(0, 16, 14, 16)
 	}
 }
 

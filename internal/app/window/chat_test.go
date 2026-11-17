@@ -156,7 +156,7 @@ func chatApp(t *testing.T) (*App, *fakeHylad) {
 	set := settings.Load()
 	a.settingsIn.Feishu = set.Feishu
 	f := &fakeHylad{a: a}
-	f.chat = proto.Chat{Session: "s1", Pane: "a", Agent: "claude", Model: "claude-opus-5", Read: 1_761_285_600_000, Lines: []proto.ChatLine{
+	f.chat = proto.Chat{Session: "s1", Pane: "a", Agent: "claude", Model: "claude-opus-5", Read: 1_761_285_600_000, Input: true, Lines: []proto.ChatLine{
 		{Kind: proto.ChatUser, Text: "Fix the build"},
 		{Kind: proto.ChatThink, Text: "The build broke."},
 		{Kind: proto.ChatTool, Title: "Bash", Detail: `{"command":"go build","description":"Build it"}`},

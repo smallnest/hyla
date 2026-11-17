@@ -1546,6 +1546,16 @@ func (msgs Messages) ChatPlaceholder() string {
 	return Catalog.Format(msgs.locale, "chatPlaceholder", nil)
 }
 
+// ChatNoInput says "This session runs without a terminal: its chat drives it, and a prompt goes there."
+// in the language the app shows.
+func ChatNoInput() string { return In(i18n.Locale()).ChatNoInput() }
+
+// ChatNoInput says "This session runs without a terminal: its chat drives it, and a prompt goes there."
+// in the language of msgs.
+func (msgs Messages) ChatNoInput() string {
+	return Catalog.Format(msgs.locale, "chatNoInput", nil)
+}
+
 // ChatOutput says "Output"
 // in the language the app shows.
 func ChatOutput() string { return In(i18n.Locale()).ChatOutput() }

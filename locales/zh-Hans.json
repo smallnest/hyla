@@ -149,6 +149,7 @@
   "chatRunning": "运行中",
   "chatStop": "停止",
   "chatPlaceholder": "说点什么…",
+  "chatNoInput": "这个会话没有终端在跑：它由聊天驱动，prompt 请在聊天里发。",
   "chatOutput": "输出",
   "chatReadingNow": "读取中…",
   "chatSessionNone": "这个会话还没对上飞书对话。选一个，或在飞书里发 /use 或 /new。",

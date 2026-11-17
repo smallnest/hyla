@@ -36,9 +36,11 @@ func (d *Daemon) chatOf(p proto.ChatParams) (proto.Chat, error) {
 		d.mu.Unlock()
 	}
 	var agent, conv, dir, pane string
+	takes := false
 	if pn != nil {
 		pn.mu.Lock()
 		agent, conv, dir, pane = pn.info.Agent, pn.info.AgentSessionID, pn.info.Dir, pn.info.ID
+		takes = pn.term != nil && pn.proc != nil
 		pn.mu.Unlock()
 		if pdir := paneDirOf(pn); pdir.Dir != "" {
 			dir = pdir.Dir
@@ -50,7 +52,7 @@ func (d *Daemon) chatOf(p proto.ChatParams) (proto.Chat, error) {
 		agent, _ = timeline.FindConv(conv)
 	}
 	now := time.Now()
-	out := proto.Chat{Session: p.Session, Pane: pane, Agent: agent, Read: now.UnixMilli()}
+	out := proto.Chat{Session: p.Session, Pane: pane, Agent: agent, Read: now.UnixMilli(), Input: takes}
 	if pn != nil {
 		out.Session = pn.sid
 	}
