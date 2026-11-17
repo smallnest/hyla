@@ -18,9 +18,10 @@ import (
 
 // The views' ids, as prefs.SideTab holds one.
 const (
-	Changes = "changes"
-	Files   = "files"
-	Info    = "info"
+	Changes   = "changes"
+	Files     = "files"
+	Info      = "info"
+	Subagents = "subagents"
 )
 
 const (
@@ -71,11 +72,12 @@ type App interface {
 	// SettingsOf is the settings the panel draws with, and CardGapIn is
 	// the room between a card and the window's edge, which RowW takes.
 	SettingsOf() *settings.Settings
-	// ChangesSide, FilesSide and InfoSide are the views, in a session's
-	// pane.
+	// ChangesSide, FilesSide, InfoSide and SubagentsSide are the views,
+	// in a session's pane.
 	ChangesSide(c *ui.Context, pal *theme.Palette, s *proto.Session, width float32)
 	FilesSide(c *ui.Context, pal *theme.Palette, s *proto.Session)
 	InfoSide(c *ui.Context, pal *theme.Palette, s *proto.Session)
+	SubagentsSide(c *ui.Context, pal *theme.Palette, s *proto.Session)
 }
 
 // State is the panel's, beside the prefs that open it and size it.
@@ -140,7 +142,7 @@ func Tab(x App) string {
 	if tab == "" {
 		tab = *x.SideTabPref()
 	}
-	if tab != Files && tab != Info {
+	if tab != Files && tab != Info && tab != Subagents {
 		tab = Changes
 	}
 	return tab
@@ -243,10 +245,13 @@ func Panel(x App, c *ui.Context, pal *theme.Palette, s *proto.Session, width flo
 	card.Children(func() {
 		ui.Row(c.Key("hdr")).Height(x.HeaderHeightIn()).Shrink(0).AlignItems(ui.Center).Padding(0, 10, 0, 16).Gap(8).Children(func() {
 			// The views, the one shown marked, as a pane's header shows
-			// its program.
-			tabButton(x, c, pal, Info, locales.SideInfo(), glyph.Info, view == Info, "info.toggle", func() { set = Info })
-			tabButton(x, c, pal, Changes, locales.SideChanges(), glyph.Diff, view == Changes, "changes.toggle", func() { set = Changes })
-			tabButton(x, c, pal, Files, locales.SideFiles(), glyph.Folder, view == Files, "files.toggle", func() { set = Files })
+			// its program. A narrow panel names them by their icons alone,
+			// which their titles tell.
+			labels := width >= tabLabelsWidth
+			tabButton(x, c, pal, Info, locales.SideInfo(), glyph.Info, view == Info, "info.toggle", labels, func() { set = Info })
+			tabButton(x, c, pal, Changes, locales.SideChanges(), glyph.Diff, view == Changes, "changes.toggle", labels, func() { set = Changes })
+			tabButton(x, c, pal, Files, locales.SideFiles(), glyph.Folder, view == Files, "files.toggle", labels, func() { set = Files })
+			tabButton(x, c, pal, Subagents, locales.SideSubagents(), glyph.Subagents, view == Subagents, "subagents.toggle", labels, func() { set = Subagents })
 			if set != "" {
 				x.RunLater(func() { Show(x, set) })
 			}
@@ -279,6 +284,9 @@ func Panel(x App, c *ui.Context, pal *theme.Palette, s *proto.Session, width flo
 			case Info:
 				x.InfoSide(c, pal, s)
 				return
+			case Subagents:
+				x.SubagentsSide(c, pal, s)
+				return
 			}
 			x.ChangesSide(c, pal, s, width)
 		})
@@ -295,11 +303,16 @@ func Panel(x App, c *ui.Context, pal *theme.Palette, s *proto.Session, width flo
 	}
 }
 
+// tabLabelsWidth is the panel's narrowest width that names its views: a
+// narrower one shows their icons alone.
+const tabLabelsWidth = 420
+
 // tabButton is a view's name in the panel's header, a click showing it: the
-// one shown in the text's color, the others faint. The header drags the
+// one shown in the text's color, the others faint. labels tells whether the
+// header names the view or shows its icon alone. The header drags the
 // window where no tab is, as the window controls are, which the tabs are
 // part of as windowControls' buttons are.
-func tabButton(x App, c *ui.Context, pal *theme.Palette, id, label string, svg *ui.SVG, on bool, action string, fn func()) {
+func tabButton(x App, c *ui.Context, pal *theme.Palette, id, label string, svg *ui.SVG, on bool, action string, labels bool, fn func()) {
 	fg := pal.TextFaint
 	if on {
 		fg = pal.Text
@@ -316,7 +329,9 @@ func tabButton(x App, c *ui.Context, pal *theme.Palette, id, label string, svg *
 	}
 	b.Children(func() {
 		ui.Icon(c, svg).Size(14, 14).TextColor(fg)
-		ui.Text(c, label).FontSize(14).FontWeight(600).TextColor(fg).SingleLine().Shrink(0)
+		if labels {
+			ui.Text(c, label).FontSize(14).FontWeight(600).TextColor(fg).SingleLine().Shrink(0)
+		}
 	})
 }
 

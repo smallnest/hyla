@@ -34,13 +34,21 @@ func hookCmd(args []string) error {
 	}
 	pane := os.Getenv("HYLA_PANE")
 	var in struct {
-		Event   string `json:"hook_event_name"`
-		AgentID string `json:"agent_id"`   // set for Claude Code's subagents
-		Session string `json:"session_id"` // the agent's own
-		Cwd     string `json:"cwd"`
-		Source  string `json:"source"` // "startup", "resume", "clear", "compact"
+		Event     string `json:"hook_event_name"`
+		AgentID   string `json:"agent_id"`   // set for Claude Code's subagents
+		AgentType string `json:"agent_type"` // a subagent's kind, as Explore
+		Prompt    string `json:"agent_prompt"`
+		TrPath    string `json:"agent_transcript_path"` // a subagent's own record
+		Session   string `json:"session_id"`            // the agent's own
+		Cwd       string `json:"cwd"`
+		Source    string `json:"source"` // "startup", "resume", "clear", "compact"
 	}
 	json.NewDecoder(io.LimitReader(os.Stdin, 1<<20)).Decode(&in)
+	// A subagent's start and its end: the agents the pane's agent gave its
+	// work to, which the Subagents view lists.
+	if in.Event == "SubagentStart" || in.Event == "SubagentStop" {
+		return subagentHook(agent, in.Event, in.AgentID, in.AgentType, in.Prompt, in.TrPath, in.Session, in.Cwd)
+	}
 	if pane == "" || in.Event != "SessionStart" || in.AgentID != "" {
 		return nil
 	}
@@ -72,6 +80,56 @@ func hookCmd(args []string) error {
 		"additionalContext": hookContext(c, pane, sid, away),
 	}}
 	return json.NewEncoder(os.Stdout).Encode(out)
+}
+
+// subagentHook tells hylad of a subagent of the pane's agent: that it
+// began, with what it was asked and where it keeps its own record, or that
+// it ended. It never fails the agent: outside Hyla, or on any trouble, it
+// says nothing.
+func subagentHook(agent, event, id, kind, task, path, session, dir string) error {
+	if agent != "claude" || id == "" {
+		return nil
+	}
+	pane := os.Getenv("HYLA_PANE")
+	c, err := client.Connect(true)
+	if err != nil {
+		return nil
+	}
+	defer c.Close()
+	if pane == "" && session != "" {
+		// The pane that runs the agent's session, as the hook at start
+		// finds it.
+		var r proto.AgentSessionResult
+		if c.Call("pane.agentSession", proto.AgentSessionParams{PID: os.Getpid(), Agent: agent, Session: session, Dir: dir}, &r) != nil {
+			return nil
+		}
+		pane = r.Pane
+	}
+	if pane == "" {
+		return nil
+	}
+	op := "start"
+	if event == "SubagentStop" {
+		op = "stop"
+	}
+	c.Call("pane.subagent", proto.SubagentParams{
+		ID: id, Pane: pane, Agent: agent, Session: session, PID: os.Getpid(), Dir: dir,
+		Op: op, Type: kind, Task: oneLine(task, 120), Path: path,
+	}, nil)
+	return nil
+}
+
+// oneLine is text's first line, cut to n characters.
+func oneLine(text string, n int) string {
+	text = strings.TrimSpace(text)
+	if i := strings.IndexAny(text, "\r\n"); i >= 0 {
+		text = text[:i]
+	}
+	r := []rune(text)
+	if len(r) <= n {
+		return text
+	}
+	return strings.TrimSpace(string(r[:n])) + "…"
 }
 
 // forgetAgentName drops the name an agent gave session sid, as a new
@@ -198,8 +256,15 @@ func (h agentHook) command(event string) string {
 
 // events are the hook events hyla's hooks run on: the start of an
 // agent's session, and the end of each turn, whose answer goes to a
-// Feishu chat that drives the agent.
-var events = []string{"SessionStart", "Stop"}
+// Feishu chat that drives the agent; and, in Claude Code, the start and
+// end of the subagents it gives its work to, which the Subagents view
+// lists.
+func (h agentHook) events() []string {
+	if h.agent == "claude" {
+		return []string{"SessionStart", "Stop", "SubagentStart", "SubagentStop"}
+	}
+	return []string{"SessionStart", "Stop"}
+}
 
 // sub is the hook command's subcommand of an event.
 func sub(event string) string {
@@ -220,19 +285,34 @@ func (h agentHook) state() string {
 	if err != nil {
 		return "missing"
 	}
-	state := "missing"
-	for _, ev := range events {
+	installed, stale := 0, false
+	for _, ev := range h.events() {
+		if ev == "Stop" && !h.stops() {
+			// An agent whose turn's end its hook can't tell has none.
+			continue
+		}
+		current := false
 		h.each(settings, ev, func(command string) {
+			installed++
 			if command == h.command(ev) {
-				if state == "missing" {
-					state = "current"
-				}
+				current = true
 			} else {
-				state = "outdated"
+				stale = true
 			}
 		})
+		if !current {
+			// An event hyla's hooks run on, which has none: an install of
+			// another version's, as before the subagents' events.
+			stale = true
+		}
 	}
-	return state
+	switch {
+	case installed == 0:
+		return "missing"
+	case stale:
+		return "outdated"
+	}
+	return "current"
 }
 
 // each calls fn with the command of each of hyla's hooks on an event.
@@ -304,7 +384,7 @@ func (h agentHook) edit(add bool) error {
 		return fmt.Errorf("%s: hooks: %w", proto.ShortDir(h.file), err)
 	}
 	changed := false
-	for _, ev := range events {
+	for _, ev := range h.events() {
 		o, err := h.editEvent(hooks, ev, add)
 		if err != nil {
 			return err

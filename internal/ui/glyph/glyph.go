@@ -67,6 +67,9 @@ var (
 	CPU         = Drawn(`<rect x="2.5" y="2.5" width="11" height="11" rx="2.5"/><rect x="5.75" y="5.75" width="4.5" height="4.5" rx="1"/><path d="M6 1v1.5M10 1v1.5M6 13.5V15M10 13.5V15M1 6h1.5M1 10h1.5M13.5 6H15M13.5 10H15"/>`)
 	Archive     = Drawn(`<rect x="2" y="3" width="12" height="3" rx="1"/><path d="M3 6v6.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6M6.5 9h3"/>`)
 	Sort        = Drawn(`<path d="M3 4.5h9M3 8h6M3 11.5h3"/><path d="M12 4.5v7M9.5 9 12 11.5 14.5 9"/>`)
+	// Subagents is an agent and the two works it gave: a tree of dots, as
+	// the side panel's Subagents view shows them.
+	Subagents = Drawn(`<circle cx="8" cy="3" r="1.9"/><circle cx="3.6" cy="12.6" r="1.9"/><circle cx="12.4" cy="12.6" r="1.9"/><path d="M7.2 4.7 4.4 10.9M8.8 4.7l2.8 6.2"/>`)
 	// The sidebar's Collapse All and Expand All: each group's chevron, on
 	// the lines they fold.
 	FoldAll   = Drawn(`<path d="M2.5 4h11M2.5 8h5M2.5 12h5"/><path d="M11 6.5 13.5 9 11 11.5"/>`)

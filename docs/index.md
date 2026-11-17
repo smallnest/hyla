@@ -25,6 +25,7 @@ Quitting Hyla (<kbd>⌘</kbd> <kbd>Q</kbd>) leaves your sessions running. To end
 ## More than a terminal
 
 - **[Files](./files.md)** in the side panel: look at a file, or drag it into a pane, without leaving the window.
+- **[Subagents](./subagents.md)**: the agents a coding agent gave its work to, what each was asked, and the step it runs now.
 - **[Drag & drop](./drops.md)**: files into panes, panes onto panes, folders onto the sidebar.
 - **[Remote machines](./remote.md)**: SSH, WSL, a Kubernetes pod or another Hyla, listed beside your own sessions.
 - **[Hyla Pocket](./pocket.md)**: the same sessions on an Android phone.

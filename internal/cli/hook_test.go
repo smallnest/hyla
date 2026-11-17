@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -92,7 +93,7 @@ func TestHookReplacesOutdated(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := read(t, h.file)
-	if strings.Contains(got, "/old/hyla") || strings.Count(got, "hook claude") != 1 {
+	if strings.Contains(got, "/old/hyla") || strings.Count(got, "hook claude") != 3 {
 		t.Fatalf("after install:\n%s", got)
 	}
 }
@@ -217,5 +218,43 @@ func TestTranscriptAnswer(t *testing.T) {
 	}
 	if got := transcriptAnswer("claude", "s-2"); got != "" {
 		t.Errorf("a session without a transcript answers %q", got)
+	}
+}
+
+// An install of an older Hyla, whose hooks ran on the session's start and a
+// turn's end alone, is outdated: setup adds the subagents' events, which the
+// Subagents view reads. Codex, whose hooks run on the session's start alone,
+// is current with that one.
+func TestHookStateSubagents(t *testing.T) {
+	h := testHook(t, "")
+	start, stop := h.command("SessionStart"), h.command("Stop")
+	old := `{"hooks": {"SessionStart": [{"hooks": [{"type": "command", "command": ` + strconv.Quote(start) +
+		`, "timeout": 10}]}], "Stop": [{"hooks": [{"type": "command", "command": ` + strconv.Quote(stop) + `, "timeout": 10}]}]}}`
+	if err := os.WriteFile(h.file, []byte(old), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if st := h.state(); st != "outdated" {
+		t.Fatalf("state %s before install, want outdated", st)
+	}
+	if err := h.install(); err != nil {
+		t.Fatal(err)
+	}
+	if st := h.state(); st != "current" {
+		t.Fatalf("state %s after install", st)
+	}
+	got := read(t, h.file)
+	for _, ev := range []string{"SubagentStart", "SubagentStop"} {
+		if !strings.Contains(got, `"`+ev+`"`) {
+			t.Errorf("no %s in:\n%s", ev, got)
+		}
+	}
+
+	codex := agentHook{"codex", filepath.Join(t.TempDir(), "hooks.json")}
+	one := `{"hooks": {"SessionStart": [{"hooks": [{"type": "command", "command": ` + strconv.Quote(codex.command("SessionStart")) + `, "timeout": 10}]}]}}`
+	if err := os.WriteFile(codex.file, []byte(one), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if st := codex.state(); st != "current" {
+		t.Fatalf("codex state %s", st)
 	}
 }

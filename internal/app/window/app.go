@@ -48,6 +48,7 @@ import (
 	"hyla/internal/ui/sidebar"
 	"hyla/internal/ui/sidebarview"
 	"hyla/internal/ui/style"
+	"hyla/internal/ui/subagentsview"
 	"hyla/internal/ui/theme"
 	"hyla/internal/ui/timelineview"
 	"hyla/internal/ui/webpane"
@@ -267,6 +268,9 @@ type App struct {
 	Timelines    map[string]*timelineview.Info
 	TimelineWin  *mygo.Window
 	TimelineMark string
+	// Subagents is what the side panel's Subagents view shows, of the
+	// session it shows (subagents.go).
+	Subagents *subagentsview.Info
 
 	// quitting is set while the quit quit-ends-sessions makes ends the
 	// sessions, either while it asks or once its answer does.

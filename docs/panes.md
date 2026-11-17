@@ -88,7 +88,7 @@ A timeline pane shows what the coding agent in another pane did, turn by turn: e
 
 It splits beside the pane you are in and shows that pane's agent, and it stays with that agent: split another timeline beside the agent you want to watch. It splits, zooms, moves and closes like any other pane, and comes back beside its pane when Hyla restarts. Ask for a pane's timeline again and Hyla puts you in the one it made instead of splitting a second.
 
-Hyla reads Claude Code's, Codex's, DeepSeek Harness's and OpenCode's records, beside the agent's conversation. OpenCode keeps its conversations in a database of its own, which Hyla opens read only, so a running agent goes on writing it. A pane that runs no agent Hyla reads says so in place of the turns. The same turns fold into the Info view's Timeline card; `hyla do timeline.window` shows them in a window of its own, for another screen.
+Hyla reads Claude Code's, Codex's, DeepSeek Harness's and OpenCode's records, beside the agent's conversation. OpenCode keeps its conversations in a database of its own, which Hyla opens read only, so a running agent goes on writing it. A pane that runs no agent Hyla reads says so in place of the turns. The same turns fold into the Info view's Timeline card; `hyla do timeline.window` shows them in a window of its own, for another screen. The agents an agent gave its work to have a [view of their own](./subagents.md).
 
 From a shell, or an agent, `hyla do timeline.open` splits one.
 

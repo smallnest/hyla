@@ -125,6 +125,8 @@ func (a *App) run(id string, args map[string]string) {
 		a.toggleSide(sideFiles)
 	case "info.toggle":
 		a.toggleSide(sideInfo)
+	case "subagents.toggle":
+		a.toggleSide(sideSubagents)
 	case "pet.toggle":
 		a.settingsIn.Pet = !a.settingsIn.Pet
 		a.applySettings(a.settingsIn)

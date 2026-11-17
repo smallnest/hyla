@@ -8280,6 +8280,76 @@ func (msgs Messages) SideInfo() string {
 	return Catalog.Format(msgs.locale, "sideInfo", nil)
 }
 
+// SideSubagents says "Subagents"
+// in the language the app shows.
+func SideSubagents() string { return In(i18n.Locale()).SideSubagents() }
+
+// SideSubagents says "Subagents"
+// in the language of msgs.
+func (msgs Messages) SideSubagents() string {
+	return Catalog.Format(msgs.locale, "sideSubagents", nil)
+}
+
+// SubagentsAgent says "subagent"
+// in the language the app shows.
+func SubagentsAgent() string { return In(i18n.Locale()).SubagentsAgent() }
+
+// SubagentsAgent says "subagent"
+// in the language of msgs.
+func (msgs Messages) SubagentsAgent() string {
+	return Catalog.Format(msgs.locale, "subagentsAgent", nil)
+}
+
+// SubagentsRunning says "{n} running"
+// in the language the app shows.
+func SubagentsRunning(n string) string { return In(i18n.Locale()).SubagentsRunning(n) }
+
+// SubagentsRunning says "{n} running"
+// in the language of msgs.
+func (msgs Messages) SubagentsRunning(n string) string {
+	return Catalog.Format(msgs.locale, "subagentsRunning", map[string]any{"n": n})
+}
+
+// SubagentsDone says "{n} done"
+// in the language the app shows.
+func SubagentsDone(n string) string { return In(i18n.Locale()).SubagentsDone(n) }
+
+// SubagentsDone says "{n} done"
+// in the language of msgs.
+func (msgs Messages) SubagentsDone(n string) string {
+	return Catalog.Format(msgs.locale, "subagentsDone", map[string]any{"n": n})
+}
+
+// SubagentsEmpty says "No subagents"
+// in the language the app shows.
+func SubagentsEmpty() string { return In(i18n.Locale()).SubagentsEmpty() }
+
+// SubagentsEmpty says "No subagents"
+// in the language of msgs.
+func (msgs Messages) SubagentsEmpty() string {
+	return Catalog.Format(msgs.locale, "subagentsEmpty", nil)
+}
+
+// SubagentsWait says "Reading the agents' records…"
+// in the language the app shows.
+func SubagentsWait() string { return In(i18n.Locale()).SubagentsWait() }
+
+// SubagentsWait says "Reading the agents' records…"
+// in the language of msgs.
+func (msgs Messages) SubagentsWait() string {
+	return Catalog.Format(msgs.locale, "subagentsWait", nil)
+}
+
+// SubagentsDown says "Hyla cannot read the subagents"
+// in the language the app shows.
+func SubagentsDown() string { return In(i18n.Locale()).SubagentsDown() }
+
+// SubagentsDown says "Hyla cannot read the subagents"
+// in the language of msgs.
+func (msgs Messages) SubagentsDown() string {
+	return Catalog.Format(msgs.locale, "subagentsDown", nil)
+}
+
 // SideChat says "Chat"
 // in the language the app shows.
 func SideChat() string { return In(i18n.Locale()).SideChat() }
@@ -8358,6 +8428,16 @@ func ActionToggleInfo() string { return In(i18n.Locale()).ActionToggleInfo() }
 // in the language of msgs.
 func (msgs Messages) ActionToggleInfo() string {
 	return Catalog.Format(msgs.locale, "actionToggleInfo", nil)
+}
+
+// ActionToggleSubagents says "Show/Hide Subagents"
+// in the language the app shows.
+func ActionToggleSubagents() string { return In(i18n.Locale()).ActionToggleSubagents() }
+
+// ActionToggleSubagents says "Show/Hide Subagents"
+// in the language of msgs.
+func (msgs Messages) ActionToggleSubagents() string {
+	return Catalog.Format(msgs.locale, "actionToggleSubagents", nil)
 }
 
 // InfoOpenEditor says "Open in {editor}"

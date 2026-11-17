@@ -84,6 +84,9 @@ type pane struct {
 	pocketAway chan struct{}
 	// bg is the command the session runs without a terminal (background.go).
 	bg *background
+	// subs are the subagents the pane's agent gave its work to, by their
+	// ids, as its hook tells them (subagents.go).
+	subs map[string]proto.Subagent
 }
 
 // headless connects the daemon's emulator to the program: it reads

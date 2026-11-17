@@ -99,9 +99,13 @@ type Daemon struct {
 	viewed atomic.Pointer[string]
 	// theme is the colors of the client that last told them, which the
 	// panes answer programs' questions about the colors with.
-	theme    atomic.Pointer[terminal.Theme]
-	git      *gitFollow
-	convs    convStore
+	theme atomic.Pointer[terminal.Theme]
+	git   *gitFollow
+	convs convStore
+	// subsMu guards subsSeen, the subagents read from the records of the
+	// agents that keep them, by the file (subagents.go).
+	subsMu   sync.Mutex
+	subsSeen map[string]subsRead
 	net      *listeners
 	changeCh chan struct{}
 	saveCh   chan struct{}

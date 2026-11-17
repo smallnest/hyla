@@ -95,6 +95,7 @@ var titles = map[string]func() string{
 	"changes.toggle":      locales.ActionToggleChanges,
 	"files.toggle":        locales.ActionToggleFiles,
 	"info.toggle":         locales.ActionToggleInfo,
+	"subagents.toggle":    locales.ActionToggleSubagents,
 	"text.bigger":         locales.ActionBigger,
 	"text.smaller":        locales.ActionSmaller,
 	"text.reset":          locales.ActionActualSize,

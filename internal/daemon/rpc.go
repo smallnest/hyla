@@ -460,6 +460,20 @@ func (d *Daemon) call(c *controlConn, method string, raw json.RawMessage) (any, 
 		}
 		return d.timelineOf(p)
 
+	case "subagents.get":
+		var p proto.SubagentsParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return d.subagentsOf(p)
+
+	case "pane.subagent":
+		var p proto.SubagentParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return d.subagentSet(p)
+
 	case "pane.agentSession":
 		var p proto.AgentSessionParams
 		if err := decode(&p); err != nil {
