@@ -65,6 +65,7 @@ var All = []Action{
 	{ID: "files.toggle", Title: "Toggle Files", Menu: "View", Keys: "CmdOrCtrl+Alt+F", Remote: true},
 	{ID: "info.toggle", Title: "Toggle Info", Menu: "View", Keys: "CmdOrCtrl+Alt+I", Remote: true},
 	{ID: "subagents.toggle", Title: "Toggle Subagents", Menu: "View", Keys: "CmdOrCtrl+Alt+A", Remote: true},
+	{ID: "subagents.window", Title: "New Subagents Window", Menu: "View"},
 	{ID: "pet.toggle", Title: "Toggle Hyla", Menu: "View", Keys: "CmdOrCtrl+Shift+K"},
 	{ID: "text.bigger", Title: "Bigger", Menu: "View", Keys: "CmdOrCtrl+=", Remote: true},
 	{ID: "text.smaller", Title: "Smaller", Menu: "View", Keys: "CmdOrCtrl+-", Remote: true},

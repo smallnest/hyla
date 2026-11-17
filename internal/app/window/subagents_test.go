@@ -92,9 +92,38 @@ func TestViewMenuSubagents(t *testing.T) {
 	mygo.Use(updater.Plugin)
 	a := testApp(t)
 	m := a.Menu()
-	for _, id := range []string{"subagents.toggle", "info.toggle", "files.toggle", "changes.toggle"} {
+	for _, id := range []string{"subagents.toggle", "subagents.window", "info.toggle", "files.toggle", "changes.toggle"} {
 		if m.ItemByID(id) == nil {
 			t.Errorf("no %s in the menus", id)
 		}
+	}
+}
+
+// TestSubagentsWindowDemo lays out the subagents' window, for a look at it
+// with HYLA_SHOTS: the session's name above the view, whole.
+func TestSubagentsWindowDemo(t *testing.T) {
+	a := subagentsDemo(t)
+	tt := ui.NewTester(a.subagentsWindow, 560, 720)
+	for i := 0; i < 30 && tt.FramePending(); i++ {
+		tt.Frame()
+		tt.Advance(time.Second)
+	}
+	tt.Frame()
+	shot(t, tt, "subagents-window")
+	for _, want := range []string{"demo", "Explore", "Look through the store's tests", "Write the changelog"} {
+		if _, ok := tt.Find(want); !ok {
+			t.Errorf("no %q in the window", want)
+		}
+	}
+}
+
+// A window with no session says so, rather than show an empty view.
+func TestSubagentsWindowNoSession(t *testing.T) {
+	a := testApp(t)
+	a.Selected = ""
+	tt := ui.NewTester(a.subagentsWindow, 560, 720)
+	tt.Frame()
+	if _, ok := tt.Find(locales.SubagentsNoSession()); !ok {
+		t.Error("the window says nothing of the session it has not")
 	}
 }

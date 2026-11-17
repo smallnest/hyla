@@ -13,6 +13,8 @@ Press <kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>A</kbd> (<kbd>Ctrl</kbd> <kbd>Alt</kbd>
 
 `hyla do subagents.toggle` opens it from a shell.
 
+**View › New Subagents Window** (`hyla do subagents.window`) opens the same view in a window of its own, for another screen: the window follows the selected session, and its header names it. Unlike the side panel's, it takes no room from the panes.
+
 ## What it shows
 
 The line at the top counts what runs and what has ended. Below it, each pane whose agent gave work away shows its subagents:

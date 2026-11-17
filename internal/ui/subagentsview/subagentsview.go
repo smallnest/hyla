@@ -52,41 +52,61 @@ type Info struct {
 	Err     string
 }
 
-// Side draws the Subagents view of a session: a line of what its agents'
-// subagents do, then the panes that have any, each with its subagents.
+// Side draws the Subagents view of a session, in the side panel.
 func Side(x App, c *ui.Context, pal *theme.Palette, s *proto.Session) {
 	st := InfoOf(x, s)
 	tickRead(x, c, st, s)
 	ui.Scroll(c.Key("subagents")).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
-		ui.Column(c).Padding(6, 10, 8, 10).AlignItems(ui.Stretch).Gap(2).Children(func() {
-			if st.Err != "" {
-				info.Empty(c, pal, st.Err)
-				return
-			}
-			res := st.Res
-			if res == nil {
-				info.Empty(c, pal, locales.SubagentsWait())
-				return
-			}
-			running, done, failed := counts(res)
-			ui.Text(c, locales.SubagentsRunning(strconv.Itoa(running))+" · "+locales.SubagentsDone(strconv.Itoa(done+failed))).
-				FontSize(11.5).TextColor(pal.TextFaint).FontFeatures("tnum").Padding(2, 4, 6, 4)
-			if len(res.Panes) == 0 {
-				info.Empty(c, pal, locales.SubagentsEmpty())
-				return
-			}
-			for _, ps := range res.Panes {
-				paneHead(c, pal, s, ps)
-				// An agent whose records Hyla does not read says so.
-				if ps.Note != "" {
-					info.Empty(c, pal, ps.Note)
-					continue
-				}
-				for i, sb := range ps.Subs {
-					subagentRow(x, c, pal, s, ps, i, sb, res.Read)
-				}
-			}
+		list(x, c, pal, s, st)
+	})
+}
+
+// Window draws the Subagents view in a window of its own, as the menu
+// opens one for another screen: the same view, of the session the window
+// follows, on the card the window's lists stand on.
+func Window(x App, c *ui.Context, pal *theme.Palette, s *proto.Session) {
+	st := InfoOf(x, s)
+	tickRead(x, c, st, s)
+	ui.Scroll(c.Key("subagents-window")).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
+		ui.Column(c).Padding(8, 16, 16, 16).AlignItems(ui.Stretch).Children(func() {
+			ui.Column(c).Radius(12).Background(pal.Chip).Clip().Children(func() {
+				list(x, c, pal, s, st)
+			})
 		})
+	})
+}
+
+// list is what the view shows: a line of what the agents' subagents do,
+// then the panes that have any, each with its subagents.
+func list(x App, c *ui.Context, pal *theme.Palette, s *proto.Session, st *Info) {
+	ui.Column(c).Padding(6, 10, 8, 10).AlignItems(ui.Stretch).Gap(2).Children(func() {
+		if st.Err != "" {
+			info.Empty(c, pal, st.Err)
+			return
+		}
+		res := st.Res
+		if res == nil {
+			info.Empty(c, pal, locales.SubagentsWait())
+			return
+		}
+		running, done, failed := counts(res)
+		ui.Text(c, locales.SubagentsRunning(strconv.Itoa(running))+" · "+locales.SubagentsDone(strconv.Itoa(done+failed))).
+			FontSize(11.5).TextColor(pal.TextFaint).FontFeatures("tnum").Padding(2, 4, 6, 4)
+		if len(res.Panes) == 0 {
+			info.Empty(c, pal, locales.SubagentsEmpty())
+			return
+		}
+		for _, ps := range res.Panes {
+			paneHead(c, pal, s, ps)
+			// An agent whose records Hyla does not read says so.
+			if ps.Note != "" {
+				info.Empty(c, pal, ps.Note)
+				continue
+			}
+			for i, sb := range ps.Subs {
+				subagentRow(x, c, pal, s, ps, i, sb, res.Read)
+			}
+		}
 	})
 }
 

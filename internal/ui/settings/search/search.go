@@ -170,6 +170,7 @@ var ActionWords = map[string]string{
 	"changes.toggle":       "git diff branch panel changes",
 	"files.toggle":         "file tree browser folder explore panel",
 	"subagents.toggle":     "subagent subagents delegated parallel agent panel show hide",
+	"subagents.window":     "subagent subagents delegated parallel agent window screen monitor",
 	"text.bigger":          "zoom in font size larger increase text",
 	"text.smaller":         "zoom out font size decrease text",
 	"text.reset":           "zoom reset font size default text",

@@ -127,6 +127,8 @@ func (a *App) run(id string, args map[string]string) {
 		a.toggleSide(sideInfo)
 	case "subagents.toggle":
 		a.toggleSide(sideSubagents)
+	case "subagents.window":
+		a.openSubagentsWindow()
 	case "pet.toggle":
 		a.settingsIn.Pet = !a.settingsIn.Pet
 		a.applySettings(a.settingsIn)
