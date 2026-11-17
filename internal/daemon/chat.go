@@ -44,6 +44,11 @@ func (d *Daemon) chatOf(p proto.ChatParams) (proto.Chat, error) {
 			dir = pdir.Dir
 		}
 	}
+	// A pane that runs its agent without a terminal, as a Feishu chat's
+	// does, names no agent: its conversation's id says which one.
+	if agent == "" && conv != "" {
+		agent, _ = timeline.FindConv(conv)
+	}
 	now := time.Now()
 	out := proto.Chat{Session: p.Session, Pane: pane, Agent: agent, Read: now.UnixMilli()}
 	if pn != nil {

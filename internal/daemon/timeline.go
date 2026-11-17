@@ -26,6 +26,11 @@ func (d *Daemon) timelineOf(p proto.TimelineParams) (proto.Timeline, error) {
 			dir = pdir.Dir
 		}
 	}
+	// A pane that runs its agent without a terminal, as a Feishu chat's
+	// does, names no agent: its conversation's id says which one.
+	if agent == "" && conv != "" {
+		agent, _ = timeline.FindConv(conv)
+	}
 	now := time.Now()
 	at := now.UnixMilli()
 	t := proto.Timeline{Session: p.Session, Agent: agent, Read: at}

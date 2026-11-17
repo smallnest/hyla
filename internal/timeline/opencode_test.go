@@ -196,3 +196,30 @@ func check(t *testing.T, got, want []string) {
 		}
 	}
 }
+
+// A conversation whose id names it, in a pane that names no agent, is found
+// by the store that keeps it.
+func TestFindConv(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("OPENCODE_DATA_DIR", home)
+	t.Setenv("CLAUDE_CONFIG_DIR", t.TempDir())
+	t.Setenv("CODEX_HOME", t.TempDir())
+	path := filepath.Join(home, "opencode.db")
+	db, err := sql.Open("sqlite", path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	exec(t, db, `create table session (id text primary key, directory text, parent_id text, time_updated integer)`)
+	exec(t, db, `insert into session (id, directory, time_updated) values ('ses_abc', '/tmp/p', 1)`)
+
+	if agent, file := FindConv("ses_abc"); agent != "opencode" || file != path {
+		t.Fatalf("FindConv %q %q, want opencode's store", agent, file)
+	}
+	if agent, _ := FindConv("ses_nonesuch"); agent != "" {
+		t.Errorf("FindConv of a conversation none keeps: %q", agent)
+	}
+	if agent, _ := FindConv(""); agent != "" {
+		t.Errorf("FindConv of no id: %q", agent)
+	}
+}

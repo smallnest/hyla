@@ -28,6 +28,43 @@ func Find(agent, conv, dir string) string {
 	return ""
 }
 
+// FindConv returns the agent, and the records it keeps, of a conversation
+// whose id names it, for a pane that runs its agent without a terminal and
+// names no agent: OpenCode's store, which keeps every conversation under its
+// id, Claude Code's transcript of the id, and Codex's rollout. It returns ""
+// where none keeps it.
+func FindConv(conv string) (agent, file string) {
+	if conv == "" {
+		return "", ""
+	}
+	if db := openCodeDB(); db != "" && keepsOpenCode(db, conv) {
+		return "opencode", db
+	}
+	if p := byID(filepath.Join(claudeHome(), "projects"), conv); p != "" {
+		return "claude", p
+	}
+	if p := codexByID(filepath.Join(codexHome(), "sessions"), conv); p != "" {
+		return "codex", p
+	}
+	return "", ""
+}
+
+// keepsOpenCode tells whether OpenCode's store keeps the conversation the id
+// names.
+func keepsOpenCode(path, conv string) bool {
+	db, err := openStore(path)
+	if err != nil {
+		return false
+	}
+	defer db.Close()
+	v2, err := openCodeV2(db)
+	if err != nil {
+		return false
+	}
+	id, err := openCodeSession(db, v2, conv, "")
+	return err == nil && id == conv
+}
+
 // claudeHome is Claude Code's directory, as its own command reads it.
 func claudeHome() string {
 	if d := os.Getenv("CLAUDE_CONFIG_DIR"); d != "" {
