@@ -135,17 +135,18 @@ func (d *Daemon) recordedSubagents(agent, conv, dir string, now time.Time) []pro
 	if file == "" {
 		return nil
 	}
-	st, err := os.Stat(file)
-	if err != nil {
+	size, mod := fileStamp(file)
+	if size == 0 {
 		return nil
 	}
 	d.subsMu.Lock()
 	seen, ok := d.subsSeen[file]
 	d.subsMu.Unlock()
-	if ok && seen.size == st.Size() && seen.mod == st.ModTime().UnixMilli() {
+	if ok && seen.size == size && seen.mod == mod {
 		return seen.subs
 	}
 	var steps []timeline.Step
+	var err error
 	switch agent {
 	case "dsh":
 		steps, err = timeline.DSHFile(file, now)
@@ -172,7 +173,7 @@ func (d *Daemon) recordedSubagents(agent, conv, dir string, now time.Time) []pro
 	if d.subsSeen == nil {
 		d.subsSeen = map[string]subsRead{}
 	}
-	d.subsSeen[file] = subsRead{size: st.Size(), mod: st.ModTime().UnixMilli(), subs: subs}
+	d.subsSeen[file] = subsRead{size: size, mod: mod, subs: subs}
 	d.subsMu.Unlock()
 	return subs
 }

@@ -85,18 +85,19 @@ func (d *Daemon) chatLines(agent, conv, dir string, now time.Time) ([]proto.Chat
 	if file == "" {
 		return nil, ""
 	}
-	st, err := os.Stat(file)
-	if err != nil {
+	size, mod := fileStamp(file)
+	if size == 0 {
 		return nil, ""
 	}
 	d.chatMu.Lock()
 	seen, ok := d.chatSeen[file]
 	d.chatMu.Unlock()
-	if ok && seen.size == st.Size() && seen.mod == st.ModTime().UnixMilli() {
+	if ok && seen.size == size && seen.mod == mod {
 		return seen.lines, seen.model
 	}
 	var steps []timeline.Step
 	var model string
+	var err error
 	switch agent {
 	case "dsh":
 		steps, err = timeline.DSHFile(file, now)
@@ -116,9 +117,27 @@ func (d *Daemon) chatLines(agent, conv, dir string, now time.Time) ([]proto.Chat
 	if d.chatSeen == nil {
 		d.chatSeen = map[string]chatRead{}
 	}
-	d.chatSeen[file] = chatRead{size: st.Size(), mod: st.ModTime().UnixMilli(), lines: lines, model: model}
+	d.chatSeen[file] = chatRead{size: size, mod: mod, lines: lines, model: model}
 	d.chatMu.Unlock()
 	return lines, model
+}
+
+// fileStamp is what a read of a file's records is kept against: its size,
+// and its time, and those of the files beside it that hold what it has not
+// written into it yet, as SQLite's write-ahead log, which changes while the
+// file itself does not.
+func fileStamp(path string) (size, mod int64) {
+	for _, p := range []string{path, path + "-wal", path + "-shm"} {
+		st, err := os.Stat(p)
+		if err != nil {
+			continue
+		}
+		size += st.Size()
+		if m := st.ModTime().UnixMilli(); m > mod {
+			mod = m
+		}
+	}
+	return size, mod
 }
 
 // chatRead is what a read of a file's records gave, kept until the file
