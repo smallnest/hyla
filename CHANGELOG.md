@@ -4,6 +4,14 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.15.1
+
+- The button that gives a pane's terminal over to a Feishu conversation
+  shows only while a chat drives the pane, and on a pane whose chat shows:
+  a turn that ended leaves nothing to show, and a page, a file, a timeline
+  or the subagents have no terminal for the chat to take. Ordinary
+  panes, which Feishu never drives, no longer offer it at all.
+
 ## 3.15.0
 
 - The side panel has a Subagents view, ⌥⌘A or View › Show/Hide Subagents:
