@@ -989,11 +989,12 @@ func (b *Bot) Prompt(session, text string) error {
 		dir = settings.UserHome()
 	}
 	// An OpenCode turn's words come from its server as it writes them,
-	// which the command's stream reports a step at a time.
-	server := ""
+	// which the command's stream reports a step at a time: its password
+	// goes with the command, as the server asks for one.
+	server, pass := "", ""
 	if agent == "opencode" {
-		if url, _, err := b.openCode(); err == nil {
-			server = url
+		if url, pw, err := b.openCode(); err == nil {
+			server, pass = url, pw
 		}
 	}
 	cmd := b.turnCommand(agent, conv, conv, server, false)
@@ -1013,6 +1014,9 @@ func (b *Bot) Prompt(session, text string) error {
 		if strings.Contains(kv, "=") {
 			params.Env = append(params.Env, kv)
 		}
+	}
+	if pass != "" {
+		params.Env = envWith(params.Env, "OPENCODE_PASSWORD", pass)
 	}
 	return b.api.Call("agent.background", params, nil)
 }
