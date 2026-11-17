@@ -4,6 +4,31 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.16.0
+
+- The Chat view is any agent's conversation, from the records it keeps:
+  what you asked to the right, what the agent wrote and reasoned on the
+  column, its tools with how long each took, a run of tools folded to one
+  row that counts them, and the step that runs now with its length and a
+  Stop. The box at its foot sends a prompt, and names the model that
+  answered. Pane › Toggle Chat, ⌥⌘C, gives a pane the chat in place of
+  its terminal.
+- A pane whose agent runs without a terminal, as a Feishu chat's does,
+  shows its conversation as it opens, and a prompt sent from Hyla runs a
+  turn of that chat: the agent runs in the session's background, as the
+  chat's own messages do, and what it writes shows in the pane. A pane
+  whose chat has not run a turn yet says so.
+- The Chat view keeps its place as you move about, and no longer wears a
+  button for its terminal: Pane › Toggle Chat turns it on and off.
+- The side panel keeps no Subagents tab: the subagents have a pane of
+  their own, Pane › Open Subagents Pane, ⌥⌘S, which shows what the tab
+  did.
+- A pane whose shell exits says so over the last of its screen, with the
+  exit code and the ways out: start it again, or close it.
+- A conversation reads again as the store's write-ahead log changes, so a
+  turn just run, and a prompt just sent, show at once rather than at the
+  next checkpoint of the store.
+
 ## 3.15.1
 
 - The button that gives a pane's terminal over to a Feishu conversation
