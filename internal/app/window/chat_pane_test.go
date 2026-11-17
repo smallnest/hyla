@@ -64,3 +64,28 @@ func TestChatBody(t *testing.T) {
 		}
 	}
 }
+
+// A pane whose agent runs without a terminal, as a Feishu chat's does, shows
+// its conversation from the start, and keeps it closed once the user closes
+// it; a terminal's keeps its terminal.
+func TestOpenChatPanes(t *testing.T) {
+	a := testApp(t)
+	s := a.session("s1")
+	p := &s.Panes[0]
+	p.Agent, p.AgentSessionID = "", "ses_x"
+	a.openChatPanes()
+	if !a.PaneChatMap[p.ID] {
+		t.Error("a pane without a terminal shows no chat")
+	}
+	q := &s.Panes[1]
+	q.Agent, q.AgentSessionID = "claude", "abc"
+	a.openChatPanes()
+	if a.PaneChatMap[q.ID] {
+		t.Error("a terminal's pane opened a chat")
+	}
+	a.PaneChatMap[p.ID] = false
+	a.openChatPanes()
+	if a.PaneChatMap[p.ID] {
+		t.Error("the chat reopened after the user closed it")
+	}
+}

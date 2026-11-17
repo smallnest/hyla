@@ -263,6 +263,10 @@ type App struct {
 	// Timelines is what the Info view shows of the panes' timelines, by
 	// pane (timeline_adapters.go).
 	Timelines map[string]*timelineview.Info
+	// ChatSeeded are the panes whose chat the app opened as it first saw
+	// them: the panes whose agent runs without a terminal, as a Feishu
+	// chat's do (openChatPanes).
+	ChatSeeded map[string]bool
 	// Subagents is what the side panel's Subagents view shows, of the
 	// session it shows (subagents.go), and what a subagents pane shows of
 	// its session (subagents_pane.go).
@@ -417,6 +421,30 @@ func (a *App) EventOf(h *host.Host, cl *client.Client, m proto.Message) {
 }
 
 // TakeStateOf takes a host's state.
+// openChatPanes gives the panes whose agent runs without a terminal, as a
+// Feishu chat's do, their conversation in place of the terminal they have
+// none of: the first time the app sees one, and never again, so that the
+// user who closes it keeps it closed.
+func (a *App) openChatPanes() {
+	if a.ChatSeeded == nil {
+		a.ChatSeeded = map[string]bool{}
+	}
+	for _, s := range a.St.Sessions {
+		for _, p := range s.Panes {
+			if a.ChatSeeded[p.ID] {
+				continue
+			}
+			a.ChatSeeded[p.ID] = true
+			if p.Agent == "" && p.AgentSessionID != "" {
+				if a.PaneChatMap == nil {
+					a.PaneChatMap = map[string]bool{}
+				}
+				a.PaneChatMap[p.ID] = true
+			}
+		}
+	}
+}
+
 func (a *App) TakeStateOf(h *host.Host, st proto.State) {
 	first, hostFirst := !a.Loaded, !h.Loaded
 	h.Loaded = true
@@ -443,6 +471,13 @@ func (a *App) TakeStateOf(h *host.Host, st proto.State) {
 			a.dropTerm(id)
 		}
 	}
+	for id := range a.ChatSeeded {
+		if !live[id] {
+			delete(a.ChatSeeded, id)
+			delete(a.PaneChatMap, id)
+		}
+	}
+	a.openChatPanes()
 	for id := range a.Webs {
 		if !live[id] {
 			a.DropWeb(id)

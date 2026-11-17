@@ -212,11 +212,11 @@ func PaneCard(x App, c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown f
 		return
 	}
 	focused := p.ID == x.FocusOf(s)
-	// A pane the user opened its session's chat in, alone or the zoomed
-	// one, shows the chat in its terminal's place, which sessionPanes lays
-	// out the one card for. Feishu being on alone says nothing: without
-	// the pane's own choice, its session keeps its terminal.
-	chat := focused && x.PaneChat()[p.ID] && (len(s.Zoomed) == 0 || s.Zoomed == p.ID)
+	// A pane the user opened its session's chat in, or one whose agent runs
+	// without a terminal, shows the chat in its terminal's place, which
+	// sessionPanes lays out the one card for. It keeps it as the user moves
+	// about: the chat is the pane's, not the focus's.
+	chat := x.PaneChat()[p.ID] && (len(s.Zoomed) == 0 || s.Zoomed == p.ID)
 	bg := pal.Card
 	// A browser's page stays opaque, so its toolbar does too, and neither
 	// fades: a page is read, not typed into, from beside it.
