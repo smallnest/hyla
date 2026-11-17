@@ -16,3 +16,6 @@ node_modules/
 /.claude/skills/
 /agent/
 /skills-lock.json
+scripts/signing/
+scripts/signing.pw
+.signing/

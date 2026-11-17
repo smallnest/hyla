@@ -15,6 +15,30 @@ build does it with:
 go generate ./internal/buildinfo
 ```
 
+### Signing the macOS app
+
+Hyla has no Apple developer certificate. Its macOS app is signed with a
+self-signed one, whose name `mygo.json` gives as `macos.signingIdentity`
+("Hyla Release Signing"). The Release workflow makes a keychain of the
+secrets `MYGO_SIGNING_P12` and `MYGO_SIGNING_KEY_PASSWORD`, and the app
+it builds carries that signature. Hyla has to keep the same certificate
+for the user to keep the permissions macOS records for Hyla (Screen
+Recording, Accessibility): ad-hoc signed versions are a new app to macOS
+with every update, which forgets them.
+
+`scripts/gen-signing-cert.sh` makes the certificate and its key, in
+`scripts/signing/` and `scripts/signing.pw` for the password, which
+`.gitignore` keeps out of the repository, and prints the secrets. The
+certificate lasts ten years, and the Macs that run Hyla trust it once:
+
+```sh
+sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain scripts/signing/hyla-signing.crt
+```
+
+The Mac that builds locally runs `scripts/sign-macos.sh` once with the
+same secrets, from `scripts/signing.p12` and `scripts/signing.pw`. Then a
+local `go tool mygo build` signs the app as the Release workflow does.
+
 1. Pick the version: a patch (2.1.4 → 2.1.5) for fixes and small
    changes, a minor for features.
 2. Set it in `mygo.json` (`"version"`).
