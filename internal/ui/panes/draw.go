@@ -764,6 +764,9 @@ func paneTerminal(x App, c *ui.Context, pal *theme.Palette, s *proto.Session, p 
 		case term != nil:
 			ref := x.PaneRef(p.ID)
 			terminal.View(c.Key("term"), term).Fill().Bind(ref)
+			if p.Status == proto.Exited {
+				exitedBar(x, c, pal, s, p)
+			}
 			if link, isPath, at := term.HoveredLink(); isPath {
 				x.ImagePeek(p.ID, link, at, ref.Bounds(c))
 			}
@@ -787,6 +790,24 @@ func paneTerminal(x App, c *ui.Context, pal *theme.Palette, s *proto.Session, p 
 			} else {
 				c.After(260 * time.Millisecond)
 			}
+		}
+	})
+}
+
+// exitedBar says, over the last of the pane's screen, that its shell exited,
+// and gives the way to start it again: a dead terminal takes no input, and
+// the screen alone says nothing of what to do.
+func exitedBar(x App, c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane) {
+	ui.Row(c).Absolute().Left(8).Right(8).Bottom(8).MinHeight(34).Radius(10).Padding(0, 10, 0, 12).Gap(8).
+		AlignItems(ui.Center).Background(pal.Popover).Children(func() {
+		ui.Text(c, locales.PaneExited(itoa(p.ExitCode))).FontSize(12).FontWeight(500).TextColor(pal.Text).SingleLine().Shrink(0)
+		ui.Text(c, locales.PaneExitedDetail()).FontSize(11.5).TextColor(pal.TextMuted).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
+		ui.Spacer(c)
+		if style.Button(c, "restart-"+p.ID, locales.CommonRestart(), "", true, pal) {
+			x.RunLater(func() { x.RestartSession(p.ID) })
+		}
+		if style.Button(c, "close-exited-"+p.ID, locales.PaneClose(), "", false, pal) {
+			x.RunLater(func() { ClosePane(x, s, p.ID, false) })
 		}
 	})
 }

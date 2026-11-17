@@ -319,6 +319,7 @@
   "paneHasQuestion": "Has a question",
   "paneNeedsSignIn": "Needs you to sign in",
   "paneExited": "Exited {code}",
+  "paneExitedDetail": "The shell exited: this pane takes no input until it starts again.",
   "@paneExited": {
     "placeholders": {
       "code": {

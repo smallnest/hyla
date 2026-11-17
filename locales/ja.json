@@ -215,6 +215,7 @@
   "paneHasQuestion": "質問があります",
   "paneNeedsSignIn": "サインインが必要です",
   "paneExited": "終了コード {code}",
+  "paneExitedDetail": "シェルが終了しました。再起動するまでこのペインは入力を受け付けません。",
   "paneForegroundTip": "フォアグラウンドで実行中",
   "paneCantShow": "このペインを表示できません",
   "paneAttaching": "接続中",

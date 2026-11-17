@@ -215,6 +215,7 @@
   "paneHasQuestion": "有一个问题",
   "paneNeedsSignIn": "需要你登录",
   "paneExited": "已退出 {code}",
+  "paneExitedDetail": "shell 已退出：重新启动之前，这个 pane 不接受输入。",
   "paneForegroundTip": "正在前台运行",
   "paneCantShow": "无法显示此窗格",
   "paneAttaching": "正在连接",

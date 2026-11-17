@@ -2138,6 +2138,16 @@ func (msgs Messages) PaneExited(code string) string {
 	return Catalog.Format(msgs.locale, "paneExited", map[string]any{"code": code})
 }
 
+// PaneExitedDetail says "The shell exited: this pane takes no input until it starts again."
+// in the language the app shows.
+func PaneExitedDetail() string { return In(i18n.Locale()).PaneExitedDetail() }
+
+// PaneExitedDetail says "The shell exited: this pane takes no input until it starts again."
+// in the language of msgs.
+func (msgs Messages) PaneExitedDetail() string {
+	return Catalog.Format(msgs.locale, "paneExitedDetail", nil)
+}
+
 // PaneForegroundTip says "Running in the foreground"
 // in the language the app shows.
 func PaneForegroundTip() string { return In(i18n.Locale()).PaneForegroundTip() }
