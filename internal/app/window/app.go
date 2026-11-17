@@ -698,6 +698,7 @@ func (a *App) EnsureTerm(id string) {
 	go func() {
 		stream, err := client.AttachVia(dialer, id)
 		if err != nil {
+			appLog("pane %s: attach failed: %v", id, err)
 			a.UpdateNow(func() {
 				if a.Terms[id] == e {
 					e.err = err.Error()
@@ -705,6 +706,7 @@ func (a *App) EnsureTerm(id string) {
 			})
 			return
 		}
+		appLog("pane %s: attached", id)
 		g := &quick.Gated{Stream: stream, Ready: make(chan struct{})}
 		o := a.TermOptions(id, g)
 		// The terminal shows hylad's frames: hylad's terminal is the
@@ -714,6 +716,7 @@ func (a *App) EnsureTerm(id string) {
 		o.ResizeByConn = true
 		term, err := terminal.New(o)
 		if err != nil {
+			appLog("pane %s: its terminal failed: %v", id, err)
 			stream.Close()
 			a.UpdateNow(func() {
 				if a.Terms[id] == e {
@@ -775,15 +778,36 @@ func (a *App) watchTerm(id string, e *termEntry, ended <-chan struct{}) {
 	<-ended
 	a.main(func() {
 		if a.Terms[id] != e {
+			appLog("pane %s: its stream ended, and another terminal had taken its place", id)
 			return
 		}
-		a.dropTerm(id)
+		there := a.termPane(id) != nil
 		// A stream that ended at once ended for a reason attaching again
 		// would meet again: the pane's going, or the daemon's.
-		if a.termPane(id) != nil && time.Since(e.started) >= reattachFloor {
+		again := there && time.Since(e.started) >= reattachFloor
+		appLog("pane %s: its stream ended after %s; the pane is %v, attach again %v",
+			id, time.Since(e.started).Round(time.Millisecond), there, again)
+		a.dropTerm(id)
+		if again {
 			a.EnsureTerm(id)
 		}
 	})
+}
+
+// appLog writes a line to the app's log, $HYLA_HOME/hyla-app.log, for what
+// the code cannot see otherwise, as a pane's terminal that ended: it never
+// fails, and says nothing where the log cannot be written.
+func appLog(format string, args ...any) {
+	path := filepath.Join(proto.Dir(), "hyla-app.log")
+	if st, err := os.Stat(path); err == nil && st.Size() > 1<<20 {
+		os.Remove(path)
+	}
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	fmt.Fprintf(f, "%s %s\n", time.Now().Format("2006-01-02 15:04:05.000"), fmt.Sprintf(format, args...))
 }
 
 // termPane is a pane the app still knows that runs a terminal, nil when it
