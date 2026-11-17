@@ -626,7 +626,11 @@ func PaneControls(x App, c *ui.Context, pal *theme.Palette, s *proto.Session, p 
 		if !show {
 			return
 		}
-		if x.FeishuOn() {
+		// The chat takes a terminal's place, and only a Feishu chat drives
+		// a pane: the turn it drives offers the button while it runs or
+		// waits, as does a pane whose chat shows, the terminal a click
+		// away. The turn over, the button goes.
+		if x.FeishuOn() && (p.FeishuChat() || x.PaneChat()[p.ID]) {
 			if x.PaneChat()[p.ID] {
 				paints.IconButton(c, "chat-toggle", glyph.Terminal, x.Tip(locales.ActionShowTerminal(), "pane.chat"), pal, func() { hidePaneChat(x, s, p.ID) })
 			} else {

@@ -55,3 +55,24 @@ func TestDirName(t *testing.T) {
 		t.Errorf("pane named %q", got)
 	}
 }
+
+// A pane is a Feishu chat's while the turn it drives runs or waits on the
+// user, and no longer once it ends: the answer file it was given stays,
+// for the chat's feed.
+func TestFeishuChat(t *testing.T) {
+	for _, c := range []struct {
+		pane Pane
+		want bool
+	}{
+		{Pane{Status: Working}, false},
+		{Pane{Status: Working, FeishuAnswer: "/a/dir"}, true},
+		{Pane{Status: Waiting, FeishuAnswer: "/a/dir"}, true},
+		{Pane{Status: Idle, FeishuAnswer: "/a/dir"}, false},
+		{Pane{Status: Failed, FeishuAnswer: "/a/dir"}, false},
+		{Pane{Status: Exited, FeishuAnswer: "/a/dir"}, false},
+	} {
+		if got := c.pane.FeishuChat(); got != c.want {
+			t.Errorf("%+v: FeishuChat %v, want %v", c.pane, got, c.want)
+		}
+	}
+}
