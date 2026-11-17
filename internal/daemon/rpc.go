@@ -460,6 +460,13 @@ func (d *Daemon) call(c *controlConn, method string, raw json.RawMessage) (any, 
 		}
 		return d.timelineOf(p)
 
+	case "chat.send":
+		var p proto.ChatSendParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return d.chatSend(p)
+
 	case "chat.get":
 		var p proto.ChatParams
 		if err := decode(&p); err != nil {

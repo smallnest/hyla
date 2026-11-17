@@ -25,7 +25,7 @@ import (
 type fakeHylad struct {
 	mu    sync.Mutex
 	chat  proto.Chat
-	sends []proto.SendParams
+	sends []proto.ChatSendParams
 	chats proto.FeishuChats
 	sent  []proto.FeishuSend
 	seen  int
@@ -68,9 +68,17 @@ func (f *fakeHylad) answer(req proto.Request) proto.Message {
 		var p proto.SendParams
 		b, _ := json.Marshal(req.Params)
 		json.Unmarshal(b, &p)
-		f.sends = append(f.sends, p)
 		if f.prog != nil {
 			f.prog.Write([]byte(p.Data))
+		}
+		res = true
+	case "chat.send":
+		var p proto.ChatSendParams
+		b, _ := json.Marshal(req.Params)
+		json.Unmarshal(b, &p)
+		f.sends = append(f.sends, p)
+		if f.prog != nil {
+			f.prog.Write([]byte(p.Text + "\r"))
 		}
 		res = true
 	case "feishu.chats":

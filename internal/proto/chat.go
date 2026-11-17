@@ -16,16 +16,19 @@ type ChatParams struct {
 // pane's agent keeps none Hyla reads. Read is unix ms, when hylad read the
 // records.
 type Chat struct {
-	Session string     `json:"session"`
-	Pane    string     `json:"pane,omitempty"`
-	Agent   string     `json:"agent,omitempty"`
-	Read    int64      `json:"read"`
-	Model   string     `json:"model,omitempty"`
-	// Input tells that the pane takes a prompt typed here: a pane that
-	// runs no terminal, as a chat's does, takes none.
-	Input bool `json:"input,omitempty"`
-	Lines   []ChatLine `json:"lines,omitempty"`
-	Note    string     `json:"note,omitempty"`
+	Session string `json:"session"`
+	Pane    string `json:"pane,omitempty"`
+	Agent   string `json:"agent,omitempty"`
+	Read    int64  `json:"read"`
+	Model   string `json:"model,omitempty"`
+	// Input tells that the pane takes a prompt typed into its terminal,
+	// and Turn that a chat drives the pane, whose prompt runs a turn of
+	// the agent without one: a pane has neither when nothing can take a
+	// prompt.
+	Input bool       `json:"input,omitempty"`
+	Turn  bool       `json:"turn,omitempty"`
+	Lines []ChatLine `json:"lines,omitempty"`
+	Note  string     `json:"note,omitempty"`
 }
 
 // A chat line's kind, as Chat's lines name it.
@@ -50,4 +53,13 @@ type ChatLine struct {
 	Start  int64  `json:"start"`         // unix ms
 	End    int64  `json:"end,omitempty"` // unix ms, 0 while it runs
 	State  string `json:"state,omitempty"`
+}
+
+// ChatSendParams asks for a prompt to a pane's agent (chat.send): one typed
+// into its terminal where it runs one, else a turn of the chat that drives
+// it.
+type ChatSendParams struct {
+	Session string `json:"session"`
+	Pane    string `json:"pane,omitempty"`
+	Text    string `json:"text"`
 }

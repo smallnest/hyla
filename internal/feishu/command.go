@@ -946,3 +946,73 @@ func newUUID() string {
 	u[8] = u[8]&0x3f | 0x80
 	return fmt.Sprintf("%x-%x-%x-%x-%x", u[0:4], u[4:6], u[6:8], u[8:10], u[10:16])
 }
+
+// Prompt runs a prompt as a turn of a session's own, for a session whose
+// agent runs without a terminal, as a chat's does: the agent's command runs
+// in the session's background, as the chat's turns do, and the chat windows
+// read what it wrote. It returns why it could not start one.
+func (b *Bot) Prompt(session, text string) error {
+	s, err := b.session(session)
+	if err != nil {
+		return err
+	}
+	pane := paneOf(s)
+	if pane.ID == "" {
+		return fmt.Errorf("session %s has no pane", session)
+	}
+	// The conversation the chat windows read is the one the prompt goes on
+	// with: one no chat has run yet has none, and its first chat turn makes
+	// it.
+	conv := pane.AgentSessionID
+	if conv == "" {
+		return fmt.Errorf("session %s has no conversation yet", session)
+	}
+	agent := pane.Agent
+	bnd := b.bindingOf(bindingKey(b.boundChat(session)))
+	if agent == "" {
+		agent = bnd.Agent
+	}
+	if agent == "" {
+		agent = b.cfg.Agent
+	}
+	if agent == "" || agent == "default" || !knownAgent(agent) {
+		return fmt.Errorf("session %s runs no agent Hyla knows", session)
+	}
+	dir := bnd.Dir
+	if dir == "" {
+		dir = pane.Dir
+	}
+	if dir == "" {
+		dir = b.cfg.Dir
+	}
+	if dir == "" {
+		dir = settings.UserHome()
+	}
+	// An OpenCode turn's words come from its server as it writes them,
+	// which the command's stream reports a step at a time.
+	server := ""
+	if agent == "opencode" {
+		if url, _, err := b.openCode(); err == nil {
+			server = url
+		}
+	}
+	cmd := b.turnCommand(agent, conv, conv, server, false)
+	if cmd == nil {
+		return fmt.Errorf("%s has no command that runs one prompt", agent)
+	}
+	cmd = append(cmd, text)
+	if agent == "claude" {
+		cmd = claudeStream(cmd)
+	}
+	out := b.outFile(session)
+	if agent == "claude" {
+		out, _, _ = proto.AnswerPair(out)
+	}
+	params := proto.BackgroundParams{ID: session, Command: cmd, Dir: dir, Out: out}
+	for _, kv := range b.env {
+		if strings.Contains(kv, "=") {
+			params.Env = append(params.Env, kv)
+		}
+	}
+	return b.api.Call("agent.background", params, nil)
+}

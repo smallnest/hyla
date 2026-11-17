@@ -1,7 +1,9 @@
 package daemon
 
 import (
+	"errors"
 	"os"
+	"strings"
 	"time"
 
 	"hyla/internal/proto"
@@ -53,6 +55,9 @@ func (d *Daemon) chatOf(p proto.ChatParams) (proto.Chat, error) {
 	}
 	now := time.Now()
 	out := proto.Chat{Session: p.Session, Pane: pane, Agent: agent, Read: now.UnixMilli(), Input: takes}
+	// A chat drives a pane that runs no terminal, and runs its prompt as a
+	// turn, once it has a conversation to go on with.
+	out.Turn = !takes && conv != "" && d.feishuBot() != nil
 	if pn != nil {
 		out.Session = pn.sid
 	}
@@ -74,6 +79,40 @@ func (d *Daemon) chatOf(p proto.ChatParams) (proto.Chat, error) {
 		out.Note = locales.InfoTimelineEmpty()
 	}
 	return out, nil
+}
+
+// chatSend sends a prompt to a pane's agent: typed into its terminal where
+// it runs one, else as a turn of the chat that drives it, which runs the
+// agent in the session's background as the chat's own turns do.
+func (d *Daemon) chatSend(p proto.ChatSendParams) (bool, error) {
+	pn := d.findPane(p.Pane)
+	if pn == nil && p.Session != "" {
+		d.mu.Lock()
+		if s := d.findSessionLocked(p.Session); s != nil {
+			pn = focusedLocked(s)
+		}
+		d.mu.Unlock()
+	}
+	if pn == nil {
+		return false, os.ErrNotExist
+	}
+	text := strings.TrimSpace(p.Text)
+	if text == "" {
+		return false, nil
+	}
+	pn.mu.Lock()
+	runs, sid := pn.term != nil && pn.proc != nil, pn.sid
+	pn.mu.Unlock()
+	if runs {
+		pn.input([]byte(text))
+		pn.input([]byte("\r"))
+		return true, nil
+	}
+	b := d.feishuBot()
+	if b == nil {
+		return false, errors.New("no chat drives this session")
+	}
+	return true, b.Prompt(sid, text)
 }
 
 // chatMax is how many lines of a long conversation a pane shows: the end of

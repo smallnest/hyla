@@ -97,11 +97,11 @@ func Body(x App, c *ui.Context, pal *theme.Palette, s *proto.Session, pane strin
 	})
 	switch {
 	case pane == "" || f.Chat.Note != "":
-	case f.Chat.Input:
+	case f.Chat.Input || f.Chat.Turn:
 		composer(x, c, pal, f, pane)
 	default:
-		// A pane that runs no terminal, as a chat's does, takes no prompt
-		// here: the chat drives it, and the prompt goes there.
+		// A pane that takes no prompt, as one whose chat has not run a
+		// turn yet, says so.
 		ui.Text(c, locales.ChatNoInput()).FontSize(11.5).TextColor(pal.TextFaint).
 			TextAlign(ui.Center).Padding(0, 16, 14, 16)
 	}

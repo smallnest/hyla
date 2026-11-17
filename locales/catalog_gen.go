@@ -1546,11 +1546,11 @@ func (msgs Messages) ChatPlaceholder() string {
 	return Catalog.Format(msgs.locale, "chatPlaceholder", nil)
 }
 
-// ChatNoInput says "This session runs without a terminal: its chat drives it, and a prompt goes there."
+// ChatNoInput says "This session takes no prompt here yet: a chat's first turn starts its conversation."
 // in the language the app shows.
 func ChatNoInput() string { return In(i18n.Locale()).ChatNoInput() }
 
-// ChatNoInput says "This session runs without a terminal: its chat drives it, and a prompt goes there."
+// ChatNoInput says "This session takes no prompt here yet: a chat's first turn starts its conversation."
 // in the language of msgs.
 func (msgs Messages) ChatNoInput() string {
 	return Catalog.Format(msgs.locale, "chatNoInput", nil)

@@ -72,30 +72,33 @@ func (a *App) ChatBody(c *ui.Context, pal *theme.Palette, s *proto.Session, p *p
 	chat.Body(a, c, pal, s, p.ID)
 }
 
-// SendPane types a prompt into a pane, and presses Enter: the chat's
-// composer sends the agent its next turn.
+// SendPane sends a prompt to a pane's agent, as the composer does: typed
+// into its terminal where it runs one, else a turn of the chat that drives
+// it.
 func (a *App) SendPane(pane, text string) {
 	h := a.hostOf(pane)
 	if h == nil || h.Client == nil {
 		return
 	}
 	cl := h.Client
-	go func() {
-		if cl.Call("send", proto.SendParams{ID: pane, Data: text}, nil) == nil {
-			cl.Call("send", proto.SendParams{ID: pane, Data: "\r"}, nil)
-		}
-	}()
+	go cl.Call("chat.send", proto.ChatSendParams{Pane: pane, Text: text}, nil)
 }
 
-// StopPane interrupts the program in a pane, as its terminal's interrupt
-// key does: a turn the chat shows as running ends.
+// StopPane stops the turn a pane runs: the program in its terminal, as its
+// interrupt key does, or the chat's turn, which runs without one.
 func (a *App) StopPane(pane string) {
 	h := a.hostOf(pane)
 	if h == nil || h.Client == nil {
 		return
 	}
 	cl := h.Client
-	go cl.Call("send", proto.SendParams{ID: pane, Data: "\x03"}, nil)
+	go func() {
+		// A pane that runs no terminal has no program to interrupt: the
+		// chat's turn is the one to stop.
+		if cl.Call("send", proto.SendParams{ID: pane, Data: "\x03"}, nil) != nil {
+			cl.Call("agent.stop", proto.SessionParams{ID: pane}, nil)
+		}
+	}()
 }
 
 var _ = locales.ChatNothing
