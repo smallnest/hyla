@@ -321,6 +321,15 @@ func run(x App, c *ui.Context, pal *theme.Palette, s *proto.Session, f *Feed, pa
 			running = i
 		}
 	}
+	// The run is a line of the conversation as any other: in the column, as
+	// wide as it.
+	ui.Column(c).AlignSelf(ui.Center).WidthPercent(100).MaxWidth(Width).AlignItems(ui.Stretch).Children(func() {
+		runHead(x, c, pal, s, f, pane, ls, at, key, running, expanded)
+	})
+}
+
+// runHead is a run's row, and the tools under it while it is open.
+func runHead(x App, c *ui.Context, pal *theme.Palette, s *proto.Session, f *Feed, pane string, ls []proto.ChatLine, at []int, key string, running int, expanded bool) {
 	head := ui.Row(c.Key("run-"+key)).Gap(6).AlignItems(ui.Center).Height(28).Padding(0, 8).Radius(6).Cursor(ui.CursorPointer)
 	if head.Hovered() {
 		head.Background(pal.RowHover)

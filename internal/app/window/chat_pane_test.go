@@ -23,6 +23,7 @@ func chatDemo(t *testing.T) *App {
 	const start = int64(1_761_285_600_000)
 	at := func(n int64) int64 { return start + n*1000 }
 	a.PaneChatMap = map[string]bool{p.ID: true}
+	s.Zoomed = p.ID // one pane, as wide as the window: the column floats in it
 	a.Side.Chat.Feeds = map[string]*chat.Feed{"s1": {
 		At: time.Now(), Got: true,
 		Chat: proto.Chat{Session: "s1", Pane: p.ID, Agent: "claude", Read: at(400), Model: "claude-opus-5",
