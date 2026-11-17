@@ -43,6 +43,7 @@ var KeyNames = uisettings.KeyNames
 func Item(a App, id string) *mygo.MenuItem {
 	act, _ := actions.Find(id)
 	return &mygo.MenuItem{
+		ID:          id,
 		Label:       Title(a, id),
 		Accelerator: accelerator(a, act),
 		Click: func(*mygo.MenuItem, *mygo.Window) {
@@ -153,7 +154,7 @@ func Menu(a App) *mygo.Menu {
 			{Label: locales.MenuQuit(), Accelerator: QuitKeys, ToolTip: locales.MenuQuitTip(), Click: func(*mygo.MenuItem, *mygo.Window) { mygo.App.Quit() }},
 			Item(a, "app.quitAll")}}
 	}
-	view := append(Items(a, "View", []string{"sidebar.toggle", "side.toggle", "changes.toggle", "files.toggle", "info.toggle", "pet.toggle"}, []string{"text.bigger", "text.smaller", "text.reset"}, []string{QuickAction}),
+	view := append(Items(a, "View", []string{"sidebar.toggle", "side.toggle", "changes.toggle", "files.toggle", "info.toggle", "subagents.toggle", "pet.toggle"}, []string{"text.bigger", "text.smaller", "text.reset"}, []string{QuickAction}),
 		mygo.Separator(), &mygo.MenuItem{Role: mygo.RoleToggleFullScreen})
 	// The inspector is a development build's: a production build leaves it
 	// out, and its window's DevTools off, where the item would do nothing.

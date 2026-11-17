@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/egoist/mygo"
+	"github.com/egoist/mygo/plugins/updater"
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/proto"
@@ -80,6 +82,19 @@ func TestSubagentsSideNarrow(t *testing.T) {
 	for _, want := range []string{"Explore", "Look through the store's tests", "Write the changelog"} {
 		if _, ok := tt.Find(want); !ok {
 			t.Errorf("no %q in a narrow view", want)
+		}
+	}
+}
+
+// The View menu carries the side panel's views, the Subagents one too: a
+// view no menu opens is one the user cannot find.
+func TestViewMenuSubagents(t *testing.T) {
+	mygo.Use(updater.Plugin)
+	a := testApp(t)
+	m := a.Menu()
+	for _, id := range []string{"subagents.toggle", "info.toggle", "files.toggle", "changes.toggle"} {
+		if m.ItemByID(id) == nil {
+			t.Errorf("no %s in the menus", id)
 		}
 	}
 }
