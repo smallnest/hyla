@@ -8540,16 +8540,6 @@ func (msgs Messages) InfoMagpieDown() string {
 	return Catalog.Format(msgs.locale, "infoMagpieDown", nil)
 }
 
-// InfoTimeline says "Timeline"
-// in the language the app shows.
-func InfoTimeline() string { return In(i18n.Locale()).InfoTimeline() }
-
-// InfoTimeline says "Timeline"
-// in the language of msgs.
-func (msgs Messages) InfoTimeline() string {
-	return Catalog.Format(msgs.locale, "infoTimeline", nil)
-}
-
 // InfoTimelineEmpty says "Nothing yet"
 // in the language the app shows.
 func InfoTimelineEmpty() string { return In(i18n.Locale()).InfoTimelineEmpty() }
@@ -8568,16 +8558,6 @@ func InfoTimelineDown() string { return In(i18n.Locale()).InfoTimelineDown() }
 // in the language of msgs.
 func (msgs Messages) InfoTimelineDown() string {
 	return Catalog.Format(msgs.locale, "infoTimelineDown", nil)
-}
-
-// InfoTimelineTurns says "{n} turns"
-// in the language the app shows.
-func InfoTimelineTurns(n string) string { return In(i18n.Locale()).InfoTimelineTurns(n) }
-
-// InfoTimelineTurns says "{n} turns"
-// in the language of msgs.
-func (msgs Messages) InfoTimelineTurns(n string) string {
-	return Catalog.Format(msgs.locale, "infoTimelineTurns", map[string]any{"n": n})
 }
 
 // InfoTimelineWaiting says "waiting"
@@ -8638,56 +8618,6 @@ func InfoTimelineNoPane() string { return In(i18n.Locale()).InfoTimelineNoPane()
 // in the language of msgs.
 func (msgs Messages) InfoTimelineNoPane() string {
 	return Catalog.Format(msgs.locale, "infoTimelineNoPane", nil)
-}
-
-// InfoAgents says "Agents"
-// in the language the app shows.
-func InfoAgents() string { return In(i18n.Locale()).InfoAgents() }
-
-// InfoAgents says "Agents"
-// in the language of msgs.
-func (msgs Messages) InfoAgents() string {
-	return Catalog.Format(msgs.locale, "infoAgents", nil)
-}
-
-// InfoAgentsDetail says "The logo the sidebar puts before this agent's sessions. Agents Hyla knows wear their makers' own; one it does not kno…"
-// in the language the app shows.
-func InfoAgentsDetail() string { return In(i18n.Locale()).InfoAgentsDetail() }
-
-// InfoAgentsDetail says "The logo the sidebar puts before this agent's sessions. Agents Hyla knows wear their makers' own; one it does not kno…"
-// in the language of msgs.
-func (msgs Messages) InfoAgentsDetail() string {
-	return Catalog.Format(msgs.locale, "infoAgentsDetail", nil)
-}
-
-// InfoAgentsNone says "No coding agent runs in the pane"
-// in the language the app shows.
-func InfoAgentsNone() string { return In(i18n.Locale()).InfoAgentsNone() }
-
-// InfoAgentsNone says "No coding agent runs in the pane"
-// in the language of msgs.
-func (msgs Messages) InfoAgentsNone() string {
-	return Catalog.Format(msgs.locale, "infoAgentsNone", nil)
-}
-
-// InfoAgentsAdd says "Choose Image…"
-// in the language the app shows.
-func InfoAgentsAdd() string { return In(i18n.Locale()).InfoAgentsAdd() }
-
-// InfoAgentsAdd says "Choose Image…"
-// in the language of msgs.
-func (msgs Messages) InfoAgentsAdd() string {
-	return Catalog.Format(msgs.locale, "infoAgentsAdd", nil)
-}
-
-// InfoAgentsRemove says "Remove Logo"
-// in the language the app shows.
-func InfoAgentsRemove() string { return In(i18n.Locale()).InfoAgentsRemove() }
-
-// InfoAgentsRemove says "Remove Logo"
-// in the language of msgs.
-func (msgs Messages) InfoAgentsRemove() string {
-	return Catalog.Format(msgs.locale, "infoAgentsRemove", nil)
 }
 
 // InfoAgentsBadFile says "{file} is not an image Hyla reads: choose a PNG, a JPEG or a WebP."

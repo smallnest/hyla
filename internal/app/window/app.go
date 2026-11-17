@@ -47,7 +47,6 @@ import (
 	"hyla/internal/ui/side"
 	"hyla/internal/ui/sidebar"
 	"hyla/internal/ui/sidebarview"
-	"hyla/internal/ui/style"
 	"hyla/internal/ui/subagentsview"
 	"hyla/internal/ui/theme"
 	"hyla/internal/ui/timelineview"
@@ -287,10 +286,8 @@ func newApp() *App {
 		Refs: map[string]*ui.Handle{}, Focus: map[string]string{}, ArrivedPanes: map[string]bool{}}
 	a.loadPrefs()
 	// The logos the user gave the agents Hyla has none for, as the
-	// sidebar and the Info view draw them, and how the Info view's card
-	// changes them.
+	// sidebar draws them.
 	marks.LoadUserMarks(marks.MarksDir())
-	a.wireLogoHooks()
 	a.settingsIn = settings.Load()
 	remote.SetRelay(a.settingsIn.TailcatRelay)
 	applied.Lock()
@@ -301,23 +298,6 @@ func newApp() *App {
 	a.Selected = a.Prefs.Selected
 	a.Machines = []*host.Host{{Conn: host.StateConnecting}}
 	return a
-}
-
-// wireLogoHooks gives the Info view's Agents card its buttons, and the way
-// a logo the user gives it is kept.
-func (a *App) wireLogoHooks() {
-	marks.Hooks.Button = func(c *ui.Context, key, label string, primary bool) bool {
-		return style.SizedButton(c, key, label, "", primary, 24, 6, theme.For(c))
-	}
-	marks.Hooks.Give = func(agent, path string) {
-		if path == "" {
-			marks.RemoveUserMark(agent)
-			return
-		}
-		// A file that is no image is not taken: the logo the card keeps
-		// drawing says so.
-		_ = marks.SetUserMark(marks.MarksDir(), agent, path)
-	}
 }
 
 func prefsPath() string { return filepath.Join(proto.Dir(), "app.json") }

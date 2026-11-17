@@ -1,15 +1,10 @@
 package window
 
 import (
-	"image"
 	"testing"
-	"time"
-
-	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/proto"
 	"hyla/internal/ui/timelineview"
-	"hyla/locales"
 )
 
 // timelineDemo gives a test app the timeline of a turn that ended and of
@@ -63,21 +58,4 @@ func timelineDemo(t *testing.T) *App {
 		},
 	})
 	return a
-}
-
-// TestInfoTimelineDemo lays out the Info view with the timeline of a
-// running agent, for a look at it with HYLA_SHOTS.
-func TestInfoTimelineDemo(t *testing.T) {
-	a := timelineDemo(t)
-	a.showSide(sideInfo)
-	tt := ui.NewTester(a.view, 1100, 900)
-	for i := 0; i < 30 && tt.FramePending(); i++ {
-		tt.Frame()
-		tt.Advance(time.Second)
-	}
-	tt.Frame()
-	shot(t, tt, "info-timeline")
-	if b, ok := tt.Find(locales.InfoTimeline()); ok {
-		shotCrop(t, tt, b, image.Rect(-8, -8, 360, 400), "info-timeline-card")
-	}
 }

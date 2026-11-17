@@ -1,12 +1,11 @@
-// Package timelineview holds the timeline's card in the Info view and the
-// pane the menu opens: what the pane's coding agent did, turn by turn,
+// Package timelineview holds the timeline pane the menu opens: what the
+// pane's coding agent did, turn by turn,
 // from the records its agent keeps beside its conversation, as hylad
 // reads them.
 package timelineview
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/egoist/mygo/ui"
@@ -26,18 +25,12 @@ const (
 	idle = 30 * time.Second
 )
 
-// App is what the card asks of the app.
+// App is what a timeline asks of the app.
 type App interface {
-	// AgentPane is the pane of the session the user is in, and its agent.
-	AgentPane(s *proto.Session) *proto.Pane
-	// TimelineNow is what the card shows of a pane, and SetTimeline holds
-	// it.
+	// TimelineNow is what a pane's timeline is, and SetTimeline holds it.
 	TimelineNow(pane string) *Info
 	SetTimeline(pane string, st *Info)
-	// SelectedSession is the session the app shows, whose FocusOf is
-	// the pane the user is in, and whose host HostOf is.
-	SelectedSession() *proto.Session
-	FocusOf(s *proto.Session) string
+	// HostOf is the machine a pane runs on.
 	HostOf(id string) *host.Host
 	// Main runs fn on the main thread.
 	Main(fn func())
@@ -47,7 +40,7 @@ type App interface {
 	info.App
 }
 
-// Info is what the Info view shows of a pane's timeline.
+// Info is what a pane's timeline is.
 type Info struct {
 	Pane   string
 	ReadAt time.Time
@@ -56,28 +49,7 @@ type Info struct {
 	Err    string
 }
 
-// timelineGlyph is a line of dots: the turns of a timeline.
-var timelineGlyph = ui.MustParseSVG([]byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 1.5v13"/><circle cx="3.5" cy="4.5" r="1.6" fill="currentColor" stroke="none"/><circle cx="3.5" cy="11.5" r="1.6" fill="currentColor" stroke="none"/></svg>`))
-
-// pane is the pane the card shows: the one the user is in while it runs an
-// agent, else the session's first one that does.
-func pane(a App) *proto.Pane {
-	s := a.SelectedSession()
-	if s == nil {
-		return nil
-	}
-	if p := a.AgentPane(s); p != nil && proto.StartsTimeline(p.Agent) {
-		return p
-	}
-	for i := range s.Panes {
-		if proto.StartsTimeline(s.Panes[i].Agent) {
-			return &s.Panes[i]
-		}
-	}
-	return nil
-}
-
-// InfoOf returns a pane's timeline as the card shows it, made the first
+// InfoOf returns a pane's timeline as the app shows it, made the first
 // time.
 func InfoOf(a App, p *proto.Pane) *Info {
 	st := a.TimelineNow(p.ID)
@@ -139,47 +111,7 @@ func read(a App, st *Info, p *proto.Pane) {
 	}()
 }
 
-// Card draws the timeline's card in the Info view: what a timeline pane
-// shows,
-// of the pane the user is in. A card has no body while no pane runs an
-// agent whose records Hyla reads, and the Info view's button for it
-// shows no card of an agent's but those.
-func Card(a App, c *ui.Context, pal *theme.Palette) {
-	p := pane(a)
-	if p == nil {
-		return
-	}
-	st := InfoOf(a, p)
-	Tick(a, c, st, p)
-	t := st.Timely
-	if t == nil {
-		return
-	}
-	aside := ""
-	if n := len(t.Turns); n > 0 {
-		aside = locales.InfoTimelineTurns(strconv.Itoa(n))
-	}
-	if runs(t) {
-		// What runs has a card that paints again, for its bars to blink.
-		c.After(tick / 3)
-	}
-	info.Card(c, a, pal, info.FoldTimeline, timelineGlyph, locales.InfoTimeline(), aside, func() {
-		switch {
-		case len(t.Turns) == 0 && t.Note != "":
-			info.Empty(c, pal, t.Note)
-		case len(t.Turns) == 0:
-			info.Empty(c, pal, locales.InfoTimelineEmpty())
-		default:
-			turns(c, pal, t, st.Err, shown)
-		}
-	})
-}
-
-// shown is how many turns the card lists, the newest first.
-const shown = 12
-
-// turns lists a timeline's turns, the newest first: all of them in the
-// pane, and the ones the card holds.
+// turns lists a timeline's turns, the newest first: all of them.
 func turns(c *ui.Context, pal *theme.Palette, t *proto.Timeline, down string, most int) {
 	info.Rows(c, func() {
 		n := len(t.Turns)
