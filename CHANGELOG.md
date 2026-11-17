@@ -4,6 +4,22 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.16.1
+
+- Hyla's macOS app is signed with a certificate of Hyla's own now, not
+  ad hoc. macOS records the permissions you grant Hyla, such as Screen
+  Recording and Accessibility, by that signature, and ad-hoc versions
+  lost them with every update. Trust the certificate once, as an
+  administrator, or macOS will not open this version:
+
+  ```sh
+  sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain <the release's Hyla.crt>
+  ```
+
+  The release's notes link the file. Then grant Hyla the permissions
+  once more, in System Settings › Privacy & Security, and the versions
+  after this keep them.
+
 ## 3.16.0
 
 - The Chat view is any agent's conversation, from the records it keeps:

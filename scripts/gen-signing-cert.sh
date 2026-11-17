@@ -93,6 +93,9 @@ administrator:
 
   sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain $out/hyla-signing.crt
 
+The Release workflow uploads the certificate with the app, and runs this
+script's keeping it in the repository: see RELEASING.md.
+
 Then grant Hyla Screen Recording and Accessibility in System Settings ›
 Privacy & Security, once: the versions after it keep them, where
 ad-hoc signed versions lose them with every update.

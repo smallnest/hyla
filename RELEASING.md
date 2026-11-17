@@ -29,7 +29,10 @@ with every update, which forgets them.
 `scripts/gen-signing-cert.sh` makes the certificate and its key, in
 `scripts/signing/` and `scripts/signing.pw` for the password, which
 `.gitignore` keeps out of the repository, and prints the secrets. The
-certificate lasts ten years, and the Macs that run Hyla trust it once:
+certificate alone, `scripts/signing/hyla-signing.crt`, is in the
+repository, and the Release workflow uploads it with the app: keep it
+with every new certificate. It lasts ten years, and the Macs that run
+Hyla trust it once:
 
 ```sh
 sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain scripts/signing/hyla-signing.crt

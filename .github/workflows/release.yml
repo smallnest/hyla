@@ -98,6 +98,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           MYGO_UPDATER_PRIVATE_KEY: ${{ secrets.MYGO_UPDATER_PRIVATE_KEY }}
         run: go tool mygo build -platform "${{ matrix.platform }}" -upload
+      - name: Upload the certificate macOS trusts
+        if: matrix.name == 'macOS'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The app is signed with a certificate Hyla made: each Mac that
+          # runs Hyla trusts it once, and the app opens.
+          gh release upload "v$(jq -r .version mygo.json)" scripts/signing/hyla-signing.crt \
+            --repo "$GITHUB_REPOSITORY" --clobber
 
   # What a release is of passes its tests, as from a branch run by hand.
   test:
