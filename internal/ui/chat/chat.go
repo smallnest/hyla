@@ -17,6 +17,7 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/ui/glyph"
 	"hyla/internal/ui/paints"
+	"hyla/internal/ui/style"
 	"hyla/internal/ui/theme"
 
 	"hyla/locales"
@@ -60,8 +61,15 @@ type Feed struct {
 	// why the last one did not go.
 	Draft   string
 	SendErr string
-	// List is the conversation's place, which follows its end.
+	// List is the conversation's place, which follows its end, and Rail
+	// the handle of the turn rail along its left edge.
 	List ui.ListState
+	Rail ui.Handle
+	// pick is the turn a click on the rail went to, +1 (0 for none),
+	// kept while the rows in view stay where the click left them.
+	pick                int
+	pickWait            bool
+	pickFirst, pickLast int
 }
 
 // App is what the view asks of the app.
@@ -270,6 +278,11 @@ func lines(x App, c *ui.Context, pal *theme.Palette, s *proto.Session, f *Feed, 
 	}
 	f.List.FollowEnd, f.List.FollowAnimation = true, &ui.Smooth
 	its := items(ls)
+	turns := turnsOf(ls, its)
+	leftPad := float32(8)
+	if len(turns) > 0 {
+		leftPad = 28
+	}
 	ui.List(c.Key("chat"), &f.List, len(its), func(i int) {
 		it := its[i]
 		if it.run != nil {
@@ -277,7 +290,133 @@ func lines(x App, c *ui.Context, pal *theme.Palette, s *proto.Session, f *Feed, 
 			return
 		}
 		line(x, c, pal, s, f, pane, it.at, ls[it.at])
-	}).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Padding(18, 16, 12, 8).Gap(10)
+	}).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Padding(18, 16, 12, leftPad).Gap(10)
+	if len(turns) > 0 {
+		rail(c, pal, f, turns)
+	}
+}
+
+// turnMark is a turn of the conversation on the left rail: its row in items,
+// what the user asked, and when it began.
+type turnMark struct {
+	row   int
+	text  string
+	start int64
+}
+
+// turnsOf returns the conversation's turns, one for each prompt the user
+// sent, with the row in items that begins it.
+func turnsOf(ls []proto.ChatLine, its []item) []turnMark {
+	var out []turnMark
+	for row, it := range its {
+		if it.run != nil {
+			continue
+		}
+		l := ls[it.at]
+		if l.Kind != proto.ChatUser {
+			continue
+		}
+		if text := strings.TrimSpace(l.Text); text != "" {
+			out = append(out, turnMark{row: row, text: text, start: l.Start})
+		}
+	}
+	return out
+}
+
+// activeTurn returns the turn the rail marks as the current one, from the
+// rows in view or the tick the user clicked.
+func activeTurn(f *Feed, turns []turnMark) int {
+	first, last := f.List.Visible()
+	atEnd := f.List.AtEnd()
+	if f.pick > 0 {
+		switch {
+		case f.pick > len(turns):
+			f.pick, f.pickWait = 0, false
+		case f.pickWait && last >= first:
+			f.pickWait = false
+			f.pickFirst, f.pickLast = first, last
+		case !f.pickWait && (first != f.pickFirst || last != f.pickLast):
+			f.pick = 0
+		}
+	}
+	if f.pick > 0 {
+		return f.pick - 1
+	}
+	if last < first || atEnd {
+		return len(turns) - 1
+	}
+	for i, t := range turns {
+		if t.row >= first && t.row <= last {
+			return i
+		}
+	}
+	active := 0
+	for i, t := range turns {
+		if t.row <= first {
+			active = i
+		}
+	}
+	return active
+}
+
+// rail is the vertical timeline along the left edge of the chat: one tick for
+// each turn, the current one longer and in the accent, a click scrolling the
+// conversation to that prompt.
+func rail(c *ui.Context, pal *theme.Palette, f *Feed, turns []turnMark) {
+	active := activeTurn(f, turns)
+	idle := pal.Text.Alpha(0.16)
+	if pal.Dark {
+		idle = pal.Text.Alpha(0.20)
+	}
+	anim := ui.Animation{Duration: 120 * time.Millisecond}
+	ui.Column(c.Key("rail-wrap")).Absolute().Left(0).Top(12).Bottom(12).Justify(ui.Center).PassThrough().Children(func() {
+		ui.Column(c.Key("rail")).Padding(4, 0, 4, 5).Shrink(1).MinHeight(0).Clip().Bind(&f.Rail).Children(func() {
+			for i, t := range turns {
+				key := strconv.Itoa(i)
+				tick := ui.Row(c.Key("tick-" + key)).Width(24).Height(8).MinHeight(3).Shrink(1).
+					AlignItems(ui.Center).Cursor(ui.CursorPointer).KeepFocus().Description(oneLine(t.text))
+				if tick.Clicked() {
+					f.pick, f.pickWait = i+1, true
+					active = i
+					f.List.ScrollTo(t.row, ui.Start)
+					c.Invalidate()
+				}
+				on := i == active
+				over := tick.Hovered()
+				w, fg := float32(10), idle
+				switch {
+				case on:
+					w, fg = 18, pal.Accent
+				case over:
+					w, fg = 14, pal.TextMuted
+				}
+				tick.Children(func() {
+					bar := ui.Box(c.Key("bar")).Height(2).Radius(1)
+					bar.Width(bar.AnimateTo("w", w, anim)).Background(bar.AnimateColor("fg", fg, anim))
+				})
+				if over && !tick.Pressed() {
+					turnPreview(c, pal, tick, t)
+				}
+			}
+		})
+	})
+}
+
+// turnPreview shows what the user asked in a turn, beside its tick on the
+// rail while the pointer rests on it.
+func turnPreview(c *ui.Context, pal *theme.Palette, anchor ui.Element, t turnMark) {
+	ui.Overlay(c, func() {
+		card := ui.Row(c.Key("rail-tip")).AttachTo(anchor, ui.AnchorEnd, ui.AnchorStart).MarginStart(4).
+			MaxWidth(320).Padding(6, 10).Gap(8).Radius(8).AlignItems(ui.Center).
+			Background(pal.Popover).PassThrough()
+		style.Raised(card, pal)
+		card.Children(func() {
+			if t.start > 0 {
+				ui.Text(c, time.UnixMilli(t.start).Format("15:04")).FontSize(11).TextColor(pal.TextFaint).FontFeatures("tnum").SingleLine().Shrink(0)
+			}
+			ui.Text(c, short(t.text, 100)).FontSize(12).TextColor(pal.Text).SingleLine().Ellipsis("…").Shrink(1).MinWidth(0)
+		})
+	})
 }
 
 // read tells that a read answered before.

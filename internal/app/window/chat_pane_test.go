@@ -1,6 +1,7 @@
 package window
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -154,5 +155,92 @@ func TestChatSendFails(t *testing.T) {
 	tt.Frame()
 	if _, ok := tt.Find(locales.ChatSendFailed(f.SendErr)); !ok {
 		t.Errorf("the view says nothing of the failure: %v", tt.Texts())
+	}
+}
+
+// The vertical rail on the chat's left edge shows a tick per turn, previews a
+// turn's prompt under the pointer, and scrolls the conversation to the turn a
+// click picks.
+func TestChatTimelineRail(t *testing.T) {
+	a := chatDemo(t)
+	f := a.Side.Chat.Feeds["s1"]
+	const start = int64(1_761_285_600_000)
+	var ls []proto.ChatLine
+	for i := 1; i <= 18; i++ {
+		n := strconv.Itoa(i)
+		t0 := start + int64(i)*60_000
+		ls = append(ls,
+			proto.ChatLine{Kind: proto.ChatUser, Text: "Prompt turn #" + n + ": check the logs and configuration", Start: t0},
+			proto.ChatLine{Kind: proto.ChatAgent, Text: "Answer for turn #" + n + ".\n\nLine two of the response.\n\nLine three of the response.", Start: t0 + 1000, End: t0 + 4000},
+		)
+	}
+	f.Chat.Lines = ls
+
+	var railBox ui.Rect
+	tt := ui.NewTester(func(c *ui.Context) {
+		a.view(c)
+		railBox = f.Rail.Bounds(c)
+	}, 1280, 760)
+	for i := 0; i < 30 && tt.FramePending(); i++ {
+		tt.Frame()
+		tt.Advance(time.Second)
+	}
+	tt.Frame()
+
+	if railBox.W <= 0 || railBox.H <= 0 {
+		t.Fatalf("the turn rail has no bounds: %+v", railBox)
+	}
+	if !tt.HasText("Prompt turn #18") {
+		t.Fatalf("chat did not start at the newest turn: %v", tt.Texts())
+	}
+	if tt.HasText("Prompt turn #1:") {
+		t.Fatalf("oldest turn should be scrolled above view initially")
+	}
+
+	// Hovering the first tick shows its prompt in a preview card without scrolling.
+	firstX := railBox.X + 10
+	firstY := railBox.Y + 4 + 4
+	tt.Move(firstX, firstY)
+	tt.Frame()
+	tt.Advance(150 * time.Millisecond)
+	tt.Frame()
+	shot(t, tt, "chat-rail-hover")
+	if !tt.HasText("Prompt turn #1: check the logs and configuration") {
+		t.Errorf("hovering the first tick did not preview its prompt: %v", tt.Texts())
+	}
+
+	// Clicking the first tick scrolls the chat to the first turn.
+	tt.ClickAt(firstX, firstY)
+	for i := 0; i < 20 && tt.FramePending(); i++ {
+		tt.Frame()
+		tt.Advance(100 * time.Millisecond)
+	}
+	tt.Move(600, 400)
+	tt.Frame()
+	shot(t, tt, "chat-rail-top")
+	if !tt.HasText("Prompt turn #1: check the logs and configuration") {
+		t.Errorf("clicking the first tick did not scroll to turn #1: %v", tt.Texts())
+	}
+	if tt.HasText("Prompt turn #18:") {
+		t.Errorf("newest turn is still in view after jumping to turn #1")
+	}
+
+	// Clicking the last tick returns to the newest turn.
+	lastY := railBox.Y + railBox.H - 4 - 4
+	tt.ClickAt(firstX, lastY)
+	for i := 0; i < 20 && tt.FramePending(); i++ {
+		tt.Frame()
+		tt.Advance(100 * time.Millisecond)
+	}
+	tt.Move(600, 400)
+	tt.Frame()
+	tt.SetDark(true)
+	for i := 0; i < 10 && tt.FramePending(); i++ {
+		tt.Frame()
+		tt.Advance(100 * time.Millisecond)
+	}
+	shot(t, tt, "chat-rail-dark")
+	if !tt.HasText("Prompt turn #18: check the logs and configuration") {
+		t.Errorf("clicking the last tick did not scroll back to turn #18: %v", tt.Texts())
 	}
 }
