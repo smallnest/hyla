@@ -644,6 +644,10 @@ func (s *Stream) Clear(what byte) error {
 	return proto.WriteFrame(s.conn, proto.FrameClear, []byte{what})
 }
 
+// Done is closed when the stream is closed, by either side: the app's
+// Close, or the daemon's, which ends with the connection's.
+func (s *Stream) Done() <-chan struct{} { return s.closed }
+
 func (s *Stream) Close() error {
 	var err error
 	s.once.Do(func() {

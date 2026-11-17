@@ -739,8 +739,62 @@ func (a *App) EnsureTerm(id string) {
 			if a.Selected == id {
 				a.focusTerminal()
 			}
+			// The daemon closes the stream when the pane goes, or takes it
+			// from another client: here the app attaches one again, rather
+			// than leave the terminal at "[Disconnected]", taking no input.
+			go a.watchTerm(id, e, termEnded(term, stream))
 		})
 	}()
+}
+
+// termEnded is a terminal's end, or its stream's: either says that the
+// pane's stream, which the daemon closed, is over.
+func termEnded(term *terminal.Terminal, stream *client.Stream) <-chan struct{} {
+	ended := make(chan struct{})
+	go func() {
+		select {
+		case <-term.Done():
+		case <-stream.Gone:
+		case <-stream.Done():
+		}
+		close(ended)
+	}()
+	return ended
+}
+
+// reattachFloor is how long a terminal had to last for another to take its
+// place when its stream ended.
+const reattachFloor = 250 * time.Millisecond
+
+// watchTerm drops a pane's terminal when its stream ended, and attaches one
+// again while the pane still runs a terminal: a terminal whose stream the
+// daemon closed takes no input, and the screen it shows would stay as it
+// was. The scrollback the terminal kept goes with it, and the pane's screen
+// comes back from hylad, which keeps it.
+func (a *App) watchTerm(id string, e *termEntry, ended <-chan struct{}) {
+	<-ended
+	a.main(func() {
+		if a.Terms[id] != e {
+			return
+		}
+		a.dropTerm(id)
+		// A stream that ended at once ended for a reason attaching again
+		// would meet again: the pane's going, or the daemon's.
+		if a.termPane(id) != nil && time.Since(e.started) >= reattachFloor {
+			a.EnsureTerm(id)
+		}
+	})
+}
+
+// termPane is a pane the app still knows that runs a terminal, nil when it
+// is gone, or shows a page, a file, a timeline or the subagents.
+func (a *App) termPane(id string) *proto.Pane {
+	for i := range a.St.Sessions {
+		if p := a.St.Sessions[i].PaneByID(id); p != nil && !p.Shown() {
+			return p
+		}
+	}
+	return nil
 }
 
 // hereIdle is how long after the user's last input, on the keyboard or
