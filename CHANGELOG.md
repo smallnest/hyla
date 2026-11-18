@@ -4,13 +4,19 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
-## 3.17.4
+## 3.17.5
 
 - A session a Feishu chat drives — one whose agent runs without a terminal
   — shows its conversation, where it showed an empty pane. A pane an agent
   runs in keeps its terminal, and **Toggle Chat** in the command palette
   (⌘P) takes it to the conversation, and back. No menu lists it and no
   shortcut has it.
+- The Info view's folder card leaves opening the pane's folder to Zed: the
+  button that ran `$VISUAL`, `$EDITOR` or vi in a split of its own is gone,
+  and the card keeps **Open in Zed**, **Copy Path** and **Reveal in Finder**.
+- A side panel narrower than the width its names need names the view it
+  shows, as **Info**, and leaves the other views to their icons, whose
+  titles tell, until the panel is wide enough for every name.
 
 ## 3.17.3
 
