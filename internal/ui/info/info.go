@@ -5,9 +5,7 @@ package info
 
 import (
 	"fmt"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -104,7 +102,7 @@ func View(c *ui.Context, x App, pal *theme.Palette, s *proto.Session) {
 func Body(c *ui.Context, x App, pal *theme.Palette, s *proto.Session, p *proto.Pane) {
 	st := paneInfoOf(x, p)
 	ui.Column(c).Padding(8, 12, 12, 12).Gap(8).AlignItems(ui.Stretch).Children(func() {
-		infoDir(c, x, pal, s, x.HostOf(p.ID), p, st)
+		infoDir(c, x, pal, s, p, st)
 		infoProcs(c, x, pal, p, st)
 		infoPorts(c, x, pal, p, st)
 		x.InfoMagpie(c, pal)
@@ -223,7 +221,7 @@ func Value(c *ui.Context, pal *theme.Palette, value string) {
 // infoDir is the Info view's working directory, with what opens it: its
 // own name as the card's title, its parent after, and the ways to it,
 // each a button.
-func infoDir(c *ui.Context, x App, pal *theme.Palette, s *proto.Session, h *host.Host, p *proto.Pane, st *paneinfo.State) {
+func infoDir(c *ui.Context, x App, pal *theme.Palette, s *proto.Session, p *proto.Pane, st *paneinfo.State) {
 	dir := st.Dir
 	if dir == "" {
 		dir = p.WorkDir()
@@ -250,13 +248,6 @@ func infoDir(c *ui.Context, x App, pal *theme.Palette, s *proto.Session, h *host
 					openInZed(dir)
 				})
 			}
-			editor := editorName(h)
-			if editor == "vi" {
-				editor = "Vim"
-			}
-			infoAction(c, x, pal, "editor", locales.InfoOpenEditor(editor), editorGlyph(editor), func() {
-				x.Split(s, proto.CreateParams{Split: p.ID, Direction: "right", Command: host.EditorCommand(h, dir)})
-			})
 			infoAction(c, x, pal, "copy-dir", locales.InfoCopyPath(), glyph.InfoCopy, copyDir)
 			infoAction(c, x, pal, "reveal", locales.InfoReveal(), glyph.Folder, func() { platform.RevealPath(dir) })
 		})
@@ -297,18 +288,6 @@ func splitDir(dir string) (parent, name string) {
 	return dir, ""
 }
 
-// editorGlyph is the logo of the editor the editor button opens, as vim's
-// for vi and nvim.
-func editorGlyph(name string) *ui.SVG {
-	if g := glyph.ProgramIcons[name]; g != nil {
-		return g
-	}
-	if name == "vi" {
-		return glyph.ProgramIcons["vim"]
-	}
-	return glyph.Link
-}
-
 // openInZed opens a folder on this machine in the Zed outside Hyla: Zed's
 // CLI, in a PATH, or else macOS's launch of the app by its bundle id, for
 // a Zed dragged into Applications from a disk image, which installs none.
@@ -326,20 +305,6 @@ func openInZed(dir string) {
 			exec.Command("/usr/bin/open", "-b", "dev.zed.Zed", dir).Run()
 		}
 	}()
-}
-
-// editorName names the editor the editor button opens the directory in:
-// the shell's, $VISUAL or $EDITOR, by its command's name.
-func editorName(h *host.Host) string {
-	if runtime.GOOS != "darwin" {
-		return "vi"
-	}
-	for _, v := range []string{os.Getenv("VISUAL"), os.Getenv("EDITOR")} {
-		if f := strings.Fields(v); len(f) > 0 && f[0] != "" {
-			return filepath.Base(f[0])
-		}
-	}
-	return "vi"
 }
 
 // infoProcs is the Info view's processes: those of the pane's terminal,
