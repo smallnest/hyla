@@ -4,6 +4,14 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.17.3
+
+- The Magpie card says its rows, its title and **Refresh** in the language
+  the app shows, where it said them in English in every language, and so
+  does what the plugin says of itself in **Settings › Plugins**: its
+  description, its action, and its **Gateway URL** setting. A language set
+  to System follows the Mac's own, or the system's on Windows and Linux.
+
 ## 3.17.2
 
 - Feishu chats whose directory comes from `feishu-dir` in **Settings › Feishu** expand a leading `~` to the account's home folder instead of failing the turn's `chdir` with a `fork/exec` error naming the agent binary, and report a missing directory as `no directory …` (hosts get this with their next update).
