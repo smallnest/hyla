@@ -41,7 +41,7 @@ Plugins combine one or more progressive layers depending on what they need:
 +----------------------------------------+   +----------------------+
 | hylad (Daemon Host)                    |   | App Plugin Process   |
 |  - Agent detection, chat, timeline     |   | (stdio or socket)    |
-|  - ChannelDriver (e.g. hyla.feishu)    |   +----------------------+
+|  - ChannelDriver (a chat channel)      |   +----------------------+
 |  - keep_alive & idle-exit supervision  |
 +---------------------------+------------+
                             | JSON-RPC 2.0 (NDJSON / stdio or socket)
@@ -63,7 +63,7 @@ Every plugin ID MUST be a lowercase DNS-safe reverse-domain name with at least t
 ^[a-z0-9][a-z0-9-]{0,61}[a-z0-9](\.[a-z0-9][a-z0-9-]{0,61}[a-z0-9])+$
 ```
 
-Valid examples: `com.example.hello-agent`, `org.acme.git-radar`, `hyla.feishu`.  
+Valid examples: `com.example.hello-agent`, `org.acme.git-radar`, `hyla.magpie`.  
 Invalid examples: `my_plugin`, `hello`, `Com.Example.Test`.
 
 ### Isolated Directory Layout
@@ -472,9 +472,10 @@ hyla plugin logs <id> [-n N]                    Print plugin log tail (via hylad
 
 ### Built-in Official Plugins
 
-Hyla bundles two official plugins enabled by default:
+Hyla bundles one official plugin enabled by default:
 - **`hyla.magpie`**: Displays Magpie coding-agent gateway metrics (`info.card` slot + `Refresh Magpie Usage` palette action + configurable gateway URL).
-- **`hyla.feishu`**: Implements Hyla's `ChannelDriver` (`keep_alive = true`) bridging Feishu chats to sessions, seamlessly migrating and preserving legacy `feishu-*` settings and `feishu.json` secrets, with a Declarative UI connection status card and `Reconnect Feishu Bot` action.
+
+Feishu is a feature of Hyla's own, not a plugin: its bot runs in hylad, and **Settings › Feishu** is where it is set up. An installation that configured it through 3.17.0's `hyla.feishu` plugin keeps that configuration, which the first start of this version moves into the Feishu settings and then removes the plugin.
 
 ### Cross-Machine Sync
 

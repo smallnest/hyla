@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	feishuplugin "hyla/internal/plugins/builtins/feishu"
 	"hyla/internal/plugins/manifest"
 	"hyla/internal/plugins/rpc"
 	"hyla/internal/proto"
@@ -559,11 +558,6 @@ func (d *Daemon) call(c *controlConn, method string, raw json.RawMessage) (any, 
 			}
 		}
 		d.startFeishu()
-		if d.plugins != nil && d.pluginStore().IsEnabled(feishuplugin.PluginID) && feishuplugin.ShouldAutoStart(d.pluginStore()) {
-			go func() {
-				_ = d.plugins.EnsureStarted(context.Background(), feishuplugin.PluginID)
-			}()
-		}
 		d.mu.Lock()
 		d.idleAt = time.Now()
 		d.mu.Unlock()
@@ -869,14 +863,6 @@ func (d *Daemon) call(c *controlConn, method string, raw json.RawMessage) (any, 
 			if err := d.plugins.Reload(); err != nil {
 				return nil, err
 			}
-		}
-		if err := feishuplugin.SyncToLegacy(d.pluginStore()); err != nil && d.log != nil {
-			d.log.Printf("feishu plugin sync: %v", err)
-		}
-		if d.isFeishuPluginEnabled() {
-			d.restartFeishu(false)
-		} else {
-			d.stopFeishu()
 		}
 		d.changed()
 		return true, nil

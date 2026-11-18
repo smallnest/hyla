@@ -6,7 +6,6 @@ import (
 	"log"
 	"testing"
 
-	feishuplugin "hyla/internal/plugins/builtins/feishu"
 	"hyla/internal/proto"
 )
 
@@ -53,7 +52,6 @@ func TestChannelDriverDispatchAndChatSend(t *testing.T) {
 		if d.plugins != nil {
 			d.plugins.ShutdownAll()
 		}
-		feishuplugin.SetRuntime(feishuplugin.RuntimeHooks{})
 		proto.ClearPluginAgents()
 	})
 
@@ -65,26 +63,11 @@ func TestChannelDriverDispatchAndChatSend(t *testing.T) {
 		t.Fatal("channelActive must be false when Feishu is unconfigured")
 	}
 
-	// Bundled hyla.feishu appears in plugin.list and has KeepAlive metadata.
-	var foundFeishu bool
+	// Feishu is a feature of Hyla's own: no plugin carries it.
 	for _, st := range d.pluginList() {
-		if st.ID == feishuplugin.PluginID {
-			foundFeishu = true
-			if !st.Enabled || !st.KeepAlive {
-				t.Fatalf("unexpected hyla.feishu status: %+v", st)
-			}
+		if st.ID == "hyla.feishu" {
+			t.Fatal("hyla.feishu is still listed as a plugin")
 		}
-	}
-	if !foundFeishu {
-		t.Fatal("hyla.feishu missing from plugin.list")
-	}
-
-	// Disabling hyla.feishu updates feishu.status error cleanly.
-	if err := d.pluginStore().Enable(feishuplugin.PluginID, false); err != nil {
-		t.Fatal(err)
-	}
-	if d.isFeishuPluginEnabled() {
-		t.Fatal("expected isFeishuPluginEnabled to reflect disabled state")
 	}
 
 	// Custom ChannelDriver routes Prompt, KeepAlive, Call, and Stop cleanly.

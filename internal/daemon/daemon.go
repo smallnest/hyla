@@ -117,12 +117,6 @@ type Daemon struct {
 	pluginStateMu   sync.Mutex
 	lastPluginState proto.State
 	lastPluginDark  bool
-	feishuEnMu      sync.Mutex
-	feishuEnCached  bool
-	feishuEnRegEx   bool
-	feishuEnSize    int64
-	feishuEnMtime   int64
-	feishuEnVal     bool
 	changeCh        chan struct{}
 	saveCh          chan struct{}
 	quit            chan struct{}

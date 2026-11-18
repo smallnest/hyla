@@ -24,19 +24,6 @@ const feishuStatusTick = 5 * time.Second
 // again, for the connection to drop.
 func (a *App) infoFeishu(c *ui.Context, pal *theme.Palette, p *proto.Pane) {
 	st := a.InfoViews().Of(p)
-	hasFixture := st.Feishu != nil
-	if a.Plugins != nil {
-		if !a.Plugins.IsPluginEnabled("hyla.feishu") {
-			return
-		}
-		h := a.hostOf(p.ID)
-		if h == nil {
-			h = a.Local()
-		}
-		if !hasFixture && h == a.Local() && a.hostSupportsPlugins(h) {
-			return
-		}
-	}
 	set := a.settingsIn.Feishu
 	if set == nil || set.App == "" {
 		return

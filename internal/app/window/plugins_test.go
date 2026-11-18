@@ -1007,13 +1007,13 @@ mode = "declarative"
 	if !ok {
 		t.Fatalf("expected Slot Only row in Settings › Plugins, texts=%v", tt.Texts())
 	}
-	feishuRow, ok := tt.Find("Feishu · v1.0.0")
+	builtinRow, ok := tt.Find("Magpie · v1.0.0")
 	if !ok {
-		t.Fatalf("expected Feishu row in Settings › Plugins, texts=%v", tt.Texts())
+		t.Fatalf("expected Magpie row in Settings › Plugins, texts=%v", tt.Texts())
 	}
 	var slotOnlyBtn bool
 	for _, ac := range tt.AccessAll() {
-		if ac.Role == ui.RoleButton && ac.Name == locales.SetPluginsSettings() && ac.Bounds.Y >= slotOnlyRow.Y && ac.Bounds.Y < feishuRow.Y {
+		if ac.Role == ui.RoleButton && ac.Name == locales.SetPluginsSettings() && ac.Bounds.Y >= slotOnlyRow.Y && ac.Bounds.Y < builtinRow.Y {
 			slotOnlyBtn = true
 			break
 		}

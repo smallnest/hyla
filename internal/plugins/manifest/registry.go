@@ -53,7 +53,7 @@ var (
 	builtins   = make(map[string]BuiltinPlugin)
 )
 
-// RegisterBuiltin registers a built-in bundled plugin (such as hyla.magpie or hyla.feishu).
+// RegisterBuiltin registers a built-in bundled plugin (such as hyla.magpie).
 func RegisterBuiltin(b BuiltinPlugin) error {
 	if b.Manifest == nil {
 		return fmt.Errorf("builtin plugin manifest must not be nil")

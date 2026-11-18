@@ -15,6 +15,7 @@ import (
 	"hyla/internal/actions"
 	"hyla/internal/app/host"
 	"hyla/internal/build"
+	"hyla/internal/feishu"
 	"hyla/internal/pets"
 	_ "hyla/internal/plugins/builtins/magpie"
 	"hyla/internal/plugins/manifest"
@@ -47,6 +48,11 @@ func preloadPluginBase() {
 		washIDs = append(washIDs, w.ID)
 	}
 	settings.SetPluginBackgrounds(washIDs)
+	// Feishu was a bundled plugin for one version: what its page kept of
+	// the bot belongs to the configuration, which the window reads from
+	// here. It runs after the plugin base, as the settings it merges are
+	// read with the plugins' washes known.
+	_ = feishu.MigratePluginConfig(manifest.DefaultStore())
 }
 
 func (a *App) initPlugins() {

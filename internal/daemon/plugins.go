@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"hyla/internal/build"
-	feishuplugin "hyla/internal/plugins/builtins/feishu"
+	"hyla/internal/feishu"
 	_ "hyla/internal/plugins/builtins/magpie"
 	"hyla/internal/plugins/daemonhost"
 	"hyla/internal/plugins/manifest"
@@ -32,34 +32,13 @@ func (d *Daemon) initPlugins() {
 	if _, err := manifest.ApplyBase(st); err != nil && d.log != nil {
 		d.log.Printf("plugins base apply: %v", err)
 	}
-	feishuplugin.SetRuntime(feishuplugin.RuntimeHooks{
-		BaseDir: func() string { return d.dir },
-		IsActive: func() bool { return d.feishuBot() != nil },
-		Status: func() feishuplugin.RuntimeStatus {
-			fst := d.feishuStatus()
-			res := feishuplugin.Resolve(d.pluginStore())
-			return feishuplugin.RuntimeStatus{
-				Configured: fst.Configured,
-				Secret:     fst.Secret,
-				Connected:  fst.Connected,
-				App:        fst.App,
-				Error:      fst.Error,
-				Allow:      res.Settings.Allow,
-				Agent:      res.Settings.Agent,
-				Run:        res.Settings.Run,
-			}
-		},
-		Restart: func(force bool) error {
-			if err := feishuplugin.SyncToLegacy(d.pluginStore()); err != nil && d.log != nil {
-				d.log.Printf("feishu plugin sync: %v", err)
-			}
-			d.restartFeishu(force)
-			return nil
-		},
-		Stop: func() {
-			d.stopFeishu()
-		},
-	})
+	// Feishu was a bundled plugin for one version: what its page kept of
+	// the bot belongs to the configuration, which is what the bot reads.
+	// Its entry goes before the manager discovers the plugins, so that
+	// nothing lists it.
+	if err := feishu.MigratePluginConfig(st); err != nil && d.log != nil {
+		d.log.Printf("feishu migration: %v", err)
+	}
 	d.plugins = daemonhost.NewManager(daemonhost.ManagerOptions{
 		HostKind:    daemonhost.HostKindDaemon,
 		HylaVersion: build.Version(),

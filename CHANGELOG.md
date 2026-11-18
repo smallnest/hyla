@@ -4,6 +4,17 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.17.1
+
+- Feishu is a feature of Hyla's own, not a plugin: **Settings › Feishu**
+  is where the bot is set up, **Settings › Plugins** does not list it, and
+  `hyla plugin` does not print it. A bot that was set up from the plugin
+  settings 3.17.0 added keeps them: its App ID and secret, who may use
+  it, its agent and its directory move into the Feishu settings with the
+  first start of this version, and the plugin's entry and files go, with
+  a copy of what was read left in
+  `plugin-config/hyla.feishu.json.migrated`.
+
 ## 3.17.0
 
 - Hyla takes plugins. **Settings › Plugins** installs a `.hylapkg` package
