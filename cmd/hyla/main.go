@@ -92,6 +92,9 @@ func runApp() {
 	cli.SyncSkill()
 	// Updates from Hyla's GitHub releases, in a window of native UI.
 	mygo.Use(native.Plugin)
+	if err := window.RegisterPluginProtocol(); err != nil {
+		log.Printf("plugin protocol: %v", err)
+	}
 	a := window.New()
 	window.LoadFonts()
 	mygo.Theme.SetSource(a.Appearance())

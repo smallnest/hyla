@@ -31,7 +31,7 @@ func (d *Daemon) chatOf(p proto.ChatParams) (proto.Chat, error) {
 				q.mu.Unlock()
 				// A pane that runs its agent without a terminal, as a
 				// chat's does, names no agent: its conversation does.
-				if proto.StartsTimeline(agent) || conv != "" {
+				if proto.StartsTimeline(agent) || conv != "" || pluginHasChat(agent) {
 					pn = q
 					break
 				}
@@ -59,14 +59,14 @@ func (d *Daemon) chatOf(p proto.ChatParams) (proto.Chat, error) {
 	out := proto.Chat{Session: p.Session, Pane: pane, Agent: agent, Read: now.UnixMilli(), Input: takes}
 	// A chat drives a pane that runs no terminal, and runs its prompt as a
 	// turn, once it has a conversation to go on with.
-	out.Turn = !takes && conv != "" && d.feishuBot() != nil
+	out.Turn = !takes && conv != "" && d.channelActive()
 	if pn != nil {
 		out.Session = pn.sid
 	}
 	switch {
 	case pn == nil:
 		out.Note = locales.InfoTimelineNoPane()
-	case !proto.StartsTimeline(agent):
+	case !proto.StartsTimeline(agent) && !pluginHasChat(agent):
 		if agent == "" {
 			out.Note = locales.InfoTimelineNoAgent()
 		} else {
@@ -75,6 +75,9 @@ func (d *Daemon) chatOf(p proto.ChatParams) (proto.Chat, error) {
 	}
 	if out.Note != "" {
 		return out, nil
+	}
+	if ch, handled, perr := d.pluginChat(p, agent, conv, dir, pane, takes); handled {
+		return ch, perr
 	}
 	out.Lines, out.Model = d.chatLines(agent, conv, dir, now)
 	if len(out.Lines) == 0 && out.Model == "" {
@@ -103,18 +106,26 @@ func (d *Daemon) chatSend(p proto.ChatSendParams) (bool, error) {
 		return false, nil
 	}
 	pn.mu.Lock()
-	runs, sid := pn.term != nil && pn.proc != nil, pn.sid
+	runs, sid, agent, conv, dir := pn.term != nil && pn.proc != nil, pn.sid, pn.info.Agent, pn.info.AgentSessionID, pn.info.WorkDir()
 	pn.mu.Unlock()
+	if started, handled, perr := d.pluginChatSend(p, pn, agent, conv, dir); handled {
+		return started, perr
+	}
 	if runs {
 		pn.input([]byte(text))
 		pn.input([]byte("\r"))
 		return true, nil
 	}
-	b := d.feishuBot()
-	if b == nil {
+	ch := d.activeChannel()
+	if ch == nil {
 		return false, errors.New("no chat drives this session")
 	}
-	return true, b.Prompt(sid, text)
+	return true, ch.Prompt(sid, text)
+}
+
+func pluginHasChat(agent string) bool {
+	meta, ok := proto.AgentProvider(agent)
+	return ok && meta.PluginID != "" && meta.Chat
 }
 
 // chatMax is how many lines of a long conversation a pane shows: the end of

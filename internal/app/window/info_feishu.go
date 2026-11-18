@@ -23,11 +23,24 @@ const feishuStatusTick = 5 * time.Second
 // feishu-app names one. While the bot connects, the view reads the state
 // again, for the connection to drop.
 func (a *App) infoFeishu(c *ui.Context, pal *theme.Palette, p *proto.Pane) {
+	st := a.InfoViews().Of(p)
+	hasFixture := st.Feishu != nil
+	if a.Plugins != nil {
+		if !a.Plugins.IsPluginEnabled("hyla.feishu") {
+			return
+		}
+		h := a.hostOf(p.ID)
+		if h == nil {
+			h = a.Local()
+		}
+		if !hasFixture && h == a.Local() && a.hostSupportsPlugins(h) {
+			return
+		}
+	}
 	set := a.settingsIn.Feishu
 	if set == nil || set.App == "" {
 		return
 	}
-	st := a.InfoViews().Of(p)
 	connected := st.Feishu != nil && st.Feishu.Connected
 	aside := locales.SetFeishuOff()
 	if connected {

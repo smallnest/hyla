@@ -35,6 +35,10 @@ func (a *App) Split(s *proto.Session, p proto.CreateParams) { a.split(s, p) }
 
 func (a *App) InfoMagpie(c *ui.Context, pal *theme.Palette) { a.infoMagpie(c, pal) }
 
+func (a *App) InfoPluginCards(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane) {
+	a.infoPluginCards(c, pal, s, p)
+}
+
 func (a *App) InfoFeishu(c *ui.Context, pal *theme.Palette, p *proto.Pane) { a.infoFeishu(c, pal, p) }
 
 // infoView is the side panel's Info view: of the pane the user is in.

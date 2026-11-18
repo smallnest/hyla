@@ -72,6 +72,7 @@ func (a *App) BeforeQuit(e *mygo.QuitEvent) {
 // WillQuit destroys the tray's icon, which Windows would leave in the
 // notification area until the pointer passes over it.
 func (a *App) WillQuit() {
+	a.shutdownPlugins()
 	if a.Tray != nil {
 		a.Tray.Destroy()
 	}
@@ -84,6 +85,7 @@ func (a *App) MenuBarOnly() { mygo.App.SetActivationPolicy(tray.Policy(a.setting
 // machine's configuration, the terminals the window shows, and the pets.
 func (a *App) Start() {
 	a.openWindow()
+	a.startPluginHooks()
 	a.applyTray()
 	a.applyGlobalShortcuts()
 	a.IdleTime = mygo.Power.IdleTime

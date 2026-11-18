@@ -107,6 +107,8 @@ type App interface {
 	// Main runs fn on the main thread, and draws; RecordKey and the
 	// rest are its functions, in this file.
 	Main(fn func())
+	// PluginsView provides access to installed plugin management on Settings › Plugins.
+	PluginsView() PluginsApp
 }
 
 // RunOnMain runs fn on the app's main thread, and draws.
@@ -132,11 +134,25 @@ type Page struct {
 	Title string
 }
 
-// Pages returns the window's pages.
+// Pages returns the window's built-in pages.
 func Pages() []Page {
 	pages := make([]Page, len(settingsPages))
 	for i, p := range settingsPages {
 		pages[i] = Page{ID: p.id, Title: p.title()}
+	}
+	return pages
+}
+
+// AllPages returns the built-in pages followed by enabled plugin Settings pages.
+func AllPages(x App) []Page {
+	pages := Pages()
+	if x == nil {
+		return pages
+	}
+	if pa := x.PluginsView(); pa != nil {
+		for _, pp := range pa.SettingsPages() {
+			pages = append(pages, Page{ID: pp.ID, Title: pp.Title})
+		}
 	}
 	return pages
 }
@@ -157,7 +173,14 @@ func BackgroundName(id, name string) string { return backgroundName(id, name) }
 // SearchResults returns what a query finds, by page, for the pages and the
 // app's titles.
 func SearchResults(x App, query string) map[string][]string {
-	return search.Results(query, x.Settings().Shortcuts, searchPages(), x.ActionTitle)
+	var extras []search.PluginEntry
+	if x != nil {
+		if pa := x.PluginsView(); pa != nil {
+			extras = pa.SearchEntries()
+		}
+	}
+	found, _ := search.ResultsWithPlugins(query, x.Settings().Shortcuts, searchPagesFor(x), extras, x.ActionTitle)
+	return found
 }
 
 // FontChoices are the fonts the picker offers: hyla's own first.

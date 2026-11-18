@@ -25,11 +25,13 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/egoist/mygo/ui"
 	_ "golang.org/x/image/webp" // spritesheets
 
+	pluginmanifest "hyla/internal/plugins/manifest"
 	"hyla/internal/proto"
 	"hyla/internal/settings"
 )
@@ -252,8 +254,27 @@ func Dir() string { return filepath.Join(proto.Dir(), "pets") }
 // codexDir is where the Codex desktop app keeps its pets.
 func codexDir() string { return filepath.Join(proto.Home(), ".codex", "pets") }
 
-// LoadID reads the pet that id names, from hyla's pets first, then the
-// Codex app's; for settings.PetSetCodex, the one Codex has active now.
+var (
+	pluginPetsMu sync.RWMutex
+	pluginPets   = map[string]string{}
+)
+
+// ReloadPlugins updates the plugin-contributed pet directories cleanly.
+func ReloadPlugins(assets []pluginmanifest.PetAsset) {
+	next := make(map[string]string, len(assets))
+	for _, a := range assets {
+		if a.ID != "" && a.Dir != "" {
+			next[a.ID] = a.Dir
+		}
+	}
+	pluginPetsMu.Lock()
+	pluginPets = next
+	pluginPetsMu.Unlock()
+}
+
+// LoadID reads the pet that id names, from hyla's pets first, then
+// plugin-contributed pets, then the Codex app's; for settings.PetSetCodex,
+// the one Codex has active now.
 func LoadID(id string) (*Pet, error) {
 	if id == settings.PetSetCodex {
 		if id = CodexActive(); id == "" {
@@ -261,11 +282,24 @@ func LoadID(id string) (*Pet, error) {
 		}
 	}
 	var errs []error
-	for _, dir := range []string{Dir(), codexDir()} {
-		p, err := Load(filepath.Join(dir, id))
-		if err == nil {
+	if p, err := Load(filepath.Join(Dir(), id)); err == nil {
+		return p, nil
+	} else {
+		errs = append(errs, err)
+	}
+	pluginPetsMu.RLock()
+	pdir := pluginPets[id]
+	pluginPetsMu.RUnlock()
+	if pdir != "" {
+		if p, err := Load(pdir); err == nil {
 			return p, nil
+		} else {
+			errs = append(errs, err)
 		}
+	}
+	if p, err := Load(filepath.Join(codexDir(), id)); err == nil {
+		return p, nil
+	} else {
 		errs = append(errs, err)
 	}
 	return nil, errors.Join(errs...)
@@ -314,9 +348,25 @@ func activeIn(v string) string {
 	return ""
 }
 
-// Installed lists the pets hyla has, its built-in ones and those the
-// user installed, as the settings name them.
-func Installed() []string { return petDirs(Dir()) }
+// Installed lists the pets hyla has: built-in ones, user-installed pets,
+// and pets contributed by enabled plugins.
+func Installed() []string {
+	dirs := petDirs(Dir())
+	seen := make(map[string]bool, len(dirs))
+	for _, id := range dirs {
+		seen[id] = true
+	}
+	pluginPetsMu.RLock()
+	for id := range pluginPets {
+		if !seen[id] {
+			seen[id] = true
+			dirs = append(dirs, id)
+		}
+	}
+	pluginPetsMu.RUnlock()
+	sort.Strings(dirs)
+	return dirs
+}
 
 // CodexIDs lists the pets the Codex app has, in its pets' directory:
 // their directory names, which the Codex app's config.toml names its

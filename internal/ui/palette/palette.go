@@ -176,7 +176,7 @@ func conversationItems(st *State, app App) []item {
 		if cv.Session != "" && !st.only {
 			continue
 		}
-		detail := cmp.Or(proto.AgentNames[cv.Agent], cv.Agent)
+		detail := proto.AgentDisplayName(cv.Agent)
 		if cv.Name != "" && cv.Title != "" {
 			detail = cv.Title + " · " + detail
 		}
@@ -226,7 +226,7 @@ func Items(st *State, app App) []item {
 		cmds = append(cmds, item{title: locales.PaletteOpenInBrowser(), detail: proto.BrowserURL(q), top: true,
 			run: func() { app.Run("pane.browser") }})
 	}
-	for _, act := range actions.All {
+	for _, act := range actions.List() {
 		id := act.ID
 		// A global shortcut shows too, marked, though the menus leave it to
 		// the system to take.

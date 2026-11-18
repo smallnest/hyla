@@ -109,7 +109,7 @@ func (d *Daemon) paneSubagents(pn *pane, now time.Time) proto.PaneSubagents {
 	switch {
 	case agent == "":
 		return out
-	case !proto.StartsTimeline(agent):
+	case !proto.StartsTimeline(agent) && !pluginHasSubagents(agent):
 		out.Note = locales.InfoTimelineUnread(agent)
 		return out
 	case len(live) > 0:
@@ -124,8 +124,16 @@ func (d *Daemon) paneSubagents(pn *pane, now time.Time) proto.PaneSubagents {
 		out.Subs = newest(live)
 		return out
 	}
+	if ps, handled := d.pluginSubagents(pn, agent, conv, dir); handled {
+		return ps
+	}
 	out.Subs = newest(d.recordedSubagents(agent, conv, dir, now))
 	return out
+}
+
+func pluginHasSubagents(agent string) bool {
+	meta, ok := proto.AgentProvider(agent)
+	return ok && meta.PluginID != "" && meta.Subagents
 }
 
 // recordedSubagents is the subagents a pane's agent gave its work to, as

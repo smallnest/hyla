@@ -56,6 +56,8 @@ type App interface {
 	Split(s *proto.Session, p proto.CreateParams)
 	// InfoMagpie draws Magpie's card.
 	InfoMagpie(c *ui.Context, pal *theme.Palette)
+	// InfoPluginCards renders declarative UI cards contributed by enabled plugins.
+	InfoPluginCards(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane)
 	// InfoFeishu draws the Feishu bot's card.
 	InfoFeishu(c *ui.Context, pal *theme.Palette, p *proto.Pane)
 }
@@ -106,6 +108,7 @@ func Body(c *ui.Context, x App, pal *theme.Palette, s *proto.Session, p *proto.P
 		infoProcs(c, x, pal, p, st)
 		infoPorts(c, x, pal, p, st)
 		x.InfoMagpie(c, pal)
+		x.InfoPluginCards(c, pal, s, p)
 		x.InfoFeishu(c, pal, p)
 	})
 }

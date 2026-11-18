@@ -16,6 +16,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
+	"hyla/internal/plugins/manifest"
 	"hyla/internal/proto"
 )
 
@@ -116,15 +117,19 @@ var (
 // Agent returns the mark of the agent named, and the colour its makers
 // draw it in: false for an agent with none, and for none at all.
 func Agent(agent string) (*ui.SVG, ui.Color, bool) {
-	file, ok := agentMarks[strings.ToLower(strings.TrimSpace(agent))]
-	if !ok {
-		return nil, ui.Color{}, false
+	key := strings.ToLower(strings.TrimSpace(agent))
+	if file, ok := agentMarks[key]; ok {
+		if m, ok := markOf(file); ok {
+			return m.logo, m.brand, true
+		}
 	}
-	m, ok := markOf(file)
-	if !ok {
-		return nil, ui.Color{}, false
+	pluginMu.RLock()
+	m, ok := pluginSVG[key]
+	pluginMu.RUnlock()
+	if ok && m.logo != nil {
+		return m.logo, m.brand, true
 	}
-	return m.logo, m.brand, true
+	return nil, ui.Color{}, false
 }
 
 // MarkFull returns the agent's mark as its makers drew it, where it has
@@ -132,38 +137,35 @@ func Agent(agent string) (*ui.SVG, ui.Color, bool) {
 // colour, which the row draws in its text's. known is false for an agent
 // Hyla has no mark for.
 func MarkFull(agent string) (full *ui.SVG, known bool) {
-	file, ok := agentMarks[strings.ToLower(strings.TrimSpace(agent))]
+	key := strings.ToLower(strings.TrimSpace(agent))
+	if file, ok := agentMarks[key]; ok {
+		m, ok := markOf(file)
+		if !ok {
+			return nil, false
+		}
+		if fullColor[file] {
+			return m.full, true
+		}
+		return nil, true
+	}
+	pluginMu.RLock()
+	m, ok := pluginSVG[key]
+	isFull := pluginSVGFull[key]
+	pluginMu.RUnlock()
 	if !ok {
 		return nil, false
 	}
-	m, ok := markOf(file)
-	if !ok {
-		return nil, false
-	}
-	if fullColor[file] {
+	if isFull {
 		return m.full, true
 	}
 	return nil, true
 }
 
-// markOf reads a logo of the set, once.
-func markOf(file string) (mark, bool) {
-	markMu.Lock()
-	defer markMu.Unlock()
-	if m, ok := markCache[file]; ok {
-		return m, m.logo != nil
-	}
-	b, err := agentFS.ReadFile("agents/" + file + ".svg")
-	if err != nil {
-		// A mark that is not in the set is no mark, which a test catches
-		// before anything ships.
-		markCache[file] = mark{}
-		return mark{}, false
-	}
+func parseMarkSVG(b []byte, isFull bool) (mark, bool) {
 	// A mark of several colours is kept as drawn: its shapes take their own
 	// colours, and a shape drawn in a colour is not the text's.
 	var full *ui.SVG
-	if fullColor[file] {
+	if isFull {
 		if s, err := ui.ParseSVG([]byte(markTitle.ReplaceAll(b, nil))); err == nil {
 			full = s
 		}
@@ -188,10 +190,30 @@ func markOf(file string) (mark, bool) {
 	}
 	logo, err := ui.ParseSVG([]byte(s))
 	if err != nil {
+		return mark{}, false
+	}
+	return mark{logo: logo, brand: brand, full: full}, true
+}
+
+// markOf reads a logo of the set, once.
+func markOf(file string) (mark, bool) {
+	markMu.Lock()
+	defer markMu.Unlock()
+	if m, ok := markCache[file]; ok {
+		return m, m.logo != nil
+	}
+	b, err := agentFS.ReadFile("agents/" + file + ".svg")
+	if err != nil {
+		// A mark that is not in the set is no mark, which a test catches
+		// before anything ships.
 		markCache[file] = mark{}
 		return mark{}, false
 	}
-	m := mark{logo: logo, brand: brand, full: full}
+	m, ok := parseMarkSVG(b, fullColor[file])
+	if !ok {
+		markCache[file] = mark{}
+		return mark{}, false
+	}
 	markCache[file] = m
 	return m, true
 }
@@ -233,16 +255,67 @@ func Tint(brand ui.Color, dark bool, text ui.Color) ui.Color {
 // acme.png, in MarksDir: the set's logos win for an agent the set has
 // one for.
 var (
+	pluginMu      sync.RWMutex
+	pluginSVG     = map[string]mark{}
+	pluginSVGFull = map[string]bool{}
+	pluginBitmaps = map[string]*ui.Bitmap{}
+
 	userMu    sync.RWMutex
 	userMarks = map[string]*ui.Bitmap{}
 )
 
+// LoadPluginMarks refreshes plugin-contributed agent marks (SVG or bitmap),
+// positioned in precedence between built-in marks and user marks.
+func LoadPluginMarks(assets []manifest.MarkAsset) {
+	nextSVG := map[string]mark{}
+	nextFull := map[string]bool{}
+	nextBmp := map[string]*ui.Bitmap{}
+	for _, a := range assets {
+		key := strings.ToLower(strings.TrimSpace(a.Agent))
+		if key == "" || a.Path == "" {
+			continue
+		}
+		ext := strings.ToLower(filepath.Ext(a.Path))
+		if ext == ".svg" {
+			data, err := os.ReadFile(a.Path)
+			if err != nil {
+				continue
+			}
+			if m, ok := parseMarkSVG(data, a.FullColor); ok {
+				nextSVG[key] = m
+				if a.FullColor {
+					nextFull[key] = true
+				}
+			}
+			continue
+		}
+		switch ext {
+		case ".png", ".jpg", ".jpeg", ".gif", ".webp":
+			if bmp := readBitmap(a.Path); bmp != nil {
+				nextBmp[key] = bmp
+			}
+		}
+	}
+	pluginMu.Lock()
+	pluginSVG = nextSVG
+	pluginSVGFull = nextFull
+	pluginBitmaps = nextBmp
+	pluginMu.Unlock()
+}
+
 // LogoOf is an agent's logo, as the sidebar and a card draw it: its own
-// mark where the set has it, else the user's where they gave it. known
-// is false for an agent whose logo is neither.
+// mark where the set or a plugin has it, else the user's where they gave it.
+// known is false for an agent whose logo is neither.
 func LogoOf(agent string) (src ui.ImageSource, known bool) {
 	if _, _, ok := Agent(agent); ok {
 		return nil, true
+	}
+	key := strings.ToLower(strings.TrimSpace(agent))
+	pluginMu.RLock()
+	pb := pluginBitmaps[key]
+	pluginMu.RUnlock()
+	if pb != nil {
+		return pb, true
 	}
 	if b := userMark(agent); b != nil {
 		return b, true

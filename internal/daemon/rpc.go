@@ -1,6 +1,7 @@
 package daemon
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,6 +11,9 @@ import (
 	"strings"
 	"time"
 
+	feishuplugin "hyla/internal/plugins/builtins/feishu"
+	"hyla/internal/plugins/manifest"
+	"hyla/internal/plugins/rpc"
 	"hyla/internal/proto"
 	"hyla/internal/remote"
 	"hyla/internal/settings"
@@ -91,6 +95,7 @@ func (d *Daemon) call(c *controlConn, method string, raw json.RawMessage) (any, 
 		}
 		pn.mu.Lock()
 		pn.info.FeishuAnswer = p.Dir
+		pn.info.AnswerDir = p.Dir
 		info := pn.info
 		pn.mu.Unlock()
 		d.changed()
@@ -508,7 +513,7 @@ func (d *Daemon) call(c *controlConn, method string, raw json.RawMessage) (any, 
 			return proto.AgentSessionResult{Pane: pn.info.ID, Session: as.ID}, nil
 		}
 		as := &proto.AgentSession{Agent: p.Agent, ID: p.Session}
-		if resumeCommand(as) == nil {
+		if !canResumeAgentSession(as) {
 			return nil, fmt.Errorf("no agent session %q of %q", p.Session, p.Agent)
 		}
 		pn, away := d.agentPane(p.PID, p.Agent, p.Dir)
@@ -537,11 +542,11 @@ func (d *Daemon) call(c *controlConn, method string, raw json.RawMessage) (any, 
 	case "conversations":
 		return d.conversations(), nil
 
-	case "feishu.status":
-		return d.feishuStatus(), nil
-
-	case "feishu.chats", "feishu.feed", "feishu.send":
-		return d.feishuWindow(method, raw)
+	case "feishu.status", "feishu.chats", "feishu.feed", "feishu.send":
+		if out, handled, err := d.callChannel(method, raw); handled {
+			return out, err
+		}
+		return nil, errors.New("channel driver unavailable")
 
 	case "feishu.restart":
 		var p proto.FeishuEnv
@@ -554,6 +559,11 @@ func (d *Daemon) call(c *controlConn, method string, raw json.RawMessage) (any, 
 			}
 		}
 		d.startFeishu()
+		if d.plugins != nil && d.pluginStore().IsEnabled(feishuplugin.PluginID) && feishuplugin.ShouldAutoStart(d.pluginStore()) {
+			go func() {
+				_ = d.plugins.EnsureStarted(context.Background(), feishuplugin.PluginID)
+			}()
+		}
 		d.mu.Lock()
 		d.idleAt = time.Now()
 		d.mu.Unlock()
@@ -841,6 +851,62 @@ func (d *Daemon) call(c *controlConn, method string, raw json.RawMessage) (any, 
 	case "clients":
 		return d.clientList(), nil
 
+	case "plugin.list":
+		return d.pluginList(), nil
+
+	case "plugin.call":
+		var p rpc.PluginCallParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return d.pluginCall(p)
+
+	case "plugin.reload":
+		if _, err := manifest.ApplyBase(d.pluginStore()); err != nil {
+			return nil, err
+		}
+		if d.plugins != nil {
+			if err := d.plugins.Reload(); err != nil {
+				return nil, err
+			}
+		}
+		if err := feishuplugin.SyncToLegacy(d.pluginStore()); err != nil && d.log != nil {
+			d.log.Printf("feishu plugin sync: %v", err)
+		}
+		if d.isFeishuPluginEnabled() {
+			d.restartFeishu(false)
+		} else {
+			d.stopFeishu()
+		}
+		d.changed()
+		return true, nil
+
+	case "plugin.restart":
+		var p rpc.PluginControlParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		if d.plugins == nil {
+			return nil, errors.New("plugin host not initialized")
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		return true, d.plugins.Restart(ctx, p.PluginID)
+
+	case "plugin.logs":
+		var p rpc.PluginLogsParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		if d.plugins == nil {
+			path, err := d.pluginStore().LogPath(p.PluginID)
+			if err != nil {
+				return nil, err
+			}
+			return rpc.PluginLogsResult{Path: path}, nil
+		}
+		return d.plugins.Logs(p.PluginID, p.Lines)
+
 	case "shutdown":
 		d.mu.Lock()
 		d.ending = true
@@ -858,6 +924,9 @@ func (d *Daemon) call(c *controlConn, method string, raw json.RawMessage) (any, 
 			d.stop()
 		}()
 		return true, nil
+	}
+	if out, handled, err := d.callChannel(method, raw); handled {
+		return out, err
 	}
 	return nil, fmt.Errorf("unknown method %q", method)
 }

@@ -4,6 +4,7 @@ package search
 
 import (
 	"runtime"
+	"slices"
 	"strings"
 
 	"hyla/internal/actions"
@@ -99,6 +100,7 @@ func Index() []Entry {
 		{"agents", "Claude Code", "skill agents install"},
 		{"agents", "Codex, OpenCode, Pi", "skill agents install"},
 		{"agents", locales.SetProgramStatus(), "osc 7501 report progress"},
+		{"plugins", locales.PagePlugins(), "plugins extensions packs permissions hylapkg reload install"},
 
 		{"hosts", locales.SetHosts(), "host hosts remote connection p2p server ssh tailcat wsl machine linux devbox phone qr password token"},
 		{"hosts", locales.SetHostAdd(), "add host address ssh wsl tailcat"},
@@ -124,7 +126,7 @@ func Index() []Entry {
 // lists, with the shortcuts they have.
 func Entries(shortcuts map[string]string, title func(string) string) []Entry {
 	out := Index()
-	for _, act := range actions.All {
+	for _, act := range actions.List() {
 		keys := actions.Keys(act, shortcuts)
 		out = append(out, Entry{"keyboard", strings.TrimSuffix(title(act.ID), "…"),
 			act.ID + " shortcut keybind " + act.Menu + " " + strings.ToLower(keys) + " " + actions.Glyphs(keys) + " " + ActionWords[act.ID]})
@@ -210,15 +212,32 @@ type Page struct {
 	Title string
 }
 
+// PluginEntry is a plugin setting, page, or slot indexed by Settings Search.
+type PluginEntry struct {
+	Page     string
+	Label    string
+	Words    string
+	PluginID string // non-empty when matching reveals a plugin drawer in Settings › Plugins
+}
+
 // Results returns what a query finds, by page: the labels of the
 // settings it finds, an empty list for a page whose title it is, and
 // nothing for the others. It returns nil for an empty query.
 func Results(query string, shortcuts map[string]string, pages []Page, title func(string) string) map[string][]string {
+	out, _ := ResultsWithPlugins(query, shortcuts, pages, nil, title)
+	return out
+}
+
+// ResultsWithPlugins extends Results with plugin settings, standalone plugin
+// pages, and plugin UI slots. It returns matched labels per page and matched
+// plugin IDs per page so callers can reveal a plugin's drawer on match.
+func ResultsWithPlugins(query string, shortcuts map[string]string, pages []Page, plugins []PluginEntry, title func(string) string) (map[string][]string, map[string][]string) {
 	terms := strings.Fields(strings.ToLower(query))
 	if len(terms) == 0 {
-		return nil
+		return nil, nil
 	}
 	out := map[string][]string{}
+	pids := map[string][]string{}
 	for _, p := range pages {
 		if Matches(p.Title, terms) {
 			out[p.ID] = []string{}
@@ -229,5 +248,17 @@ func Results(query string, shortcuts map[string]string, pages []Page, title func
 			out[e.Page] = append(out[e.Page], e.Label)
 		}
 	}
-	return out
+	for _, pe := range plugins {
+		if Matches(pe.Label+" "+pe.Words, terms) {
+			if pe.Label != "" {
+				out[pe.Page] = append(out[pe.Page], pe.Label)
+			} else if out[pe.Page] == nil {
+				out[pe.Page] = []string{}
+			}
+			if pe.PluginID != "" && !slices.Contains(pids[pe.Page], pe.PluginID) {
+				pids[pe.Page] = append(pids[pe.Page], pe.PluginID)
+			}
+		}
+	}
+	return out, pids
 }

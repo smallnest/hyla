@@ -271,6 +271,29 @@ var commands = []command{
                                 show it on the window's edge
     hyla pets rm <name>         remove an installed pet`,
 	},
+	{
+		name: "plugin", aliases: []string{"plugins"}, group: "app",
+		summary: "manage Hyla plugins and .hylapkg packages",
+		usage: `hyla plugin ls [--json]         list installed, linked, and built-in plugins
+    hyla plugin init [--template pack|go|ts-webview] [--id <id>] [dir]
+                                scaffold a new plugin project
+    hyla plugin pack <dir> [-o <out.hylapkg>]
+                                package a plugin directory into a .hylapkg archive
+    hyla plugin install <pkg|dir> [--grant-all] [--no-enable]
+                                install a .hylapkg package or directory
+    hyla plugin link <dir> [--grant-all]
+                                link a local plugin directory for development
+    hyla plugin dev <dir> [--grant-all]
+                                link and auto-reload hylad on file changes
+    hyla plugin enable|disable <id>
+                                enable or disable an installed plugin
+    hyla plugin rm <id> [--purge]
+                                remove a plugin (--purge deletes config/secrets/data)
+    hyla plugin permissions <id> [grant|revoke <scope…>|--all]
+                                inspect or update granted permission scopes
+    hyla plugin logs <id> [-n <lines>]
+                                print recent plugin process logs`,
+	},
 
 	{
 		name: "do", group: "app",

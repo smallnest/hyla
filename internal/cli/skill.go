@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 
+	"hyla/internal/plugins/manifest"
 	"hyla/internal/proto"
 )
 
@@ -180,6 +181,11 @@ func skillCmd(args []string) error {
 				fmt.Printf("installed the hook in %s (%s)\n", proto.ShortDir(h.path()), h.name())
 			}
 		}
+		if !f.set["dry"] {
+			if err := applyPluginAgentIntegrations(manifest.DefaultStore(), agent, sub != "remove"); err != nil {
+				return err
+			}
+		}
 		if sub == "setup" && !f.set["dry"] && len(hooks) > 0 {
 			fmt.Println("\nAgents started from now on in Hyla learn which session they're in.")
 			for _, h := range hooks {
@@ -286,6 +292,7 @@ func SyncSkill() {
 			}
 		}
 	}
+	_ = syncExistingPluginAgentIntegrations(manifest.DefaultStore())
 }
 
 // adoptCopies tells the installed Hyla, which takes the skill's copies,
@@ -370,7 +377,7 @@ func InstallSkill(agent string) error {
 			return err
 		}
 	}
-	return nil
+	return applyPluginAgentIntegrations(manifest.DefaultStore(), agent, true)
 }
 
 // RemoveSkill removes hyla's skill and hooks for a kind of agent.
@@ -378,6 +385,9 @@ func RemoveSkill(agent string) error {
 	dir := skillDirs(agent)[agent]
 	if dir == "" {
 		return fmt.Errorf("no agent %q", agent)
+	}
+	if err := applyPluginAgentIntegrations(manifest.DefaultStore(), agent, false); err != nil {
+		return err
 	}
 	for _, h := range hooksFor(agent) {
 		if err := h.remove(); err != nil {

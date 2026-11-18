@@ -86,7 +86,8 @@ type pane struct {
 	bg *background
 	// subs are the subagents the pane's agent gave its work to, by their
 	// ids, as its hook tells them (subagents.go).
-	subs map[string]proto.Subagent
+	subs          map[string]proto.Subagent
+	detectPending bool
 }
 
 // headless connects the daemon's emulator to the program: it reads
@@ -424,6 +425,10 @@ func (s *pane) look(now time.Time) bool {
 			return false
 		}
 		st, visible = r.State, r.Visible
+	} else if meta, ok := proto.AgentProvider(s.info.Agent); ok && meta.PluginID != "" && s.d != nil {
+		// Delegate dynamic screen classification asynchronously outside s.mu.
+		s.d.pluginDetectAsync(s, s.info.Agent, s.screen(), s.info.Title, s.progress, s.info.Process, s.info.WorkDir())
+		return false
 	} else if proto.TitleBusy(s.info.Title) {
 		st = detect.Working
 	}

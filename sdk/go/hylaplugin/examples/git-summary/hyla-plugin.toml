@@ -1,0 +1,21 @@
+api_version = 1
+id = "com.example.git-summary"
+name = "Git Summary"
+version = "0.1.0"
+description = "Example Go SDK plugin displaying git summary in side tab and pane"
+author = "Hyla"
+
+[permissions]
+scopes = ["ui.slot", "session.read"]
+
+[daemon]
+command = ["./git-summary"]
+transport = "stdio"
+
+[[ui.slots]]
+id = "tab"
+mount = "side.tab"
+title = "Git Summary"
+mode = "declarative"
+host = "daemon"
+when = "session.selected"

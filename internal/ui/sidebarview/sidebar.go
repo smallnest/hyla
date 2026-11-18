@@ -149,6 +149,8 @@ type App interface {
 	// to paste.
 	Later_(fn func())
 	PutCopy(text string)
+	// PluginSessionMenu appends enabled plugin actions for sidebar session context menus.
+	PluginSessionMenu(m *ui.Menu, s *proto.Session)
 }
 
 // app is the sidebar's app, as the order asks it: it names the state as
@@ -965,6 +967,7 @@ func sessionMenu(x App, m *ui.Menu, s *proto.Session) {
 		}
 	}
 	m.Separator()
+	x.PluginSessionMenu(m, s)
 	if m.Item(locales.SessionCopyId()).Chosen() {
 		x.PutCopy(id)
 	}

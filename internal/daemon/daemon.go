@@ -32,6 +32,7 @@ import (
 	"hyla/internal/clilink"
 	"hyla/internal/detach"
 	"hyla/internal/feishu"
+	"hyla/internal/plugins/daemonhost"
 	"hyla/internal/proto"
 	"hyla/internal/settings"
 	"hyla/internal/shell"
@@ -70,6 +71,7 @@ type Daemon struct {
 	bot       *bot
 	feishu    *feishu.Bot // the bot's connection, while it runs
 	feishuApp sharedFeishu
+	channels  []ChannelDriver
 	// restoredAt is when what a restore started again last changed, as
 	// Unix milliseconds (store.go).
 	restoredAt int64
@@ -110,11 +112,21 @@ type Daemon struct {
 	// agents keep, by the file (chat.go).
 	chatMu   sync.Mutex
 	chatSeen map[string]chatRead
-	net      *listeners
-	changeCh chan struct{}
-	saveCh   chan struct{}
-	quit     chan struct{}
-	quitOnce sync.Once
+	net             *listeners
+	plugins         *daemonhost.Manager
+	pluginStateMu   sync.Mutex
+	lastPluginState proto.State
+	lastPluginDark  bool
+	feishuEnMu      sync.Mutex
+	feishuEnCached  bool
+	feishuEnRegEx   bool
+	feishuEnSize    int64
+	feishuEnMtime   int64
+	feishuEnVal     bool
+	changeCh        chan struct{}
+	saveCh          chan struct{}
+	quit            chan struct{}
+	quitOnce        sync.Once
 }
 
 // Options are how hylad runs.
@@ -213,6 +225,7 @@ func Run(opts Options) error {
 	// found by the PATH this one runs with, which launchd's has none of
 	// the account's places in: an agent's installer is one of them.
 	os.Setenv("PATH", withHomePaths(os.Getenv("PATH")))
+	d.initPlugins()
 	d.startFeishu()
 	d.loadConversations()
 	d.restore()
@@ -268,11 +281,10 @@ func Run(opts Options) error {
 		}
 	}()
 	<-d.quit
-	d.mu.Lock()
-	if b := d.bot; b != nil {
-		b.cancel()
+	if d.plugins != nil {
+		d.plugins.ShutdownAll()
 	}
-	d.mu.Unlock()
+	d.stopChannels()
 	ln.Close()
 	d.net.close()
 	if d.restarting {
@@ -425,6 +437,7 @@ func (d *Daemon) broadcastLoop() {
 			}
 		}
 		d.mu.Unlock()
+		d.notifyPluginStateChanges(st)
 	}
 }
 
@@ -432,13 +445,17 @@ func (d *Daemon) tickLoop() {
 	t := time.NewTicker(400 * time.Millisecond)
 	defer t.Stop()
 	for now := range t.C {
+		// Ordinary daemon plugins NEVER keep hylad alive unless keep_alive=true
+		// (or an active ChannelDriver holds KeepAlive=true).
+		keepAlivePlugins := d.plugins != nil && d.plugins.HasKeepAliveRunning()
+		channelKeepAlive := d.channelKeepAlive()
 		d.mu.Lock()
 		panes := make([]*pane, 0, len(d.panes))
 		for _, p := range d.panes {
 			panes = append(panes, p)
 		}
 		// A server, or a hylad others reach over the network, stays.
-		bot := d.bot != nil
+		bot := channelKeepAlive || keepAlivePlugins
 		idle := len(d.sessions) == 0 && d.conns == 0 && !d.opts.Serve && !d.net.active() && !bot
 		if !idle {
 			d.idleAt = now
@@ -711,6 +728,9 @@ func detectAgent(name string, args []string) string {
 				return a
 			}
 		}
+		if ag := proto.MatchPluginAgentProcess(c); ag != "" {
+			return ag
+		}
 	}
 	// Scripts installed by npm: …/node_modules/@openai/codex/bin/codex.js,
 	// or …\@anthropic-ai\claude-code\cli.js, which npm's shims run on
@@ -817,7 +837,14 @@ func (d *Daemon) serveHello(conn net.Conn, r *bufio.Reader, line []byte, id iden
 			id.peer = localPeer(conn)
 		}
 	}
-	welcome := proto.Welcome{Version: proto.Version, PID: os.Getpid(), Started: d.started.UnixMilli(), App: build.Version(), Build: build.Daemon}
+	welcome := proto.Welcome{
+		Version:      proto.Version,
+		PID:          os.Getpid(),
+		Started:      d.started.UnixMilli(),
+		App:          build.Version(),
+		Build:        build.Daemon,
+		Capabilities: []string{proto.CapPluginsV1},
+	}
 	if hello.Version != proto.Version {
 		welcome.Error = fmt.Sprintf("hylad speaks protocol %d, the client %d", proto.Version, hello.Version)
 		json.NewEncoder(conn).Encode(welcome)

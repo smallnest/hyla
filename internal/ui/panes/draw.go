@@ -289,6 +289,9 @@ func PaneCard(x App, c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown f
 		} else if p.SubagentsPane() {
 			dragging = paneHeader(x, c, pal, bar, shown, s, p, top, left, right, multi, focused, hovered)
 			x.SubagentsBody(c, pal, s, p)
+		} else if p.PluginPane() {
+			dragging = paneHeader(x, c, pal, bar, shown, s, p, top, left, right, multi, focused, hovered)
+			x.PluginPaneBody(c, pal, s, p)
 		} else if p.Browser() {
 			// A browser's address bar is its header.
 			dragging = x.PaneBrowser(c, pal, bar, shown, s, p, top, left, right, multi, focused, hovered)
@@ -521,6 +524,9 @@ func paneHeader(x App, c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown
 		pad = x.ChromeForPanel().HeaderPad
 	}
 	h := ui.Row(c.Key("hdr")).Height(x.HeaderHeightIn()).Shrink(0).AlignItems(ui.Center).Padding(0, 10, 0, pad).Gap(8)
+	h.ContextMenu(func(m *ui.Menu) {
+		x.PaneContextMenu(m, s, p)
+	})
 	if h.Pressed() && !focused {
 		x.SetFocus(s, p.ID)
 		x.PaneRef(p.ID).Focus()
@@ -543,7 +549,7 @@ func paneHeader(x App, c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown
 				grip.Background(pal.RowHover).Cursor(ui.CursorGrab)
 			}
 		}
-		bare := p.TimelinePane() || p.SubagentsPane()
+		bare := p.TimelinePane() || p.SubagentsPane() || p.PluginPane()
 		grip.Children(func() {
 			// A timeline's header names the agent whose turns it shows,
 			// and wears no program's icon: the pane runs none. The
@@ -560,6 +566,8 @@ func paneHeader(x App, c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown
 				} else {
 					ui.Icon(c, glyph.ProgramIcon(mark)).Size(14, 14).TextColor(pal.TextFaint)
 				}
+			} else if p.PluginPane() {
+				ui.Icon(c, glyph.Plugins).Size(14, 14).TextColor(pal.TextFaint)
 			}
 			title, size := p.PaneName(), float32(13.5)
 			if p.TimelinePane() && mark.Agent != "" {
@@ -568,7 +576,7 @@ func paneHeader(x App, c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown
 			if p.SubagentsPane() {
 				title = locales.SideSubagents()
 			}
-			if !multi {
+			if !multi && !p.PluginPane() {
 				title, size = s.DisplayName(x.Settings().SessionName), 14
 			}
 			name := ui.Text(c, title).FontSize(size).FontWeight(600).TextColor(pal.Text).SingleLine().Ellipsis("…").Shrink(1).MinWidth(30)

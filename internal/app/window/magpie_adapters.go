@@ -18,4 +18,15 @@ func (a *App) MagpieNow() *magpieview.Info { return a.Magpie }
 func (a *App) SetMagpie(st *magpieview.Info) { a.Magpie = st }
 
 // infoMagpie draws Magpie's card.
-func (a *App) infoMagpie(c *ui.Context, pal *theme.Palette) { magpieview.Card(a, c, pal) }
+func (a *App) infoMagpie(c *ui.Context, pal *theme.Palette) {
+	hasTestFixture := a.Magpie != nil && (a.Magpie.Usage != nil || a.Magpie.Err != "")
+	if !hasTestFixture && a.Plugins != nil {
+		if !a.Plugins.IsPluginEnabled("hyla.magpie") {
+			return
+		}
+		if a.hostSupportsPlugins(a.Local()) {
+			return
+		}
+	}
+	magpieview.Card(a, c, pal)
+}

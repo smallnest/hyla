@@ -207,8 +207,14 @@ func Run(ctx context.Context, c Config, dir, host string) (Result, Config, error
 	// A machine with no configuration file has nothing to send: an empty
 	// one would be a configuration that wipes the others' the moment it
 	// starts.
-	haveLocal := err == nil
-	localHash := hashOf(local)
+	configErr := err
+	stPlugins := syncPluginStore()
+	localPlugins, localPluginCfg, perr := collectPluginState(stPlugins)
+	if perr != nil {
+		return Result{}, c, perr
+	}
+	haveLocal := configErr == nil || len(localPluginCfg) > 0 || (localPlugins != nil && len(localPlugins.Plugins) > 0)
+	localHash := computeStateHash(local, localPlugins, localPluginCfg)
 
 	sealed, err := st.Get(ctx)
 	var remote *Snapshot
@@ -262,6 +268,9 @@ func Run(ctx context.Context, c Config, dir, host string) (Result, Config, error
 		if err := writeSettings(remote.Content); err != nil {
 			return Result{}, c, err
 		}
+		if err := applyRemotePlugins(stPlugins, remote.Plugins, remote.PluginConfig); err != nil {
+			return Result{}, c, err
+		}
 		res.Action, res.Host, res.At = "pulled", remote.Host, remote.UpdatedAt
 		c.Last = State{Hash: remote.Hash, Host: remote.Host, At: remote.UpdatedAt, Backup: res.Backup}
 		return res, c, nil
@@ -269,7 +278,15 @@ func Run(ctx context.Context, c Config, dir, host string) (Result, Config, error
 
 	// This machine's goes up, sealed with the passphrase: the server sees
 	// the version and the machine's name alone.
-	snap := Snapshot{Version: snapshotVersion, UpdatedAt: res.At, Host: host, Hash: localHash, Content: string(local)}
+	snap := Snapshot{
+		Version:      snapshotVersion,
+		UpdatedAt:    res.At,
+		Host:         host,
+		Hash:         localHash,
+		Content:      string(local),
+		Plugins:      localPlugins,
+		PluginConfig: localPluginCfg,
+	}
 	sealed, err = seal(c.Passphrase, snap)
 	if err != nil {
 		return Result{}, c, err

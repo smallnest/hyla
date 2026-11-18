@@ -267,6 +267,10 @@ func (d *Daemon) startPane(sid string, p proto.CreateParams, dir string) (*pane,
 	if p.Subagents {
 		info.URL, info.File, info.Timeline, info.Subagents, info.Command = "", "", "", true, nil
 	}
+	if p.Plugin != "" {
+		info.URL, info.File, info.Timeline, info.Subagents, info.Command = "", "", "", false, nil
+		info.Plugin, info.PluginView, info.PluginArgs, info.PluginTitle = p.Plugin, p.PluginView, p.PluginArgs, p.PluginTitle
+	}
 	pn, err := newPane(d, sid, info)
 	if err != nil || pn.info.Shown() {
 		return pn, err
@@ -464,7 +468,14 @@ func (d *Daemon) endedCall(method, id string) (any, error) {
 	if e.Titled {
 		name = ""
 	}
-	info, err := d.create(proto.CreateParams{Dir: e.Dir, Name: name, Command: resumeCommand(&e.AgentSession)})
+	cmd := d.pluginResumeCommand(&e.AgentSession, e.Dir)
+	var info any
+	var err error
+	if len(cmd) == 0 {
+		err = fmt.Errorf("agent %s has no resume command for %s", e.Agent, e.ID)
+	} else {
+		info, err = d.create(proto.CreateParams{Dir: e.Dir, Name: name, Command: cmd})
+	}
 	if err != nil {
 		d.mu.Lock()
 		d.ended = slices.Insert(d.ended, min(i, len(d.ended)), e)

@@ -9,6 +9,7 @@
 package proto
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"hash/fnv"
@@ -16,6 +17,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/egoist/mygo"
@@ -65,7 +67,14 @@ type Welcome struct {
 	// Attach only: the size of the snapshot that follows.
 	Cols int `json:"cols,omitempty"`
 	Rows int `json:"rows,omitempty"`
+	// Capabilities lists optional extensions supported by hylad while keeping
+	// Version at 4 (e.g. CapPluginsV1).
+	Capabilities []string `json:"capabilities,omitempty"`
 }
+
+// CapPluginsV1 advertises plugin host RPCs (plugin.list, plugin.call, etc.)
+// and custom plugin panes in Welcome.Capabilities.
+const CapPluginsV1 = "plugins.v1"
 
 // Request is a call on a control connection.
 type Request struct {
@@ -94,6 +103,12 @@ type Message struct {
 	// Browser asks the app to do something on a browser pane's page
 	// ("hyla browser"), which it answers with browser.answer.
 	Browser *BrowserRequest `json:"browser,omitempty"`
+	// Plugin carries daemon-to-app plugin events ("plugin.ui.invalidate",
+	// "plugin.webview.emit", "plugin.event") while preserving proto.Version 4.
+	Plugin     string            `json:"plugin,omitempty"`
+	Topic      string            `json:"topic,omitempty"`
+	PluginArgs map[string]string `json:"pluginArgs,omitempty"`
+	PluginData json.RawMessage   `json:"pluginData,omitempty"`
 }
 
 // Notice is a desktop notification a program in a session sent.
@@ -182,9 +197,15 @@ type Pane struct {
 	// Timeline is the pane a timeline pane shows the agent's turns of:
 	// set, the pane runs no shell. Subagents shows the session's
 	// subagents, which runs no shell either.
-	Timeline  string   `json:"timeline,omitempty"`
-	Subagents bool     `json:"subagents,omitempty"`
-	Dir       string   `json:"dir,omitempty"` // the shell's working directory
+	Timeline  string `json:"timeline,omitempty"`
+	Subagents bool   `json:"subagents,omitempty"`
+	// Plugin names the plugin that owns a custom plugin pane, with
+	// PluginView naming its slot/view and PluginArgs its open parameters.
+	Plugin      string            `json:"plugin,omitempty"`
+	PluginView  string            `json:"pluginView,omitempty"`
+	PluginArgs  map[string]string `json:"pluginArgs,omitempty"`
+	PluginTitle string            `json:"pluginTitle,omitempty"`
+	Dir         string            `json:"dir,omitempty"` // the shell's working directory
 	Command   []string `json:"command,omitempty"`
 	// Process is the foreground program, "" while the shell is.
 	Process string `json:"process,omitempty"`
@@ -229,9 +250,10 @@ type Pane struct {
 	// AgentSession is the coding agent's own session, as its hook told
 	// (hyla hook), while the agent runs: what a restore resumes.
 	AgentSession *AgentSession `json:"agentSession,omitempty"`
-	// FeishuAnswer is the file the agent's Stop hook writes each turn's
-	// answer to, while a Feishu chat drives the agent.
+	// FeishuAnswer is the legacy JSON field for AnswerDir; new channels also
+	// populate AnswerDir and ChannelAnswerDir prefers AnswerDir when set.
 	FeishuAnswer string `json:"feishuAnswer,omitempty"`
+	AnswerDir    string `json:"answerDir,omitempty"`
 	// Restored: the daemon restarted (as after a reboot) and this pane's
 	// shell was started again in its directory, under its old scrollback.
 	Restored bool `json:"restored,omitempty"`
@@ -332,6 +354,135 @@ type EndedSession struct {
 
 // AgentNames are the coding agents' names as they show them.
 var AgentNames = map[string]string{"claude": "Claude Code", "codex": "Codex", "pi": "Pi", "opencode": "OpenCode"}
+
+// AgentMeta describes a plugin-contributed coding agent.
+type AgentMeta struct {
+	ID         string   `json:"id"`
+	Name       string   `json:"name"`
+	PluginID   string   `json:"pluginId,omitempty"`
+	Timeline   bool     `json:"timeline,omitempty"`
+	Subagents  bool     `json:"subagents,omitempty"`
+	Chat       bool     `json:"chat,omitempty"`
+	ResumeArgv []string `json:"resumeArgv,omitempty"`
+	Processes  []string `json:"processes,omitempty"`
+}
+
+var (
+	agentRegMu       sync.RWMutex
+	pluginAgentsByID = make(map[string]AgentMeta)
+)
+
+// SetPluginAgents replaces all agent definitions registered by pluginID.
+func SetPluginAgents(pluginID string, metas []AgentMeta) {
+	if pluginID == "" {
+		return
+	}
+	agentRegMu.Lock()
+	defer agentRegMu.Unlock()
+	for id, m := range pluginAgentsByID {
+		if m.PluginID == pluginID {
+			delete(pluginAgentsByID, id)
+		}
+	}
+	for _, m := range metas {
+		if m.ID == "" {
+			continue
+		}
+		m.PluginID = pluginID
+		if m.Name == "" {
+			m.Name = m.ID
+		}
+		pluginAgentsByID[m.ID] = m
+	}
+}
+
+// RemovePluginAgents unregisters all agent definitions owned by pluginID.
+func RemovePluginAgents(pluginID string) {
+	agentRegMu.Lock()
+	defer agentRegMu.Unlock()
+	for id, m := range pluginAgentsByID {
+		if m.PluginID == pluginID {
+			delete(pluginAgentsByID, id)
+		}
+	}
+}
+
+// ClearPluginAgents removes all plugin-contributed agent definitions.
+func ClearPluginAgents() {
+	agentRegMu.Lock()
+	clear(pluginAgentsByID)
+	agentRegMu.Unlock()
+}
+
+// AgentDisplayName returns the human-readable name for a built-in or plugin agent.
+func AgentDisplayName(agent string) string {
+	if agent == "" {
+		return ""
+	}
+	agentRegMu.RLock()
+	if m, ok := pluginAgentsByID[agent]; ok && m.Name != "" {
+		agentRegMu.RUnlock()
+		return m.Name
+	}
+	agentRegMu.RUnlock()
+	if n, ok := AgentNames[agent]; ok {
+		return n
+	}
+	return agent
+}
+
+// AgentProvider returns the plugin metadata for agent if registered by a plugin.
+func AgentProvider(agent string) (AgentMeta, bool) {
+	if agent == "" {
+		return AgentMeta{}, false
+	}
+	agentRegMu.RLock()
+	m, ok := pluginAgentsByID[agent]
+	agentRegMu.RUnlock()
+	return m, ok
+}
+
+// AllAgentNames returns a snapshot map of built-in and plugin agent display names.
+func AllAgentNames() map[string]string {
+	out := make(map[string]string, len(AgentNames))
+	for k, v := range AgentNames {
+		out[k] = v
+	}
+	agentRegMu.RLock()
+	for k, m := range pluginAgentsByID {
+		if _, builtin := out[k]; !builtin || m.Name != "" {
+			out[k] = m.Name
+		}
+	}
+	agentRegMu.RUnlock()
+	return out
+}
+
+// MatchPluginAgentProcess checks whether process/arg basename proc matches any
+// plugin-registered agent ID or Processes list.
+func MatchPluginAgentProcess(proc string) string {
+	if proc == "" {
+		return ""
+	}
+	low := strings.ToLower(proc)
+	agentRegMu.RLock()
+	defer agentRegMu.RUnlock()
+	if _, ok := pluginAgentsByID[low]; ok {
+		return low
+	}
+	for id, m := range pluginAgentsByID {
+		for _, p := range m.Processes {
+			pl := strings.ToLower(p)
+			if pl == "" {
+				continue
+			}
+			if low == pl || strings.HasPrefix(low, pl+"-") {
+				return id
+			}
+		}
+	}
+	return ""
+}
 
 // Session is a row of the sidebar: one task, with its terminals, its
 // panes, side by side. Its Pane fields are those of its lead pane, the
@@ -584,6 +735,18 @@ func (p *Pane) PaneName() string {
 	if p.SubagentsPane() {
 		return "subagents"
 	}
+	if p.PluginPane() {
+		if t := strings.TrimSpace(p.PluginTitle); t != "" {
+			return t
+		}
+		if t := strings.TrimSpace(p.Title); t != "" {
+			return t
+		}
+		if p.PluginView != "" {
+			return p.PluginView
+		}
+		return p.Plugin
+	}
 	if p.Browser() {
 		if t := strings.TrimSpace(p.Title); t != "" {
 			return t
@@ -624,10 +787,21 @@ func (p *Pane) TimelinePane() bool { return p.Timeline != "" }
 // a terminal.
 func (p *Pane) SubagentsPane() bool { return p.Subagents }
 
+// PluginPane reports whether the pane shows a custom plugin view, not a terminal.
+func (p *Pane) PluginPane() bool { return p.Plugin != "" }
+
+// ChannelAnswerDir returns the active answer handoff directory for the pane.
+func (p *Pane) ChannelAnswerDir() string {
+	if p.AnswerDir != "" {
+		return p.AnswerDir
+	}
+	return p.FeishuAnswer
+}
+
 // Shown reports whether the pane shows what the app draws rather than a
-// program's cells: a browser's page, a file, a timeline, or the subagents.
+// program's cells: a browser's page, a file, a timeline, the subagents, or a plugin view.
 func (p *Pane) Shown() bool {
-	return p.Browser() || p.FilePane() || p.TimelinePane() || p.SubagentsPane()
+	return p.Browser() || p.FilePane() || p.TimelinePane() || p.SubagentsPane() || p.PluginPane()
 }
 
 // WorkDir is where the pane works: the foreground program's directory,
@@ -640,14 +814,17 @@ func (p *Pane) WorkDir() string {
 }
 
 // StartsTimeline tells whether the agent's name is one the timeline reads
-// the records of: Claude Code's, Codex's, DeepSeek Harness's and
-// OpenCode's.
+// the records of: Claude Code's, Codex's, DeepSeek Harness's, OpenCode's,
+// or a registered plugin agent with timeline capability.
 func StartsTimeline(agent string) bool {
 	switch agent {
 	case "claude", "codex", "dsh", "opencode":
 		return true
 	}
-	return false
+	agentRegMu.RLock()
+	m, ok := pluginAgentsByID[agent]
+	agentRegMu.RUnlock()
+	return ok && m.Timeline
 }
 
 // What names a session the user or an agent didn't (settings'
@@ -944,11 +1121,15 @@ type (
 		// a file pane, showing the path; Timeline a timeline pane,
 		// showing the agent's turns of the pane it names; Subagents a
 		// pane showing the session's subagents.
-		URL       string `json:"url,omitempty"`
-		File      string `json:"file,omitempty"`
-		Timeline  string `json:"timeline,omitempty"`
-		Subagents bool   `json:"subagents,omitempty"`
-		After     string `json:"after,omitempty"` // put it after this session
+		URL         string            `json:"url,omitempty"`
+		File        string            `json:"file,omitempty"`
+		Timeline    string            `json:"timeline,omitempty"`
+		Subagents   bool              `json:"subagents,omitempty"`
+		Plugin      string            `json:"plugin,omitempty"`
+		PluginView  string            `json:"pluginView,omitempty"`
+		PluginArgs  map[string]string `json:"pluginArgs,omitempty"`
+		PluginTitle string            `json:"pluginTitle,omitempty"`
+		After       string            `json:"after,omitempty"` // put it after this session
 		Cols      int    `json:"cols,omitempty"`
 		Rows      int    `json:"rows,omitempty"`
 		Worktree  string `json:"worktree,omitempty"`

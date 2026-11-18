@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"hyla/internal/feishu"
+	feishuplugin "hyla/internal/plugins/builtins/feishu"
 	"hyla/internal/proto"
 	"hyla/internal/settings"
 )
@@ -20,10 +21,102 @@ import (
 // one and its secret is kept (hyla feishu setup): from then on its turns
 // keep hylad running, as a server's do.
 type bot struct {
-	d      *Daemon
-	cancel context.CancelFunc
-	app    string
-	err    error // why the last connection ended, if it did
+	d         *Daemon
+	cancel    context.CancelFunc
+	app       string
+	cfgDigest string
+	err       error // why the last connection ended, if it did
+}
+
+type feishuChannelDriver struct{ d *Daemon }
+
+func (c *feishuChannelDriver) ID() string { return feishuplugin.PluginID }
+
+func (c *feishuChannelDriver) Active() bool { return c.d.feishuBot() != nil }
+
+func (c *feishuChannelDriver) KeepAlive() bool {
+	c.d.mu.Lock()
+	active := c.d.bot != nil
+	c.d.mu.Unlock()
+	if !active {
+		return false
+	}
+	return c.d.isFeishuPluginEnabled()
+}
+
+func (c *feishuChannelDriver) Prompt(session, text string) error {
+	b := c.d.feishuBot()
+	if b == nil {
+		return errors.New("no chat drives this session")
+	}
+	return b.Prompt(session, text)
+}
+
+func (c *feishuChannelDriver) Call(method string, raw json.RawMessage) (any, bool, error) {
+	switch method {
+	case "feishu.status":
+		return c.d.feishuStatus(), true, nil
+	case "feishu.chats", "feishu.feed", "feishu.send":
+		res, err := c.d.feishuWindow(method, raw)
+		return res, true, err
+	case "feishu.message", "feishu.keep", "feishu.kept", "feishu.take":
+		res, err := c.d.feishuShared(method, raw)
+		return res, true, err
+	default:
+		return nil, false, nil
+	}
+}
+
+func (c *feishuChannelDriver) Stop() { c.d.stopFeishu() }
+
+func (d *Daemon) isFeishuPluginEnabled() bool {
+	if d.plugins == nil {
+		return true
+	}
+	st := d.pluginStore()
+	info, err := os.Stat(st.RegistryPath())
+	exists := err == nil
+	var size, mtime int64
+	if exists {
+		size = info.Size()
+		mtime = info.ModTime().UnixNano()
+	}
+
+	d.feishuEnMu.Lock()
+	if d.feishuEnCached && d.feishuEnRegEx == exists && d.feishuEnSize == size && d.feishuEnMtime == mtime {
+		val := d.feishuEnVal
+		d.feishuEnMu.Unlock()
+		return val
+	}
+	d.feishuEnMu.Unlock()
+
+	val := d.plugins.IsEnabled(feishuplugin.PluginID)
+	if exists {
+		if reg, rerr := st.LoadRegistry(); rerr == nil {
+			if e, ok := reg.Plugins[feishuplugin.PluginID]; ok {
+				val = e.Enabled && !e.PendingInstall
+			}
+		}
+	}
+
+	d.feishuEnMu.Lock()
+	d.feishuEnCached = true
+	d.feishuEnRegEx = exists
+	d.feishuEnSize = size
+	d.feishuEnMtime = mtime
+	d.feishuEnVal = val
+	d.feishuEnMu.Unlock()
+	return val
+}
+
+func (d *Daemon) stopFeishu() {
+	d.mu.Lock()
+	old := d.bot
+	d.bot, d.feishu = nil, nil
+	d.mu.Unlock()
+	if old != nil {
+		old.cancel()
+	}
 }
 
 // feishuBot is the bot, and nil while it connects.
@@ -35,7 +128,36 @@ func (d *Daemon) feishuBot() *feishu.Bot {
 
 // startFeishu connects the bot, or stops the last one.
 func (d *Daemon) startFeishu() {
-	set := settings.Load()
+	d.ensureDefaultChannels()
+	d.restartFeishu(true)
+}
+
+func (d *Daemon) restartFeishu(force bool) {
+	d.ensureDefaultChannels()
+	if !d.isFeishuPluginEnabled() {
+		d.stopFeishu()
+		return
+	}
+	res := feishuplugin.Resolve(d.pluginStore())
+	if !settings.FeishuSet(&res.Settings) {
+		d.stopFeishu()
+		return
+	}
+	if !res.HasSecret || res.Secret.AppSecret == "" {
+		d.stopFeishu()
+		if d.log != nil {
+			d.log.Printf("feishu: %v", settings.ErrFeishuNotConfigured)
+		}
+		return
+	}
+	if !force {
+		d.mu.Lock()
+		same := d.bot != nil && d.bot.cfgDigest == res.Digest
+		d.mu.Unlock()
+		if same {
+			return
+		}
+	}
 	d.mu.Lock()
 	old := d.bot
 	d.bot, d.feishu = nil, nil
@@ -43,21 +165,13 @@ func (d *Daemon) startFeishu() {
 	if old != nil {
 		old.cancel()
 	}
-	if !settings.FeishuSet(set.Feishu) {
-		return
-	}
-	secret, err := settings.LoadFeishuSecret()
-	if err != nil {
-		d.log.Printf("feishu: %v", err)
-		return
-	}
-	b := &bot{d: d, app: secret.AppID}
+	b := &bot{d: d, app: res.Secret.AppID, cfgDigest: res.Digest}
 	ctx, cancel := context.WithCancel(context.Background())
 	b.cancel = cancel
 	conn := feishu.New(feishu.Config{
-		Settings: *set.Feishu,
-		Yolo:     set.FeishuYolo,
-		Secret:   secret,
+		Settings: res.Settings,
+		Yolo:     res.YoloAll,
+		Secret:   res.Secret,
 		Luna:     &botLuna{d: d},
 		Log:      func(f string, a ...any) { d.log.Printf(f, a...) },
 		Env:      d.botEnv(),
@@ -71,7 +185,7 @@ func (d *Daemon) startFeishu() {
 		return all.Chats, err
 	}
 	go func() {
-		d.log.Printf("feishu: connecting app %s", secret.AppID)
+		d.log.Printf("feishu: connecting app %s", res.Secret.AppID)
 		err := conn.Run(ctx)
 		d.mu.Lock()
 		if d.feishu == conn {
@@ -79,7 +193,7 @@ func (d *Daemon) startFeishu() {
 			d.feishu = nil
 		}
 		d.mu.Unlock()
-		d.log.Printf("feishu: connection to %s ended: %v", secret.AppID, err)
+		d.log.Printf("feishu: connection to %s ended: %v", res.Secret.AppID, err)
 	}()
 }
 
@@ -99,16 +213,26 @@ func (d *Daemon) feishuAct(action string, args map[string]string) {
 
 // FeishuStatus tells the bot's app and whether it connects.
 func (d *Daemon) feishuStatus() proto.FeishuState {
-	st := proto.FeishuState{Configured: settings.FeishuSet(settings.Load().Feishu)}
-	_, err := settings.LoadFeishuSecret()
-	st.Secret = err == nil
+	res := feishuplugin.Resolve(d.pluginStore())
+	st := proto.FeishuState{
+		Configured: settings.FeishuSet(&res.Settings),
+		Secret:     res.HasSecret,
+	}
+	if res.Settings.App != "" {
+		st.App = res.Settings.App
+	}
+	enabled := d.isFeishuPluginEnabled()
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	if d.bot != nil {
+	if d.bot != nil && enabled {
 		st.App = d.bot.app
 		st.Connected = true
 	} else if st.Configured {
-		st.Error = "not connected"
+		if !enabled {
+			st.Error = "plugin hyla.feishu is disabled"
+		} else {
+			st.Error = "not connected"
+		}
 	}
 	return st
 }

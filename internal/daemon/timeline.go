@@ -49,6 +49,9 @@ func (d *Daemon) timelineOf(p proto.TimelineParams) (proto.Timeline, error) {
 			t.Note = locales.InfoTimelineUnread(agent)
 		}
 	default:
+		if tl, handled, perr := d.pluginTimeline(p, agent, conv, dir, pn); handled {
+			return tl, perr
+		}
 		file := timeline.Find(agent, conv, dir)
 		if file == "" {
 			t.Note = locales.InfoTimelineNone(dir)

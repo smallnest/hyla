@@ -11,6 +11,7 @@ package detect
 
 import (
 	"embed"
+	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -96,40 +97,104 @@ type gate struct {
 	regex, lineRegex []*regexp.Regexp
 }
 
+// PluginManifest defines a declarative agent detection TOML supplied by a plugin.
+type PluginManifest struct {
+	Agent string
+	Name  string
+	TOML  []byte
+}
+
 var (
-	loadOnce sync.Once
-	loaded   map[string]*manifest // by agent
-	loadErr  error
+	loadMu       sync.RWMutex
+	builtinDone  bool
+	loaded       map[string]*manifest // built-in, by agent
+	pluginLoaded map[string]*manifest // plugin-contributed, by agent
+	loadErr      error
 )
 
-func load() {
+func parseManifest(source string, data []byte) (*manifest, error) {
+	m := &manifest{}
+	if _, err := toml.Decode(string(data), m); err != nil {
+		return nil, fmt.Errorf("detect: %s: %w", source, err)
+	}
+	for i := range m.Rules {
+		if m.Rules[i].Region == "" {
+			m.Rules[i].Region = "whole_recent"
+		}
+		if err := m.Rules[i].compile(); err != nil {
+			return nil, fmt.Errorf("detect: %s: rule %s: %w", source, m.Rules[i].ID, err)
+		}
+	}
+	return m, nil
+}
+
+func loadLocked() {
 	loaded = map[string]*manifest{}
 	entries, _ := manifestFS.ReadDir("manifests")
 	for _, e := range entries {
 		name := strings.TrimSuffix(e.Name(), ".toml")
 		data, _ := manifestFS.ReadFile("manifests/" + e.Name())
-		m := &manifest{}
-		if _, err := toml.Decode(string(data), m); err != nil {
-			loadErr = fmt.Errorf("detect: %s: %w", e.Name(), err)
+		m, err := parseManifest(e.Name(), data)
+		if err != nil {
+			loadErr = err
 			return
-		}
-		for i := range m.Rules {
-			if m.Rules[i].Region == "" {
-				m.Rules[i].Region = "whole_recent"
-			}
-			if err := m.Rules[i].compile(); err != nil {
-				loadErr = fmt.Errorf("detect: %s: rule %s: %w", e.Name(), m.Rules[i].ID, err)
-				return
-			}
 		}
 		loaded[name] = m
 	}
 }
 
-// Load reads the manifests, reporting the first that does not compile.
+// Load reads the built-in manifests, reporting the first that does not compile.
 func Load() error {
-	loadOnce.Do(load)
+	loadMu.RLock()
+	done, err := builtinDone, loadErr
+	loadMu.RUnlock()
+	if done {
+		return err
+	}
+	loadMu.Lock()
+	defer loadMu.Unlock()
+	if !builtinDone {
+		loadLocked()
+		builtinDone = true
+	}
 	return loadErr
+}
+
+// ReloadPlugins parses and atomically replaces all plugin-provided detect manifests.
+// Valid manifests are applied even if another entry has a parse or regex error.
+func ReloadPlugins(items []PluginManifest) error {
+	if err := Load(); err != nil {
+		return err
+	}
+	next := make(map[string]*manifest, len(items))
+	var errs []error
+	for _, item := range items {
+		agent := strings.TrimSpace(item.Agent)
+		if agent == "" {
+			continue
+		}
+		src := item.Name
+		if src == "" {
+			src = agent + ".toml"
+		}
+		m, err := parseManifest(src, item.TOML)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		next[agent] = m
+	}
+	loadMu.Lock()
+	pluginLoaded = next
+	loadMu.Unlock()
+	return errors.Join(errs...)
+}
+
+// ClearPlugins removes all plugin-contributed detect manifests.
+func ClearPlugins() {
+	loadMu.Lock()
+	pluginLoaded = nil
+	loadMu.Unlock()
 }
 
 // Known reports whether there are rules for the agent.
@@ -141,10 +206,19 @@ func find(agent string) *manifest {
 	if Load() != nil || agent == "" {
 		return nil
 	}
+	mapped := agent
 	if n, ok := manifests[agent]; ok {
-		agent = n
+		mapped = n
 	}
-	return loaded[agent]
+	loadMu.RLock()
+	defer loadMu.RUnlock()
+	if m := loaded[mapped]; m != nil {
+		return m
+	}
+	if m := pluginLoaded[agent]; m != nil {
+		return m
+	}
+	return pluginLoaded[mapped]
 }
 
 // Detect tells what the agent is doing, from its manifest's rules.

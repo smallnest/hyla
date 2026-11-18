@@ -301,6 +301,36 @@ var Backgrounds = []struct{ ID, Name string }{
 	{"plain", "Plain"},
 }
 
+var (
+	pluginBgMu sync.RWMutex
+	pluginBgs  = map[string]bool{}
+)
+
+// SetPluginBackgrounds updates the set of valid plugin-contributed wash IDs
+// accepted by the background setting.
+func SetPluginBackgrounds(ids []string) {
+	next := make(map[string]bool, len(ids))
+	for _, id := range ids {
+		if id != "" {
+			next[id] = true
+		}
+	}
+	pluginBgMu.Lock()
+	pluginBgs = next
+	pluginBgMu.Unlock()
+}
+
+// IsPluginBackground reports whether id names a registered plugin background wash.
+func IsPluginBackground(id string) bool {
+	if id == "" {
+		return false
+	}
+	pluginBgMu.RLock()
+	ok := pluginBgs[id]
+	pluginBgMu.RUnlock()
+	return ok
+}
+
 // Path returns the settings' file, the configuration (ConfigPath).
 func Path() string { return ConfigPath() }
 
@@ -582,7 +612,7 @@ func (s *Settings) normalize() {
 	oneOf(&s.PaneImageFit, d.PaneImageFit, PaneImageFits...)
 	oneOf(&s.SessionSwitch, d.SessionSwitch, SessionSwitches...)
 	oneOf(&s.AppIcon, d.AppIcon, AppIcons...)
-	known := false
+	known := IsPluginBackground(s.Background)
 	for _, b := range Backgrounds {
 		known = known || b.ID == s.Background
 	}

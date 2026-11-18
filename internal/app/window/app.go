@@ -31,6 +31,8 @@ import (
 	"hyla/internal/app/filepane"
 	configsync "hyla/internal/app/sync"
 	"hyla/internal/client"
+	"hyla/internal/plugins/rpc"
+	"hyla/internal/plugins/uihost"
 	"hyla/internal/proto"
 	"hyla/internal/remote"
 	"hyla/internal/settings"
@@ -281,6 +283,12 @@ type App struct {
 	quittingApp bool
 	quitTimer   *time.Timer
 	quick       quickTerm // the terminal the global shortcut drops down
+
+	Plugins              *uihost.Coordinator
+	DaemonPluginStatuses map[string][]rpc.PluginStatus
+	lastPluginState      proto.State
+	lastPluginDark       bool
+	themeOff             func()
 }
 
 // confirmation is a question the app asks before something it cannot undo.
@@ -292,6 +300,9 @@ func newApp() *App {
 	// The logos the user gave the agents Hyla has none for, as the
 	// sidebar draws them.
 	marks.LoadUserMarks(marks.MarksDir())
+	// Preload Layer 1 plugin actions and washes before settings.Load() checks
+	// background / keybind validity so restarts never trigger false problems.
+	preloadPluginBase()
 	a.settingsIn = settings.Load()
 	remote.SetRelay(a.settingsIn.TailcatRelay)
 	applied.Lock()
@@ -301,6 +312,7 @@ func newApp() *App {
 	a.Applied = a.settingsIn.Clone()
 	a.Selected = a.Prefs.Selected
 	a.Machines = []*host.Host{{Conn: host.StateConnecting}}
+	a.initPlugins()
 	return a
 }
 
@@ -349,11 +361,15 @@ func (a *App) UpdateNow(fn func()) { a.Update(fn) }
 // main runs fn on the main thread, and draws: a test's app, which has no
 // window's loop, runs it as it comes.
 func (a *App) main(fn func()) {
-	if a.Win == nil {
-		fn()
+	if a.Win != nil {
+		a.UpdateNow(fn)
 		return
 	}
-	a.UpdateNow(fn)
+	if a.SetWin != nil {
+		a.SetWin.Update(fn)
+		return
+	}
+	fn()
 }
 
 // EventOf takes a message from a host's hylad.
@@ -417,6 +433,18 @@ func (a *App) EventOf(h *host.Host, cl *client.Client, m proto.Message) {
 			title = s.DisplayName(a.settingsIn.SessionName)
 		}
 		a.showNotification(n.Session, title, n.Body)
+	case "plugin.ui.invalidate":
+		if a.Plugins != nil && m.Plugin != "" {
+			var slots []string
+			if raw := m.PluginArgs["slots"]; raw != "" {
+				slots = strings.Split(raw, ",")
+			}
+			a.Plugins.Invalidate(m.Plugin, slots)
+		}
+	case "plugin.webview.emit":
+		if a.Plugins != nil && a.Plugins.Web != nil && !h.Remote() && m.Plugin != "" {
+			a.Plugins.Web.Emit(m.Plugin, m.PluginArgs["slotId"], m.Topic, m.PluginData)
+		}
 	}
 }
 
@@ -482,6 +510,27 @@ func (a *App) TakeStateOf(h *host.Host, st proto.State) {
 		if !live[id] {
 			a.DropWeb(id)
 		}
+	}
+	if a.Plugins != nil && a.Plugins.Web != nil {
+		a.Plugins.Web.ReleaseStale(live)
+	}
+	if a.Plugins != nil && a.Plugins.AppMgr != nil && (h == nil || !h.Remote()) {
+		prev := a.lastPluginState
+		prevDark := a.lastPluginDark
+		curDark := a.pluginIsDark()
+		a.lastPluginState = st
+		a.lastPluginDark = curDark
+		themeName := a.settingsIn.LightTheme
+		if curDark {
+			themeName = a.settingsIn.DarkTheme
+		}
+		if themeName == "" {
+			themeName = "hyla"
+		}
+		a.Plugins.AppMgr.DiffAndNotifyState(prev, st, prevDark, curDark, themeName)
+	}
+	if hostFirst && a.hostSupportsPlugins(h) {
+		a.RefreshDaemonPluginStatuses(h)
 	}
 	a.Files.Forget(func(id string) bool { return live[id] })
 	if a.settingsIn.SessionHistory {
@@ -958,7 +1007,7 @@ func (a *App) termThemes() (light, dark *terminal.Theme) {
 		if name == "" || name == "hyla" {
 			return def
 		}
-		if t, err := terminal.GhosttyTheme(name); err == nil {
+		if t, err := theme.TerminalTheme(name); err == nil {
 			return t
 		}
 		return def
@@ -1218,6 +1267,9 @@ func (a *App) apply(s settings.Settings, save bool) {
 	if old.Appearance != s.Appearance && a.Win != nil {
 		// Only in the running app: before it runs, the call waits for it.
 		mygo.Theme.SetSource(mygo.ThemeSource(s.Appearance))
+	}
+	if old.Appearance != s.Appearance || old.LightTheme != s.LightTheme || old.DarkTheme != s.DarkTheme {
+		a.broadcastPluginTheme()
 	}
 	if old.Language != s.Language && a.Win != nil {
 		mygo.App.SetLocale(uisettings.LocaleTag(s.Language))

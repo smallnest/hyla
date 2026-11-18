@@ -9121,3 +9121,257 @@ func SetSyncLast(when string, host string) string { return In(i18n.Locale()).Set
 func (msgs Messages) SetSyncLast(when string, host string) string {
 	return Catalog.Format(msgs.locale, "setSyncLast", map[string]any{"when": when, "host": host})
 }
+
+// MenuPlugins says "Plugins"
+// in the language the app shows.
+func MenuPlugins() string { return In(i18n.Locale()).MenuPlugins() }
+
+// MenuPlugins says "Plugins"
+// in the language of msgs.
+func (msgs Messages) MenuPlugins() string {
+	return Catalog.Format(msgs.locale, "menuPlugins", nil)
+}
+
+// MenuManagePlugins says "Manage Plugins…"
+// in the language the app shows.
+func MenuManagePlugins() string { return In(i18n.Locale()).MenuManagePlugins() }
+
+// MenuManagePlugins says "Manage Plugins…"
+// in the language of msgs.
+func (msgs Messages) MenuManagePlugins() string {
+	return Catalog.Format(msgs.locale, "menuManagePlugins", nil)
+}
+
+// PagePlugins says "Plugins"
+// in the language the app shows.
+func PagePlugins() string { return In(i18n.Locale()).PagePlugins() }
+
+// PagePlugins says "Plugins"
+// in the language of msgs.
+func (msgs Messages) PagePlugins() string {
+	return Catalog.Format(msgs.locale, "pagePlugins", nil)
+}
+
+// PluginUnavailableTitle says "Plugin Unavailable"
+// in the language the app shows.
+func PluginUnavailableTitle() string { return In(i18n.Locale()).PluginUnavailableTitle() }
+
+// PluginUnavailableTitle says "Plugin Unavailable"
+// in the language of msgs.
+func (msgs Messages) PluginUnavailableTitle() string {
+	return Catalog.Format(msgs.locale, "pluginUnavailableTitle", nil)
+}
+
+// PluginUnavailableDetail says "Plugin \"{plugin}\" is disabled, uninstalled, or not running on this host."
+// in the language the app shows.
+func PluginUnavailableDetail(plugin string) string {
+	return In(i18n.Locale()).PluginUnavailableDetail(plugin)
+}
+
+// PluginUnavailableDetail says "Plugin \"{plugin}\" is disabled, uninstalled, or not running on this host."
+// in the language of msgs.
+func (msgs Messages) PluginUnavailableDetail(plugin string) string {
+	return Catalog.Format(msgs.locale, "pluginUnavailableDetail", map[string]any{"plugin": plugin})
+}
+
+// PluginClosePane says "Close Pane"
+// in the language the app shows.
+func PluginClosePane() string { return In(i18n.Locale()).PluginClosePane() }
+
+// PluginClosePane says "Close Pane"
+// in the language of msgs.
+func (msgs Messages) PluginClosePane() string {
+	return Catalog.Format(msgs.locale, "pluginClosePane", nil)
+}
+
+// PluginLoading says "Loading…"
+// in the language the app shows.
+func PluginLoading() string { return In(i18n.Locale()).PluginLoading() }
+
+// PluginLoading says "Loading…"
+// in the language of msgs.
+func (msgs Messages) PluginLoading() string {
+	return Catalog.Format(msgs.locale, "pluginLoading", nil)
+}
+
+// SetPluginsInstallPkg says "Install Package…"
+// in the language the app shows.
+func SetPluginsInstallPkg() string { return In(i18n.Locale()).SetPluginsInstallPkg() }
+
+// SetPluginsInstallPkg says "Install Package…"
+// in the language of msgs.
+func (msgs Messages) SetPluginsInstallPkg() string {
+	return Catalog.Format(msgs.locale, "setPluginsInstallPkg", nil)
+}
+
+// SetPluginsReload says "Reload All"
+// in the language the app shows.
+func SetPluginsReload() string { return In(i18n.Locale()).SetPluginsReload() }
+
+// SetPluginsReload says "Reload All"
+// in the language of msgs.
+func (msgs Messages) SetPluginsReload() string {
+	return Catalog.Format(msgs.locale, "setPluginsReload", nil)
+}
+
+// SetPluginsEmptyTitle says "No plugins installed"
+// in the language the app shows.
+func SetPluginsEmptyTitle() string { return In(i18n.Locale()).SetPluginsEmptyTitle() }
+
+// SetPluginsEmptyTitle says "No plugins installed"
+// in the language of msgs.
+func (msgs Messages) SetPluginsEmptyTitle() string {
+	return Catalog.Format(msgs.locale, "setPluginsEmptyTitle", nil)
+}
+
+// SetPluginsEmptyDetail says "Install a .hylapkg package or link a local plugin directory via hyla plugin link."
+// in the language the app shows.
+func SetPluginsEmptyDetail() string { return In(i18n.Locale()).SetPluginsEmptyDetail() }
+
+// SetPluginsEmptyDetail says "Install a .hylapkg package or link a local plugin directory via hyla plugin link."
+// in the language of msgs.
+func (msgs Messages) SetPluginsEmptyDetail() string {
+	return Catalog.Format(msgs.locale, "setPluginsEmptyDetail", nil)
+}
+
+// SetPluginsPendingDetail says "Synced from another machine — not yet installed locally."
+// in the language the app shows.
+func SetPluginsPendingDetail() string { return In(i18n.Locale()).SetPluginsPendingDetail() }
+
+// SetPluginsPendingDetail says "Synced from another machine — not yet installed locally."
+// in the language of msgs.
+func (msgs Messages) SetPluginsPendingDetail() string {
+	return Catalog.Format(msgs.locale, "setPluginsPendingDetail", nil)
+}
+
+// SetPluginsPermissions says "Permissions"
+// in the language the app shows.
+func SetPluginsPermissions() string { return In(i18n.Locale()).SetPluginsPermissions() }
+
+// SetPluginsPermissions says "Permissions"
+// in the language of msgs.
+func (msgs Messages) SetPluginsPermissions() string {
+	return Catalog.Format(msgs.locale, "setPluginsPermissions", nil)
+}
+
+// SetPluginsSettings says "Settings"
+// in the language the app shows.
+func SetPluginsSettings() string { return In(i18n.Locale()).SetPluginsSettings() }
+
+// SetPluginsSettings says "Settings"
+// in the language of msgs.
+func (msgs Messages) SetPluginsSettings() string {
+	return Catalog.Format(msgs.locale, "setPluginsSettings", nil)
+}
+
+// SetPluginsRestart says "Restart"
+// in the language the app shows.
+func SetPluginsRestart() string { return In(i18n.Locale()).SetPluginsRestart() }
+
+// SetPluginsRestart says "Restart"
+// in the language of msgs.
+func (msgs Messages) SetPluginsRestart() string {
+	return Catalog.Format(msgs.locale, "setPluginsRestart", nil)
+}
+
+// SetPluginsRemove says "Remove"
+// in the language the app shows.
+func SetPluginsRemove() string { return In(i18n.Locale()).SetPluginsRemove() }
+
+// SetPluginsRemove says "Remove"
+// in the language of msgs.
+func (msgs Messages) SetPluginsRemove() string {
+	return Catalog.Format(msgs.locale, "setPluginsRemove", nil)
+}
+
+// SetPluginsLogs says "Logs"
+// in the language the app shows.
+func SetPluginsLogs() string { return In(i18n.Locale()).SetPluginsLogs() }
+
+// SetPluginsLogs says "Logs"
+// in the language of msgs.
+func (msgs Messages) SetPluginsLogs() string {
+	return Catalog.Format(msgs.locale, "setPluginsLogs", nil)
+}
+
+// SetPluginsHideLogs says "Hide Logs"
+// in the language the app shows.
+func SetPluginsHideLogs() string { return In(i18n.Locale()).SetPluginsHideLogs() }
+
+// SetPluginsHideLogs says "Hide Logs"
+// in the language of msgs.
+func (msgs Messages) SetPluginsHideLogs() string {
+	return Catalog.Format(msgs.locale, "setPluginsHideLogs", nil)
+}
+
+// SetPluginsInstallDialog says "Install Hyla Plugin Package"
+// in the language the app shows.
+func SetPluginsInstallDialog() string { return In(i18n.Locale()).SetPluginsInstallDialog() }
+
+// SetPluginsInstallDialog says "Install Hyla Plugin Package"
+// in the language of msgs.
+func (msgs Messages) SetPluginsInstallDialog() string {
+	return Catalog.Format(msgs.locale, "setPluginsInstallDialog", nil)
+}
+
+// SetPluginsConfirmRemoveTitle says "Remove plugin {name}?"
+// in the language the app shows.
+func SetPluginsConfirmRemoveTitle(name string) string {
+	return In(i18n.Locale()).SetPluginsConfirmRemoveTitle(name)
+}
+
+// SetPluginsConfirmRemoveTitle says "Remove plugin {name}?"
+// in the language of msgs.
+func (msgs Messages) SetPluginsConfirmRemoveTitle(name string) string {
+	return Catalog.Format(msgs.locale, "setPluginsConfirmRemoveTitle", map[string]any{"name": name})
+}
+
+// SetPluginsConfirmRemoveDetail says "Removes the plugin files from this machine. Config files stay under plugin-config/."
+// in the language the app shows.
+func SetPluginsConfirmRemoveDetail() string { return In(i18n.Locale()).SetPluginsConfirmRemoveDetail() }
+
+// SetPluginsConfirmRemoveDetail says "Removes the plugin files from this machine. Config files stay under plugin-config/."
+// in the language of msgs.
+func (msgs Messages) SetPluginsConfirmRemoveDetail() string {
+	return Catalog.Format(msgs.locale, "setPluginsConfirmRemoveDetail", nil)
+}
+
+// SetPluginsLinked says "Linked from {path}"
+// in the language the app shows.
+func SetPluginsLinked(path string) string { return In(i18n.Locale()).SetPluginsLinked(path) }
+
+// SetPluginsLinked says "Linked from {path}"
+// in the language of msgs.
+func (msgs Messages) SetPluginsLinked(path string) string {
+	return Catalog.Format(msgs.locale, "setPluginsLinked", map[string]any{"path": path})
+}
+
+// SetPluginsBuiltin says "Built-in"
+// in the language the app shows.
+func SetPluginsBuiltin() string { return In(i18n.Locale()).SetPluginsBuiltin() }
+
+// SetPluginsBuiltin says "Built-in"
+// in the language of msgs.
+func (msgs Messages) SetPluginsBuiltin() string {
+	return Catalog.Format(msgs.locale, "setPluginsBuiltin", nil)
+}
+
+// SetPluginsInstalledGroup says "Installed Plugins"
+// in the language the app shows.
+func SetPluginsInstalledGroup() string { return In(i18n.Locale()).SetPluginsInstalledGroup() }
+
+// SetPluginsInstalledGroup says "Installed Plugins"
+// in the language of msgs.
+func (msgs Messages) SetPluginsInstalledGroup() string {
+	return Catalog.Format(msgs.locale, "setPluginsInstalledGroup", nil)
+}
+
+// SetPluginsHeaderDetail says "Extend Hyla with declarative asset packs, agent providers, custom panes, and sandboxed web tools."
+// in the language the app shows.
+func SetPluginsHeaderDetail() string { return In(i18n.Locale()).SetPluginsHeaderDetail() }
+
+// SetPluginsHeaderDetail says "Extend Hyla with declarative asset packs, agent providers, custom panes, and sandboxed web tools."
+// in the language of msgs.
+func (msgs Messages) SetPluginsHeaderDetail() string {
+	return Catalog.Format(msgs.locale, "setPluginsHeaderDetail", nil)
+}

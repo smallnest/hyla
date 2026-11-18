@@ -32,6 +32,9 @@ func hookCmd(args []string) error {
 	if agent == "context" && len(args) >= 3 {
 		return contextCmd(args[1], args[2], len(args) > 3 && args[3] == "wait")
 	}
+	if agent == "plugin" && len(args) >= 4 {
+		return runPluginHook(args[1:])
+	}
 	pane := os.Getenv("HYLA_PANE")
 	var in struct {
 		Event     string `json:"hook_event_name"`

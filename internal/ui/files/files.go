@@ -54,6 +54,8 @@ type App interface {
 	StartCreate(s *proto.Session, pane, dir, rel string, folder bool)
 	// EntryMenu shows a row's menu.
 	EntryMenu(m *ui.Menu, s *proto.Session, pane string, it Item)
+	// PluginFileMenu appends enabled plugin actions targeting files.menu.
+	PluginFileMenu(m *ui.Menu, s *proto.Session, pane string, it Item)
 	// Split splits a pane, with the session's params.
 	Split(s *proto.Session, p proto.CreateParams)
 	// OpenFileInPane opens a file in a file pane beside a pane.
@@ -882,6 +884,7 @@ func EntryMenu(x App, m *ui.Menu, s *proto.Session, pane string, it Item) {
 	if m.Item(locales.FilesDeleteItem()).Chosen() {
 		askDelete(x, pane, it)
 	}
+	x.PluginFileMenu(m, s, pane, it)
 }
 
 // headerH is the height of the viewer's header.

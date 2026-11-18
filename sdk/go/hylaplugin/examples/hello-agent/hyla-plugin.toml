@@ -1,0 +1,27 @@
+api_version = 1
+id = "com.example.hello-agent"
+name = "Hello Agent"
+version = "0.1.0"
+description = "Example Go SDK plugin providing a custom coding agent and Info card"
+author = "Hyla"
+
+[permissions]
+scopes = ["agent.provider", "ui.slot", "session.read"]
+
+[daemon]
+command = ["./hello-agent"]
+transport = "stdio"
+
+[[agents]]
+id = "hello-agent"
+name = "Hello Agent"
+processes = ["hello-agent"]
+timeline = true
+
+[[ui.slots]]
+id = "summary"
+mount = "info.card"
+title = "Hello Agent"
+mode = "declarative"
+host = "daemon"
+when = "session.selected"

@@ -1,0 +1,22 @@
+{
+  "name": "@hyla/plugin-sdk",
+  "version": "1.0.0",
+  "description": "Official TypeScript / Bun SDK for writing Hyla plugins and sandboxed WebView panes",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./web": {
+      "types": "./src/web.ts",
+      "default": "./src/web.ts"
+    }
+  },
+  "scripts": {
+    "test": "bun test",
+    "check": "tsc --noEmit"
+  }
+}

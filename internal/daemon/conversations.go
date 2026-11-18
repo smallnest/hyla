@@ -60,7 +60,7 @@ func (d *Daemon) loadConversations() {
 		return
 	}
 	list = slices.DeleteFunc(list, func(c proto.Conversation) bool {
-		return resumeCommand(&proto.AgentSession{Agent: c.Agent, ID: c.ID}) == nil
+		return !canResumeAgentSession(&proto.AgentSession{Agent: c.Agent, ID: c.ID})
 	})
 	d.convs.mu.Lock()
 	d.convs.list = list
@@ -86,7 +86,7 @@ func (d *Daemon) saveConversations() {
 // note remembers a conversation as it runs, at, keeping what c leaves out
 // of what was known, and when it started.
 func (cs *convStore) note(c proto.Conversation, at int64) {
-	if resumeCommand(&proto.AgentSession{Agent: c.Agent, ID: c.ID}) == nil {
+	if !canResumeAgentSession(&proto.AgentSession{Agent: c.Agent, ID: c.ID}) {
 		return
 	}
 	cs.mu.Lock()
@@ -208,7 +208,7 @@ func paneConversation(p *pane, project, name string) *proto.Conversation {
 // genericTitle tells a title that says only which agent runs, as Claude
 // Code's before its conversation has one.
 func genericTitle(t, agent string) bool {
-	return strings.EqualFold(t, agent) || strings.EqualFold(t, proto.AgentNames[agent])
+	return strings.EqualFold(t, agent) || strings.EqualFold(t, proto.AgentDisplayName(agent))
 }
 
 // noteConversations remembers what the panes' agents run now, with their
@@ -337,8 +337,12 @@ func (d *Daemon) resumeConversation(p proto.ConversationParams) (proto.Session, 
 			return proto.Session{}, fmt.Errorf("the conversation's directory %s is gone", proto.ShortDir(c.Dir))
 		}
 	}
+	cmd := d.pluginResumeCommand(&as, c.Dir)
+	if len(cmd) == 0 {
+		return proto.Session{}, fmt.Errorf("agent %s has no resume command for %s", c.Agent, c.ID)
+	}
 	info, err := d.create(proto.CreateParams{
-		Project: project, Name: c.Name, Dir: c.Dir, Command: resumeCommand(&as), After: p.After, Cols: p.Cols, Rows: p.Rows,
+		Project: project, Name: c.Name, Dir: c.Dir, Command: cmd, After: p.After, Cols: p.Cols, Rows: p.Rows,
 	})
 	if err != nil {
 		return info, err

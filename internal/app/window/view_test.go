@@ -48,7 +48,9 @@ func testApp(t *testing.T) *App {
 	t.Setenv("HYLA_HOME", home)
 	// The configuration too: never the user's.
 	t.Setenv("HYLA_CONFIG", filepath.Join(home, "config"))
+	t.Setenv("HYLA_NO_KEYCHAIN", "1")
 	a := newApp()
+	t.Cleanup(a.shutdownPlugins)
 	var l *proto.Layout
 	a.St = proto.State{
 		Projects: []proto.Project{{ID: "p1", Name: "demo", Dir: "/tmp"}},

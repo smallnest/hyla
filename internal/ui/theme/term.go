@@ -1,8 +1,16 @@
 package theme
 
 import (
+	"errors"
+	"fmt"
+	"os"
+	"sort"
+	"sync"
+
 	"github.com/egoist/mygo/plugins/terminal"
 	"github.com/egoist/mygo/ui"
+
+	"hyla/internal/plugins/manifest"
 )
 
 var lightTerm = &terminal.Theme{
@@ -43,3 +51,87 @@ func LightTerm() *terminal.Theme { return lightTerm }
 // DarkTerm is the dark appearance's terminal theme, as LightTerm is the
 // light one's.
 func DarkTerm() *terminal.Theme { return darkTerm }
+
+var (
+	pluginThemeMu sync.RWMutex
+	pluginThemes  = map[string]*terminal.Theme{}
+	pluginNames   []string
+)
+
+// ReloadPluginThemes parses plugin-supplied .ghostty theme files and replaces
+// active plugin terminal themes atomically.
+func ReloadPluginThemes(assets []manifest.ThemeAsset) error {
+	next := map[string]*terminal.Theme{}
+	var errs []error
+	for _, a := range assets {
+		if a.Name == "" || a.Path == "" {
+			continue
+		}
+		if a.Name == "hyla" {
+			errs = append(errs, fmt.Errorf("plugin %s theme cannot override reserved name %q", a.PluginID, a.Name))
+			continue
+		}
+		data, err := os.ReadFile(a.Path)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("theme %s/%s: %w", a.PluginID, a.Name, err))
+			continue
+		}
+		t, err := terminal.ParseGhosttyTheme(data)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("theme %s/%s: %w", a.PluginID, a.Name, err))
+			continue
+		}
+		next[a.Name] = t
+	}
+	names := make([]string, 0, len(next))
+	for k := range next {
+		names = append(names, k)
+	}
+	sort.Strings(names)
+	pluginThemeMu.Lock()
+	pluginThemes = next
+	pluginNames = names
+	pluginThemeMu.Unlock()
+	return errors.Join(errs...)
+}
+
+// TerminalThemes returns all selectable terminal theme names: "hyla", built-in
+// Ghostty themes, and enabled plugin Ghostty themes.
+func TerminalThemes() []string {
+	base := terminal.GhosttyThemes()
+	seen := make(map[string]bool, len(base)+1)
+	seen["hyla"] = true
+	for _, n := range base {
+		seen[n] = true
+	}
+	out := make([]string, 0, 1+len(base)+len(pluginNames))
+	out = append(out, "hyla")
+	out = append(out, base...)
+	pluginThemeMu.RLock()
+	for _, n := range pluginNames {
+		if !seen[n] {
+			seen[n] = true
+			out = append(out, n)
+		}
+	}
+	pluginThemeMu.RUnlock()
+	return out
+}
+
+// TerminalTheme resolves a named Ghostty theme, checking plugin-supplied
+// themes when built-in Ghostty themes do not contain name.
+func TerminalTheme(name string) (*terminal.Theme, error) {
+	if name == "" || name == "hyla" {
+		return nil, fmt.Errorf("built-in theme %q uses LightTerm/DarkTerm", name)
+	}
+	pluginThemeMu.RLock()
+	pt := pluginThemes[name]
+	pluginThemeMu.RUnlock()
+	if t, err := terminal.GhosttyTheme(name); err == nil {
+		return t, nil
+	} else if pt != nil {
+		return pt, nil
+	} else {
+		return nil, err
+	}
+}

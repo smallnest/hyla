@@ -14,4 +14,9 @@ func (a *App) Toast(msg string) { a.toast(msg) }
 
 func (a *App) ToastSyncKept(path string) { a.toast(locales.ToastSyncKept(path)) }
 
-func (a *App) ApplySettings(s settings.Settings) { a.applySettings(s) }
+func (a *App) ApplySettings(s settings.Settings) {
+	a.applySettings(s)
+	if a.Plugins != nil {
+		_ = a.reloadPlugins(true)
+	}
+}

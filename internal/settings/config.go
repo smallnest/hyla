@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -170,8 +171,32 @@ var keys = append([]key{
 	stringKey("pet-set", `the pet on the window's edge: hyla, codex (the Codex app's active pet), or a Codex pet's directory name in ~/.codex/pets, or in hyla's own`, func(s *Settings) *string { return &s.PetSet }),
 	choiceKey("window-theme", "the app's appearance", func(s *Settings) *string { return &s.Appearance }, "system", "light", "dark"),
 	choiceKey("language", "the app's language; system follows the system's", func(s *Settings) *string { return &s.Language }, append([]string{"system"}, Languages...)...),
-	mapChoice("background", "the window's wash", func(s *Settings) *string { return &s.Background },
-		[]string{"petal", "mist", "meadow", "plain", "dock"}, []string{"rex", "mist", "meadow", "plain", "dock"}),
+	{name: "background", doc: "the window's wash (petal, mist, meadow, plain, dock)",
+		get: func(s *Settings) []string {
+			file := []string{"petal", "mist", "meadow", "plain", "dock"}
+			ours := []string{"rex", "mist", "meadow", "plain", "dock"}
+			if i := slices.Index(ours, s.Background); i >= 0 {
+				return []string{file[i]}
+			}
+			if IsPluginBackground(s.Background) {
+				return []string{s.Background}
+			}
+			return []string{"petal"}
+		},
+		set: func(s *Settings, v []string) error {
+			file := []string{"petal", "mist", "meadow", "plain", "dock"}
+			ours := []string{"rex", "mist", "meadow", "plain", "dock"}
+			val := v[len(v)-1]
+			if i := slices.Index(file, val); i >= 0 {
+				s.Background = ours[i]
+				return nil
+			}
+			if IsPluginBackground(val) {
+				s.Background = val
+				return nil
+			}
+			return fmt.Errorf("%q is none of %s", val, strings.Join(file, ", "))
+		}},
 	boolKey("window-translucent", "let the desktop show through the window", func(s *Settings) *bool { return &s.Vibrancy }),
 
 	stringKey("font-family", "the terminals' font: empty for JetBrains Mono Nerd Font, which Hyla carries; monospace for the system's", func(s *Settings) *string { return &s.FontFamily }),
@@ -393,7 +418,9 @@ var keys = append([]key{
 	{name: "keybind", doc: "<keys>=<action>, over the defaults, as cmd+shift+d=pane.split.down; <keys>=unbind frees keys; see hyla actions", list: true,
 		get: func(s *Settings) []string {
 			var out []string
-			for _, a := range actions.All {
+			seen := make(map[string]bool)
+			for _, a := range actions.List() {
+				seen[a.ID] = true
 				k, ok := s.Shortcuts[a.ID]
 				if !ok {
 					continue
@@ -405,6 +432,19 @@ var keys = append([]key{
 					continue
 				}
 				out = append(out, configKeys(k)+"="+a.ID)
+			}
+			var extra []string
+			for id := range s.Shortcuts {
+				if !seen[id] {
+					extra = append(extra, id)
+				}
+			}
+			sort.Strings(extra)
+			for _, id := range extra {
+				k := s.Shortcuts[id]
+				if k != "" {
+					out = append(out, configKeys(k)+"="+id)
+				}
 			}
 			return out
 		},
@@ -422,14 +462,14 @@ var keys = append([]key{
 				// know which are.
 				keys, id := accelerator(strings.TrimPrefix(strings.TrimSpace(b[:i]), "global:")), strings.TrimSpace(b[i+1:])
 				if id == "unbind" {
-					for _, a := range actions.All {
+					for _, a := range actions.List() {
 						if strings.EqualFold(actions.Keys(a, sc), keys) {
 							sc[a.ID] = ""
 						}
 					}
 					continue
 				}
-				if _, ok := actions.Find(id); !ok {
+				if _, ok := actions.Find(id); !ok && !actions.IsPluginActionID(id) {
 					bad = append(bad, fmt.Sprintf("no action %q", id))
 					continue
 				}

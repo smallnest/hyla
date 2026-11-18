@@ -43,7 +43,7 @@ func (a *App) run(id string, args map[string]string) {
 	s := a.session(a.Selected)
 	switch id {
 	case "settings.open":
-		a.openSettings("")
+		a.openSettings(args["page"])
 	case "cli.install":
 		a.installCLI()
 	case "app.quitAll":
@@ -138,6 +138,8 @@ func (a *App) run(id string, args map[string]string) {
 		a.zoom(0, true)
 	case QuickAction:
 		a.toggleQuick()
+	default:
+		a.runPluginAction(id, args)
 	}
 	if a.Win != nil {
 		a.Win.Invalidate()

@@ -1,6 +1,8 @@
 package side
 
 import (
+	"strings"
+
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/proto"
@@ -76,6 +78,17 @@ type App interface {
 	ChangesSide(c *ui.Context, pal *theme.Palette, s *proto.Session, width float32)
 	FilesSide(c *ui.Context, pal *theme.Palette, s *proto.Session)
 	InfoSide(c *ui.Context, pal *theme.Palette, s *proto.Session)
+	// PluginTabs lists custom side-panel tabs contributed by enabled plugins.
+	PluginTabs(s *proto.Session) []PluginTab
+	// PluginSide renders the body of a custom plugin side-panel tab.
+	PluginSide(c *ui.Context, pal *theme.Palette, s *proto.Session, tabID string, width float32)
+}
+
+// PluginTab describes a custom side-panel tab registered by an enabled plugin.
+type PluginTab struct {
+	ID    string
+	Title string
+	Icon  *ui.SVG
 }
 
 // State is the panel's, beside the prefs that open it and size it.
@@ -140,7 +153,7 @@ func Tab(x App) string {
 	if tab == "" {
 		tab = *x.SideTabPref()
 	}
-	if tab != Files && tab != Info {
+	if tab != Files && tab != Info && !strings.HasPrefix(tab, "plugin:") {
 		tab = Changes
 	}
 	return tab
@@ -249,6 +262,14 @@ func Panel(x App, c *ui.Context, pal *theme.Palette, s *proto.Session, width flo
 			tabButton(x, c, pal, Info, locales.SideInfo(), glyph.Info, view == Info, "info.toggle", labels, func() { set = Info })
 			tabButton(x, c, pal, Changes, locales.SideChanges(), glyph.Diff, view == Changes, "changes.toggle", labels, func() { set = Changes })
 			tabButton(x, c, pal, Files, locales.SideFiles(), glyph.Folder, view == Files, "files.toggle", labels, func() { set = Files })
+			for _, pt := range x.PluginTabs(s) {
+				svg := pt.Icon
+				if svg == nil {
+					svg = glyph.Plugins
+				}
+				pid := pt.ID
+				tabButton(x, c, pal, pid, pt.Title, svg, view == pid, "", labels, func() { set = pid })
+			}
 			if set != "" {
 				x.RunLater(func() { Show(x, set) })
 			}
@@ -280,6 +301,10 @@ func Panel(x App, c *ui.Context, pal *theme.Palette, s *proto.Session, width flo
 				return
 			case Info:
 				x.InfoSide(c, pal, s)
+				return
+			}
+			if strings.HasPrefix(view, "plugin:") {
+				x.PluginSide(c, pal, s, view, width)
 				return
 			}
 			x.ChangesSide(c, pal, s, width)

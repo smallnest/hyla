@@ -6,6 +6,7 @@ package glyph
 
 import (
 	"embed"
+	"strings"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
@@ -23,6 +24,69 @@ func Of(name string) *ui.SVG {
 		panic("hyla: no icon " + name)
 	}
 	return ui.MustParseSVG(b)
+}
+
+// Try safely resolves either a named shortcut ("terminal", "info", "gear", …)
+// or an embedded icon file name ("f7-gear-alt", "lucide-info") without panicking.
+func Try(name string) (*ui.SVG, bool) {
+	if name == "" || strings.ContainsAny(name, `/\.`) {
+		return nil, false
+	}
+	switch name {
+	case "sidebar":
+		return Sidebar, true
+	case "plus":
+		return Plus, true
+	case "chevron":
+		return Chevron, true
+	case "folder":
+		return Folder, true
+	case "doc":
+		return Doc, true
+	case "search":
+		return Search, true
+	case "terminal":
+		return Terminal, true
+	case "gear":
+		return Gear, true
+	case "host":
+		return Host, true
+	case "branch":
+		return Branch, true
+	case "diff":
+		return Diff, true
+	case "globe":
+		return Globe, true
+	case "reload":
+		return Reload, true
+	case "copy":
+		return Copy, true
+	case "info":
+		return Info, true
+	case "link":
+		return Link, true
+	case "chat":
+		return Chat, true
+	case "edit":
+		return Edit, true
+	case "close":
+		return Close, true
+	case "archive":
+		return Archive, true
+	case "sort":
+		return Sort, true
+	case "plugins", "plugin":
+		return Plugins, true
+	}
+	b, err := files.ReadFile("icons/" + name + ".svg")
+	if err != nil {
+		return nil, false
+	}
+	svg, err := ui.ParseSVG(b)
+	if err != nil {
+		return nil, false
+	}
+	return svg, true
 }
 
 // Drawn draws an icon of hyla's own, on 16, as a status glyph.
@@ -77,6 +141,8 @@ var (
 	// K8s is the Kubernetes wheel: a heptagon around a ship's wheel,
 	// as the logo draws it, in Hyla's stroke.
 	K8s = Drawn(`<path d="M8 1.7 13.2 4.2 14.4 9.8 10.9 14.3 5.1 14.3 1.6 9.8 2.8 4.2Z"/><circle cx="8" cy="8.3" r="1.9"/><path d="M8 6.4V3.3M9.5 7.2l2.7-2M9.8 8.6l3.4.7M8.9 9.9l1.5 3.1M7.1 9.9l-1.5 3.1M6.2 8.6l-3.4.7M6.5 7.2l-2.7-2"/>`)
+	// Plugins is a modular grid with one offset piece joining it.
+	Plugins = Drawn(`<rect x="2.2" y="2.2" width="5" height="5" rx="1.2"/><rect x="8.8" y="8.8" width="5" height="5" rx="1.2"/><rect x="2.2" y="8.8" width="5" height="5" rx="1.2"/><rect x="9.4" y="1.6" width="5" height="5" rx="1.2"/>`)
 )
 
 // MenuIcon is an icon as a menu item's image, made once: the items that

@@ -15,7 +15,6 @@ import (
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/i18n"
 	"github.com/egoist/mygo/plugins/glass"
-	"github.com/egoist/mygo/plugins/terminal"
 	"github.com/egoist/mygo/plugins/updater"
 	"github.com/egoist/mygo/ui"
 
@@ -60,6 +59,7 @@ var settingsPages = []settingsPage{
 	{"keyboard", locales.PageKeyboard, glyph.Of("f7-keyboard"), false},
 	{"feishu", locales.PageFeishu, glyph.Of("f7-chat-bubble-2"), false},
 	{"agents", locales.PageAgents, glyph.Of("f7-sparkles"), false},
+	{"plugins", locales.PagePlugins, glyph.Plugins, false},
 	{"sync", locales.PageSync, glyph.Sync, false},
 	{"hosts", locales.PageHosts, glyph.Host, true},
 	{"advanced", locales.PageAdvanced, glyph.Of("f7-slider-horizontal-3"), false},
@@ -100,6 +100,16 @@ type State struct {
 	TCHost  draft.TCHostDraft  // the machines reached by a pair code
 	Remote  draft.HostDraft    // the other machines' form
 	Feishu  draft.FeishuDraft  // the Feishu page's form
+
+	PluginDetail     string
+	PluginLogsID     string
+	PluginLogsText   string
+	PluginDraft      map[string]string
+	PluginSecrets    map[string]string
+	PluginDraftPtrs  map[string]*string
+	PluginSecretPtrs map[string]*string
+	PluginDraftInit  map[string]string
+	NavRevealed      string
 }
 
 // checkUpdates asks the updater for a newer app, which none does where
@@ -109,19 +119,32 @@ func checkUpdates() {
 	updater.CheckForUpdates()
 }
 
-// Open shows the Settings window, on a page, making it when there is
-// none, and calling w with the content to show when it makes one.
-func Open(x App, page string, w func(content any)) {
-	ss := x.SettingsState()
+// SetPage sets the Settings window's active page, clearing any active search
+// filter when navigating explicitly to a non-empty page.
+func SetPage(ss *State, page string) {
 	if page != "" {
 		ss.Page = page
+		ss.Query = ""
+		ss.Revealed = ""
 	}
 	if ss.Page == "" {
 		ss.Page = "general"
 	}
+}
+
+// Open shows the Settings window, on a page, making it when there is
+// none, and calling w with the content to show when it makes one.
+func Open(x App, page string, w func(content any)) {
+	ss := x.SettingsState()
+	SetPage(ss, page)
 	if x.SettingsWindow() != nil {
 		x.SettingsWindow().Show()
 		x.SettingsWindow().Focus()
+		x.SettingsWindow().Invalidate()
+		return
+	}
+	if x.RootWindow() == nil {
+		w(View(x))
 		return
 	}
 	ss.LoginOpen = mygo.App.OpenAtLogin()
@@ -231,6 +254,30 @@ func durationWords(d time.Duration) string {
 // page shown.
 func View(x App) func(c *ui.Context) { return func(c *ui.Context) { view(x, c) } }
 
+func allSettingsPages(x App) (builtin, plugin, all []settingsPage) {
+	builtin = settingsPages
+	if x != nil {
+		if pa := x.PluginsView(); pa != nil {
+			for _, pp := range pa.SettingsPages() {
+				ic := pp.Icon
+				if ic == nil {
+					ic = glyph.Plugins
+				}
+				title := pp.Title
+				plugin = append(plugin, settingsPage{
+					id:    pp.ID,
+					title: func() string { return title },
+					icon:  ic,
+				})
+			}
+		}
+	}
+	all = make([]settingsPage, 0, len(builtin)+len(plugin))
+	all = append(all, builtin...)
+	all = append(all, plugin...)
+	return builtin, plugin, all
+}
+
 func view(x App, c *ui.Context) {
 	ss, s := x.SettingsState(), x.Settings()
 	pal := theme.For(c)
@@ -239,7 +286,16 @@ func view(x App, c *ui.Context) {
 		c.Toast(ss.Toast)
 		ss.Toast = ""
 	}
-	found := searchSettings(x)
+	builtinPages, pluginPages, allPages := allSettingsPages(x)
+	if !slices.ContainsFunc(allPages, func(p settingsPage) bool { return p.id == ss.Page }) {
+		if strings.HasPrefix(ss.Page, "plugin:") {
+			ss.Page = "plugins"
+		} else {
+			ss.Page = "general"
+		}
+		x.StartRecording("")
+	}
+	found, pluginHits := searchSettings(x, allPages)
 	c.OnShortcut(ui.Cmd, ui.KeyF, func() { ss.SearchRef.Focus(c) })
 	row := ui.Row(c).Fill().AlignItems(ui.Stretch)
 	theme.Backdrop(c, pal, row, *s)
@@ -254,16 +310,35 @@ func view(x App, c *ui.Context) {
 		}
 		ui.Column(c).Width(212).Shrink(0).Padding(top, 10, 12, 10).Gap(2).DragWindow().Children(func() {
 			settingsSearch(x, c, pal)
-			for _, p := range settingsPages {
-				if found == nil || found[p.id] != nil {
-					settingsNav(x, c, pal, p)
-				}
+			prevPage := ss.Page
+			ui.Scroll(c.Key("nav")).Grow(1).MinHeight(0).Children(func() {
+				ui.Column(c).Gap(2).Children(func() {
+					shownBuiltin := false
+					for _, p := range builtinPages {
+						if found == nil || found[p.id] != nil {
+							settingsNav(x, c, pal, p)
+							shownBuiltin = true
+						}
+					}
+					shownPlugin := false
+					for _, p := range pluginPages {
+						if found == nil || found[p.id] != nil {
+							if !shownPlugin && shownBuiltin {
+								ui.Box(c.Key("nav-plg-sep")).Height(1).Margin(6, 10).Shrink(0).Background(pal.Divider)
+							}
+							settingsNav(x, c, pal, p)
+							shownPlugin = true
+						}
+					}
+					if found != nil && len(found) == 0 {
+						ui.Text(c, locales.CommonNoResults()).FontSize(13).TextColor(pal.TextFaint).Padding(8, 10)
+					}
+				})
+			})
+			if ss.Page != prevPage && found != nil {
+				applySearchSelection(ss, found, pluginHits)
 			}
-			if found != nil && len(found) == 0 {
-				ui.Text(c, locales.CommonNoResults()).FontSize(13).TextColor(pal.TextFaint).Padding(8, 10)
-			}
-			ui.Spacer(c)
-			link := ui.ButtonBase(c.Key("open-config")).Padding(6, 10).Gap(6).Radius(7).AlignItems(ui.Center).Label(locales.SettingsOpenConfigLabel())
+			link := ui.ButtonBase(c.Key("open-config")).Shrink(0).Padding(6, 10).Gap(6).Radius(7).AlignItems(ui.Center).Label(locales.SettingsOpenConfigLabel())
 			fg := pal.TextMuted
 			if link.Hovered() {
 				fg = pal.Text
@@ -280,8 +355,8 @@ func view(x App, c *ui.Context) {
 		ui.Column(c).Grow(1).MinWidth(0).Padding(x.CardGap(), x.CardGap(), x.CardGap(), 0).Children(func() {
 			card := style.Raised(ui.Column(c).Grow(1).MinHeight(0).Radius(14).Background(pal.Card), pal).Clip()
 			card.Children(func() {
-				page := settingsPages[0]
-				for _, p := range settingsPages {
+				page := allPages[0]
+				for _, p := range allPages {
 					if p.id == ss.Page {
 						page = p
 					}
@@ -304,44 +379,55 @@ func view(x App, c *ui.Context) {
 				box.Children(func() {
 					ui.Scroll(c.Key("page-"+page.id)).Fill().Padding(headerH+16, 24, 28, 24).ScrollbarInsets(headerH, 0, 0).TrackScroll(sc).Children(func() {
 						ui.Column(c).Gap(22).MaxWidth(620).Children(func() {
-							switch page.id {
-							case "general":
-								generalPage(x, c, pal)
-							case "appearance":
-								appearancePage(x, c, pal)
-							case "terminal":
-								terminalPage(x, c, pal)
-							case "shell":
-								shellPage(x, c, pal)
-							case "browser":
-								browserPage(x, c, pal)
-							case "notifications":
-								notificationsPage(x, c, pal)
-							case "keyboard":
-								keyboardPage(x, c, pal)
-							case "feishu":
-								feishuPage(x, c, pal)
-							case "agents":
-								agentsPage(x, c, pal)
-							case "sync":
-								page := SyncPage
-								if page == nil {
-									page = func(x App, c *ui.Context, pal *theme.Palette) { x.Sync(c, pal) }
+							if strings.HasPrefix(page.id, "plugin:") {
+								pluginSettingsPage(x, c, pal, page.id)
+							} else {
+								switch page.id {
+								case "general":
+									generalPage(x, c, pal)
+								case "appearance":
+									appearancePage(x, c, pal)
+								case "terminal":
+									terminalPage(x, c, pal)
+								case "shell":
+									shellPage(x, c, pal)
+								case "browser":
+									browserPage(x, c, pal)
+								case "notifications":
+									notificationsPage(x, c, pal)
+								case "keyboard":
+									keyboardPage(x, c, pal)
+								case "feishu":
+									feishuPage(x, c, pal)
+								case "agents":
+									agentsPage(x, c, pal)
+								case "plugins":
+									pluginsPage(x, c, pal)
+								case "sync":
+									page := SyncPage
+									if page == nil {
+										page = func(x App, c *ui.Context, pal *theme.Palette) { x.Sync(c, pal) }
+									}
+									page(x, c, pal)
+								case "hosts":
+									tailcat := TailcatPage
+									if tailcat == nil {
+										tailcat = func(x App, c *ui.Context, pal *theme.Palette) { x.Tailcat(c, pal) }
+									}
+									p2p := P2PPage
+									if p2p == nil {
+										p2p = func(x App, c *ui.Context, pal *theme.Palette) { x.P2P(c, pal) }
+									}
+									tailcat(x, c, pal)
+									p2p(x, c, pal)
+								case "advanced":
+									advancedPage(x, c, pal)
 								}
-								page(x, c, pal)
-							case "hosts":
-								tailcat := TailcatPage
-								if tailcat == nil {
-									tailcat = func(x App, c *ui.Context, pal *theme.Palette) { x.Tailcat(c, pal) }
+								if page.id != "plugins" {
+									if pa := x.PluginsView(); pa != nil {
+										pa.RenderSettingsMount(c, pal, "settings."+page.id, "")
+									}
 								}
-								p2p := P2PPage
-								if p2p == nil {
-									p2p = func(x App, c *ui.Context, pal *theme.Palette) { x.P2P(c, pal) }
-								}
-								tailcat(x, c, pal)
-								p2p(x, c, pal)
-							case "advanced":
-								advancedPage(x, c, pal)
 							}
 						})
 					})
@@ -374,17 +460,25 @@ func view(x App, c *ui.Context) {
 
 // searchSettings applies the sidebar's search: it shows a page with
 // finds, when the page shown has none, and sets what the pages highlight.
-// It returns what searchResults does.
-func searchSettings(x App) map[string][]string {
+// It returns what search.ResultsWithPlugins does.
+func searchSettings(x App, allPages []settingsPage) (map[string][]string, map[string][]string) {
 	ss, s := x.SettingsState(), x.Settings()
-	found := search.Results(ss.Query, s.Shortcuts, searchPages(), x.ActionTitle)
+	var extras []search.PluginEntry
+	if pa := x.PluginsView(); pa != nil {
+		extras = pa.SearchEntries()
+	}
+	spages := make([]search.Page, 0, len(allPages))
+	for _, p := range allPages {
+		spages = append(spages, search.Page{ID: p.id, Title: p.title()})
+	}
+	found, pluginHits := search.ResultsWithPlugins(ss.Query, s.Shortcuts, spages, extras, x.ActionTitle)
 	kit.Hits, kit.Reveal = nil, ""
 	if found == nil {
 		ss.Revealed = ""
-		return nil
+		return nil, nil
 	}
 	if found[ss.Page] == nil {
-		for _, p := range settingsPages {
+		for _, p := range allPages {
 			if found[p.id] != nil {
 				ss.Page = p.id
 				x.StartRecording("")
@@ -392,6 +486,11 @@ func searchSettings(x App) map[string][]string {
 			}
 		}
 	}
+	applySearchSelection(ss, found, pluginHits)
+	return found, pluginHits
+}
+
+func applySearchSelection(ss *State, found map[string][]string, pluginHits map[string][]string) {
 	labels := found[ss.Page]
 	kit.Hits = map[string]bool{}
 	for _, l := range labels {
@@ -399,10 +498,18 @@ func searchSettings(x App) map[string][]string {
 	}
 	// The first find comes into view once for each query and page, after
 	// which the page scrolls as the user likes.
-	if at := ss.Query + "\x00" + ss.Page; len(labels) > 0 && ss.Revealed != at {
-		ss.Revealed, kit.Reveal = at, labels[0]
+	if at := ss.Query + "\x00" + ss.Page; ss.Revealed != at {
+		if len(labels) > 0 {
+			ss.Revealed, kit.Reveal = at, labels[0]
+		} else {
+			ss.Revealed = at
+		}
+		if ss.Page == "plugins" {
+			if pids := pluginHits["plugins"]; len(pids) > 0 && !slices.Contains(pids, ss.PluginDetail) {
+				ss.PluginDetail = pids[0]
+			}
+		}
 	}
-	return found
 }
 
 // settingsSearch is the sidebar's search field, which finds settings in
@@ -454,12 +561,16 @@ func settingsNav(x App, c *ui.Context, pal *theme.Palette, p settingsPage) {
 		ss.Page = p.id
 		x.StartRecording("")
 	}
+	if sel && ss.NavRevealed != ss.Page {
+		ss.NavRevealed = ss.Page
+		item.ScrollIntoView()
+	}
 	item.Children(func() {
 		ic := ui.Icon(c, p.icon).Size(15, 15).TextColor(pal.TextMuted)
 		if sel {
 			ic.TextColor(pal.Accent)
 		}
-		ui.Text(c, p.title()).FontSize(13.5).TextColor(pal.Text).SingleLine()
+		ui.Text(c, p.title()).FontSize(13.5).TextColor(pal.Text).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 	})
 }
 
@@ -718,6 +829,9 @@ func appearancePage(x App, c *ui.Context, pal *theme.Palette) {
 				}
 				backgroundTile(x, c, pal, b.ID, backgroundName(b.ID, b.Name))
 			}
+			for _, pw := range wash.PluginList() {
+				backgroundTile(x, c, pal, pw.ID, pw.Name)
+			}
 		})
 		ui.Row(c).Gap(12).Children(func() {
 			backgroundTile(x, c, pal, "plain", backgroundName("plain", "Plain"))
@@ -943,7 +1057,7 @@ func terminalPage(x App, c *ui.Context, pal *theme.Palette) {
 			style.Toggle(c.Key("thicken"), &s.Thicken, pal)
 		})
 	})
-	themes := append([]string{"hyla"}, terminal.GhosttyThemes()...)
+	themes := theme.TerminalThemes()
 	kit.Group(c, pal, locales.SetColors(), locales.SetColorsDetail(), func() {
 		kit.Row(c, pal, locales.SetLightWindows(), "", func() {
 			controls.SearchPopup(c, &ss.Menus, "light", s.LightTheme, themes, 240, nil, pal, func(v string) { s.LightTheme = v })
@@ -1412,23 +1526,30 @@ func keyboardPage(x App, c *ui.Context, pal *theme.Palette) {
 		ui.Text(c, ss.Notice).FontSize(12).TextColor(pal.Attention).Padding(0, 4)
 	}
 	q := strings.ToLower(strings.TrimSpace(ss.Filter))
-	menus := []string{"Hyla", "Session", "Edit", "Pane", "View"}
+	allActs := actions.List()
+	menus := []string{"Hyla", "Session", "Edit", "Pane", "View", "Plugins"}
 	for _, menu := range menus {
 		var acts []actions.Action
-		for _, act := range actions.All {
+		for _, act := range allActs {
 			keys := actions.Glyphs(actions.Keys(act, s.Shortcuts))
 			found := q == "" || strings.Contains(strings.ToLower(x.ActionTitle(act.ID)), q) || strings.Contains(strings.ToLower(act.Title), q) || strings.Contains(strings.ToLower(keys), q) || strings.Contains(act.ID, q)
 			if kit.Hits != nil {
 				found = found && kit.Hits[strings.TrimSuffix(x.ActionTitle(act.ID), "…")]
 			}
-			if act.Menu == menu && found {
+			inGroup := act.Menu == menu || (menu == "Plugins" && act.PluginID != "")
+			if inGroup && found {
 				acts = append(acts, act)
 			}
 		}
 		if len(acts) == 0 {
 			continue
 		}
-		title := map[string]func() string{"Hyla": locales.MenuApp, "Session": locales.MenuSession, "Edit": locales.MenuEdit, "Pane": locales.MenuPane, "View": locales.MenuView}[menu]()
+		var title string
+		if menu == "Plugins" {
+			title = locales.MenuPlugins()
+		} else {
+			title = map[string]func() string{"Hyla": locales.MenuApp, "Session": locales.MenuSession, "Edit": locales.MenuEdit, "Pane": locales.MenuPane, "View": locales.MenuView}[menu]()
+		}
 		kit.Group(c, pal, title, "", func() {
 			for _, act := range acts {
 				shortcutRow(x, c, pal, act)
@@ -1576,7 +1697,7 @@ func setShortcut(x App, id, accel string) {
 	}
 	ss.Notice = ""
 	if accel != "" {
-		for _, other := range actions.All {
+		for _, other := range actions.List() {
 			if other.ID != id && strings.EqualFold(actions.Keys(other, sc), accel) {
 				sc[other.ID] = ""
 				ss.Notice = locales.SetShortcutTaken(actions.Glyphs(accel), strings.TrimSuffix(x.ActionTitle(other.ID), "…"))
@@ -1627,10 +1748,11 @@ func b2f(b bool) float32 {
 	return 0
 }
 
-// searchPages are the window's pages, as the search knows them.
-func searchPages() []search.Page {
-	pages := make([]search.Page, 0, len(settingsPages))
-	for _, p := range settingsPages {
+// searchPagesFor are the window's pages, as the search knows them.
+func searchPagesFor(x App) []search.Page {
+	_, _, all := allSettingsPages(x)
+	pages := make([]search.Page, 0, len(all))
+	for _, p := range all {
 		pages = append(pages, search.Page{ID: p.id, Title: p.title()})
 	}
 	return pages

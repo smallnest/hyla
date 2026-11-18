@@ -98,6 +98,8 @@ func (a *App) BundledFont() string           { return bundledFont }
 // FallbackFonts are the fonts tried after the terminal's own.
 func (a *App) FallbackFonts() []string { return a.fallbackFonts() }
 
+func (a *App) PluginsView() uisettings.PluginsApp { return &appPluginsSettings{a: a} }
+
 // AddFallback adds a fallback font; RemoveFallback removes the one at.
 func (a *App) AddFallback(font string) { a.addFallback(font, -1) }
 func (a *App) RemoveFallback(at int)   { a.removeFallback(at) }

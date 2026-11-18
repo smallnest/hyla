@@ -5,6 +5,7 @@ package actions
 
 import (
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 )
@@ -21,6 +22,12 @@ type Action struct {
 	// Global tells that its shortcut works in every app, as the system's
 	// global shortcut, rather than as a key of the app's menus.
 	Global bool
+	// PluginID names the owning plugin when this action is registered by
+	// a plugin; empty for built-in actions.
+	PluginID string
+	// When is an optional activation context expression for plugin actions
+	// (e.g. "pane.terminal", "pane.agent", "session.selected").
+	When string
 }
 
 // All are the app's actions, in their menus' order.
@@ -139,11 +146,179 @@ func init() {
 	}
 }
 
-// Find returns an action by its id.
+var (
+	pluginMu              sync.RWMutex
+	pluginActionsByPlugin = make(map[string][]Action)
+	disabledPluginActions = make(map[string]bool)
+)
+
+var builtinFirstSegments = map[string]bool{
+	"settings":      true,
+	"cli":           true,
+	"app":           true,
+	"session":       true,
+	"project":       true,
+	"palette":       true,
+	"pane":          true,
+	"find":          true,
+	"timeline":      true,
+	"sidebar":       true,
+	"side":          true,
+	"changes":       true,
+	"files":         true,
+	"info":          true,
+	"subagents":     true,
+	"pet":           true,
+	"text":          true,
+	"quickTerminal": true,
+}
+
+// SetPluginActions replaces all dynamically registered actions belonging to pluginID.
+func SetPluginActions(pluginID string, acts []Action) {
+	if pluginID == "" {
+		return
+	}
+	pluginMu.Lock()
+	defer pluginMu.Unlock()
+	if len(acts) == 0 {
+		delete(pluginActionsByPlugin, pluginID)
+		return
+	}
+	cp := make([]Action, len(acts))
+	copy(cp, acts)
+	for i := range cp {
+		cp[i].PluginID = pluginID
+	}
+	pluginActionsByPlugin[pluginID] = cp
+}
+
+// RemovePluginActions removes all actions belonging to pluginID.
+func RemovePluginActions(pluginID string) {
+	pluginMu.Lock()
+	delete(pluginActionsByPlugin, pluginID)
+	pluginMu.Unlock()
+}
+
+// ClearPluginActions clears all dynamic plugin actions and disabled action markers.
+func ClearPluginActions() {
+	pluginMu.Lock()
+	clear(pluginActionsByPlugin)
+	clear(disabledPluginActions)
+	pluginMu.Unlock()
+}
+
+// SetDisabledPluginActions records action IDs belonging to installed-but-disabled
+// or pending-install plugins so user keybinds for them are preserved cleanly.
+func SetDisabledPluginActions(ids []string) {
+	pluginMu.Lock()
+	defer pluginMu.Unlock()
+	clear(disabledPluginActions)
+	for _, id := range ids {
+		if id != "" {
+			disabledPluginActions[id] = true
+		}
+	}
+}
+
+// List returns built-in actions followed by enabled plugin actions in deterministic order.
+func List() []Action {
+	pluginMu.RLock()
+	defer pluginMu.RUnlock()
+	if len(pluginActionsByPlugin) == 0 {
+		out := make([]Action, len(All))
+		copy(out, All)
+		return out
+	}
+	pids := make([]string, 0, len(pluginActionsByPlugin))
+	total := len(All)
+	for pid, acts := range pluginActionsByPlugin {
+		pids = append(pids, pid)
+		total += len(acts)
+	}
+	slices.Sort(pids)
+	out := make([]Action, 0, total)
+	out = append(out, All...)
+	for _, pid := range pids {
+		out = append(out, pluginActionsByPlugin[pid]...)
+	}
+	return out
+}
+
+// IsPluginActionID reports whether id matches a registered plugin action,
+// a known disabled plugin action, or valid plugin action ID syntax
+// (so keybindings for uninstalled/synced/disabled plugins do not produce
+// spurious config problem errors while typos in built-in namespaces still fail).
+func IsPluginActionID(id string) bool {
+	if id == "" {
+		return false
+	}
+	pluginMu.RLock()
+	if disabledPluginActions[id] {
+		pluginMu.RUnlock()
+		return true
+	}
+	for _, acts := range pluginActionsByPlugin {
+		for _, a := range acts {
+			if a.ID == id {
+				pluginMu.RUnlock()
+				return true
+			}
+		}
+	}
+	pluginMu.RUnlock()
+
+	if strings.HasPrefix(id, "plugin.") && len(id) > len("plugin.") {
+		return true
+	}
+	lastDot := strings.LastIndexByte(id, '.')
+	if lastDot <= 0 || lastDot == len(id)-1 {
+		return false
+	}
+	prefix := id[:lastDot]
+	parts := strings.Split(prefix, ".")
+	if len(parts) < 2 || builtinFirstSegments[parts[0]] {
+		return false
+	}
+	for _, seg := range parts {
+		if !isDNSLabel(seg) {
+			return false
+		}
+	}
+	return true
+}
+
+func isDNSLabel(s string) bool {
+	if len(s) < 2 || len(s) > 63 {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		isAlphaNum := (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')
+		if i == 0 || i == len(s)-1 {
+			if !isAlphaNum {
+				return false
+			}
+		} else if !isAlphaNum && c != '-' {
+			return false
+		}
+	}
+	return true
+}
+
+// Find returns an action by its id, searching built-in and plugin actions.
 func Find(id string) (Action, bool) {
 	for _, a := range All {
 		if a.ID == id {
 			return a, true
+		}
+	}
+	pluginMu.RLock()
+	defer pluginMu.RUnlock()
+	for _, acts := range pluginActionsByPlugin {
+		for _, a := range acts {
+			if a.ID == id {
+				return a, true
+			}
 		}
 	}
 	return Action{}, false

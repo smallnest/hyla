@@ -162,6 +162,7 @@ func Menu(a App) *mygo.Menu {
 	if mygo.IsDev() {
 		view = append(view, &mygo.MenuItem{Role: mygo.RoleToggleDevTools})
 	}
+	pluginsSubmenu := PluginMenuItems(a)
 	return mygo.NewMenu([]*mygo.MenuItem{
 		hyla,
 		{Label: locales.MenuSession(), Submenu: Items(a, "Session",
@@ -179,8 +180,31 @@ func Menu(a App) *mygo.Menu {
 			[]string{"pane.zoom"},
 			[]string{"pane.next", "pane.previous", "pane.left", "pane.right", "pane.up", "pane.down"})},
 		{Label: locales.MenuView(), Submenu: view},
+		{Label: locales.MenuPlugins(), Submenu: pluginsSubmenu},
 		{Role: mygo.RoleWindowMenu},
 	})
+}
+
+// PluginMenuItems builds the items shown under the top-level Plugins menu.
+func PluginMenuItems(a App) []*mygo.MenuItem {
+	var out []*mygo.MenuItem
+	for _, act := range actions.List() {
+		if act.PluginID == "" || act.Menu == "" {
+			continue
+		}
+		out = append(out, Item(a, act.ID))
+	}
+	if len(out) > 0 {
+		out = append(out, mygo.Separator())
+	}
+	out = append(out, &mygo.MenuItem{
+		ID:    "settings.plugins",
+		Label: locales.MenuManagePlugins(),
+		Click: func(*mygo.MenuItem, *mygo.Window) {
+			a.Update(func() { a.RunID("settings.open", map[string]string{"page": "plugins"}) })
+		},
+	})
+	return out
 }
 
 // Keys is an action's shortcut as the menus show it, "" when it has none.
@@ -200,10 +224,22 @@ func Tip(a App, title, id string) string {
 // Shortcut shows an action's shortcut by a context menu's item.
 func Shortcut(a App, it *ui.MenuItem, id string) *ui.MenuItem {
 	act, _ := actions.Find(id)
-	parts := strings.Split(actions.Keys(act, a.Settings().Shortcuts), "+")
+	if mods, k, ok := ParseShortcut(actions.Keys(act, a.Settings().Shortcuts)); ok {
+		return it.Shortcut(mods, k)
+	}
+	return it
+}
+
+// ParseShortcut converts an accelerator string such as "CmdOrCtrl+Shift+P"
+// into UI modifiers and key, returning false when empty or unrecognized.
+func ParseShortcut(accel string) (ui.Modifiers, ui.Key, bool) {
+	if accel == "" {
+		return 0, 0, false
+	}
+	parts := strings.Split(accel, "+")
 	var mods ui.Modifiers
 	for _, p := range parts[:len(parts)-1] {
-		switch strings.ToLower(p) {
+		switch strings.ToLower(strings.TrimSpace(p)) {
 		case "cmdorctrl", "commandorcontrol":
 			mods |= ui.Cmd
 		case "cmd", "command", "super", "meta", "win":
@@ -216,12 +252,13 @@ func Shortcut(a App, it *ui.MenuItem, id string) *ui.MenuItem {
 			mods |= ui.Shift
 		}
 	}
+	last := strings.TrimSpace(parts[len(parts)-1])
 	for k, name := range KeyNames() {
-		if strings.EqualFold(name, parts[len(parts)-1]) {
-			return it.Shortcut(mods, k)
+		if strings.EqualFold(name, last) {
+			return mods, k, true
 		}
 	}
-	return it
+	return 0, 0, false
 }
 
 // QuitKeys quits the app: Control+Q is the terminal's on Windows and

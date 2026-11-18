@@ -23,10 +23,12 @@ import (
 	"hyla/internal/actions"
 	"hyla/internal/build"
 	"hyla/internal/client"
+	"hyla/internal/plugins/manifest"
 	"hyla/internal/proto"
 	"hyla/internal/remote"
 	"hyla/internal/service"
 	"hyla/internal/settings"
+	"hyla/internal/ui/wash"
 	"hyla/internal/update"
 )
 
@@ -70,8 +72,22 @@ var removed = map[string]string{
 	"--host":   "nothing acts on another machine now: run hyla there, over ssh",
 }
 
+func preloadPluginBase() {
+	snap, err := manifest.ApplyBase(manifest.DefaultStore())
+	if err != nil {
+		return
+	}
+	wash.ReloadPlugins(snap.Washes)
+	var washIDs []string
+	for _, w := range wash.PluginList() {
+		washIDs = append(washIDs, w.ID)
+	}
+	settings.SetPluginBackgrounds(washIDs)
+}
+
 func Run(args []string) int {
 	SyncSkill()
+	preloadPluginBase()
 	if len(args) > 0 {
 		if what, ok := removed[args[0]]; ok {
 			fmt.Fprintf(os.Stderr, "hyla: %s is gone: %s\n", args[0], what)
@@ -171,7 +187,7 @@ func run(args []string) error {
 	case "actions":
 		w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
 		fmt.Fprintln(w, "ACTION\tKEYS\tWHAT")
-		for _, a := range actions.All {
+		for _, a := range actions.List() {
 			if a.Remote {
 				fmt.Fprintf(w, "%s\t%s\t%s\n", a.ID, actions.Glyphs(a.Keys), strings.TrimSuffix(a.Title, "…"))
 			}
@@ -197,6 +213,8 @@ func run(args []string) error {
 		return petsCmd(args)
 	case "feishu":
 		return feishuCmd(args)
+	case "plugin", "plugins":
+		return pluginCmd(args)
 	}
 	c, done, err := connect()
 	if err != nil {

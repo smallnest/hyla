@@ -49,8 +49,9 @@ func (a *App) Collapsed() map[string]bool {
 }
 
 func (a *App) Pages() []palette.Page {
-	pages := make([]palette.Page, len(uisettings.Pages()))
-	for i, p := range uisettings.Pages() {
+	all := uisettings.AllPages(a)
+	pages := make([]palette.Page, len(all))
+	for i, p := range all {
 		pages[i] = palette.Page{ID: p.ID, Title: p.Title}
 	}
 	return pages
@@ -151,4 +152,5 @@ func (a *App) Shortcuts(c *ui.Context) {
 		c.Toast(locales.ToastCopied())
 		a.CopyText = ""
 	}
+	a.runPluginShortcuts(c)
 }

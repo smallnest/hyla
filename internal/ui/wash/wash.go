@@ -4,11 +4,20 @@
 package wash
 
 import (
+	"errors"
+	"fmt"
 	"math"
+	"os"
+	"sort"
+	"strconv"
+	"strings"
 	"sync"
 
+	"github.com/BurntSushi/toml"
 	"github.com/egoist/mygo/plugins/glass"
 	"github.com/egoist/mygo/ui"
+
+	"hyla/internal/plugins/manifest"
 )
 
 // PanePicture is a terminal's card showing the terminal's picture, pane
@@ -169,32 +178,246 @@ func Faded(stops []ui.GradientStop, a float32) []ui.GradientStop {
 // A background's base and glow, made once for each background and theme,
 // as the theme has them: a frame asks for them each time, and what a frame
 // makes of its own is garbage at the next frame.
+// PluginWashEntry describes an enabled plugin background wash for settings/UI.
+type PluginWashEntry struct {
+	PluginID string
+	ID       string
+	Name     string
+	Wash     Wash
+}
+
 var (
+	pluginMu    sync.RWMutex
+	pluginTable = map[string]PluginWashEntry{}
+	pluginList  []PluginWashEntry
+	washEpoch   uint64
+
 	// Washes returns a background's base and glow, as backdrop and a card
 	// ask for them.
 	Washes = washOf
-	// washOf returns a background's base and glow, made.
-	washOf = Memo(func(id string, dark bool) (base, glow ui.LinearGradient) {
-		w, ok := Table[id]
-		if !ok {
-			w = Table["rex"]
+	// washOf returns a background's base and glow, made once per reload epoch.
+	washOf = func() func(id string, dark bool) (base, glow ui.LinearGradient) {
+		type key struct {
+			epoch uint64
+			id    string
+			dark  bool
 		}
-		glowOf := func(c ui.Color) ui.LinearGradient {
-			return ui.LinearGradient{Angle: 225, Oklab: true, Stops: []ui.GradientStop{{Color: c, At: 0}, {Color: c.Alpha(0), At: 0.5}}}
-		}
-		angle := w.LightAngle
-		if angle == 0 {
-			angle = 180
-		}
-		if dark {
-			if w.DarkAngle != 0 {
-				angle = w.DarkAngle
+		var mu sync.Mutex
+		kept := map[key][2]ui.LinearGradient{}
+		return func(id string, dark bool) (base, glow ui.LinearGradient) {
+			pluginMu.RLock()
+			epoch := washEpoch
+			w, ok := lookupWashLocked(id)
+			pluginMu.RUnlock()
+			k := key{epoch: epoch, id: id, dark: dark}
+			mu.Lock()
+			if g, hit := kept[k]; hit {
+				mu.Unlock()
+				return g[0], g[1]
 			}
-			return ui.LinearGradient{Angle: angle, Oklab: true, Stops: Stops(w.Dark...)}, glowOf(w.DarkGlow)
+			mu.Unlock()
+			if !ok {
+				w = Table["rex"]
+			}
+			glowOf := func(c ui.Color) ui.LinearGradient {
+				return ui.LinearGradient{Angle: 225, Oklab: true, Stops: []ui.GradientStop{{Color: c, At: 0}, {Color: c.Alpha(0), At: 0.5}}}
+			}
+			angle := w.LightAngle
+			if angle == 0 {
+				angle = 180
+			}
+			if dark {
+				if w.DarkAngle != 0 {
+					angle = w.DarkAngle
+				}
+				base, glow = ui.LinearGradient{Angle: angle, Oklab: true, Stops: Stops(w.Dark...)}, glowOf(w.DarkGlow)
+			} else {
+				base, glow = ui.LinearGradient{Angle: angle, Oklab: true, Stops: Stops(w.Light...)}, glowOf(w.LightGlow)
+			}
+			mu.Lock()
+			if len(kept) > 256 {
+				clear(kept)
+			}
+			kept[k] = [2]ui.LinearGradient{base, glow}
+			mu.Unlock()
+			return base, glow
 		}
-		return ui.LinearGradient{Angle: angle, Oklab: true, Stops: Stops(w.Light...)}, glowOf(w.LightGlow)
-	})
+	}()
 )
+
+func lookupWashLocked(id string) (Wash, bool) {
+	if w, ok := Table[id]; ok {
+		return w, true
+	}
+	if e, ok := pluginTable[id]; ok {
+		return e.Wash, true
+	}
+	return Wash{}, false
+}
+
+// Known reports whether id names either a built-in wash or an active plugin wash.
+func Known(id string) bool {
+	if _, ok := Table[id]; ok {
+		return true
+	}
+	pluginMu.RLock()
+	_, ok := pluginTable[id]
+	pluginMu.RUnlock()
+	return ok
+}
+
+// PluginList returns active plugin washes sorted by ID.
+func PluginList() []PluginWashEntry {
+	pluginMu.RLock()
+	defer pluginMu.RUnlock()
+	out := make([]PluginWashEntry, len(pluginList))
+	copy(out, pluginList)
+	return out
+}
+
+type washTOML struct {
+	ID         string   `toml:"id"`
+	Name       string   `toml:"name"`
+	Light      []string `toml:"light"`
+	LightGlow  string   `toml:"light_glow"`
+	LightAngle float32  `toml:"light_angle"`
+	Dark       []string `toml:"dark"`
+	DarkGlow   string   `toml:"dark_glow"`
+	DarkAngle  float32  `toml:"dark_angle"`
+}
+
+// ReloadPlugins parses plugin washes/*.toml and swaps active plugin washes atomically.
+func ReloadPlugins(assets []manifest.WashAsset) error {
+	nextMap := map[string]PluginWashEntry{}
+	var errs []error
+	for _, a := range assets {
+		if a.ID == "" || a.Path == "" {
+			continue
+		}
+		if _, isBuiltin := Table[a.ID]; isBuiltin {
+			errs = append(errs, fmt.Errorf("wash %q from plugin %s conflicts with built-in wash", a.ID, a.PluginID))
+			continue
+		}
+		data, err := os.ReadFile(a.Path)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("wash %s/%s: %w", a.PluginID, a.ID, err))
+			continue
+		}
+		var doc washTOML
+		if _, err := toml.Decode(string(data), &doc); err != nil {
+			errs = append(errs, fmt.Errorf("wash %s/%s: %w", a.PluginID, a.ID, err))
+			continue
+		}
+		if len(doc.Light) < 2 || len(doc.Dark) < 2 {
+			errs = append(errs, fmt.Errorf("wash %s/%s: light and dark must each define at least 2 color stops", a.PluginID, a.ID))
+			continue
+		}
+		lg, err := parseWashColor(doc.LightGlow)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("wash %s/%s light_glow: %w", a.PluginID, a.ID, err))
+			continue
+		}
+		dg, err := parseWashColor(doc.DarkGlow)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("wash %s/%s dark_glow: %w", a.PluginID, a.ID, err))
+			continue
+		}
+		name := a.Name
+		if name == "" {
+			name = doc.Name
+		}
+		if name == "" {
+			name = a.ID
+		}
+		nextMap[a.ID] = PluginWashEntry{
+			PluginID: a.PluginID,
+			ID:       a.ID,
+			Name:     name,
+			Wash: Wash{
+				Light:      doc.Light,
+				Dark:       doc.Dark,
+				LightGlow:  lg,
+				DarkGlow:   dg,
+				LightAngle: doc.LightAngle,
+				DarkAngle:  doc.DarkAngle,
+			},
+		}
+	}
+	nextList := make([]PluginWashEntry, 0, len(nextMap))
+	for _, e := range nextMap {
+		nextList = append(nextList, e)
+	}
+	sort.Slice(nextList, func(i, j int) bool { return nextList[i].ID < nextList[j].ID })
+
+	pluginMu.Lock()
+	pluginTable = nextMap
+	pluginList = nextList
+	washEpoch++
+	pluginMu.Unlock()
+	return errors.Join(errs...)
+}
+
+func parseWashColor(raw string) (ui.Color, error) {
+	s := strings.TrimSpace(raw)
+	if s == "" || s == "none" || s == "transparent" {
+		return ui.RGBA(0, 0, 0, 0), nil
+	}
+	if strings.HasPrefix(s, "#") {
+		hex := s[1:]
+		switch len(hex) {
+		case 3:
+			r, err1 := strconv.ParseUint(strings.Repeat(hex[0:1], 2), 16, 8)
+			g, err2 := strconv.ParseUint(strings.Repeat(hex[1:2], 2), 16, 8)
+			b, err3 := strconv.ParseUint(strings.Repeat(hex[2:3], 2), 16, 8)
+			if err1 != nil || err2 != nil || err3 != nil {
+				return ui.Color{}, fmt.Errorf("invalid color %q", raw)
+			}
+			return ui.RGBA(uint8(r), uint8(g), uint8(b), 1), nil
+		case 6:
+			return ui.Hex(s), nil
+		case 8:
+			r, err1 := strconv.ParseUint(hex[0:2], 16, 8)
+			g, err2 := strconv.ParseUint(hex[2:4], 16, 8)
+			b, err3 := strconv.ParseUint(hex[4:6], 16, 8)
+			a, err4 := strconv.ParseUint(hex[6:8], 16, 8)
+			if err1 != nil || err2 != nil || err3 != nil || err4 != nil {
+				return ui.Color{}, fmt.Errorf("invalid color %q", raw)
+			}
+			return ui.RGBA(uint8(r), uint8(g), uint8(b), float32(a)/255), nil
+		default:
+			return ui.Color{}, fmt.Errorf("invalid hex color %q", raw)
+		}
+	}
+	low := strings.ToLower(s)
+	if strings.HasPrefix(low, "rgba(") && strings.HasSuffix(low, ")") {
+		parts := strings.Split(low[5:len(low)-1], ",")
+		if len(parts) != 4 {
+			return ui.Color{}, fmt.Errorf("invalid rgba color %q", raw)
+		}
+		r, e1 := strconv.Atoi(strings.TrimSpace(parts[0]))
+		g, e2 := strconv.Atoi(strings.TrimSpace(parts[1]))
+		b, e3 := strconv.Atoi(strings.TrimSpace(parts[2]))
+		a, e4 := strconv.ParseFloat(strings.TrimSpace(parts[3]), 32)
+		if e1 != nil || e2 != nil || e3 != nil || e4 != nil || r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255 {
+			return ui.Color{}, fmt.Errorf("invalid rgba color %q", raw)
+		}
+		return ui.RGBA(uint8(r), uint8(g), uint8(b), float32(max(0, min(1, a)))), nil
+	}
+	if strings.HasPrefix(low, "rgb(") && strings.HasSuffix(low, ")") {
+		parts := strings.Split(low[4:len(low)-1], ",")
+		if len(parts) != 3 {
+			return ui.Color{}, fmt.Errorf("invalid rgb color %q", raw)
+		}
+		r, e1 := strconv.Atoi(strings.TrimSpace(parts[0]))
+		g, e2 := strconv.Atoi(strings.TrimSpace(parts[1]))
+		b, e3 := strconv.Atoi(strings.TrimSpace(parts[2]))
+		if e1 != nil || e2 != nil || e3 != nil || r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255 {
+			return ui.Color{}, fmt.Errorf("invalid rgb color %q", raw)
+		}
+		return ui.RGBA(uint8(r), uint8(g), uint8(b), 1), nil
+	}
+	return ui.Color{}, fmt.Errorf("unsupported color %q", raw)
+}
 
 // Memo keeps what make returns for each background and theme, made
 // once: a theme's colors are set as the program starts, and do not change

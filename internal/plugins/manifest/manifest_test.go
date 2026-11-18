@@ -1,0 +1,394 @@
+package manifest
+
+import (
+	"archive/zip"
+	"bytes"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"testing"
+
+	"hyla/internal/actions"
+	"hyla/internal/detect"
+	"hyla/internal/proto"
+)
+
+func boolPtr(b bool) *bool { return &b }
+
+func TestValidateID(t *testing.T) {
+	valid := []string{
+		"com.example.plugin",
+		"sh.hyla.aider-pack",
+		"io.github.user1.my-plugin-2",
+		"hyla.magpie",
+	}
+	for _, id := range valid {
+		if err := ValidateID(id); err != nil {
+			t.Errorf("ValidateID(%q) unexpected error: %v", id, err)
+		}
+	}
+	invalid := []string{
+		"",
+		"single",
+		"com.example_bad.plugin",
+		"Com.Example.Plugin",
+		"-com.example.plugin",
+		"com.-example.plugin",
+		"com.example-.plugin",
+		"a.b", // labels must be >=2 chars
+		"com.example..plugin",
+		strings.Repeat("a", 120) + ".plugin",
+	}
+	for _, id := range invalid {
+		if err := ValidateID(id); err == nil {
+			t.Errorf("ValidateID(%q) succeeded, expected error", id)
+		}
+	}
+}
+
+func TestManifestParseValidation(t *testing.T) {
+	raw := []byte(`
+api_version = 1
+id = "com.acme.aider"
+name = "Aider Support"
+version = "0.2.0"
+
+[engines]
+hyla = ">=3.0.0"
+
+[permissions]
+scopes = ["agent.provider", "ui.slot", "ui.webview"]
+
+[daemon]
+command = ["bin/aider-plugin", "--stdio"]
+transport = "stdio"
+activation_events = ["onAgent:aider"]
+
+[[agents]]
+id = "aider"
+name = "Aider"
+detect = "detect/aider.toml"
+mark = "marks/aider.svg"
+timeline = true
+
+[[actions]]
+id = "open"
+title = "Open Aider Tool"
+shortcut = "CmdOrCtrl+Alt+A"
+remote = true
+
+[[ui.slots]]
+id = "panel"
+mount = "pane"
+title = "Aider"
+mode = "webview"
+web_root = "web/dist"
+entry = "index.html"
+`)
+	m, err := Parse(raw)
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+	if err := m.CompatibleWith("3.16.1"); err != nil {
+		t.Fatalf("CompatibleWith failed: %v", err)
+	}
+	if err := m.CompatibleWith("2.1.0"); err == nil {
+		t.Fatal("expected CompatibleWith(2.1.0) to fail")
+	}
+
+	// WebView without ui.webview permission fails
+	badWeb := []byte(`
+api_version = 1
+id = "com.acme.badweb"
+name = "Bad"
+version = "0.1.0"
+[[ui.slots]]
+id = "w"
+mount = "pane"
+title = "W"
+mode = "webview"
+`)
+	if _, err := Parse(badWeb); err == nil {
+		t.Fatal("expected error for webview without ui.webview permission")
+	}
+
+	// Traversal path in detect fails
+	badPath := []byte(`
+api_version = 1
+id = "com.acme.badpath"
+name = "Bad"
+version = "0.1.0"
+[[agents]]
+id = "x"
+name = "X"
+detect = "../secret.toml"
+`)
+	if _, err := Parse(badPath); err == nil {
+		t.Fatal("expected error for escaping detect path")
+	}
+
+	// Settings mounts validation: settings.page, settings.plugins, and built-in settings.<page>
+	validSettingsMounts := []string{
+		"settings.page",
+		"settings.plugins",
+		"settings.general",
+		"settings.appearance",
+		"settings.terminal",
+		"settings.shell",
+		"settings.browser",
+		"settings.notifications",
+		"settings.keyboard",
+		"settings.feishu",
+		"settings.agents",
+		"settings.sync",
+		"settings.hosts",
+		"settings.advanced",
+	}
+	for _, mt := range validSettingsMounts {
+		doc := []byte(`
+api_version = 1
+id = "com.acme.setmount"
+name = "Settings Mount"
+version = "0.1.0"
+[permissions]
+scopes = ["ui.slot"]
+[[ui.slots]]
+id = "slot1"
+mount = "` + mt + `"
+title = "Custom"
+mode = "declarative"
+`)
+		if _, err := Parse(doc); err != nil {
+			t.Fatalf("Parse mount=%q failed: %v", mt, err)
+		}
+	}
+
+	// Unknown settings mount fails
+	badSetMount := []byte(`
+api_version = 1
+id = "com.acme.badset"
+name = "Bad"
+version = "0.1.0"
+[[ui.slots]]
+id = "s1"
+mount = "settings.nonexistent"
+title = "Bad"
+`)
+	if _, err := Parse(badSetMount); err == nil {
+		t.Fatal("expected error for unknown settings mount")
+	}
+
+	// WebView mode on settings.* mounts fails
+	badSetWeb := []byte(`
+api_version = 1
+id = "com.acme.badsetweb"
+name = "Bad"
+version = "0.1.0"
+[permissions]
+scopes = ["ui.webview"]
+[[ui.slots]]
+id = "s1"
+mount = "settings.page"
+title = "Bad"
+mode = "webview"
+`)
+	if _, err := Parse(badSetWeb); err == nil {
+		t.Fatal("expected error for webview mode on settings.page")
+	}
+}
+
+func TestStoreConfigSecretsAndPermissions(t *testing.T) {
+	base := t.TempDir()
+	st := &Store{BaseDir: base, UseKeychain: boolPtr(false)}
+
+	id := "com.example.secret-test"
+	if err := st.SaveConfig(id, map[string]any{"endpoint": "https://api.example.com", "limit": float64(42)}); err != nil {
+		t.Fatalf("SaveConfig: %v", err)
+	}
+	cfg, err := st.LoadConfig(id)
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+	if cfg["endpoint"] != "https://api.example.com" || cfg["limit"] != float64(42) {
+		t.Fatalf("unexpected cfg: %#v", cfg)
+	}
+
+	if err := st.SetSecret(id, "api_key", "sk-12345"); err != nil {
+		t.Fatalf("SetSecret: %v", err)
+	}
+	val, ok, err := st.GetSecret(id, "api_key")
+	if err != nil || !ok || val != "sk-12345" {
+		t.Fatalf("GetSecret = (%q, %v, %v)", val, ok, err)
+	}
+	sp, _ := st.SecretsPath(id)
+	info, err := os.Stat(sp)
+	if err != nil {
+		t.Fatalf("stat secrets file: %v", err)
+	}
+	if runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
+		t.Fatalf("secrets file mode = %o, want 0600", info.Mode().Perm())
+	}
+	if err := st.DeleteSecret(id, "api_key"); err != nil {
+		t.Fatalf("DeleteSecret: %v", err)
+	}
+	if _, ok, err := st.GetSecret(id, "api_key"); err != nil || ok {
+		t.Fatalf("expected deleted secret, got ok=%v err=%v", ok, err)
+	}
+}
+
+func TestPackInstallAndSecurityChecks(t *testing.T) {
+	t.Cleanup(func() {
+		actions.ClearPluginActions()
+		proto.ClearPluginAgents()
+		detect.ClearPlugins()
+	})
+
+	src := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(src, "bin"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(src, "detect"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	manifestTOML := `
+api_version = 1
+id = "com.example.aider-pack"
+name = "Aider Pack"
+version = "1.2.3"
+
+[permissions]
+scopes = ["ui.slot"]
+
+[[agents]]
+id = "aider"
+name = "Aider"
+detect = "detect/aider.toml"
+
+[[actions]]
+id = "status"
+title = "Aider Status"
+`
+	if err := os.WriteFile(filepath.Join(src, ManifestFileName), []byte(manifestTOML), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(src, "detect", "aider.toml"), []byte("[[rules]]\nid=\"aider.work\"\nstate=\"working\"\ncontains=[\"Thinking\"]\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(src, "bin", "run.sh"), []byte("#!/bin/sh\necho hi\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	outZip := filepath.Join(t.TempDir(), "aider.hylapkg")
+	packRes, err := Pack(src, outZip)
+	if err != nil {
+		t.Fatalf("Pack: %v", err)
+	}
+	if packRes.Files != 3 || packRes.SHA256 == "" {
+		t.Fatalf("unexpected Pack result: %+v", packRes)
+	}
+
+	storeDir := t.TempDir()
+	st := &Store{BaseDir: storeDir, UseKeychain: boolPtr(false)}
+	inst, err := st.InstallPackage(outZip, InstallOptions{Enable: true, GrantAll: true})
+	if err != nil {
+		t.Fatalf("InstallPackage: %v", err)
+	}
+	if inst.Entry.SHA256 != packRes.SHA256 || !inst.Entry.HasPermission("ui.slot") {
+		t.Fatalf("unexpected installed entry: %+v", inst.Entry)
+	}
+	scriptInfo, err := os.Stat(filepath.Join(inst.RootDir, "bin", "run.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if runtime.GOOS != "windows" && scriptInfo.Mode().Perm()&0o100 == 0 {
+		t.Fatalf("executable bit lost on run.sh: mode=%o", scriptInfo.Mode().Perm())
+	}
+
+	snap, err := ApplyBase(st)
+	if err != nil {
+		t.Fatalf("ApplyBase: %v", err)
+	}
+	if len(snap.Errors) != 0 {
+		t.Fatalf("unexpected snap errors: %v", snap.Errors)
+	}
+	if proto.AgentDisplayName("aider") != "Aider" {
+		t.Fatalf("expected aider registered in proto, got %q", proto.AgentDisplayName("aider"))
+	}
+	if res := detect.Detect("aider", detect.Input{Screen: "Thinking now"}); res.State != detect.Working {
+		t.Fatalf("expected aider working, got %+v", res)
+	}
+	if _, ok := actions.Find("com.example.aider-pack.status"); !ok {
+		t.Fatal("expected qualified plugin action registered")
+	}
+
+	// Disable plugin: base action moves to disabled list, agent removed.
+	if err := st.Enable("com.example.aider-pack", false); err != nil {
+		t.Fatal(err)
+	}
+	snap, err = ApplyBase(st)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := actions.Find("com.example.aider-pack.status"); ok {
+		t.Fatal("disabled plugin action should not be active")
+	}
+	if !actions.IsPluginActionID("com.example.aider-pack.status") {
+		t.Fatal("disabled plugin action should still pass IsPluginActionID")
+	}
+	if detect.Known("aider") {
+		t.Fatal("disabled plugin detect should not remain active")
+	}
+
+	// Reject zip traversal & symlink archives.
+	badTraversal := writeCustomZip(t, func(zw *zip.Writer) {
+		addZipEntry(t, zw, "../escape.txt", []byte("bad"), 0o644)
+		addZipEntry(t, zw, ManifestFileName, []byte(manifestTOML), 0o644)
+	})
+	if _, err := st.InstallPackage(badTraversal, InstallOptions{Enable: true}); err == nil {
+		t.Fatal("expected path traversal archive to be rejected")
+	}
+
+	badSymlink := writeCustomZip(t, func(zw *zip.Writer) {
+		hdr := &zip.FileHeader{Name: "evil-link"}
+		hdr.SetMode(fs.ModeSymlink | 0o777)
+		w, err := zw.CreateHeader(hdr)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, _ = w.Write([]byte("/etc/passwd"))
+		addZipEntry(t, zw, ManifestFileName, []byte(manifestTOML), 0o644)
+	})
+	if _, err := st.InstallPackage(badSymlink, InstallOptions{Enable: true}); err == nil {
+		t.Fatal("expected symlink archive to be rejected")
+	}
+}
+
+func writeCustomZip(t *testing.T, fn func(*zip.Writer)) string {
+	t.Helper()
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	fn(zw)
+	if err := zw.Close(); err != nil {
+		t.Fatal(err)
+	}
+	p := filepath.Join(t.TempDir(), "test.hylapkg")
+	if err := os.WriteFile(p, buf.Bytes(), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return p
+}
+
+func addZipEntry(t *testing.T, zw *zip.Writer, name string, data []byte, mode fs.FileMode) {
+	t.Helper()
+	hdr := &zip.FileHeader{Name: name, Method: zip.Deflate}
+	hdr.SetMode(mode)
+	w, err := zw.CreateHeader(hdr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.Write(data); err != nil {
+		t.Fatal(err)
+	}
+}

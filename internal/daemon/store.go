@@ -47,11 +47,15 @@ type savedPane struct {
 	// URL and Title are a browser pane's page; File a file pane's path;
 	// Timeline the pane a timeline pane shows; Subagents the session's
 	// subagents, which a pane shows.
-	URL       string `json:"url,omitempty"`
-	Title     string `json:"title,omitempty"`
-	File      string `json:"file,omitempty"`
-	Timeline  string `json:"timeline,omitempty"`
-	Subagents bool   `json:"subagents,omitempty"`
+	URL         string            `json:"url,omitempty"`
+	Title       string            `json:"title,omitempty"`
+	File        string            `json:"file,omitempty"`
+	Timeline    string            `json:"timeline,omitempty"`
+	Subagents   bool              `json:"subagents,omitempty"`
+	Plugin      string            `json:"plugin,omitempty"`
+	PluginView  string            `json:"pluginView,omitempty"`
+	PluginArgs  map[string]string `json:"pluginArgs,omitempty"`
+	PluginTitle string            `json:"pluginTitle,omitempty"`
 	// Background tells a pane that runs a session's commands instead of a
 	// terminal, which it starts none of.
 	Background bool `json:"background,omitempty"`
@@ -95,8 +99,10 @@ func (d *Daemon) saveState() {
 		ss := savedSession{ID: s.id, Project: s.project, Name: s.name, AgentNamed: s.agentNamed, Created: s.created, Layout: s.layout, Focus: s.focus}
 		for _, p := range s.panes {
 			p.mu.Lock()
-			sp := savedPane{ID: p.info.ID, Dir: p.info.Dir, Command: p.info.Command, URL: p.info.URL, File: p.info.File, Timeline: p.info.Timeline, Subagents: p.info.Subagents, Background: p.bg != nil,
-				Agent: p.info.AgentSession, Turn: p.info.Turn, Created: p.info.Created, Cols: p.info.Cols, Rows: p.info.Rows}
+			sp := savedPane{ID: p.info.ID, Dir: p.info.Dir, Command: p.info.Command, URL: p.info.URL, File: p.info.File, Timeline: p.info.Timeline, Subagents: p.info.Subagents,
+				Plugin: p.info.Plugin, PluginView: p.info.PluginView, PluginArgs: p.info.PluginArgs, PluginTitle: p.info.PluginTitle,
+				Background: p.bg != nil,
+				Agent:      p.info.AgentSession, Turn: p.info.Turn, Created: p.info.Created, Cols: p.info.Cols, Rows: p.info.Rows}
 			if p.info.Browser() {
 				sp.Title = p.info.Title
 			}
@@ -205,9 +211,11 @@ func (d *Daemon) restore() {
 // app shows.
 func (d *Daemon) restorePane(sid string, sp savedPane) *pane {
 	now := time.Now().UnixMilli()
-	if sp.URL != "" || sp.File != "" || sp.Timeline != "" || sp.Subagents {
+	if sp.URL != "" || sp.File != "" || sp.Timeline != "" || sp.Subagents || sp.Plugin != "" {
 		p, _ := newPane(d, sid, proto.Pane{
-			ID: sp.ID, Dir: sp.Dir, URL: sp.URL, File: sp.File, Timeline: sp.Timeline, Subagents: sp.Subagents, Title: sp.Title, Status: proto.Idle, Since: now,
+			ID: sp.ID, Dir: sp.Dir, URL: sp.URL, File: sp.File, Timeline: sp.Timeline, Subagents: sp.Subagents,
+			Plugin: sp.Plugin, PluginView: sp.PluginView, PluginArgs: sp.PluginArgs, PluginTitle: sp.PluginTitle,
+			Title: sp.Title, Status: proto.Idle, Since: now,
 			Created: sp.Created, Restored: true,
 		})
 		return p
@@ -234,7 +242,7 @@ func (d *Daemon) restorePane(sid string, sp savedPane) *pane {
 	}
 	// The shell alone: what ran in it may not want to run again unasked.
 	// But an agent's conversation, which only waits for the user.
-	if err := p.start(resumeCommand(sp.Agent), nil); err != nil {
+	if err := p.start(d.pluginResumeCommand(sp.Agent, sp.Dir), nil); err != nil {
 		d.log.Printf("restoring %s: %v", sp.ID, err)
 		p.term.Close()
 		return nil
@@ -413,7 +421,36 @@ func resumeCommand(a *proto.AgentSession) []string {
 		// DSH needs.
 		return []string{"dsh", "headless", "--session-id", a.ID}
 	}
+	if meta, ok := proto.AgentProvider(a.Agent); ok && len(meta.ResumeArgv) > 0 {
+		out := make([]string, 0, len(meta.ResumeArgv)+1)
+		replaced := false
+		for _, tok := range meta.ResumeArgv {
+			if strings.Contains(tok, "{session_id}") || strings.Contains(tok, "{id}") {
+				replaced = true
+				tok = strings.ReplaceAll(tok, "{session_id}", a.ID)
+				tok = strings.ReplaceAll(tok, "{id}", a.ID)
+			}
+			out = append(out, tok)
+		}
+		if !replaced {
+			out = append(out, a.ID)
+		}
+		return out
+	}
 	return nil
+}
+
+// canResumeAgentSession reports whether a is a built-in resumable agent
+// session or belongs to a registered plugin agent provider with a valid ID.
+func canResumeAgentSession(a *proto.AgentSession) bool {
+	if resumeCommand(a) != nil {
+		return true
+	}
+	if a == nil || !agentSessionRe.MatchString(a.ID) {
+		return false
+	}
+	meta, ok := proto.AgentProvider(a.Agent)
+	return ok && meta.PluginID != ""
 }
 
 var agentSessionRe = regexp.MustCompile(`^[A-Za-z0-9_-]{1,128}$`)
@@ -421,7 +458,7 @@ var agentSessionRe = regexp.MustCompile(`^[A-Za-z0-9_-]{1,128}$`)
 const endedCap = 50
 
 func (d *Daemon) endedLocked(a *proto.AgentSession, dir, name, title string, at int64) {
-	if resumeCommand(a) == nil || !settings.Load().SessionHistory {
+	if !canResumeAgentSession(a) || !settings.Load().SessionHistory {
 		return
 	}
 	titled := name == "" && title != ""
