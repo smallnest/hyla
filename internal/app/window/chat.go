@@ -9,6 +9,7 @@ import (
 	"hyla/internal/app/host"
 	"hyla/internal/proto"
 	"hyla/internal/ui/chat"
+	"hyla/internal/ui/panes"
 	"hyla/internal/ui/theme"
 
 	"hyla/locales"
@@ -43,14 +44,16 @@ func (a *App) Feed(id string) *chat.Feed {
 }
 
 // toggleChat gives the pane the user is in the conversation in place of its
-// terminal, or its terminal again.
+// terminal, or its terminal again. A pane whose agent runs without a
+// terminal shows the conversation anyway, so it has nothing to toggle. The
+// palette runs this: no menu has it, and no shortcut.
 func (a *App) toggleChat() {
 	s := a.session(a.Selected)
 	if s == nil {
 		return
 	}
 	p := s.PaneByID(a.focusOf(s))
-	if p == nil || p.Browser() || p.FilePane() || p.TimelinePane() || p.SubagentsPane() {
+	if p == nil || p.Browser() || p.FilePane() || p.TimelinePane() || p.SubagentsPane() || p.PluginPane() || panes.HasChat(p) {
 		return
 	}
 	if a.PaneChatMap == nil {

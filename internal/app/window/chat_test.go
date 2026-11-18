@@ -155,6 +155,9 @@ func (f *fakeHylad) conn(t *testing.T, c net.Conn) {
 func chatApp(t *testing.T) (*App, *fakeHylad) {
 	t.Helper()
 	a := testApp(t)
+	// The pane's agent runs without a terminal, as a Feishu chat's does: its
+	// conversation is the chat the view shows.
+	a.session("s1").Panes[0].AgentSessionID = "ses_x"
 	home := t.TempDir()
 	path := filepath.Join(home, "config")
 	if err := os.WriteFile(path, []byte("feishu-app = cli_test\n"), 0o600); err != nil {
@@ -220,15 +223,10 @@ func chatSettle(tt *ui.Tester, done func() bool) {
 // terminal's place, and a prompt written in it goes to the session's chat.
 func TestChatView(t *testing.T) {
 	a, f := chatApp(t)
-	// It is set as a click on the header's chat button, which the window
-	// draws, does.
-	a.ShowPaneChatIn(a.session("s1"), "a")
+	a.session("s1").Zoomed = "a"
 	tt := ui.NewTester(a.view, 1600, 800)
 	tt.Frame()
 	chatSettle(tt, func() bool { return tt.HasText("Fix the build") })
-	if !a.PaneChatMap["a"] {
-		t.Fatal("the pane shows no chat")
-	}
 	// The agent's Markdown reads as it is written: no ** or ` about.
 	for _, want := range []string{"Fix the build", "Bash", `{"command":"go build","description":"Build it"}`,
 		"The build passes.", "Here: fixed the main.go syntax:", "func main() {}", "one", "Claude Opus 5"} {
@@ -259,7 +257,7 @@ func (f *fakeHylad) typed() string {
 // it, as a chat app's does.
 func TestChatNarrow(t *testing.T) {
 	a, _ := chatApp(t)
-	a.ShowPaneChatIn(a.session("s1"), "a")
+	a.session("s1").Zoomed = "a"
 	tt := ui.NewTester(a.view, 1600, 800)
 	tt.Frame()
 	chatSettle(tt, func() bool { return tt.HasText("Fix the build") })

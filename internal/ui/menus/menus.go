@@ -176,7 +176,7 @@ func Menu(a App) *mygo.Menu {
 			Items(a, "Edit", []string{"find.open", "find.next", "find.previous"})...)},
 		{Label: locales.MenuPane(), Submenu: Items(a, "Pane",
 			[]string{"pane.split.right", "pane.split.down"},
-			[]string{"pane.browser", "timeline.open", "subagents.open", "pane.chat"},
+			[]string{"pane.browser", "timeline.open", "subagents.open"},
 			[]string{"pane.zoom"},
 			[]string{"pane.next", "pane.previous", "pane.left", "pane.right", "pane.up", "pane.down"})},
 		{Label: locales.MenuView(), Submenu: view},

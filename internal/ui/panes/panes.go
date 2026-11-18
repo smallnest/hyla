@@ -64,11 +64,9 @@ type App interface {
 	ChromeForPanel() Chrome
 	HeaderHeightIn() float32
 
-	// PaneChat are the panes whose chat shows in their terminal's place.
-	FeishuOn() bool
+	// PaneChat are the panes the palette gave their session's chat in
+	// their terminal's place.
 	PaneChat() map[string]bool
-	ShowPaneChat(id string)
-	HidePaneChat(id string)
 
 	// FilePane, PaneBrowser, TimelineBody, SubagentsBody and ChatBody are
 	// the card's body, by kind.
@@ -149,8 +147,6 @@ func (ch Chrome) ButtonsLeft() float32 { return ch.Lead - (ch.SideW + ch.MainPad
 
 // FeishuOn tells that an app of Feishu is configured, whose chats the
 // panes show (chat.go).
-func FeishuOn(s settings.Settings) bool { return s.Feishu != nil && s.Feishu.App != "" }
-
 // TermEntry is a pane's terminal as it attaches: the terminal, or why it
 // did not.
 type TermEntry struct {

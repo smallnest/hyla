@@ -286,16 +286,6 @@ func (msgs Messages) ActionShowTerminal() string {
 	return Catalog.Format(msgs.locale, "actionShowTerminal", nil)
 }
 
-// ActionToggleChat says "Toggle Chat"
-// in the language the app shows.
-func ActionToggleChat() string { return In(i18n.Locale()).ActionToggleChat() }
-
-// ActionToggleChat says "Toggle Chat"
-// in the language of msgs.
-func (msgs Messages) ActionToggleChat() string {
-	return Catalog.Format(msgs.locale, "actionToggleChat", nil)
-}
-
 // ActionReconnectHost says "Reconnect Host"
 // in the language the app shows.
 func ActionReconnectHost() string { return In(i18n.Locale()).ActionReconnectHost() }
@@ -1444,16 +1434,6 @@ func SessionMarkRead() string { return In(i18n.Locale()).SessionMarkRead() }
 // in the language of msgs.
 func (msgs Messages) SessionMarkRead() string {
 	return Catalog.Format(msgs.locale, "sessionMarkRead", nil)
-}
-
-// ChatOpen says "Open Chat"
-// in the language the app shows.
-func ChatOpen() string { return In(i18n.Locale()).ChatOpen() }
-
-// ChatOpen says "Open Chat"
-// in the language of msgs.
-func (msgs Messages) ChatOpen() string {
-	return Catalog.Format(msgs.locale, "chatOpen", nil)
 }
 
 // ChatChooseTitle says "Choose a Feishu Chat"
@@ -8498,6 +8478,16 @@ func ActionSubagentsOpen() string { return In(i18n.Locale()).ActionSubagentsOpen
 // in the language of msgs.
 func (msgs Messages) ActionSubagentsOpen() string {
 	return Catalog.Format(msgs.locale, "actionSubagentsOpen", nil)
+}
+
+// ActionToggleChat says "Toggle Chat"
+// in the language the app shows.
+func ActionToggleChat() string { return In(i18n.Locale()).ActionToggleChat() }
+
+// ActionToggleChat says "Toggle Chat"
+// in the language of msgs.
+func (msgs Messages) ActionToggleChat() string {
+	return Catalog.Format(msgs.locale, "actionToggleChat", nil)
 }
 
 // InfoOpenEditor says "Open in {editor}"

@@ -126,10 +126,8 @@ type App interface {
 	// session shows.
 	Call(id, method string, params any, done func(error))
 	ReportView()
-	// OpenLink opens what a path names, and ShowPaneChatIn shows a pane's
-	// chat in place of its terminal.
+	// OpenLink opens what a path names.
 	OpenLink(id, link string) bool
-	ShowPaneChatIn(s *proto.Session, id string)
 	// ProjectsOf are a host's projects.
 	ProjectsOf(h *host.Host) []proto.Project
 	// OpenPalette shows the palette, OpenSettings the Settings window at a
@@ -953,19 +951,6 @@ func sessionMenu(x App, m *ui.Menu, s *proto.Session) {
 			}
 		}
 	})
-	if x.Settings().Feishu != nil && x.Settings().Feishu.App != "" {
-		// The session's conversation, as a chat: its agent's, with the
-		// Feishu chat it is with (chat.go).
-		// It shows in the pane the user is in, in its terminal's place.
-		if m.Item(locales.ChatOpen()).Chosen() {
-			pid := x.FocusOf(s)
-			x.Later_(func() {
-				if cur := x.SessionOf(id); cur != nil && pid != "" {
-					x.ShowPaneChatIn(cur, pid)
-				}
-			})
-		}
-	}
 	m.Separator()
 	x.PluginSessionMenu(m, s)
 	if m.Item(locales.SessionCopyId()).Chosen() {

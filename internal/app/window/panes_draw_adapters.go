@@ -15,18 +15,8 @@ func (a *App) ChromeForPanel() panes.Chrome {
 	return panes.Chrome{SideW: a.ChromeState.SideW, MainPad: a.ChromeState.MainPad, HeaderPad: a.ChromeState.HeaderPad, Lead: layout.Lead(a.Bar)}
 }
 
-func (a *App) FeishuOn() bool { return panes.FeishuOn(a.settingsIn) }
-
 func (a *App) PaneChat() map[string]bool { return a.PaneChatMap }
 
-func (a *App) ShowPaneChat(id string) {
-	if a.PaneChatMap == nil {
-		a.PaneChatMap = map[string]bool{}
-	}
-	a.PaneChatMap[id] = true
-}
-
-func (a *App) HidePaneChat(id string) { delete(a.PaneChatMap, id) }
 func (a *App) PaneBrowser(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown float32, s *proto.Session, p *proto.Pane, top, left, right, multi, focused, hovered bool) bool {
 	return a.paneBrowser(c, pal, bar, shown, s, p, top, left, right, multi, focused, hovered)
 }
@@ -65,8 +55,6 @@ func (a *App) SetPreview(pane string, since time.Time) {
 }
 
 func (a *App) DrawnPreview() { a.PreviewDrawn = true }
-
-func (a *App) ShowPaneChatIn(s *proto.Session, id string) { panes.ShowPaneChatView(a, s, id) }
 
 func (a *App) LayoutDrag(split string) (bool, float64) {
 	d := a.SplitDrag

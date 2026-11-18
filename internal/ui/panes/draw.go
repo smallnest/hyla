@@ -199,6 +199,13 @@ func divider(x App, c *ui.Context, pal *theme.Palette, s *proto.Session, l *prot
 	}
 }
 
+// HasChat tells whether a pane shows its session's conversation in its
+// terminal's place: a pane whose agent runs without a terminal, as the one
+// a Feishu chat drives does, which names the conversation it runs but no
+// agent of the pane's own. A pane whose agent runs in its terminal, as one
+// the user started, keeps its terminal.
+func HasChat(p *proto.Pane) bool { return p.Agent == "" && p.AgentSessionID != "" }
+
 // PaneCard is a pane: a card with a header and the terminal. top, left and
 // right tell that it touches the window's edges, where the header drags
 // the window, keeps clear of the traffic lights on macOS, and holds the
@@ -216,7 +223,9 @@ func PaneCard(x App, c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown f
 	// without a terminal, shows the chat in its terminal's place, which
 	// sessionPanes lays out the one card for. It keeps it as the user moves
 	// about: the chat is the pane's, not the focus's.
-	chat := x.PaneChat()[p.ID] && (len(s.Zoomed) == 0 || s.Zoomed == p.ID)
+	// One conversation shows at a time, as the feed is the session's: the
+	// focused pane's, or the zoomed one's.
+	chat := (HasChat(p) || x.PaneChat()[p.ID]) && (p.ID == s.Zoomed || s.Zoomed == "" && p.ID == x.FocusOf(s))
 	bg := pal.Card
 	// A browser's page stays opaque, so its toolbar does too, and neither
 	// fades: a page is read, not typed into, from beside it.
@@ -649,23 +658,6 @@ func PaneControls(x App, c *ui.Context, pal *theme.Palette, s *proto.Session, p 
 			})
 		}
 	})
-}
-
-// showPaneChat shows the focused pane's chat in its terminal's place:
-// the window shows the pane alone, so that the chat has its place.
-// ShowPaneChatView shows a pane's chat in its terminal's place, as the
-// pane's controls do.
-func ShowPaneChatView(x App, s *proto.Session, id string) { showPaneChat(x, s, id) }
-
-func showPaneChat(x App, s *proto.Session, id string) {
-	x.ShowPaneChat(id)
-	// Zoomed is its own zoom, so the call is the pane's place, not a
-	// toggle of it.
-	if s.Zoomed == "" && (len(s.Panes) > 1 || s.Layout != nil) {
-		s.Zoomed = id
-		x.SetFocus(s, id)
-		x.CallPane(s.ID, "zoom", proto.FocusParams{Session: s.ID, Pane: id}, nil)
-	}
 }
 
 // paneChips says what the pane is doing. With several panes the title

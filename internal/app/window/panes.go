@@ -173,14 +173,6 @@ func (a *App) settle() {
 // sessionPanes lays out a session's panes: the zoomed one alone, else
 // their layout.
 func (a *App) sessionPanes(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown float32, s *proto.Session, right bool) {
-	// One pane shows its chat in place of its terminal, alone, so that
-	// the chat has the room side by side would leave it.
-	if len(s.Zoomed) == 0 || s.Zoomed == a.focusOf(s) {
-		if p0 := s.PaneByID(a.focusOf(s)); p0 != nil && a.PaneChatMap[p0.ID] && a.FeishuOn() {
-			panes.PaneCard(a, c, pal, bar, shown, s, p0, true, true, right, false)
-			return
-		}
-	}
 	multi := len(s.Panes) > 1
 	if z := s.PaneByID(s.Zoomed); z != nil || s.Layout == nil || !multi {
 		p := z

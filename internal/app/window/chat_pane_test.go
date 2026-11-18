@@ -8,8 +8,10 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
+	"hyla/internal/actions"
 	"hyla/internal/proto"
 	"hyla/internal/ui/chat"
+	"hyla/internal/ui/panes"
 	"hyla/locales"
 )
 
@@ -21,10 +23,9 @@ func chatDemo(t *testing.T) *App {
 	a := testApp(t)
 	s := a.session("s1")
 	p := &s.Panes[0]
-	p.Agent, p.Title = "claude", "hyla"
+	p.AgentSessionID, p.Title = "ses_x", "hyla"
 	const start = int64(1_761_285_600_000)
 	at := func(n int64) int64 { return start + n*1000 }
-	a.PaneChatMap = map[string]bool{p.ID: true}
 	s.Zoomed = p.ID // one pane, as wide as the window: the column floats in it
 	a.Side.Chat.Feeds = map[string]*chat.Feed{"s1": {
 		At: time.Now(), Got: true,
@@ -68,35 +69,26 @@ func TestChatBody(t *testing.T) {
 	}
 }
 
-// A pane whose agent runs without a terminal, as a Feishu chat's does, shows
-// its conversation from the start, and keeps it closed once the user closes
-// it; a terminal's keeps its terminal.
-func TestOpenChatPanes(t *testing.T) {
-	a := testApp(t)
-	s := a.session("s1")
-	p := &s.Panes[0]
-	p.Agent, p.AgentSessionID = "", "ses_x"
-	a.openChatPanes()
-	if !a.PaneChatMap[p.ID] {
-		t.Error("a pane without a terminal shows no chat")
+// A pane shows its session's conversation in its terminal's place once its
+// agent runs one, with no toggle: a chat that drives a pane without a
+// terminal gives it that, and a plain shell keeps its terminal.
+func TestPanesWithAChat(t *testing.T) {
+	driven := &proto.Pane{AgentSessionID: "ses_x"}
+	if !panes.HasChat(driven) {
+		t.Error("a pane whose agent runs without a terminal shows no chat")
 	}
-	q := &s.Panes[1]
-	q.Agent, q.AgentSessionID = "claude", "abc"
-	a.openChatPanes()
-	if a.PaneChatMap[q.ID] {
-		t.Error("a terminal's pane opened a chat")
-	}
-	a.PaneChatMap[p.ID] = false
-	a.openChatPanes()
-	if a.PaneChatMap[p.ID] {
-		t.Error("the chat reopened after the user closed it")
+	for _, p := range []*proto.Pane{{Shell: "zsh"}, {Agent: "claude", AgentSessionID: "ses_x"}} {
+		if panes.HasChat(p) {
+			t.Errorf("the pane %+v shows a chat, not its terminal", p)
+		}
 	}
 }
 
 // The composer takes a prompt, and Enter sends it to the pane's program.
 func TestChatComposerSends(t *testing.T) {
 	a, f := chatApp(t)
-	a.ShowPaneChatIn(a.session("s1"), "a")
+	// The pane alone, so the composer is under the conversation it sends to.
+	a.session("s1").Zoomed = "a"
 	tt := ui.NewTester(a.view, 1200, 800)
 	tt.Frame()
 	chatSettle(tt, func() bool { return tt.HasText("Fix the build") })
@@ -243,4 +235,38 @@ func TestChatTimelineRail(t *testing.T) {
 	if !tt.HasText("Prompt turn #18: check the logs and configuration") {
 		t.Errorf("clicking the last tick did not scroll back to turn #18: %v", tt.Texts())
 	}
+}
+
+// The palette toggles the chat in a terminal's pane, and only the palette:
+// the action is in no menu, has no shortcut, and a pane whose agent runs
+// without a terminal shows the conversation anyway.
+func TestToggleChatFromThePalette(t *testing.T) {
+	a := testApp(t)
+	s := a.session("s1")
+	s.Focus = "a"
+	a.Selected = "s1"
+	a.toggleChat()
+	if !a.PaneChatMap["a"] {
+		t.Fatal("the pane shows no chat")
+	}
+	a.toggleChat()
+	if a.PaneChatMap["a"] {
+		t.Error("the pane kept the chat")
+	}
+	s.Panes[0].AgentSessionID = "ses_x"
+	a.toggleChat()
+	if a.PaneChatMap["a"] {
+		t.Error("a pane without a terminal toggled")
+	}
+
+	for _, act := range actions.List() {
+		if act.ID != "pane.chat" {
+			continue
+		}
+		if act.Menu != "" || act.NoPalette || actions.Keys(act, nil) != "" {
+			t.Errorf("the toggle is %+v: it belongs to the palette alone", act)
+		}
+		return
+	}
+	t.Error("the palette has no toggle")
 }
