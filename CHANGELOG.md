@@ -4,6 +4,43 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.17.0
+
+- Hyla takes plugins. **Settings › Plugins** installs a `.hylapkg` package
+  or links a plugin folder you are working on, and shows what each one may
+  do, its settings and its log, with **Restart** and **Remove** beside
+  them; **Plugins › Manage Plugins…** and the palette open it too.
+  `hyla plugin` does the same from a terminal, with `init` to scaffold a
+  plugin, `pack` to build a package, `dev` to link one and reload it as
+  you edit, and `ls`, `enable`, `disable`, `rm`, `permissions` and `logs`
+  besides.
+- A plugin brings any of what Hyla has of its own: a coding agent to
+  detect and to draw, with its timeline and its chat; a terminal theme, a
+  background wash, a pet; hooks and skills for an agent; actions with
+  shortcuts and menu and palette entries; a pane, a card in the side
+  panel, a tab, or a page in Settings. Hyla draws what a plugin declares,
+  in its own colors, or gives it a WebView of its own, kept apart from the
+  rest of the app.
+- A plugin that does real work runs as its own process: in hylad, where
+  it serves every session and a headless server, or in the app, for what
+  belongs to the window. Hyla starts it when it is wanted, keeps it
+  alive, restarts it when it crashes and keeps its log. Feishu and Magpie
+  are built-in plugins now, so a machine that watches a Feishu chat
+  carries the bot as one.
+- Plugins travel between your machines with your settings: the list of
+  them and each one's settings arrive on the others, which mark what is
+  not installed there yet. Secrets stay on the machine that holds them.
+- There are SDKs to write a plugin with, `sdk/go/hylaplugin` for Go and
+  `sdk/ts` for TypeScript, each with an example to start from, and
+  `docs/plugins.md` is the reference.
+- A plugin that runs in hylad needs this version's hylad on that machine
+  too: a host whose Hyla is older says so, with the update a menu item
+  away.
+- The Chat view has a timeline down its left edge: a tick for each of
+  your prompts, the turn in view in the accent, a click on a tick
+  scrolling the conversation to that prompt, and resting on one showing
+  what you asked and when.
+
 ## 3.16.1
 
 - Hyla's macOS app is signed with a certificate of Hyla's own now, not

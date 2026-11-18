@@ -23,7 +23,8 @@
     "items": [
       "cli",
       "agents",
-      "feishu"
+      "feishu",
+      "plugins"
     ]
   },
   {
