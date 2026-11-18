@@ -4,6 +4,14 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.17.2
+
+- Feishu chats whose directory comes from `feishu-dir` in **Settings › Feishu** expand a leading `~` to the account's home folder instead of failing the turn's `chdir` with a `fork/exec` error naming the agent binary, and report a missing directory as `no directory …` (hosts get this with their next update).
+- Upgrading from 3.17.0 removes the migrated `hyla.feishu` App Secret from the system keychain so a secret changed later in **Settings › Feishu** stays across restarts, and an empty `allow` in the old plugin config leaves `feishu-allow` alone.
+- `hyla plugin init --template pack` writes wash and agent-detection files in the format Hyla reads, and plugin hooks and skills update only the agents where Hyla's skill is installed without removing another agent's hooks.
+- Syncing across machines carries removed plugins and plugin configs to the others, runs automatically when plugins or their settings change in **Settings › Plugins**, and keeps a plugin background wash when a sync arrives.
+- **Settings › Plugins** shows large numbers without scientific notation, resets cleared number fields to their defaults, and keeps saved secrets when an empty secret field is saved; the Magpie card localizes its offline notice and waits a minute before retrying while Magpie is down.
+
 ## 3.17.1
 
 - Feishu is a feature of Hyla's own, not a plugin: **Settings › Feishu**

@@ -77,22 +77,27 @@ jobs:
         env:
           P12: ${{ secrets.MYGO_SIGNING_P12 }}
           PASSWORD: ${{ secrets.MYGO_SIGNING_KEY_PASSWORD }}
-          KEYCHAIN: signing
         run: |
           if [ -z "$P12" ] || [ -z "$PASSWORD" ]; then
             echo "::error::no MYGO_SIGNING_P12 or MYGO_SIGNING_KEY_PASSWORD: run scripts/gen-signing-cert.sh and add them to the secrets"
             exit 1
           fi
+          keychain="$RUNNER_TEMP/hyla-signing.keychain-db"
+          p12="$RUNNER_TEMP/hyla-signing.p12"
+          printf '%s' "$P12" | tr -d '[:space:]' | base64 -D > "$p12"
           # The keychain joins the search list and is the default: what
           # codesign finds there, it finds by the name mygo.json gives it,
           # macos.signingIdentity.
-          security create-keychain -p "$PASSWORD" "$KEYCHAIN"
-          security import <(printf '%s' "$P12" | base64 -D) -k "$KEYCHAIN" -P "$PASSWORD" -T /usr/bin/codesign > /dev/null
-          security set-key-partition-list -S apple-tool:,apple: -s -k "$PASSWORD" "$KEYCHAIN" > /dev/null
-          rest="$(security list-keychains -d user | sed -n 's/^ *"\(.*\)"$/\1/p' | grep -v -F -x "$KEYCHAIN")"
+          security create-keychain -p "$PASSWORD" "$keychain"
+          security set-keychain-settings -lut 21600 "$keychain"
+          security unlock-keychain -p "$PASSWORD" "$keychain"
+          security import "$p12" -f pkcs12 -k "$keychain" -P "$PASSWORD" -T /usr/bin/codesign -A > /dev/null
+          rm -f "$p12"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$PASSWORD" "$keychain" > /dev/null
+          rest="$(security list-keychains -d user | sed -n 's/^ *"\(.*\)"$/\1/p' | grep -v -F -x "$keychain" || true)"
           # shellcheck disable=SC2086: the paths have no blanks.
-          security list-keychains -d user -s "$KEYCHAIN" $rest
-          security default-keychain -d user -s "$KEYCHAIN"
+          security list-keychains -d user -s "$keychain" $rest
+          security default-keychain -d user -s "$keychain"
       - name: Build and upload
         env:
           GH_TOKEN: ${{ github.token }}
