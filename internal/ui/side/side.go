@@ -256,8 +256,9 @@ func Panel(x App, c *ui.Context, pal *theme.Palette, s *proto.Session, width flo
 	card.Children(func() {
 		ui.Row(c.Key("hdr")).Height(x.HeaderHeightIn()).Shrink(0).AlignItems(ui.Center).Padding(0, 10, 0, 16).Gap(8).Children(func() {
 			// The views, the one shown marked, as a pane's header shows
-			// its program. A narrow panel names them by their icons alone,
-			// which their titles tell.
+			// its program. A narrow panel names the one it shows, and
+			// leaves the others to their icons, which their titles tell:
+			// the header keeps room for its close button and the window's.
 			labels := width >= tabLabelsWidth
 			tabButton(x, c, pal, Info, locales.SideInfo(), glyph.Info, view == Info, "info.toggle", labels, func() { set = Info })
 			tabButton(x, c, pal, Changes, locales.SideChanges(), glyph.Diff, view == Changes, "changes.toggle", labels, func() { set = Changes })
@@ -322,15 +323,16 @@ func Panel(x App, c *ui.Context, pal *theme.Palette, s *proto.Session, width flo
 	}
 }
 
-// tabLabelsWidth is the panel's narrowest width that names its views: a
-// narrower one shows their icons alone.
+// tabLabelsWidth is the panel's narrowest width that names every view: a
+// narrower one names the view it shows, and shows the others' icons alone.
 const tabLabelsWidth = 420
 
 // tabButton is a view's name in the panel's header, a click showing it: the
 // one shown in the text's color, the others faint. labels tells whether the
-// header names the view or shows its icon alone. The header drags the
-// window where no tab is, as the window controls are, which the tabs are
-// part of as windowControls' buttons are.
+// header names every view, or only the one it shows, the others' icons
+// saying which they are. The header drags the window where no tab is, as
+// the window controls are, which the tabs are part of as windowControls'
+// buttons are.
 func tabButton(x App, c *ui.Context, pal *theme.Palette, id, label string, svg *ui.SVG, on bool, action string, labels bool, fn func()) {
 	fg := pal.TextFaint
 	if on {
@@ -348,7 +350,9 @@ func tabButton(x App, c *ui.Context, pal *theme.Palette, id, label string, svg *
 	}
 	b.Children(func() {
 		ui.Icon(c, svg).Size(14, 14).TextColor(fg)
-		if labels {
+		// The view shown is named where the others are not: the header
+		// says where the user is, as the panel is narrow.
+		if labels || on {
 			ui.Text(c, label).FontSize(14).FontWeight(600).TextColor(fg).SingleLine().Shrink(0)
 		}
 	})
