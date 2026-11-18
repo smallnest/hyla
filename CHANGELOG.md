@@ -4,6 +4,14 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.17.4
+
+- A session a Feishu chat drives — one whose agent runs without a terminal
+  — shows its conversation, where it showed an empty pane. A pane an agent
+  runs in keeps its terminal, and **Toggle Chat** in the command palette
+  (⌘P) takes it to the conversation, and back. No menu lists it and no
+  shortcut has it.
+
 ## 3.17.3
 
 - The Magpie card says its rows, its title and **Refresh** in the language
