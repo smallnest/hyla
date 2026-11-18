@@ -98,3 +98,41 @@ func TestBackgroundReadsNoInput(t *testing.T) {
 		t.Fatal("a command that reads no input never ended")
 	}
 }
+
+// A command's directory, when it comes from feishu-dir, may be written as
+// ~/…: the command runs there, where a fork's chdir to a ~ of its own
+// would fail, and its error name the program it never ran.
+func TestBackgroundHomeDir(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("no true")
+	}
+	d := testDaemon(t)
+	s, err := d.create(proto.CreateParams{Name: "bg"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := d.setBackground(s.ID); err != nil {
+		t.Fatal(err)
+	}
+	luna := &botLuna{d: d}
+	dir := t.TempDir()
+	if err := luna.Call("agent.background", proto.BackgroundParams{ID: s.ID, Out: filepath.Join(dir, "out"), Dir: "~/", Command: []string{"true"}}, nil); err != nil {
+		t.Fatalf("a directory of ~ runs nothing: %v", err)
+	}
+	var o proto.Output
+	for i := 0; i < 60 && !o.Ended; i++ {
+		time.Sleep(50 * time.Millisecond)
+		if err := luna.Call("agent.output", proto.OutputParams{ID: s.ID, From: o.From}, &o); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if !o.Ended {
+		t.Fatal("the command never ended")
+	}
+	// One that is not there says its directory, not the program it never
+	// ran: the program is there, and was never the problem.
+	err = luna.Call("agent.background", proto.BackgroundParams{ID: s.ID, Out: filepath.Join(dir, "out2"), Dir: "~/no-such-dir-hyla", Command: []string{"true"}}, nil)
+	if err == nil || !strings.Contains(err.Error(), "no directory") || strings.Contains(err.Error(), "fork/exec") {
+		t.Fatalf("a directory that is not there: %v", err)
+	}
+}

@@ -446,7 +446,7 @@ func (b *Bot) newSession(chatID, rest string) {
 	if agent != "default" {
 		cmd, _ = b.sessionCommand(agent)
 	}
-	if err := b.api.Call("create", proto.CreateParams{Project: project, Dir: b.cfg.Dir, Command: cmd}, &s); err != nil {
+	if err := b.api.Call("create", proto.CreateParams{Project: project, Dir: b.cfg.DirPath(), Command: cmd}, &s); err != nil {
 		b.reply(chatID, "Hyla could not start a session: "+err.Error())
 		return
 	}

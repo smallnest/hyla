@@ -29,7 +29,7 @@ func (b *Bot) background(key, chatID, response, text string, t turnInfo) {
 	}
 	dir := bnd.Dir
 	if dir == "" {
-		dir = b.cfg.Dir
+		dir = b.cfg.DirPath()
 	}
 	if dir == "" {
 		dir = settings.UserHome()
@@ -983,7 +983,7 @@ func (b *Bot) Prompt(session, text string) error {
 		dir = pane.Dir
 	}
 	if dir == "" {
-		dir = b.cfg.Dir
+		dir = b.cfg.DirPath()
 	}
 	if dir == "" {
 		dir = settings.UserHome()

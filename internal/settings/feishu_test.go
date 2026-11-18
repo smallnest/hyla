@@ -66,6 +66,23 @@ feishu-agent-command = pi=~/bin/pi --model fast
 	}
 }
 
+// feishu-dir is where a chat's commands work, and a ~ there is the
+// account's home: a command takes no ~ for a place, and would fail its
+// fork's chdir, whose error names the program it never ran.
+func TestFeishuDirPath(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	if got, want := (&Feishu{Dir: "~/.presence"}).DirPath(), filepath.Join(home, ".presence"); got != want {
+		t.Errorf("dir %q, not %q", got, want)
+	}
+	if got := (&Feishu{Dir: "/tmp/x"}).DirPath(); got != "/tmp/x" {
+		t.Errorf("an absolute dir is %q", got)
+	}
+	if got := (&Feishu{}).DirPath(); got != "" {
+		t.Errorf("no dir is %q", got)
+	}
+}
+
 // A bad agent, duration or app is a problem in the file.
 func TestFeishuKeysRejectBadValues(t *testing.T) {
 	for _, line := range []string{"feishu-agent = nosuchagent", "feishu-timeout = soon", "feishu-app = two words",

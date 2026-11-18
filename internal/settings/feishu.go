@@ -139,12 +139,35 @@ func (f *Feishu) Allowed(openID, userID, email string) bool {
 func (f *Feishu) AgentCommand(agent string) []string {
 	var cmd []string
 	for _, w := range strings.Fields(f.Agents[agent]) {
+		// ~ is the account's home as a word of its own only where the
+		// command starts, and as a path's start anywhere.
 		if len(cmd) == 0 && w == "~" || strings.HasPrefix(w, "~/") {
-			w = UserHome() + strings.TrimPrefix(w, "~")
+			w = homePath(w)
 		}
 		cmd = append(cmd, w)
 	}
 	return cmd
+}
+
+// DirPath is where a chat's session works: feishu-dir, with a leading ~ as
+// the account's home, or "" for the home the daemon starts it in.
+func (f *Feishu) DirPath() string {
+	if f == nil {
+		return ""
+	}
+	return homePath(strings.TrimSpace(f.Dir))
+}
+
+// homePath is a path with a leading ~ as the account's home, and any
+// other as it is.
+func homePath(p string) string {
+	if p == "~" {
+		return UserHome()
+	}
+	if strings.HasPrefix(p, "~/") {
+		return filepath.Join(UserHome(), p[2:])
+	}
+	return p
 }
 
 // YoloFlag is the option that runs the agent without its permission

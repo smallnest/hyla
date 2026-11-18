@@ -1068,6 +1068,27 @@ func TestCommandMode(t *testing.T) {
 	}
 }
 
+// A chat whose directory is feishu-dir's runs where that names: a turn
+// gives hylad the account's home, not the settings' ~, which a command
+// takes for no place and fails its fork's chdir with its own name.
+func TestCommandModeHomeDir(t *testing.T) {
+	b, luna, _ := newBot(t)
+	shortWaits(t)
+	b.cfg.Run = settings.FeishuRunCommand
+	b.cfg.Agent = "claude"
+	b.cfg.Dir = "~/.presence"
+	bindChat(b, "c1", binding{Session: "s1"})
+	b.leave("c1")
+	luna.files = []string{"2", ""}
+	b.onMessage(nil, textMsg("c1", "ou_me", "1+1=?"))
+	if len(luna.ran) != 1 {
+		t.Fatalf("ran %+v", luna.ran)
+	}
+	if want := filepath.Join(settings.UserHome(), ".presence"); luna.ran[0].Dir != want {
+		t.Errorf("ran in %q, not %q", luna.ran[0].Dir, want)
+	}
+}
+
 // Each agent's command continues the chat's conversation.
 func TestCommandContinues(t *testing.T) {
 	b, _, _ := newBot(t)

@@ -98,7 +98,17 @@ func (d *Daemon) runBackground(p proto.BackgroundParams) error {
 	dir := pn.info.Dir
 	pn.mu.Unlock()
 	if p.Dir != "" {
-		dir = p.Dir
+		// A chat's directory may be written as the settings' "~/…", which
+		// no process takes for a place. The command's fork would fail its
+		// chdir, and name the program it never ran, as a program that is
+		// not there: its directory is the one to say.
+		cleaned, err := d.cleanDir(p.Dir)
+		if err != nil {
+			bg.fail(err)
+			pn.bgDone()
+			return err
+		}
+		dir = cleaned
 	}
 	shell := userShell()
 	if err := os.MkdirAll(filepath.Dir(p.Out), 0o700); err != nil {
