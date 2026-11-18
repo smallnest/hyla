@@ -41,11 +41,11 @@ func (noopBridge) SendKey(context.Context, string, rpc.PaneSendKeyParams) error 
 func (noopBridge) ReportStatus(context.Context, string, rpc.PaneReportStatusParams) error {
 	return nil
 }
-func (noopBridge) FocusPane(context.Context, string, rpc.PaneFocusParams) error     { return nil }
+func (noopBridge) FocusPane(context.Context, string, rpc.PaneFocusParams) error       { return nil }
 func (noopBridge) InvalidateUI(context.Context, string, rpc.UIInvalidateParams) error { return nil }
-func (noopBridge) OpenPane(context.Context, string, rpc.UIOpenPaneParams) error     { return nil }
-func (noopBridge) NotifyUI(context.Context, string, rpc.UINotifyParams) error       { return nil }
-func (noopBridge) WebViewEmit(context.Context, string, rpc.WebViewEmitParams) error { return nil }
+func (noopBridge) OpenPane(context.Context, string, rpc.UIOpenPaneParams) error       { return nil }
+func (noopBridge) NotifyUI(context.Context, string, rpc.UINotifyParams) error         { return nil }
+func (noopBridge) WebViewEmit(context.Context, string, rpc.WebViewEmitParams) error   { return nil }
 
 func TestMagpieBuiltinPluginRenderAndSettings(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -229,5 +229,52 @@ func TestMagpieOfflineBackoffLocalizedAndSettingsCache(t *testing.T) {
 	mu.Unlock()
 	if r3.RefreshMS != 15000 {
 		t.Fatalf("expected 15000ms online refresh, got %d", r3.RefreshMS)
+	}
+}
+
+// The card's words, and the manifest's, are the app's language: the card
+// is rendered where the catalogs were never given the app's locale, so
+// the language comes with initialize, and the manifest is what the app
+// asks for in the language it shows.
+func TestWordsFollowTheAppsLanguage(t *testing.T) {
+	zh := locales.In("zh-Hans")
+	u := &magpie.Usage{Today: magpie.Bucket{Calls: 3, Cost: 0.5}, Session: 2, SessionCost: 0.1}
+	res := buildRenderResult(u, "", "zh-Hans")
+	raw, err := json.Marshal(res.Root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{zh.InfoMagpie(), zh.InfoMagpieCalls(), zh.InfoMagpieCost(), zh.InfoMagpieTokens(), zh.InfoMagpieSession(), zh.InfoMagpieRefresh()} {
+		if !strings.Contains(string(raw), want) {
+			t.Errorf("the card lacks %q: %s", want, raw)
+		}
+	}
+	if res.Title != zh.InfoMagpie() {
+		t.Errorf("the card is titled %q, not %q", res.Title, zh.InfoMagpie())
+	}
+	if got := buildRenderResult(nil, "", "zh-Hans"); !strings.Contains(got.Root.Children[0].Children[0].Props["text"].(string), zh.InfoMagpieDown()) {
+		t.Errorf("an offline card says %q, not %q", got.Root.Children[0].Children[0].Props["text"], zh.InfoMagpieDown())
+	}
+
+	m := manifestIn("zh-Hans")
+	if m.Description != zh.PluginMagpieDescription() {
+		t.Errorf("the plugin says of itself %q, not %q", m.Description, zh.PluginMagpieDescription())
+	}
+	if len(m.Actions) != 1 || m.Actions[0].Title != zh.PluginMagpieAction() {
+		t.Errorf("its action is %+v, not %q", m.Actions, zh.PluginMagpieAction())
+	}
+	if len(m.Settings) != 1 || m.Settings[0].Title != zh.PluginMagpieSettingURL() || m.Settings[0].Description != zh.PluginMagpieSettingURLDetail() {
+		t.Errorf("its setting is %+v", m.Settings)
+	}
+	if m.Name != "Magpie" || m.ID != PluginID {
+		t.Errorf("the manifest says %q %q", m.ID, m.Name)
+	}
+	// A system's tag, as a Mac names it, is the language it names.
+	if got := locales.In("zh-Hans-CN").InfoMagpieCalls(); got != zh.InfoMagpieCalls() {
+		t.Errorf("zh-Hans-CN says %q, not %q", got, zh.InfoMagpieCalls())
+	}
+	// A language it has no words for says the source ones.
+	if m := manifestIn("de"); m.Description != locales.In("en").PluginMagpieDescription() {
+		t.Errorf("a language of its own says %q", m.Description)
 	}
 }

@@ -64,7 +64,7 @@ func (a *App) infoPluginCards(c *ui.Context, pal *theme.Palette, s *proto.Sessio
 			PaneID:    paneID,
 			ProjectID: projID,
 			Dark:      pal.Dark,
-			Locale:    a.Language(),
+			Locale:    a.pluginLocaleValue(),
 		}
 		cr := a.Plugins.RenderSlot(hostKey, sl, req)
 		// Skip slots that explicitly returned no UI tree (e.g., unconfigured optional plugin).
@@ -178,11 +178,11 @@ func (a *App) PluginSide(c *ui.Context, pal *theme.Palette, s *proto.Session, ta
 		PaneID:    paneID,
 		ProjectID: projID,
 		Dark:      pal.Dark,
-		Locale:    a.Language(),
+		Locale:    a.pluginLocaleValue(),
 		Width:     width,
 	}
 	cr := a.Plugins.RenderSlot(hostKey, sl, req)
-	ui.Scroll(c.Key("plg-side-"+tabID)).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
+	ui.Scroll(c.Key("plg-side-" + tabID)).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
 		ui.Column(c.Key("plg-side-col-"+tabID)).Padding(8, 12, 12, 12).Gap(8).AlignItems(ui.Stretch).Children(func() {
 			a.renderPluginSlot(c, pal, hostKey, sl, sessID, paneID, cr, false)
 		})
@@ -278,11 +278,11 @@ func (a *App) PluginPaneBody(c *ui.Context, pal *theme.Palette, s *proto.Session
 		PaneID:    p.ID,
 		ProjectID: projID,
 		Dark:      pal.Dark,
-		Locale:    a.Language(),
+		Locale:    a.pluginLocaleValue(),
 		Args:      p.PluginArgs,
 	}
 	cr := a.Plugins.RenderSlot(hostKey, sl, req)
-	ui.Scroll(c.Key("plg-pane-"+p.ID)).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
+	ui.Scroll(c.Key("plg-pane-" + p.ID)).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
 		ui.Column(c.Key("plg-pane-col-"+p.ID)).Padding(12, 16, 16, 16).Gap(8).AlignItems(ui.Stretch).Children(func() {
 			a.renderPluginSlot(c, pal, hostKey, sl, sessID, p.ID, cr, false)
 		})
@@ -325,6 +325,7 @@ func (a *App) renderPluginSlot(c *ui.Context, pal *theme.Palette, hostKey string
 				Value:       value,
 				SessionID:   sessID,
 				PaneID:      paneID,
+				Locale:      a.pluginLocaleValue(),
 			})
 		},
 	}, cr.Result.Root)
@@ -1038,13 +1039,13 @@ func (p *appPluginsSettings) RenderSettingsPage(c *ui.Context, pal *theme.Palett
 		SlotID: sl.Slot.ID,
 		Mount:  manifest.MountSettingsPage,
 		Dark:   pal.Dark,
-		Locale: p.a.Language(),
+		Locale: p.a.pluginLocaleValue(),
 	}
 	cr := p.a.Plugins.RenderSlot("local", sl, req)
 	if !cr.Loading && cr.Error == "" && cr.Result != nil && cr.Result.Root == nil {
 		return false
 	}
-	ui.Column(c.Key("plg-page-slot-"+pageID)).Gap(16).AlignItems(ui.Stretch).Children(func() {
+	ui.Column(c.Key("plg-page-slot-" + pageID)).Gap(16).AlignItems(ui.Stretch).Children(func() {
 		p.a.renderPluginSlot(c, pal, "local", sl, "", "", cr, true)
 	})
 	return true
@@ -1091,7 +1092,7 @@ func (p *appPluginsSettings) RenderSettingsMount(c *ui.Context, pal *theme.Palet
 			SlotID: sl.Slot.ID,
 			Mount:  mount,
 			Dark:   pal.Dark,
-			Locale: p.a.Language(),
+			Locale: p.a.pluginLocaleValue(),
 		}
 		cr := p.a.Plugins.RenderSlot("local", sl, req)
 		if !cr.Loading && cr.Error == "" && cr.Result != nil && cr.Result.Root == nil {
@@ -1106,7 +1107,7 @@ func (p *appPluginsSettings) RenderSettingsMount(c *ui.Context, pal *theme.Palet
 		if mount == manifest.MountSettingsPlugins {
 			ui.Column(c.Key(slotKey)).Padding(4, 0, 0, 0).Gap(6).AlignItems(ui.Stretch).Children(func() {
 				if title != "" && (cr.Loading || cr.Error != "" || (cr.Result != nil && cr.Result.Root != nil && !hasSettingsGroupOrCard(cr.Result.Root))) {
-					hdrRow := ui.Row(c.Key(slotKey + "-hdr-row")).Padding(0, 2)
+					hdrRow := ui.Row(c.Key(slotKey+"-hdr-row")).Padding(0, 2)
 					hdrRow.Children(func() {
 						kit.Highlight(c, hdrRow, title, pal, 4, 2)
 						ui.Text(c.Key(slotKey+"-hdr"), title).FontSize(12).FontWeight(600).TextColor(pal.TextMuted)

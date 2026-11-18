@@ -25,12 +25,26 @@ func init() {
 
 // Register installs the bundled hyla.magpie manifest and RPC runner.
 func Register() {
-	m := &manifest.Manifest{
+	_ = manifest.RegisterBuiltin(manifest.BuiltinPlugin{
+		Manifest:         manifestIn(""),
+		EnabledByDefault: true,
+		AutoGrant:        true,
+		Words:            manifestIn,
+	})
+	daemonhost.RegisterBuiltinRunner(PluginID, daemonhost.HostKindDaemon, runServer)
+}
+
+// manifestIn is the plugin's manifest in locale: its name is its own, and
+// what it says of itself, its action and its setting are the app's words,
+// which the app asks for in the language it shows.
+func manifestIn(locale string) *manifest.Manifest {
+	words := locales.In(locale)
+	return &manifest.Manifest{
 		APIVersion:  manifest.APIVersion,
 		ID:          PluginID,
 		Name:        "Magpie",
 		Version:     "1.0.0",
-		Description: "Displays Magpie coding agent gateway usage, cost, tokens, and plan limits.",
+		Description: words.PluginMagpieDescription(),
 		Author:      "Hyla",
 		Permissions: manifest.PermissionsSpec{
 			Scopes: []string{manifest.PermUISlot, manifest.PermSessionRead},
@@ -44,7 +58,7 @@ func Register() {
 		Actions: []manifest.ActionSpec{
 			{
 				ID:      "refresh",
-				Title:   "Refresh Magpie Usage",
+				Title:   words.PluginMagpieAction(),
 				Palette: true,
 				Target:  "daemon",
 			},
@@ -54,7 +68,7 @@ func Register() {
 				{
 					ID:    "magpie",
 					Mount: "info.card",
-					Title: "Magpie",
+					Title: words.InfoMagpie(),
 					Mode:  "declarative",
 					Host:  "daemon",
 					Order: 10,
@@ -64,19 +78,13 @@ func Register() {
 		Settings: []manifest.SettingSpec{
 			{
 				Key:         "url",
-				Title:       "Gateway URL",
-				Description: "Custom Magpie base URL (defaults to MAGPIE_URL or http://127.0.0.1:3425).",
+				Title:       words.PluginMagpieSettingURL(),
+				Description: words.PluginMagpieSettingURLDetail(),
 				Type:        "string",
 				Placeholder: "http://127.0.0.1:3425",
 			},
 		},
 	}
-	_ = manifest.RegisterBuiltin(manifest.BuiltinPlugin{
-		Manifest:         m,
-		EnabledByDefault: true,
-		AutoGrant:        true,
-	})
-	daemonhost.RegisterBuiltinRunner(PluginID, daemonhost.HostKindDaemon, runServer)
 }
 
 const (
@@ -88,6 +96,7 @@ const (
 type state struct {
 	mu         sync.Mutex
 	url        string
+	locale     string
 	urlChecked time.Time
 	lastRead   time.Time
 	lastSess   string
@@ -95,6 +104,18 @@ type state struct {
 	lastErr    string
 	fetchFn    func(base, sess string) (*magpie.Usage, error)
 	nowFn      func() time.Time
+}
+
+// languageOf is the app's language, which the card's words are said in:
+// the one a render comes with, as the app's language changes while it
+// runs, or else the one initialize gave.
+func (st *state) languageOf(render string) string {
+	if render != "" {
+		return render
+	}
+	st.mu.Lock()
+	defer st.mu.Unlock()
+	return st.locale
 }
 
 func (st *state) now() time.Time {
@@ -124,6 +145,9 @@ func runServerWith(ctx context.Context, peer *rpc.Peer, fetchFn func(base, sess 
 		var p rpc.InitializeParams
 		_ = json.Unmarshal(raw, &p)
 		st.mu.Lock()
+		// The app's language, which the card's words are said in: this
+		// server runs where the app's own catalog was never given one.
+		st.locale = p.Locale
 		if u, ok := p.Settings["url"].(string); ok {
 			st.url = strings.TrimRight(strings.TrimSpace(u), "/")
 		} else {
@@ -156,7 +180,7 @@ func runServerWith(ctx context.Context, peer *rpc.Peer, fetchFn func(base, sess 
 		st.refreshURL(ctx, peer, false)
 		agentSessID := resolveAgentSessionID(ctx, peer, p.SessionID, p.PaneID)
 		u, errStr := st.fetch(agentSessID, false)
-		return buildRenderResult(u, errStr), nil
+		return buildRenderResult(u, errStr, st.languageOf(p.Locale)), nil
 	})
 	peer.Handle("ui.event", func(ctx context.Context, method string, raw json.RawMessage) (any, error) {
 		var p rpc.UIEventParams
@@ -167,7 +191,7 @@ func runServerWith(ctx context.Context, peer *rpc.Peer, fetchFn func(base, sess 
 			st.refreshURL(ctx, peer, true)
 			agentSessID := resolveAgentSessionID(ctx, peer, p.SessionID, p.PaneID)
 			u, errStr := st.fetch(agentSessID, true)
-			res := buildRenderResult(u, errStr)
+			res := buildRenderResult(u, errStr, st.languageOf(p.Locale))
 			return rpc.UIEventResult{
 				Handled:    true,
 				Invalidate: true,
@@ -270,12 +294,13 @@ func isOfflineError(errStr string) bool {
 		strings.Contains(errStr, "magpie does not run at ")
 }
 
-func buildRenderResult(u *magpie.Usage, errStr string) rpc.UIRenderResult {
+func buildRenderResult(u *magpie.Usage, errStr, locale string) rpc.UIRenderResult {
+	words := locales.In(locale)
 	var children []*rpc.UINode
 	refreshMS := 15000
 	if u == nil {
 		refreshMS = 60000
-		msg := locales.InfoMagpieDown()
+		msg := words.InfoMagpieDown()
 		if !isOfflineError(errStr) {
 			msg = errStr
 		}
@@ -286,15 +311,15 @@ func buildRenderResult(u *magpie.Usage, errStr string) rpc.UIRenderResult {
 		})
 	} else {
 		children = append(children,
-			kvRow("calls", "Calls today", fmt.Sprintf("%d", u.Today.Calls)),
-			kvRow("cost", "Cost", fmt.Sprintf("$%.4f", u.Today.Cost)),
-			kvRow("tokens", "Tokens", formatTokens(u.Today.Count())),
+			kvRow("calls", words.InfoMagpieCalls(), fmt.Sprintf("%d", u.Today.Calls)),
+			kvRow("cost", words.InfoMagpieCost(), fmt.Sprintf("$%.4f", u.Today.Cost)),
+			kvRow("tokens", words.InfoMagpieTokens(), formatTokens(u.Today.Count())),
 		)
 		if u.Session > 0 {
-			children = append(children, kvRow("session", "This conversation", fmt.Sprintf("%d ($%.4f)", u.Session, u.SessionCost)))
+			children = append(children, kvRow("session", words.InfoMagpieSession(), fmt.Sprintf("%d ($%.4f)", u.Session, u.SessionCost)))
 		}
 		if u.Latest.Status > 0 {
-			children = append(children, kvRow("latest", "Latest call", fmt.Sprintf("%d · %dms", u.Latest.Status, u.Latest.Ms)))
+			children = append(children, kvRow("latest", words.InfoMagpieLeft(), fmt.Sprintf("%d · %dms", u.Latest.Status, u.Latest.Ms)))
 		}
 		for i, w := range u.Windows {
 			if i >= 4 {
@@ -328,7 +353,7 @@ func buildRenderResult(u *magpie.Usage, errStr string) rpc.UIRenderResult {
 				ID:      "refresh",
 				Type:    "button",
 				Key:     "refresh-btn",
-				Props:   map[string]any{"label": "Refresh", "variant": "ghost"},
+				Props:   map[string]any{"label": words.InfoMagpieRefresh(), "variant": "ghost"},
 				OnClick: "refresh",
 			},
 		},
@@ -339,13 +364,13 @@ func buildRenderResult(u *magpie.Usage, errStr string) rpc.UIRenderResult {
 		badge = magpie.Cost(u.Today.Cost)
 	}
 	return rpc.UIRenderResult{
-		Title:     locales.InfoMagpie(),
+		Title:     words.InfoMagpie(),
 		Badge:     badge,
 		RefreshMS: refreshMS,
 		Root: &rpc.UINode{
 			Type:  "infoCard",
 			Key:   "magpie-card",
-			Props: map[string]any{"title": "Magpie"},
+			Props: map[string]any{"title": words.InfoMagpie()},
 			Style: &rpc.UIStyle{Gap: 6},
 			Children: []*rpc.UINode{
 				{

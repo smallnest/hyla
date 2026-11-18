@@ -443,3 +443,27 @@ func addZipEntry(t *testing.T, zw *zip.Writer, name string, data []byte, mode fs
 		t.Fatal(err)
 	}
 }
+
+// A builtin's manifest is written once, in the source language, and the
+// words a language has of it are what the app asks for there: one that
+// says nothing of a language, or has no words of its own, says the
+// source's.
+func TestBuiltinWords(t *testing.T) {
+	source := &Manifest{ID: "hyla.board", Name: "Board", Description: "A board"}
+	french := &Manifest{ID: "hyla.board", Name: "Board", Description: "Un tableau"}
+	b := BuiltinPlugin{Manifest: source, Words: func(locale string) *Manifest {
+		if locale == "fr" {
+			return french
+		}
+		return nil
+	}}
+	if got := b.InLanguage("fr"); got != french {
+		t.Errorf("fr says %q", got.Description)
+	}
+	if got := b.InLanguage("en"); got != source {
+		t.Errorf("en says %q", got.Description)
+	}
+	if got := (BuiltinPlugin{Manifest: source}).InLanguage("fr"); got != source {
+		t.Errorf("a builtin of one language says %q", got.Description)
+	}
+}

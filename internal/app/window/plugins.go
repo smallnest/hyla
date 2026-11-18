@@ -27,7 +27,6 @@ import (
 	hylasync "hyla/internal/sync"
 	"hyla/internal/ui/marks"
 	"hyla/internal/ui/menus"
-	uisettings "hyla/internal/ui/settings"
 	"hyla/internal/ui/theme"
 	"hyla/internal/ui/wash"
 )
@@ -231,7 +230,7 @@ func (a *App) pluginThemeValue() (string, bool) {
 }
 
 func (a *App) refreshPluginLocaleAndTheme() {
-	a.pluginLocale.Store(uisettings.LocaleTag(a.settingsIn.Language))
+	a.pluginLocale.Store(settings.LanguageOf(a.settingsIn.Language))
 	a.pluginAppearance.Store(a.settingsIn.Appearance)
 	a.pluginDark.Store(a.computePluginIsDark())
 }

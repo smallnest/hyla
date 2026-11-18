@@ -8610,6 +8610,56 @@ func (msgs Messages) InfoMagpieDown() string {
 	return Catalog.Format(msgs.locale, "infoMagpieDown", nil)
 }
 
+// InfoMagpieRefresh says "Refresh"
+// in the language the app shows.
+func InfoMagpieRefresh() string { return In(i18n.Locale()).InfoMagpieRefresh() }
+
+// InfoMagpieRefresh says "Refresh"
+// in the language of msgs.
+func (msgs Messages) InfoMagpieRefresh() string {
+	return Catalog.Format(msgs.locale, "infoMagpieRefresh", nil)
+}
+
+// PluginMagpieDescription says "Displays Magpie coding agent gateway usage, cost, tokens, and plan limits."
+// in the language the app shows.
+func PluginMagpieDescription() string { return In(i18n.Locale()).PluginMagpieDescription() }
+
+// PluginMagpieDescription says "Displays Magpie coding agent gateway usage, cost, tokens, and plan limits."
+// in the language of msgs.
+func (msgs Messages) PluginMagpieDescription() string {
+	return Catalog.Format(msgs.locale, "pluginMagpieDescription", nil)
+}
+
+// PluginMagpieAction says "Refresh Magpie Usage"
+// in the language the app shows.
+func PluginMagpieAction() string { return In(i18n.Locale()).PluginMagpieAction() }
+
+// PluginMagpieAction says "Refresh Magpie Usage"
+// in the language of msgs.
+func (msgs Messages) PluginMagpieAction() string {
+	return Catalog.Format(msgs.locale, "pluginMagpieAction", nil)
+}
+
+// PluginMagpieSettingURL says "Gateway URL"
+// in the language the app shows.
+func PluginMagpieSettingURL() string { return In(i18n.Locale()).PluginMagpieSettingURL() }
+
+// PluginMagpieSettingURL says "Gateway URL"
+// in the language of msgs.
+func (msgs Messages) PluginMagpieSettingURL() string {
+	return Catalog.Format(msgs.locale, "pluginMagpieSettingURL", nil)
+}
+
+// PluginMagpieSettingURLDetail says "Custom Magpie base URL (defaults to MAGPIE_URL or http://127.0.0.1:3425)."
+// in the language the app shows.
+func PluginMagpieSettingURLDetail() string { return In(i18n.Locale()).PluginMagpieSettingURLDetail() }
+
+// PluginMagpieSettingURLDetail says "Custom Magpie base URL (defaults to MAGPIE_URL or http://127.0.0.1:3425)."
+// in the language of msgs.
+func (msgs Messages) PluginMagpieSettingURLDetail() string {
+	return Catalog.Format(msgs.locale, "pluginMagpieSettingURLDetail", nil)
+}
+
 // InfoTimelineEmpty says "Nothing yet"
 // in the language the app shows.
 func InfoTimelineEmpty() string { return In(i18n.Locale()).InfoTimelineEmpty() }

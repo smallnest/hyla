@@ -1035,27 +1035,35 @@ func (m *Manager) ListStatuses() []rpc.PluginStatus {
 			State:              StateStopped,
 		}
 		if p.Manifest != nil {
-			st.Name = p.Manifest.Name
-			st.Version = p.Manifest.Version
-			st.Description = p.Manifest.Description
-			st.Author = p.Manifest.Author
-			st.Homepage = p.Manifest.Homepage
-			st.RequestedPermissions = append([]string(nil), p.Manifest.Permissions.Scopes...)
-			st.Slots = append([]manifest.SlotSpec(nil), p.Manifest.UI.Slots...)
-			st.SettingsSchema = append([]manifest.SettingSpec(nil), p.Manifest.Settings...)
-			st.Actions = append([]manifest.ActionSpec(nil), p.Manifest.Actions...)
+			mf := p.Manifest
+			// A builtin's manifest is written once in the code: the app
+			// asks for its words in the language it shows.
+			if p.Builtin {
+				if bm, ok := manifest.BuiltinInLanguage(p.Entry.ID, m.opts.LocaleFunc()); ok {
+					mf = bm
+				}
+			}
+			st.Name = mf.Name
+			st.Version = mf.Version
+			st.Description = mf.Description
+			st.Author = mf.Author
+			st.Homepage = mf.Homepage
+			st.RequestedPermissions = append([]string(nil), mf.Permissions.Scopes...)
+			st.Slots = append([]manifest.SlotSpec(nil), mf.UI.Slots...)
+			st.SettingsSchema = append([]manifest.SettingSpec(nil), mf.Settings...)
+			st.Actions = append([]manifest.ActionSpec(nil), mf.Actions...)
 			switch {
-			case p.Manifest.Daemon != nil && p.Manifest.App != nil:
+			case mf.Daemon != nil && mf.App != nil:
 				st.Host = "both"
-			case p.Manifest.Daemon != nil:
+			case mf.Daemon != nil:
 				st.Host = HostKindDaemon
-			case p.Manifest.App != nil:
+			case mf.App != nil:
 				st.Host = HostKindApp
 			default:
 				st.Host = "pack"
 			}
-			if p.Manifest.Daemon != nil {
-				st.KeepAlive = p.Manifest.Daemon.KeepAlive
+			if mf.Daemon != nil {
+				st.KeepAlive = mf.Daemon.KeepAlive
 			}
 		} else {
 			st.Name = p.Entry.ID

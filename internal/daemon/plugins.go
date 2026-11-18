@@ -43,7 +43,10 @@ func (d *Daemon) initPlugins() {
 		HylaVersion: build.Version(),
 		Store:       st,
 		Bridge:      &daemonPluginBridge{d: d},
-		LocaleFunc:  func() string { return settings.Load().Language },
+		// The app's language where it names one, and the system's where it
+		// follows the system: hylad has no window to read the language the
+		// way the app does.
+		LocaleFunc: func() string { return settings.LanguageOf(settings.Load().Language) },
 		ThemeFunc: func() (string, bool) {
 			app := settings.Load().Appearance
 			if t := d.theme.Load(); t != nil {

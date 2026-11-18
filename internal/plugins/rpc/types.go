@@ -217,13 +217,16 @@ type UIRenderResult struct {
 }
 
 type UIEventParams struct {
-	SlotID      string            `json:"slotId"`
-	ComponentID string            `json:"componentId"`
-	EventType   string            `json:"eventType"` // "click" | "change" | "submit" | "select"
-	Value       any               `json:"value,omitempty"`
-	SessionID   string            `json:"sessionId,omitempty"`
-	PaneID      string            `json:"paneId,omitempty"`
-	Args        map[string]string `json:"args,omitempty"`
+	SlotID      string `json:"slotId"`
+	ComponentID string `json:"componentId"`
+	EventType   string `json:"eventType"` // "click" | "change" | "submit" | "select"
+	Value       any    `json:"value,omitempty"`
+	SessionID   string `json:"sessionId,omitempty"`
+	PaneID      string `json:"paneId,omitempty"`
+	// Locale is the language the app shows, which the words an event's
+	// answer shows are said in.
+	Locale string            `json:"locale,omitempty"`
+	Args   map[string]string `json:"args,omitempty"`
 }
 
 type UIEventResult struct {

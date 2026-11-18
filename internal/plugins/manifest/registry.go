@@ -34,9 +34,37 @@ type RegistryEntry struct {
 
 // BuiltinPlugin describes a plugin bundled directly inside the Hyla binary.
 type BuiltinPlugin struct {
+	// Manifest is the plugin's words in the source language, English.
 	Manifest         *Manifest
 	EnabledByDefault bool
 	AutoGrant        bool
+	// Words says the manifest in a language, for a builtin whose words
+	// are translated: nil for one that says them all in English.
+	Words func(locale string) *Manifest
+}
+
+// InLanguage is the builtin's manifest in locale, or the one it
+// registered where its words are not translated.
+func (b BuiltinPlugin) InLanguage(locale string) *Manifest {
+	if b.Words == nil {
+		return b.Manifest
+	}
+	if m := b.Words(locale); m != nil {
+		return m
+	}
+	return b.Manifest
+}
+
+// BuiltinInLanguage is the manifest of the builtin id in locale, and
+// whether a builtin has the id.
+func BuiltinInLanguage(id, locale string) (*Manifest, bool) {
+	builtinsMu.RLock()
+	b, ok := builtins[id]
+	builtinsMu.RUnlock()
+	if !ok {
+		return nil, false
+	}
+	return b.InLanguage(locale), true
 }
 
 // InstalledPlugin represents a resolved plugin entry together with its parsed manifest.
