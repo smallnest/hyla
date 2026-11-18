@@ -13,7 +13,7 @@ import {
   UIMounts,
   type UIMount,
 } from "../src/index.ts";
-import { onThemeChanged, rpc as webRPC } from "../src/web.ts";
+import { onThemeChanged, readThemeTokens, rpc as webRPC } from "../src/web.ts";
 
 describe("@hyla/plugin-sdk UI builders", () => {
   test("builds all 23 declarative UI node types", () => {
@@ -193,6 +193,110 @@ describe("@hyla/plugin-sdk bidirectional JSON-RPC lifecycle", () => {
       off();
     } finally {
       (globalThis as { window?: unknown }).window = prevWin;
+    }
+  });
+
+  test("enforces 16 MiB limit per line, allows >16 MiB multi-line bursts, and cleans up on exit", async () => {
+    const a2b = new PassThrough();
+    const b2a = new PassThrough();
+    let sawExit = false;
+    const pluginPeer = attachPluginPeer(
+      a2b,
+      b2a,
+      {
+        name: "burst",
+        version: "1.0.0",
+        onAction: async (p) => ({ ok: true, message: String(p.args?.msg ?? "").length.toString() }),
+      },
+      () => {
+        sawExit = true;
+      },
+    );
+    const hostPeer = new RPCPeer(b2a, a2b);
+
+    // 1. Two 9 MiB lines in a single chunk exceed 16 MiB aggregate but each line is < 16 MiB.
+    const nineMB = "x".repeat(9 * 1024 * 1024);
+    const burst =
+      JSON.stringify({ jsonrpc: "2.0", id: "burst-1", method: "action.invoke", params: { actionId: "a", args: { msg: nineMB } } }) +
+      "\n" +
+      JSON.stringify({ jsonrpc: "2.0", id: "burst-2", method: "action.invoke", params: { actionId: "b", args: { msg: nineMB } } }) +
+      "\n";
+    const replies: Array<{ id: string; result?: { message?: string } }> = [];
+    await new Promise<void>((resolve, reject) => {
+      let buf = "";
+      const onReply = (chunk: Buffer | string) => {
+        buf += chunk.toString("utf8");
+        while (true) {
+          const nl = buf.indexOf("\n");
+          if (nl < 0) break;
+          const line = buf.slice(0, nl).trim();
+          buf = buf.slice(nl + 1);
+          if (!line) continue;
+          replies.push(JSON.parse(line));
+          if (replies.length === 2) {
+            b2a.off("data", onReply);
+            resolve();
+            return;
+          }
+        }
+      };
+      b2a.on("data", onReply);
+      a2b.write(burst);
+      setTimeout(() => {
+        b2a.off("data", onReply);
+        reject(new Error(`timed out waiting for 2 burst replies, got ${replies.length}`));
+      }, 3000);
+    });
+    expect(replies.map((r) => r.result?.message)).toEqual([
+      String(nineMB.length),
+      String(nineMB.length),
+    ]);
+
+    // 2. Single oversized (> 16 MiB) line emits PayloadTooLarge, then subsequent valid line still works.
+    const errs: unknown[] = [];
+    const onRaw = (chunk: Buffer | string) => {
+      for (const l of chunk.toString("utf8").split("\n")) {
+        if (l.includes(`"code":${ErrorCode.PayloadTooLarge}`)) {
+          errs.push(JSON.parse(l));
+        }
+      }
+    };
+    b2a.on("data", onRaw);
+    a2b.write("{" + "a".repeat(16 * 1024 * 1024 + 32) + "\n");
+    const afterRes = await hostPeer.call<{ ok: boolean; message: string }>("action.invoke", {
+      actionId: "ok",
+      args: { msg: "after" },
+    });
+    b2a.off("data", onRaw);
+    expect(errs.length).toBe(1);
+    expect(afterRes.message).toBe("5");
+
+    // 3. exit notification triggers onExit and destroys non-stdin reader stream.
+    hostPeer.notify("exit");
+    await new Promise((r) => setTimeout(r, 20));
+    expect(sawExit).toBe(true);
+    expect(a2b.destroyed).toBe(true);
+    hostPeer.close();
+    void pluginPeer;
+  });
+
+  test("readThemeTokens reads --hyla-text-muted alongside other tokens", () => {
+    const prevWin = (globalThis as { window?: unknown }).window;
+    const prevDoc = (globalThis as { document?: unknown }).document;
+    const prevGetCS = (globalThis as { getComputedStyle?: unknown }).getComputedStyle;
+    (globalThis as { document: unknown }).document = { documentElement: {} };
+    (globalThis as { window: unknown }).window = {};
+    (globalThis as { getComputedStyle: unknown }).getComputedStyle = () => ({
+      getPropertyValue: (k: string) => `val:${k}`,
+    });
+    try {
+      const tokens = readThemeTokens();
+      expect(tokens["--hyla-text-muted"]).toBe("val:--hyla-text-muted");
+      expect(tokens["--hyla-bg"]).toBe("val:--hyla-bg");
+    } finally {
+      (globalThis as { window?: unknown }).window = prevWin;
+      (globalThis as { document?: unknown }).document = prevDoc;
+      (globalThis as { getComputedStyle?: unknown }).getComputedStyle = prevGetCS;
     }
   });
 });

@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
@@ -23,8 +24,10 @@ import (
 	"hyla/internal/plugins/uihost"
 	"hyla/internal/proto"
 	"hyla/internal/settings"
+	hylasync "hyla/internal/sync"
 	"hyla/internal/ui/marks"
 	"hyla/internal/ui/menus"
+	uisettings "hyla/internal/ui/settings"
 	"hyla/internal/ui/theme"
 	"hyla/internal/ui/wash"
 )
@@ -35,12 +38,42 @@ func RegisterPluginProtocol() error {
 	return uihost.RegisterProtocol(uihost.NewWebBridge(manifest.DefaultStore(), nil, nil))
 }
 
+var (
+	preseedMu         sync.Mutex
+	preseededPlugSnap *manifest.Snapshot
+)
+
+// PreseedPluginSnapshot hands the GUI window the plugin snapshot already
+// computed during startup skill/hook syncing so startup avoids scanning disk again.
+func PreseedPluginSnapshot(snap *manifest.Snapshot) {
+	preseedMu.Lock()
+	preseededPlugSnap = snap
+	preseedMu.Unlock()
+}
+
+func consumePreseededPluginSnapshot() *manifest.Snapshot {
+	preseedMu.Lock()
+	snap := preseededPlugSnap
+	preseededPlugSnap = nil
+	preseedMu.Unlock()
+	return snap
+}
+
 // preloadPluginBase applies Layer 1 plugin actions, agent providers, detect
 // rules, and wash backgrounds before settings.Load() validates config values.
 func preloadPluginBase() {
-	snap, err := manifest.ApplyBase(manifest.DefaultStore())
-	if err != nil {
-		return
+	_ = preloadPluginBaseWithSnap(nil)
+}
+
+func preloadPluginBaseWithSnap(preseed *manifest.Snapshot) *manifest.Snapshot {
+	store := manifest.DefaultStore()
+	snap := preseed
+	if snap == nil {
+		var err error
+		snap, err = manifest.ApplyBase(store)
+		if err != nil {
+			return nil
+		}
 	}
 	wash.ReloadPlugins(snap.Washes)
 	var washIDs []string
@@ -52,20 +85,38 @@ func preloadPluginBase() {
 	// the bot belongs to the configuration, which the window reads from
 	// here. It runs after the plugin base, as the settings it merges are
 	// read with the plugins' washes known.
-	_ = feishu.MigratePluginConfig(manifest.DefaultStore())
+	_ = feishu.MigratePluginConfig(store)
+	// If migration just removed legacy hyla.feishu on this startup, force fresh scan next.
+	for _, p := range snap.Plugins {
+		if p.Entry.ID == "hyla.feishu" {
+			if reg, err := store.LoadRegistry(); err == nil && reg != nil {
+				if _, ok := reg.Plugins["hyla.feishu"]; !ok {
+					return nil
+				}
+			}
+			break
+		}
+	}
+	return snap
 }
 
-func (a *App) initPlugins() {
+func (a *App) initPlugins(snap *manifest.Snapshot) {
 	store := manifest.DefaultStore()
+	a.daemonStatusMu.Lock()
 	if a.DaemonPluginStatuses == nil {
 		a.DaemonPluginStatuses = map[string][]rpc.PluginStatus{}
 	}
+	a.daemonStatusMu.Unlock()
+	a.refreshPluginLocaleAndTheme()
 	coord := uihost.NewCoordinator(store, &appPluginBridge{a: a}, build.Version(), func() {
 		a.InvalidatePluginUI()
 	})
 	coord.OnMessage = func(msg string) {
 		a.ShowPluginMessage(msg)
 	}
+	coord.LocaleFunc = a.pluginLocaleValue
+	coord.ThemeFunc = a.pluginThemeValue
+	coord.OnPluginSettingsSaved = a.invalidatePluginUICacheFor
 	coord.DaemonFn = a.pluginDaemonCaller
 	coord.RemoteRef = a.pluginRemoteRef
 	coord.PaneHostFn = func(sessionID, paneID string) string {
@@ -86,21 +137,23 @@ func (a *App) initPlugins() {
 	)
 	_ = uihost.RegisterProtocol(coord.Web)
 	a.Plugins = coord
-	_ = a.reloadPlugins(false)
+	hylasync.OnPluginsApplied = func(appliedSnap *manifest.Snapshot) {
+		if a.shuttingDown.Load() {
+			return
+		}
+		a.main(func() {
+			_ = a.reloadPluginsWithSnap(true, appliedSnap)
+		})
+	}
+	_ = a.reloadPluginsWithSnap(false, snap)
 }
 
 func (a *App) InvalidatePluginUI() {
-	if a.Win != nil {
-		a.Win.Update(func() {
-			if a.SetWin != nil {
-				a.SetWin.Invalidate()
-			}
-		})
-		return
-	}
-	if a.SetWin != nil {
-		a.SetWin.Invalidate()
-	}
+	a.main(func() {
+		if a.SetWin != nil {
+			a.SetWin.Invalidate()
+		}
+	})
 }
 
 func (a *App) ShowPluginMessage(msg string) {
@@ -125,12 +178,19 @@ func (a *App) startPluginHooks() {
 	}
 	a.themeOff = mygo.Theme.OnUpdated(func() {
 		a.Update(func() {
+			a.refreshPluginLocaleAndTheme()
 			a.broadcastPluginTheme()
 		})
 	})
 }
 
 func (a *App) shutdownPlugins() {
+	a.shuttingDown.Store(true)
+	a.quitOnce.Do(func() {
+		if a.quitCh != nil {
+			close(a.quitCh)
+		}
+	})
 	if a.themeOff != nil {
 		a.themeOff()
 		a.themeOff = nil
@@ -148,6 +208,35 @@ func (a *App) pluginPalette() *theme.Palette {
 }
 
 func (a *App) pluginIsDark() bool {
+	return a.pluginDark.Load()
+}
+
+func (a *App) pluginLocaleValue() string {
+	if v := a.pluginLocale.Load(); v != nil {
+		if s, ok := v.(string); ok {
+			return s
+		}
+	}
+	return ""
+}
+
+func (a *App) pluginThemeValue() (string, bool) {
+	app := ""
+	if v := a.pluginAppearance.Load(); v != nil {
+		if s, ok := v.(string); ok {
+			app = s
+		}
+	}
+	return app, a.pluginDark.Load()
+}
+
+func (a *App) refreshPluginLocaleAndTheme() {
+	a.pluginLocale.Store(uisettings.LocaleTag(a.settingsIn.Language))
+	a.pluginAppearance.Store(a.settingsIn.Appearance)
+	a.pluginDark.Store(a.computePluginIsDark())
+}
+
+func (a *App) computePluginIsDark() bool {
 	switch a.settingsIn.Appearance {
 	case "dark":
 		return true
@@ -187,10 +276,23 @@ func (a *App) broadcastPluginTheme() {
 // reloadPlugins re-discovers plugins, updates Layer 1 registries (marks, washes,
 // themes, pets, actions), reloads [app] hosts, and optionally asks local hylad to reload.
 func (a *App) reloadPlugins(notifyDaemon bool) error {
+	return a.reloadPluginsWithSnap(notifyDaemon, nil)
+}
+
+func (a *App) reloadPluginsWithSnap(notifyDaemon bool, preseed *manifest.Snapshot) error {
 	if a.Plugins == nil {
 		return nil
 	}
-	snap, err := a.Plugins.Reload()
+	a.invalidatePluginUICache()
+	var (
+		snap *manifest.Snapshot
+		err  error
+	)
+	if preseed != nil {
+		snap, err = a.Plugins.ReloadWithSnapshot(preseed)
+	} else {
+		snap, err = a.Plugins.Reload()
+	}
 	if err != nil {
 		return err
 	}
@@ -213,6 +315,9 @@ func (a *App) reloadPlugins(notifyDaemon bool) error {
 	_ = theme.ReloadPluginThemes(snap.Themes)
 	pets.ReloadPlugins(snap.Pets)
 	a.petsGen++
+	if a.Plugins.AppMgr != nil {
+		a.Plugins.AppMgr.NotifyTopic("settings.changed", nil)
+	}
 
 	if a.Win != nil {
 		mygo.App.SetMenu(a.menu())
@@ -228,9 +333,11 @@ func (a *App) reloadPlugins(notifyDaemon bool) error {
 	if notifyDaemon {
 		h := a.Local()
 		if a.hostSupportsPlugins(h) && h.Client != nil {
+			a.localDaemonReloadPending.Add(1)
 			h.Client.Go("plugin.reload", nil, func(err error) {
 				if err != nil {
-					a.UpdateNow(func() { a.toast(err.Error()) })
+					a.consumeLocalDaemonReload()
+					a.main(func() { a.toast(err.Error()) })
 					return
 				}
 				a.RefreshDaemonPluginStatuses(h)
@@ -238,6 +345,18 @@ func (a *App) reloadPlugins(notifyDaemon bool) error {
 		}
 	}
 	return nil
+}
+
+func (a *App) consumeLocalDaemonReload() bool {
+	for {
+		cur := a.localDaemonReloadPending.Load()
+		if cur <= 0 {
+			return false
+		}
+		if a.localDaemonReloadPending.CompareAndSwap(cur, cur-1) {
+			return true
+		}
+	}
 }
 
 func (a *App) hostSupportsPlugins(h *host.Host) bool {
@@ -280,6 +399,27 @@ func (a *App) pluginDaemonCaller(hostKey string) uihost.DaemonCaller {
 	return &hostDaemonCaller{a: a, h: h, key: hostKey}
 }
 
+func (a *App) daemonPluginStatuses(key string) []rpc.PluginStatus {
+	if a == nil {
+		return nil
+	}
+	a.daemonStatusMu.RLock()
+	defer a.daemonStatusMu.RUnlock()
+	if a.DaemonPluginStatuses == nil {
+		return nil
+	}
+	return a.DaemonPluginStatuses[key]
+}
+
+func (a *App) setDaemonPluginStatuses(key string, list []rpc.PluginStatus) {
+	a.daemonStatusMu.Lock()
+	if a.DaemonPluginStatuses == nil {
+		a.DaemonPluginStatuses = map[string][]rpc.PluginStatus{}
+	}
+	a.DaemonPluginStatuses[key] = list
+	a.daemonStatusMu.Unlock()
+}
+
 func (a *App) RefreshDaemonPluginStatuses(h *host.Host) {
 	if !a.hostSupportsPlugins(h) {
 		return
@@ -291,11 +431,8 @@ func (a *App) RefreshDaemonPluginStatuses(h *host.Host) {
 		if err := cl.Call("plugin.list", nil, &list); err != nil {
 			return
 		}
+		a.setDaemonPluginStatuses(key, list)
 		a.main(func() {
-			if a.DaemonPluginStatuses == nil {
-				a.DaemonPluginStatuses = map[string][]rpc.PluginStatus{}
-			}
-			a.DaemonPluginStatuses[key] = list
 			if a.SetWin != nil {
 				a.SetWin.Invalidate()
 			}
@@ -345,10 +482,7 @@ func (d *hostDaemonCaller) CallPlugin(pluginID, method string, params any, out a
 }
 
 func (d *hostDaemonCaller) PluginStatuses() []rpc.PluginStatus {
-	if d.a == nil {
-		return nil
-	}
-	return d.a.DaemonPluginStatuses[d.key]
+	return d.a.daemonPluginStatuses(d.key)
 }
 
 // runPluginAction handles action IDs registered by enabled plugins.
@@ -461,8 +595,8 @@ func (a *App) runPluginShortcuts(c *ui.Context) {
 			continue
 		}
 		// Menubar items claim their accelerators at OS level when Menu != "" and Menu != "Context".
-		// Still match non-menubar items (Menu == "") via UI shortcut polling.
-		if act.Menu != "" {
+		// Still match non-menubar / Context-menu items via UI shortcut polling.
+		if act.Menu != "" && !strings.EqualFold(act.Menu, "Context") {
 			continue
 		}
 		if !uihost.MatchesWhen(act.When, s, p) {
@@ -480,6 +614,9 @@ func (a *App) runPluginShortcuts(c *ui.Context) {
 }
 
 func (a *App) callMainSync(ctx context.Context, fn func()) error {
+	if a.shuttingDown.Load() {
+		return context.Canceled
+	}
 	win := a.Win
 	if win == nil {
 		win = a.SetWin
@@ -496,6 +633,8 @@ func (a *App) callMainSync(ctx context.Context, fn func()) error {
 	select {
 	case <-done:
 		return nil
+	case <-a.quitCh:
+		return context.Canceled
 	case <-ctx.Done():
 		return ctx.Err()
 	}
@@ -554,6 +693,9 @@ func (b *appPluginBridge) GetEnv(ctx context.Context, pluginID string, p rpc.Pan
 					res.Process = pn.Process
 					res.Agent = pn.Agent
 					res.AgentSessionID = pn.AgentSessionID
+					if res.AgentSessionID == "" && pn.AgentSession != nil {
+						res.AgentSessionID = pn.AgentSession.ID
+					}
 					return
 				}
 			}
@@ -593,7 +735,7 @@ func (b *appPluginBridge) SendKey(ctx context.Context, pluginID string, p rpc.Pa
 	if h.Client == nil {
 		return rpc.NewError(rpc.ErrCodeCapabilityUnsupported, "local daemon not connected")
 	}
-	data, ok := encodePluginKeyName(p.Key)
+	data, ok := rpc.EncodeKey(p.Key)
 	if !ok {
 		return rpc.NewError(rpc.ErrCodeInvalidParams, fmt.Sprintf("unsupported key %q", p.Key))
 	}
@@ -719,32 +861,4 @@ func isSafeOSCValue(s string) bool {
 		}
 	}
 	return true
-}
-
-func encodePluginKeyName(k string) ([]byte, bool) {
-	switch strings.ToLower(strings.TrimSpace(k)) {
-	case "enter", "return":
-		return []byte("\r"), true
-	case "tab":
-		return []byte("\t"), true
-	case "space":
-		return []byte(" "), true
-	case "backspace":
-		return []byte{0x7f}, true
-	case "escape", "esc":
-		return []byte{0x1b}, true
-	case "up":
-		return []byte("\x1b[A"), true
-	case "down":
-		return []byte("\x1b[B"), true
-	case "right":
-		return []byte("\x1b[C"), true
-	case "left":
-		return []byte("\x1b[D"), true
-	}
-	low := strings.ToLower(strings.TrimSpace(k))
-	if rest, ok := strings.CutPrefix(low, "ctrl+"); ok && len(rest) == 1 && rest[0] >= 'a' && rest[0] <= 'z' {
-		return []byte{rest[0] - 'a' + 1}, true
-	}
-	return nil, false
 }

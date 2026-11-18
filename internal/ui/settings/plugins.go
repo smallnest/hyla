@@ -69,11 +69,8 @@ func pluginsPage(x App, c *ui.Context, pal *theme.Palette) {
 	if pa == nil {
 		return
 	}
-	if ss.PluginDraft == nil {
-		ss.PluginDraft = map[string]string{}
-	}
-	if ss.PluginSecrets == nil {
-		ss.PluginSecrets = map[string]string{}
+	if ss.PluginDrafts == nil {
+		ss.PluginDrafts = map[string]*PluginFieldDraft{}
 	}
 
 	kit.Group(c, pal, locales.PagePlugins(), locales.SetPluginsHeaderDetail(), func() {
@@ -283,11 +280,8 @@ func pluginSettingsPage(x App, c *ui.Context, pal *theme.Palette, pageID string)
 		return
 	}
 	ss := x.SettingsState()
-	if ss.PluginDraft == nil {
-		ss.PluginDraft = map[string]string{}
-	}
-	if ss.PluginSecrets == nil {
-		ss.PluginSecrets = map[string]string{}
+	if ss.PluginDrafts == nil {
+		ss.PluginDrafts = map[string]*PluginFieldDraft{}
 	}
 	pa.RenderSettingsPage(c, pal, pageID)
 	pages := pa.SettingsPages()
@@ -365,7 +359,8 @@ func renderPluginSettingControl(c *ui.Context, pal *theme.Palette, ss *State, pa
 			pa.SaveConfig(id, cfg)
 		})
 	case "secret":
-		ptr := pluginDraftPtr(ss, draftKey, "", true)
+		secKey := "secret:" + draftKey
+		ptr := pluginDraftPtr(ss, secKey, "")
 		ph := sp.Placeholder
 		if ph == "" && pa.HasSecret(id, sp.Key) {
 			ph = "••••••••"
@@ -373,12 +368,13 @@ func renderPluginSettingControl(c *ui.Context, pal *theme.Palette, ss *State, pa
 		in := controls.TextField(c, "plg-sec-"+draftKey, ptr, ph, 170, pal)
 		if in.Valid() {
 			in.Password()
-			in.OnChange(func() { ss.PluginSecrets[draftKey] = *ptr })
 		}
 		saveSecret := func() {
+			if *ptr == "" {
+				return
+			}
 			pa.SetSecret(id, sp.Key, *ptr)
 			*ptr = ""
-			ss.PluginSecrets[draftKey] = ""
 		}
 		in.OnSubmit(saveSecret)
 		if style.Button(c, "plg-sec-save-"+draftKey, locales.CommonSave(), "", true, pal) {
@@ -387,11 +383,11 @@ func renderPluginSettingControl(c *ui.Context, pal *theme.Palette, ss *State, pa
 	default: // string, integer, number
 		initVal := ""
 		if v, exists := cfg[sp.Key]; exists && v != nil {
-			initVal = fmt.Sprint(v)
+			initVal = formatSettingValue(v)
 		} else if sp.Default != nil {
-			initVal = fmt.Sprint(sp.Default)
+			initVal = formatSettingValue(sp.Default)
 		}
-		ptr := pluginDraftPtr(ss, draftKey, initVal, false)
+		ptr := pluginDraftPtr(ss, draftKey, initVal)
 		in := controls.TextField(c, "plg-in-"+draftKey, ptr, sp.Placeholder, 180, pal)
 		if in.Valid() {
 			raw := strings.TrimSpace(*ptr)
@@ -409,28 +405,44 @@ func renderPluginSettingControl(c *ui.Context, pal *theme.Palette, ss *State, pa
 					}
 				}
 			}
-			in.OnChange(func() { ss.PluginDraft[draftKey] = *ptr })
 		}
 		saveText := func() {
-			ss.PluginDraft[draftKey] = *ptr
 			raw := strings.TrimSpace(*ptr)
 			switch sp.Type {
 			case "integer":
-				n, err := strconv.Atoi(raw)
-				if err != nil {
-					return
+				if raw == "" {
+					delete(cfg, sp.Key)
+				} else {
+					n, err := strconv.Atoi(raw)
+					if err != nil {
+						return
+					}
+					cfg[sp.Key] = n
 				}
-				cfg[sp.Key] = n
 			case "number":
-				f, err := strconv.ParseFloat(raw, 64)
-				if err != nil {
-					return
+				if raw == "" {
+					delete(cfg, sp.Key)
+				} else {
+					f, err := strconv.ParseFloat(raw, 64)
+					if err != nil {
+						return
+					}
+					cfg[sp.Key] = f
 				}
-				cfg[sp.Key] = f
 			default:
 				cfg[sp.Key] = *ptr
 			}
 			pa.SaveConfig(id, cfg)
+			if raw == "" && (sp.Type == "integer" || sp.Type == "number") {
+				def := ""
+				if sp.Default != nil {
+					def = fmt.Sprint(sp.Default)
+				}
+				*ptr = def
+				if d := ss.PluginDrafts[draftKey]; d != nil {
+					d.init = def
+				}
+			}
 		}
 		in.OnSubmit(saveText)
 		if style.Button(c, "plg-in-save-"+draftKey, locales.CommonSave(), "", false, pal) {
@@ -439,53 +451,32 @@ func renderPluginSettingControl(c *ui.Context, pal *theme.Palette, ss *State, pa
 	}
 }
 
-func pluginDraftPtr(ss *State, draftKey, initVal string, isSecret bool) *string {
-	if isSecret {
-		if ss.PluginSecretPtrs == nil {
-			ss.PluginSecretPtrs = map[string]*string{}
-		}
-		if p, ok := ss.PluginSecretPtrs[draftKey]; ok {
-			if ss.PluginSecrets != nil {
-				ss.PluginSecrets[draftKey] = *p
-			}
-			return p
-		}
-		v := initVal
-		if ss.PluginSecrets != nil {
-			if cur, ok := ss.PluginSecrets[draftKey]; ok {
-				v = cur
-			}
-		}
-		p := &v
-		ss.PluginSecretPtrs[draftKey] = p
-		return p
+func pluginDraftPtr(ss *State, draftKey, initVal string) *string {
+	if ss.PluginDrafts == nil {
+		ss.PluginDrafts = map[string]*PluginFieldDraft{}
 	}
-	if ss.PluginDraftPtrs == nil {
-		ss.PluginDraftPtrs = map[string]*string{}
+	d, ok := ss.PluginDrafts[draftKey]
+	if !ok {
+		d = &PluginFieldDraft{Value: initVal, init: initVal}
+		ss.PluginDrafts[draftKey] = d
+		return &d.Value
 	}
-	if ss.PluginDraftInit == nil {
-		ss.PluginDraftInit = map[string]string{}
-	}
-	if p, ok := ss.PluginDraftPtrs[draftKey]; ok {
-		if prevInit, hasInit := ss.PluginDraftInit[draftKey]; hasInit && prevInit != initVal {
-			if *p == prevInit {
-				*p = initVal
-			}
-			ss.PluginDraftInit[draftKey] = initVal
+	if d.init != initVal {
+		if d.Value == d.init {
+			d.Value = initVal
 		}
-		if ss.PluginDraft != nil {
-			ss.PluginDraft[draftKey] = *p
-		}
-		return p
+		d.init = initVal
 	}
-	v := initVal
-	if ss.PluginDraft != nil {
-		if cur, ok := ss.PluginDraft[draftKey]; ok {
-			v = cur
-		}
+	return &d.Value
+}
+
+func formatSettingValue(v any) string {
+	switch n := v.(type) {
+	case float64:
+		return strconv.FormatFloat(n, 'f', -1, 64)
+	case float32:
+		return strconv.FormatFloat(float64(n), 'f', -1, 32)
+	default:
+		return fmt.Sprint(v)
 	}
-	ss.PluginDraftInit[draftKey] = initVal
-	p := &v
-	ss.PluginDraftPtrs[draftKey] = p
-	return p
 }

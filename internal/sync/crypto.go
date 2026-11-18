@@ -34,13 +34,14 @@ const (
 // Snapshot is what a server holds, before it is sealed: one machine's
 // configuration, and what tells it from another's.
 type Snapshot struct {
-	Version      int                        `json:"version"`
-	UpdatedAt    int64                      `json:"updatedAt"` // milliseconds, as Hyla counts them
-	Host         string                     `json:"host"`      // the machine that wrote it
-	Hash         string                     `json:"hash"`      // of Content (and Plugins/PluginConfig when present)
-	Content      string                     `json:"content"`   // the configuration file itself
-	Plugins      *manifest.Registry         `json:"plugins,omitempty"`
-	PluginConfig map[string]json.RawMessage `json:"pluginConfig,omitempty"`
+	Version       int                        `json:"version"`
+	UpdatedAt     int64                      `json:"updatedAt"` // milliseconds, as Hyla counts them
+	Host          string                     `json:"host"`      // the machine that wrote it
+	Hash          string                     `json:"hash"`      // of Content (and Plugins/PluginConfig when present)
+	Content       string                     `json:"content"`   // the configuration file itself
+	PluginsSynced bool                       `json:"pluginsSynced,omitempty"`
+	Plugins       *manifest.Registry         `json:"plugins,omitempty"`
+	PluginConfig  map[string]json.RawMessage `json:"pluginConfig,omitempty"`
 }
 
 // ErrPassphrase is a snapshot that this passphrase does not open: another

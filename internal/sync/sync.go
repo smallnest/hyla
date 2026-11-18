@@ -19,8 +19,13 @@ import (
 	"strings"
 	"time"
 
+	"hyla/internal/plugins/manifest"
 	"hyla/internal/settings"
 )
+
+// OnPluginsApplied is invoked after remote plugin registry/config changes and
+// remote settings are applied on a sync pull.
+var OnPluginsApplied func(*manifest.Snapshot)
 
 // ErrNotFound is a server with no snapshot yet: the first sync makes one.
 var ErrNotFound = errors.New("no snapshot on the server")
@@ -265,11 +270,28 @@ func Run(ctx context.Context, c Config, dir, host string) (Result, Config, error
 	}
 
 	if takeRemote {
+		hasPluginState := remote.PluginsSynced || remote.Plugins != nil || len(remote.PluginConfig) > 0
+		if err := applyRemotePlugins(stPlugins, remote.Plugins, remote.PluginConfig, remote.PluginsSynced); err != nil {
+			return Result{}, c, err
+		}
+		var appliedSnap *manifest.Snapshot
+		if hasPluginState {
+			if pSnap, aerr := manifest.ApplyBase(stPlugins); aerr == nil && pSnap != nil {
+				var washIDs []string
+				for _, w := range pSnap.Washes {
+					if w.ID != "" {
+						washIDs = append(washIDs, w.ID)
+					}
+				}
+				settings.SetPluginBackgrounds(washIDs)
+				appliedSnap = pSnap
+			}
+		}
 		if err := writeSettings(remote.Content); err != nil {
 			return Result{}, c, err
 		}
-		if err := applyRemotePlugins(stPlugins, remote.Plugins, remote.PluginConfig); err != nil {
-			return Result{}, c, err
+		if appliedSnap != nil && OnPluginsApplied != nil {
+			OnPluginsApplied(appliedSnap)
 		}
 		res.Action, res.Host, res.At = "pulled", remote.Host, remote.UpdatedAt
 		c.Last = State{Hash: remote.Hash, Host: remote.Host, At: remote.UpdatedAt, Backup: res.Backup}
@@ -279,13 +301,14 @@ func Run(ctx context.Context, c Config, dir, host string) (Result, Config, error
 	// This machine's goes up, sealed with the passphrase: the server sees
 	// the version and the machine's name alone.
 	snap := Snapshot{
-		Version:      snapshotVersion,
-		UpdatedAt:    res.At,
-		Host:         host,
-		Hash:         localHash,
-		Content:      string(local),
-		Plugins:      localPlugins,
-		PluginConfig: localPluginCfg,
+		Version:       snapshotVersion,
+		UpdatedAt:     res.At,
+		Host:          host,
+		Hash:          localHash,
+		Content:       string(local),
+		PluginsSynced: true,
+		Plugins:       localPlugins,
+		PluginConfig:  localPluginCfg,
 	}
 	sealed, err = seal(c.Passphrase, snap)
 	if err != nil {
@@ -323,6 +346,21 @@ func keepAside(s *Snapshot) (string, error) {
 		}
 		if err := os.WriteFile(path, []byte(s.Content), 0o600); err != nil {
 			return "", err
+		}
+		if s.PluginsSynced || s.Plugins != nil || len(s.PluginConfig) > 0 {
+			backupPlugins := struct {
+				PluginsSynced bool                       `json:"pluginsSynced,omitempty"`
+				Plugins       *manifest.Registry         `json:"plugins,omitempty"`
+				PluginConfig  map[string]json.RawMessage `json:"pluginConfig,omitempty"`
+			}{
+				PluginsSynced: s.PluginsSynced,
+				Plugins:       s.Plugins,
+				PluginConfig:  s.PluginConfig,
+			}
+			if pb, merr := json.MarshalIndent(backupPlugins, "", "  "); merr == nil {
+				pb = append(pb, '\n')
+				_ = os.WriteFile(path+".plugins.json", pb, 0o600)
+			}
 		}
 		return path, nil
 	}

@@ -10,8 +10,10 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 // Handler handles incoming JSON-RPC requests or notifications.
@@ -29,7 +31,6 @@ type Peer struct {
 	pending  map[string]chan Envelope
 	nextID   atomic.Int64
 	handlers sync.Map // method -> Handler
-	fallback Handler
 
 	doneOnce sync.Once
 	done     chan struct{}
@@ -62,11 +63,6 @@ func (p *Peer) Serve(ctx context.Context) error {
 // Handle registers a handler for a specific RPC method.
 func (p *Peer) Handle(method string, h Handler) {
 	p.handlers.Store(method, h)
-}
-
-// HandleDefault registers a fallback handler invoked when no exact method handler exists.
-func (p *Peer) HandleDefault(h Handler) {
-	p.fallback = h
 }
 
 // Done returns a channel closed when the read loop stops.
@@ -269,8 +265,6 @@ func (p *Peer) dispatch(ctx context.Context, id json.RawMessage, method string, 
 	var h Handler
 	if v, ok := p.handlers.Load(method); ok {
 		h = v.(Handler)
-	} else {
-		h = p.fallback
 	}
 	if h == nil {
 		if isReq {
@@ -350,6 +344,10 @@ func WriteAuthFrame(w io.Writer, token string) error {
 
 // VerifyAuthFrame reads and constant-time-compares the opening auth line on a local socket.
 func VerifyAuthFrame(r io.Reader, expectedToken string) (io.Reader, error) {
+	if dl, ok := r.(interface{ SetReadDeadline(time.Time) error }); ok {
+		_ = dl.SetReadDeadline(time.Now().Add(5 * time.Second))
+		defer dl.SetReadDeadline(time.Time{})
+	}
 	br := bufio.NewReaderSize(r, 4096)
 	line, err := br.ReadSlice('\n')
 	if err != nil {
@@ -363,4 +361,33 @@ func VerifyAuthFrame(r io.Reader, expectedToken string) (io.Reader, error) {
 		return nil, NewError(ErrCodePermissionDenied, "invalid plugin socket auth token")
 	}
 	return br, nil
+}
+
+// EncodeKey translates a named key (e.g. "Enter", "Ctrl+C") into its terminal byte sequence.
+func EncodeKey(k string) ([]byte, bool) {
+	low := strings.ToLower(strings.TrimSpace(k))
+	switch low {
+	case "enter", "return":
+		return []byte("\r"), true
+	case "tab":
+		return []byte("\t"), true
+	case "space":
+		return []byte(" "), true
+	case "backspace":
+		return []byte{0x7f}, true
+	case "escape", "esc":
+		return []byte{0x1b}, true
+	case "up":
+		return []byte("\x1b[A"), true
+	case "down":
+		return []byte("\x1b[B"), true
+	case "right":
+		return []byte("\x1b[C"), true
+	case "left":
+		return []byte("\x1b[D"), true
+	}
+	if rest, ok := strings.CutPrefix(low, "ctrl+"); ok && len(rest) == 1 && rest[0] >= 'a' && rest[0] <= 'z' {
+		return []byte{rest[0] - 'a' + 1}, true
+	}
+	return nil, false
 }

@@ -16,6 +16,20 @@ const APIVersion = 1
 // idPattern matches DNS-safe reverse-domain plugin identifiers (no underscores).
 var idPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,61}[a-z0-9](\.[a-z0-9][a-z0-9-]{0,61}[a-z0-9])+$`)
 
+var tokenPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$`)
+
+// ValidateToken verifies that an asset identifier (agent, event, skill, wash, pet)
+// contains only safe identifier characters and no path traversal or shell metacharacters.
+func ValidateToken(kind, val string) error {
+	if val == "" {
+		return fmt.Errorf("%s must not be empty", kind)
+	}
+	if strings.Contains(val, "..") || !tokenPattern.MatchString(val) {
+		return fmt.Errorf("%s %q contains invalid characters (allowed: A-Z, a-z, 0-9, '.', '_', '-'; no '..')", kind, val)
+	}
+	return nil
+}
+
 // Permission scopes enforced across Daemon Host and App Host RPC gateways.
 const (
 	PermSessionRead         = "session.read"
@@ -31,7 +45,6 @@ const (
 	PermSecrets             = "secrets"
 	PermNotifications       = "notifications"
 	PermFilesystemWorkspace = "filesystem.workspace"
-	PermChannelProvider     = "channel.provider"
 )
 
 // PermissionInfo documents a known plugin permission scope.
@@ -56,7 +69,6 @@ var KnownPermissions = []PermissionInfo{
 	{Scope: PermSecrets, HighRisk: true, Description: "Store and read plugin secrets in credential storage."},
 	{Scope: PermNotifications, Description: "Show toast or OS notifications in the app."},
 	{Scope: PermFilesystemWorkspace, HighRisk: true, Description: "Access workspace files referenced by panes."},
-	{Scope: PermChannelProvider, HighRisk: true, Description: "Act as an interactive remote chat channel driver."},
 }
 
 var knownPermSet = func() map[string]PermissionInfo {

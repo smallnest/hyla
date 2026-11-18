@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
@@ -69,8 +70,13 @@ type WebBridge struct {
 	mainFn       func(func())
 	sessions     map[string]*mygo.Session
 	bindings     map[*mygo.Page]pageBinding
-	paneEntries  map[string]*WebEntry // keyed by paneID
-	callerPageFn func(context.Context) *mygo.Page
+	paneEntries   map[string]*WebEntry // keyed by paneID
+	callerPageFn  func(context.Context) *mygo.Page
+	pluginCache   map[string]manifest.InstalledPlugin
+	pluginsCached bool
+	regExists     bool
+	regModTime    time.Time
+	regSize       int64
 }
 
 // NewWebBridge creates a WebBridge backed by store and dynamic host callbacks.
@@ -129,6 +135,8 @@ func (b *WebBridge) SetCallbacks(store *manifest.Store, themeFn func() *theme.Pa
 	b.mu.Lock()
 	if store != nil {
 		b.store = store
+		b.pluginsCached = false
+		b.pluginCache = nil
 	}
 	if themeFn != nil {
 		b.themeFn = themeFn
@@ -375,6 +383,73 @@ func (b *WebBridge) sessionFor(pluginID string) *mygo.Session {
 	return s
 }
 
+// SetPluginsSnapshot replaces the cached plugin map from an already-discovered
+// manifest list so ServeHTTP asset requests avoid repeated Store.Discover scans.
+func (b *WebBridge) SetPluginsSnapshot(plugins []manifest.InstalledPlugin) {
+	m := make(map[string]manifest.InstalledPlugin, len(plugins))
+	for _, p := range plugins {
+		m[p.Entry.ID] = p
+	}
+	b.mu.Lock()
+	store := b.store
+	var regExists bool
+	var modTime time.Time
+	var regSize int64
+	if store != nil {
+		if fi, err := os.Stat(store.RegistryPath()); err == nil {
+			regExists = true
+			modTime = fi.ModTime()
+			regSize = fi.Size()
+		}
+	}
+	b.pluginCache = m
+	b.pluginsCached = true
+	b.regExists = regExists
+	b.regModTime = modTime
+	b.regSize = regSize
+	b.mu.Unlock()
+}
+
+func (b *WebBridge) lookupPlugin(store *manifest.Store, pluginID string) (*manifest.InstalledPlugin, error) {
+	if store == nil {
+		store = manifest.DefaultStore()
+	}
+	var regExists bool
+	var modTime time.Time
+	var regSize int64
+	if fi, err := os.Stat(store.RegistryPath()); err == nil {
+		regExists = true
+		modTime = fi.ModTime()
+		regSize = fi.Size()
+	}
+
+	b.mu.RLock()
+	cacheValid := b.pluginsCached && b.store == store && b.regExists == regExists &&
+		(!regExists || (b.regModTime.Equal(modTime) && b.regSize == regSize))
+	if cacheValid {
+		inst, ok := b.pluginCache[pluginID]
+		b.mu.RUnlock()
+		if !ok {
+			return nil, nil
+		}
+		return &inst, nil
+	}
+	b.mu.RUnlock()
+
+	plugins, err := store.Discover()
+	if err != nil {
+		return nil, err
+	}
+	b.SetPluginsSnapshot(plugins)
+	for i := range plugins {
+		if plugins[i].Entry.ID == pluginID {
+			cp := plugins[i]
+			return &cp, nil
+		}
+	}
+	return nil, nil
+}
+
 func (b *WebBridge) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	pluginID := strings.ToLower(strings.TrimSpace(r.URL.Host))
 	if err := manifest.ValidateID(pluginID); err != nil {
@@ -389,17 +464,10 @@ func (b *WebBridge) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	callerFn := b.callerPageFn
 	b.mu.RUnlock()
 
-	plugins, err := store.Discover()
+	inst, err := b.lookupPlugin(store, pluginID)
 	if err != nil {
 		http.Error(w, "plugin registry unavailable", http.StatusInternalServerError)
 		return
-	}
-	var inst *manifest.InstalledPlugin
-	for i := range plugins {
-		if plugins[i].Entry.ID == pluginID {
-			inst = &plugins[i]
-			break
-		}
 	}
 	if inst == nil || !inst.Entry.Enabled || inst.Manifest == nil || !inst.Entry.HasPermission(manifest.PermUIWebView) {
 		http.Error(w, "plugin webview forbidden or disabled", http.StatusForbidden)
@@ -566,9 +634,6 @@ func ThemeCSS(pal *theme.Palette) string {
 		scheme = "dark"
 	}
 	cssCol := func(c ui.Color) string {
-		if c.A == 255 || c.A == 0 && c.R == 0 && c.G == 0 && c.B == 0 {
-			return fmt.Sprintf("rgba(%d, %d, %d, %.3f)", c.R, c.G, c.B, float64(c.A)/255)
-		}
 		return fmt.Sprintf("rgba(%d, %d, %d, %.3f)", c.R, c.G, c.B, float64(c.A)/255)
 	}
 	return fmt.Sprintf(`:root {

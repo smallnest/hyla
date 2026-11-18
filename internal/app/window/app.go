@@ -19,6 +19,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/egoist/mygo"
@@ -284,25 +285,34 @@ type App struct {
 	quitTimer   *time.Timer
 	quick       quickTerm // the terminal the global shortcut drops down
 
-	Plugins              *uihost.Coordinator
-	DaemonPluginStatuses map[string][]rpc.PluginStatus
-	lastPluginState      proto.State
-	lastPluginDark       bool
-	themeOff             func()
+	Plugins                  *uihost.Coordinator
+	DaemonPluginStatuses     map[string][]rpc.PluginStatus
+	daemonStatusMu           sync.RWMutex
+	localDaemonReloadPending atomic.Int32
+	pluginDark               atomic.Bool
+	pluginAppearance         atomic.Value
+	pluginLocale             atomic.Value
+	quitOnce                 sync.Once
+	shuttingDown             atomic.Bool
+	quitCh                   chan struct{}
+	pluginCache              pluginUICache
+	lastPluginState          proto.State
+	lastPluginDark           bool
+	themeOff                 func()
 }
 
 // confirmation is a question the app asks before something it cannot undo.
 
 func newApp() *App {
 	a := &App{Terms: map[string]*termEntry{}, Webs: map[string]*webpane.Entry{}, Statuses: map[string]proto.Status{}, Active: true, focused: true,
-		Refs: map[string]*ui.Handle{}, Focus: map[string]string{}, ArrivedPanes: map[string]bool{}}
+		Refs: map[string]*ui.Handle{}, Focus: map[string]string{}, ArrivedPanes: map[string]bool{}, quitCh: make(chan struct{})}
 	a.loadPrefs()
 	// The logos the user gave the agents Hyla has none for, as the
 	// sidebar draws them.
 	marks.LoadUserMarks(marks.MarksDir())
 	// Preload Layer 1 plugin actions and washes before settings.Load() checks
 	// background / keybind validity so restarts never trigger false problems.
-	preloadPluginBase()
+	snap := preloadPluginBaseWithSnap(consumePreseededPluginSnapshot())
 	a.settingsIn = settings.Load()
 	remote.SetRelay(a.settingsIn.TailcatRelay)
 	applied.Lock()
@@ -312,7 +322,7 @@ func newApp() *App {
 	a.Applied = a.settingsIn.Clone()
 	a.Selected = a.Prefs.Selected
 	a.Machines = []*host.Host{{Conn: host.StateConnecting}}
-	a.initPlugins()
+	a.initPlugins(snap)
 	return a
 }
 
@@ -445,6 +455,13 @@ func (a *App) EventOf(h *host.Host, cl *client.Client, m proto.Message) {
 		if a.Plugins != nil && a.Plugins.Web != nil && !h.Remote() && m.Plugin != "" {
 			a.Plugins.Web.Emit(m.Plugin, m.PluginArgs["slotId"], m.Topic, m.PluginData)
 		}
+	case "plugin.reload":
+		if h == a.Local() && a.Plugins != nil {
+			if !a.consumeLocalDaemonReload() {
+				_ = a.reloadPlugins(false)
+			}
+		}
+		a.RefreshDaemonPluginStatuses(h)
 	}
 }
 
@@ -1213,6 +1230,7 @@ func (a *App) apply(s settings.Settings, save bool) {
 		s = settings.Load()
 	}
 	a.settingsIn, a.Applied = s, s.Clone()
+	a.refreshPluginLocaleAndTheme()
 	applied.Lock()
 	applied.s = a.settingsIn
 	applied.Unlock()

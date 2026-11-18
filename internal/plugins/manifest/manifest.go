@@ -53,7 +53,6 @@ type HostProcessSpec struct {
 	Transport           string   `toml:"transport" json:"transport,omitempty"` // "stdio" (default) | "socket"
 	AutoStart           bool     `toml:"auto_start" json:"autoStart,omitempty"`
 	KeepAlive           bool     `toml:"keep_alive" json:"keepAlive,omitempty"`
-	ActivationEvents    []string `toml:"activation_events" json:"activationEvents,omitempty"`
 	MinRestartMS        int      `toml:"min_restart_ms" json:"minRestartMs,omitempty"`
 	MaxCrashesPerMinute int      `toml:"max_crashes_per_minute" json:"maxCrashesPerMinute,omitempty"`
 }
@@ -306,8 +305,8 @@ func (m *Manifest) Validate() error {
 			}
 		}
 		if s.Mode == "webview" {
-			if strings.HasPrefix(s.Mount, "settings.") {
-				return fmt.Errorf("plugin %q slot %q: mount %q only supports declarative mode", m.ID, s.ID, s.Mount)
+			if s.Mount != MountPane {
+				return fmt.Errorf("plugin %q slot %q: mode %q only supports mount %q", m.ID, s.ID, s.Mode, MountPane)
 			}
 			if !m.HasPermission(PermUIWebView) {
 				return fmt.Errorf("plugin %q slot %q uses webview mode without declaring %q permission", m.ID, s.ID, PermUIWebView)
@@ -334,32 +333,41 @@ func (m *Manifest) Validate() error {
 		}
 	}
 	for _, w := range m.Washes {
-		if strings.TrimSpace(w.ID) == "" || strings.TrimSpace(w.Name) == "" {
-			return fmt.Errorf("plugin %q: wash missing id or name", m.ID)
+		if err := ValidateToken("wash id", w.ID); err != nil {
+			return fmt.Errorf("plugin %q: %w", m.ID, err)
+		}
+		if strings.TrimSpace(w.Name) == "" {
+			return fmt.Errorf("plugin %q wash %q: missing name", m.ID, w.ID)
 		}
 		if _, err := ValidateRelPath(w.File); err != nil {
 			return fmt.Errorf("plugin %q wash %q: %w", m.ID, w.ID, err)
 		}
 	}
 	for _, p := range m.Pets {
-		if strings.TrimSpace(p.ID) == "" {
-			return fmt.Errorf("plugin %q: pet missing id", m.ID)
+		if err := ValidateToken("pet id", p.ID); err != nil {
+			return fmt.Errorf("plugin %q: %w", m.ID, err)
 		}
 		if _, err := ValidateRelPath(p.Dir); err != nil {
 			return fmt.Errorf("plugin %q pet %q: %w", m.ID, p.ID, err)
 		}
 	}
 	for _, h := range m.Hooks {
-		if strings.TrimSpace(h.Agent) == "" || strings.TrimSpace(h.Event) == "" {
-			return fmt.Errorf("plugin %q: hook missing agent or event", m.ID)
+		if err := ValidateToken("hook agent", h.Agent); err != nil {
+			return fmt.Errorf("plugin %q: %w", m.ID, err)
+		}
+		if err := ValidateToken("hook event", h.Event); err != nil {
+			return fmt.Errorf("plugin %q: %w", m.ID, err)
 		}
 		if _, err := ValidateRelPath(h.Script); err != nil {
 			return fmt.Errorf("plugin %q hook %q: %w", m.ID, h.Event, err)
 		}
 	}
 	for _, sk := range m.Skills {
-		if strings.TrimSpace(sk.Agent) == "" || strings.TrimSpace(sk.Name) == "" {
-			return fmt.Errorf("plugin %q: skill missing agent or name", m.ID)
+		if err := ValidateToken("skill agent", sk.Agent); err != nil {
+			return fmt.Errorf("plugin %q: %w", m.ID, err)
+		}
+		if err := ValidateToken("skill name", sk.Name); err != nil {
+			return fmt.Errorf("plugin %q: %w", m.ID, err)
 		}
 		if _, err := ValidateRelPath(sk.Dir); err != nil {
 			return fmt.Errorf("plugin %q skill %q: %w", m.ID, sk.Name, err)

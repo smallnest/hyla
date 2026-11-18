@@ -125,3 +125,48 @@ func TestMigratePluginConfigWithoutPlugin(t *testing.T) {
 		t.Fatalf("the migration wrote plugin files: %v", err)
 	}
 }
+
+func TestMigratePluginConfigEmptyAllowPreservesExisting(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HYLA_HOME", home)
+	t.Setenv("HYLA_NO_KEYCHAIN", "1")
+	settings.Reload()
+	t.Cleanup(settings.Reload)
+
+	if err := settings.SetFeishu(settings.Feishu{
+		App:   "cli_existing",
+		Allow: []string{"keep@example.com"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	st := &manifest.Store{BaseDir: home}
+	if err := st.SaveConfig(pluginID, map[string]any{
+		"app":   "cli_existing",
+		"allow": "",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := MigratePluginConfig(st); err != nil {
+		t.Fatal(err)
+	}
+	f := settings.Load().Feishu
+	if f == nil || len(f.Allow) != 1 || f.Allow[0] != "keep@example.com" {
+		t.Fatalf("empty allow wiped existing allow list: %+v", f)
+	}
+}
+
+func TestMigratePluginConfigCorruptRegistryNoPanic(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HYLA_HOME", home)
+	t.Setenv("HYLA_NO_KEYCHAIN", "1")
+	settings.Reload()
+	t.Cleanup(settings.Reload)
+
+	st := &manifest.Store{BaseDir: home}
+	if err := os.WriteFile(st.RegistryPath(), []byte("{invalid json"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := MigratePluginConfig(st); err != nil {
+		t.Fatalf("expected no error or panic on corrupt plugins.json without feishu files, got %v", err)
+	}
+}

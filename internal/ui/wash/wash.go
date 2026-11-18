@@ -358,9 +358,25 @@ func ReloadPlugins(assets []manifest.WashAsset) error {
 }
 
 func parseWashColor(raw string) (ui.Color, error) {
-	s := strings.TrimSpace(raw)
-	if s == "" || s == "none" || s == "transparent" {
+	if strings.TrimSpace(raw) == "" {
 		return ui.RGBA(0, 0, 0, 0), nil
+	}
+	c, ok := ParseColor(raw)
+	if !ok {
+		return ui.Color{}, fmt.Errorf("unsupported color %q", raw)
+	}
+	return c, nil
+}
+
+// ParseColor parses "none", "transparent", "#rgb", "#rrggbb", "#rrggbbaa",
+// "rgb(r,g,b)", and "rgba(r,g,b,a)".
+func ParseColor(raw string) (ui.Color, bool) {
+	s := strings.TrimSpace(raw)
+	if s == "" {
+		return ui.Color{}, false
+	}
+	if s == "none" || s == "transparent" {
+		return ui.RGBA(0, 0, 0, 0), true
 	}
 	if strings.HasPrefix(s, "#") {
 		hex := s[1:]
@@ -370,76 +386,59 @@ func parseWashColor(raw string) (ui.Color, error) {
 			g, err2 := strconv.ParseUint(strings.Repeat(hex[1:2], 2), 16, 8)
 			b, err3 := strconv.ParseUint(strings.Repeat(hex[2:3], 2), 16, 8)
 			if err1 != nil || err2 != nil || err3 != nil {
-				return ui.Color{}, fmt.Errorf("invalid color %q", raw)
+				return ui.Color{}, false
 			}
-			return ui.RGBA(uint8(r), uint8(g), uint8(b), 1), nil
+			return ui.RGBA(uint8(r), uint8(g), uint8(b), 1), true
 		case 6:
-			return ui.Hex(s), nil
+			for i := 0; i < 6; i++ {
+				c := hex[i]
+				if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+					return ui.Color{}, false
+				}
+			}
+			return ui.Hex(s), true
 		case 8:
 			r, err1 := strconv.ParseUint(hex[0:2], 16, 8)
 			g, err2 := strconv.ParseUint(hex[2:4], 16, 8)
 			b, err3 := strconv.ParseUint(hex[4:6], 16, 8)
 			a, err4 := strconv.ParseUint(hex[6:8], 16, 8)
 			if err1 != nil || err2 != nil || err3 != nil || err4 != nil {
-				return ui.Color{}, fmt.Errorf("invalid color %q", raw)
+				return ui.Color{}, false
 			}
-			return ui.RGBA(uint8(r), uint8(g), uint8(b), float32(a)/255), nil
+			return ui.RGBA(uint8(r), uint8(g), uint8(b), float32(a)/255), true
 		default:
-			return ui.Color{}, fmt.Errorf("invalid hex color %q", raw)
+			return ui.Color{}, false
 		}
 	}
 	low := strings.ToLower(s)
 	if strings.HasPrefix(low, "rgba(") && strings.HasSuffix(low, ")") {
 		parts := strings.Split(low[5:len(low)-1], ",")
 		if len(parts) != 4 {
-			return ui.Color{}, fmt.Errorf("invalid rgba color %q", raw)
+			return ui.Color{}, false
 		}
 		r, e1 := strconv.Atoi(strings.TrimSpace(parts[0]))
 		g, e2 := strconv.Atoi(strings.TrimSpace(parts[1]))
 		b, e3 := strconv.Atoi(strings.TrimSpace(parts[2]))
 		a, e4 := strconv.ParseFloat(strings.TrimSpace(parts[3]), 32)
 		if e1 != nil || e2 != nil || e3 != nil || e4 != nil || r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255 {
-			return ui.Color{}, fmt.Errorf("invalid rgba color %q", raw)
+			return ui.Color{}, false
 		}
-		return ui.RGBA(uint8(r), uint8(g), uint8(b), float32(max(0, min(1, a)))), nil
+		return ui.RGBA(uint8(r), uint8(g), uint8(b), float32(max(0, min(1, a)))), true
 	}
 	if strings.HasPrefix(low, "rgb(") && strings.HasSuffix(low, ")") {
 		parts := strings.Split(low[4:len(low)-1], ",")
 		if len(parts) != 3 {
-			return ui.Color{}, fmt.Errorf("invalid rgb color %q", raw)
+			return ui.Color{}, false
 		}
 		r, e1 := strconv.Atoi(strings.TrimSpace(parts[0]))
 		g, e2 := strconv.Atoi(strings.TrimSpace(parts[1]))
 		b, e3 := strconv.Atoi(strings.TrimSpace(parts[2]))
 		if e1 != nil || e2 != nil || e3 != nil || r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255 {
-			return ui.Color{}, fmt.Errorf("invalid rgb color %q", raw)
+			return ui.Color{}, false
 		}
-		return ui.RGBA(uint8(r), uint8(g), uint8(b), 1), nil
+		return ui.RGBA(uint8(r), uint8(g), uint8(b), 1), true
 	}
-	return ui.Color{}, fmt.Errorf("unsupported color %q", raw)
-}
-
-// Memo keeps what make returns for each background and theme, made
-// once: a theme's colors are set as the program starts, and do not change
-// under it.
-func Memo(make func(id string, dark bool) (base, glow ui.LinearGradient)) func(id string, dark bool) (base, glow ui.LinearGradient) {
-	type key struct {
-		id   string
-		dark bool
-	}
-	var mu sync.Mutex
-	kept := map[key][2]ui.LinearGradient{}
-	return func(id string, dark bool) (base, glow ui.LinearGradient) {
-		k := key{id, dark}
-		mu.Lock()
-		defer mu.Unlock()
-		if g, ok := kept[k]; ok {
-			return g[0], g[1]
-		}
-		base, glow = make(id, dark)
-		kept[k] = [2]ui.LinearGradient{base, glow}
-		return base, glow
-	}
+	return ui.Color{}, false
 }
 
 // Stops puts colors at even places along a gradient, the first at 0

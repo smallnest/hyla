@@ -25,6 +25,9 @@ type Action struct {
 	// PluginID names the owning plugin when this action is registered by
 	// a plugin; empty for built-in actions.
 	PluginID string
+	// NoPalette hides a plugin action from the command palette when
+	// [[actions]].palette is false.
+	NoPalette bool
 	// When is an optional activation context expression for plugin actions
 	// (e.g. "pane.terminal", "pane.agent", "session.selected").
 	When string
@@ -152,26 +155,15 @@ var (
 	disabledPluginActions = make(map[string]bool)
 )
 
-var builtinFirstSegments = map[string]bool{
-	"settings":      true,
-	"cli":           true,
-	"app":           true,
-	"session":       true,
-	"project":       true,
-	"palette":       true,
-	"pane":          true,
-	"find":          true,
-	"timeline":      true,
-	"sidebar":       true,
-	"side":          true,
-	"changes":       true,
-	"files":         true,
-	"info":          true,
-	"subagents":     true,
-	"pet":           true,
-	"text":          true,
-	"quickTerminal": true,
-}
+var builtinFirstSegments = func() map[string]bool {
+	m := make(map[string]bool, len(All))
+	for _, a := range All {
+		if seg, _, ok := strings.Cut(a.ID, "."); ok && seg != "" {
+			m[seg] = true
+		}
+	}
+	return m
+}()
 
 // SetPluginActions replaces all dynamically registered actions belonging to pluginID.
 func SetPluginActions(pluginID string, acts []Action) {

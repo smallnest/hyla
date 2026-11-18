@@ -28,8 +28,7 @@ export type PermissionScope =
   | "network"
   | "secrets"
   | "notifications"
-  | "filesystem.workspace"
-  | "channel.provider";
+  | "filesystem.workspace";
 
 export interface RPCErrorObject {
   code: number;

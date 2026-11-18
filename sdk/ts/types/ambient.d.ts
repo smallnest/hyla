@@ -28,7 +28,9 @@ declare module "node:stream" {
     emit(event: string, ...args: any[]): boolean;
   }
   export class Readable extends EventEmitter {
+    destroyed?: boolean;
     setEncoding(encoding: string): this;
+    destroy?(error?: Error): this;
   }
   export class Writable extends EventEmitter {
     write(chunk: string | Uint8Array): boolean;

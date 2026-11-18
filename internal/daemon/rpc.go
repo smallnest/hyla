@@ -522,6 +522,7 @@ func (d *Daemon) call(c *controlConn, method string, raw json.RawMessage) (any, 
 		pn.mu.Lock()
 		old, _ := pn.agentLocked()
 		pn.info.AgentSession = as
+		pn.info.AgentSessionID = as.ID
 		id := pn.info.ID
 		pn.mu.Unlock()
 		d.mu.Lock()
@@ -541,11 +542,11 @@ func (d *Daemon) call(c *controlConn, method string, raw json.RawMessage) (any, 
 	case "conversations":
 		return d.conversations(), nil
 
-	case "feishu.status", "feishu.chats", "feishu.feed", "feishu.send":
-		if out, handled, err := d.callChannel(method, raw); handled {
-			return out, err
-		}
-		return nil, errors.New("channel driver unavailable")
+	case "feishu.status":
+		return d.feishuStatus(), nil
+
+	case "feishu.chats", "feishu.feed", "feishu.send":
+		return d.feishuWindow(method, raw)
 
 	case "feishu.restart":
 		var p proto.FeishuEnv
@@ -856,14 +857,19 @@ func (d *Daemon) call(c *controlConn, method string, raw json.RawMessage) (any, 
 		return d.pluginCall(p)
 
 	case "plugin.reload":
-		if _, err := manifest.ApplyBase(d.pluginStore()); err != nil {
+		snap, err := manifest.ApplyBase(d.pluginStore())
+		if err != nil {
 			return nil, err
 		}
 		if d.plugins != nil {
-			if err := d.plugins.Reload(); err != nil {
+			if err := d.plugins.ReloadWithPlugins(snap.Plugins); err != nil {
 				return nil, err
 			}
+			d.plugins.NotifyTopic("settings.changed", nil)
 		}
+		d.mu.Lock()
+		d.broadcastLocked(proto.Message{Event: "plugin.reload"})
+		d.mu.Unlock()
 		d.changed()
 		return true, nil
 
@@ -877,7 +883,14 @@ func (d *Daemon) call(c *controlConn, method string, raw json.RawMessage) (any, 
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
-		return true, d.plugins.Restart(ctx, p.PluginID)
+		if err := d.plugins.Restart(ctx, p.PluginID); err != nil {
+			return nil, err
+		}
+		d.mu.Lock()
+		d.broadcastLocked(proto.Message{Event: "plugin.reload", Plugin: p.PluginID})
+		d.mu.Unlock()
+		d.changed()
+		return true, nil
 
 	case "plugin.logs":
 		var p rpc.PluginLogsParams
@@ -910,9 +923,6 @@ func (d *Daemon) call(c *controlConn, method string, raw json.RawMessage) (any, 
 			d.stop()
 		}()
 		return true, nil
-	}
-	if out, handled, err := d.callChannel(method, raw); handled {
-		return out, err
 	}
 	return nil, fmt.Errorf("unknown method %q", method)
 }

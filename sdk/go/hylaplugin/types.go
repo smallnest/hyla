@@ -40,7 +40,6 @@ const (
 	PermSecrets             = "secrets"
 	PermNotifications       = "notifications"
 	PermFilesystemWorkspace = "filesystem.workspace"
-	PermChannelProvider     = "channel.provider"
 )
 
 // RPCError represents a JSON-RPC 2.0 error object.

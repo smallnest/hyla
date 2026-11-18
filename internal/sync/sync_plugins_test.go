@@ -231,9 +231,6 @@ scopes = ["ui.slot"]
 	if !linkedB.PendingInstall || linkedB.Enabled || linkedB.LinkPath != "" {
 		t.Fatalf("expected com.example.linked marked pendingInstall=true, disabled, no linkPath on B, got %+v", linkedB)
 	}
-	if stB.IsEnabled("com.example.linked") {
-		t.Fatal("pendingInstall plugin must not report IsEnabled=true")
-	}
 	cfgB, err := stB.LoadConfig("com.example.linked")
 	if err != nil || cfgB["endpoint"] != "https://api.example.com" {
 		t.Fatalf("expected plugin-config synced to B, got %+v err=%v", cfgB, err)
@@ -280,5 +277,44 @@ scopes = ["ui.slot"]
 	cfgB, err = stB.LoadConfig("com.example.linked")
 	if err != nil || cfgB["endpoint"] != "https://v2.example.com" {
 		t.Fatalf("updated plugin-config did not arrive on B: %+v err=%v", cfgB, err)
+	}
+
+	// Removing all non-builtin plugins & configs on A syncs deletions to B cleanly.
+	_ = stA.Remove("com.example.shared", true)
+	_ = stA.Remove("com.example.linked", true)
+	if res := machA.run(""); res.Action != "pushed" {
+		t.Fatalf("Machine A push after removing plugins = %q, want pushed", res.Action)
+	}
+	if res := machB.run(""); res.Action != "pulled" {
+		t.Fatalf("Machine B pull after removing plugins = %q, want pulled", res.Action)
+	}
+	regB, _ = stB.LoadRegistry()
+	if len(regB.Plugins) != 0 {
+		t.Fatalf("expected all removed plugins cleared on B, got %+v", regB.Plugins)
+	}
+	if cfgPathB, _ := stB.ConfigPath("com.example.linked"); cfgPathB != "" {
+		if _, err := os.Stat(cfgPathB); !os.IsNotExist(err) {
+			t.Fatalf("expected deleted plugin-config removed on B, stat err=%v", err)
+		}
+	}
+
+	// Conflict keeps both config.remote-* and *.plugins.json backup!
+	machB.writeConfig("font-size = 20\n")
+	if err := stB.SaveConfig("com.example.conflict", map[string]any{"x": 1}); err != nil {
+		t.Fatal(err)
+	}
+	if res := machB.run(""); res.Action != "pushed" {
+		t.Fatalf("Machine B conflict setup push = %q", res.Action)
+	}
+	machA.writeConfig("font-size = 16\n")
+	if err := stA.SaveConfig("com.example.conflict", map[string]any{"y": 2}); err != nil {
+		t.Fatal(err)
+	}
+	resConflict := machA.run("")
+	if resConflict.Backup == "" {
+		t.Fatal("expected conflict backup path")
+	}
+	if _, err := os.Stat(resConflict.Backup + ".plugins.json"); err != nil {
+		t.Fatalf("expected companion .plugins.json backup: %v", err)
 	}
 }

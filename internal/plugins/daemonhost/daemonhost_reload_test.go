@@ -14,6 +14,14 @@ import (
 )
 
 func TestManagerIsEnabledAndReloadRestartStopBackoff(t *testing.T) {
+	isEnabled := func(m *Manager, id string) bool {
+		for _, s := range m.ListStatuses() {
+			if s.ID == id {
+				return s.Enabled && !s.PendingInstall
+			}
+		}
+		return false
+	}
 	base := t.TempDir()
 	st := &manifest.Store{BaseDir: base, UseKeychain: boolPtr(false)}
 
@@ -55,8 +63,8 @@ auto_start = true
 	if err := mgr.Reload(); err != nil {
 		t.Fatal(err)
 	}
-	if !mgr.IsEnabled("com.example.reload") {
-		t.Fatal("expected IsEnabled=true after initial Reload")
+	if !isEnabled(mgr, "com.example.reload") {
+		t.Fatal("expected enabled=true after initial Reload")
 	}
 
 	// Wait for auto-started plugin process to run.
@@ -123,8 +131,8 @@ auto_start = true
 	if err := mgr.Reload(); err != nil {
 		t.Fatal(err)
 	}
-	if mgr.IsEnabled("com.example.reload") {
-		t.Fatal("expected IsEnabled=false after disable + Reload")
+	if isEnabled(mgr, "com.example.reload") {
+		t.Fatal("expected enabled=false after disable + Reload")
 	}
 	for _, s := range mgr.ListStatuses() {
 		if s.ID == "com.example.reload" && s.State != StateStopped {

@@ -14,6 +14,7 @@ import (
 	"hyla/internal/plugins/daemonhost"
 	"hyla/internal/plugins/manifest"
 	"hyla/internal/plugins/rpc"
+	"hyla/locales"
 )
 
 const PluginID = "hyla.magpie"
@@ -78,34 +79,63 @@ func Register() {
 	daemonhost.RegisterBuiltinRunner(PluginID, daemonhost.HostKindDaemon, runServer)
 }
 
+const (
+	magpieOnlineCacheTTL  = 10 * time.Second
+	magpieOfflineCacheTTL = 60 * time.Second
+	magpieSettingsTTL     = 60 * time.Second
+)
+
 type state struct {
-	mu       sync.Mutex
-	url      string
-	lastRead time.Time
-	lastSess string
-	usage    *magpie.Usage
-	lastErr  string
-	fetchFn  func(base, sess string) (*magpie.Usage, error)
+	mu         sync.Mutex
+	url        string
+	urlChecked time.Time
+	lastRead   time.Time
+	lastSess   string
+	usage      *magpie.Usage
+	lastErr    string
+	fetchFn    func(base, sess string) (*magpie.Usage, error)
+	nowFn      func() time.Time
+}
+
+func (st *state) now() time.Time {
+	if st.nowFn != nil {
+		return st.nowFn()
+	}
+	return time.Now()
 }
 
 func runServer(ctx context.Context, peer *rpc.Peer) {
+	runServerWith(ctx, peer, magpie.Fetch, time.Now)
+}
+
+func runServerWith(ctx context.Context, peer *rpc.Peer, fetchFn func(base, sess string) (*magpie.Usage, error), nowFn func() time.Time) {
+	if fetchFn == nil {
+		fetchFn = magpie.Fetch
+	}
+	if nowFn == nil {
+		nowFn = time.Now
+	}
 	st := &state{
-		fetchFn: magpie.Fetch,
+		fetchFn: fetchFn,
+		nowFn:   nowFn,
 	}
 
 	peer.Handle("initialize", func(ctx context.Context, method string, raw json.RawMessage) (any, error) {
 		var p rpc.InitializeParams
 		_ = json.Unmarshal(raw, &p)
-		if u, ok := p.Settings["url"].(string); ok && strings.TrimSpace(u) != "" {
-			st.mu.Lock()
+		st.mu.Lock()
+		if u, ok := p.Settings["url"].(string); ok {
 			st.url = strings.TrimRight(strings.TrimSpace(u), "/")
-			st.mu.Unlock()
+		} else {
+			st.url = ""
 		}
+		st.urlChecked = st.now()
+		st.mu.Unlock()
 		return rpc.InitializeResult{
 			Name:          "Magpie",
 			Version:       "1.0.0",
 			Capabilities:  []string{"ui.declarative"},
-			Subscriptions: []string{"theme.changed"},
+			Subscriptions: []string{"theme.changed", "settings.changed"},
 		}, nil
 	})
 	peer.Handle("initialized", func(ctx context.Context, method string, raw json.RawMessage) (any, error) {
@@ -123,15 +153,7 @@ func runServer(ctx context.Context, peer *rpc.Peer) {
 		if err := json.Unmarshal(raw, &p); err != nil {
 			return nil, err
 		}
-		// Refresh live settings in case user updated URL via Settings › Plugins.
-		var cfg rpc.PluginGetSettingsResult
-		if err := peer.Call(ctx, "plugin.getSettings", rpc.PluginGetSettingsParams{}, &cfg); err == nil {
-			if u, ok := cfg.Settings["url"].(string); ok {
-				st.mu.Lock()
-				st.url = strings.TrimRight(strings.TrimSpace(u), "/")
-				st.mu.Unlock()
-			}
-		}
+		st.refreshURL(ctx, peer, false)
 		agentSessID := resolveAgentSessionID(ctx, peer, p.SessionID, p.PaneID)
 		u, errStr := st.fetch(agentSessID, false)
 		return buildRenderResult(u, errStr), nil
@@ -142,6 +164,7 @@ func runServer(ctx context.Context, peer *rpc.Peer) {
 			return nil, err
 		}
 		if p.ComponentID == "refresh" || p.EventType == "click" {
+			st.refreshURL(ctx, peer, true)
 			agentSessID := resolveAgentSessionID(ctx, peer, p.SessionID, p.PaneID)
 			u, errStr := st.fetch(agentSessID, true)
 			res := buildRenderResult(u, errStr)
@@ -158,34 +181,76 @@ func runServer(ctx context.Context, peer *rpc.Peer) {
 		_ = json.Unmarshal(raw, &p)
 		st.mu.Lock()
 		st.lastRead = time.Time{}
+		st.urlChecked = time.Time{}
 		st.mu.Unlock()
 		_ = peer.Call(ctx, "ui.invalidate", rpc.UIInvalidateParams{SlotIDs: []string{"magpie"}}, nil)
 		return rpc.ActionInvokeResult{OK: true}, nil
 	})
 	peer.Handle("event.notify", func(ctx context.Context, method string, raw json.RawMessage) (any, error) {
+		var p rpc.EventNotifyParams
+		if json.Unmarshal(raw, &p) == nil && p.Topic == "settings.changed" {
+			st.mu.Lock()
+			st.urlChecked = time.Time{}
+			st.lastRead = time.Time{}
+			st.mu.Unlock()
+			_ = peer.Call(ctx, "ui.invalidate", rpc.UIInvalidateParams{SlotIDs: []string{"magpie"}}, nil)
+		}
 		return nil, nil
 	})
 
 	_ = peer.Serve(ctx)
 }
 
+func (st *state) refreshURL(ctx context.Context, peer *rpc.Peer, force bool) {
+	if peer == nil {
+		return
+	}
+	st.mu.Lock()
+	due := force || st.urlChecked.IsZero() || st.now().Sub(st.urlChecked) >= magpieSettingsTTL
+	st.mu.Unlock()
+	if !due {
+		return
+	}
+	var cfg rpc.PluginGetSettingsResult
+	err := peer.Call(ctx, "plugin.getSettings", rpc.PluginGetSettingsParams{}, &cfg)
+	st.mu.Lock()
+	st.urlChecked = st.now()
+	if err == nil {
+		if u, ok := cfg.Settings["url"].(string); ok {
+			st.url = strings.TrimRight(strings.TrimSpace(u), "/")
+		} else {
+			st.url = ""
+		}
+	}
+	st.mu.Unlock()
+}
+
 func (st *state) fetch(sessionID string, force bool) (*magpie.Usage, string) {
 	st.mu.Lock()
+	now := st.now()
 	base := st.url
 	if base == "" {
 		base = magpie.URL()
 	}
-	if !force && st.lastSess == sessionID && time.Since(st.lastRead) < 10*time.Second && (st.usage != nil || st.lastErr != "") {
-		u, errStr := st.usage, st.lastErr
-		st.mu.Unlock()
-		return u, errStr
+	if !force && !st.lastRead.IsZero() {
+		age := now.Sub(st.lastRead)
+		if st.usage == nil && st.lastErr != "" && age < magpieOfflineCacheTTL {
+			u, errStr := st.usage, st.lastErr
+			st.mu.Unlock()
+			return u, errStr
+		}
+		if st.usage != nil && st.lastSess == sessionID && age < magpieOnlineCacheTTL {
+			u, errStr := st.usage, st.lastErr
+			st.mu.Unlock()
+			return u, errStr
+		}
 	}
 	fn := st.fetchFn
 	st.mu.Unlock()
 
 	u, err := fn(base, sessionID)
 	st.mu.Lock()
-	st.lastRead = time.Now()
+	st.lastRead = st.now()
 	st.lastSess = sessionID
 	if err != nil {
 		st.lastErr = err.Error()
@@ -199,17 +264,25 @@ func (st *state) fetch(sessionID string, force bool) (*magpie.Usage, string) {
 	return usage, errStr
 }
 
+func isOfflineError(errStr string) bool {
+	return errStr == "" ||
+		strings.Contains(errStr, "connection refused") ||
+		strings.Contains(errStr, "magpie does not run at ")
+}
+
 func buildRenderResult(u *magpie.Usage, errStr string) rpc.UIRenderResult {
 	var children []*rpc.UINode
+	refreshMS := 15000
 	if u == nil {
-		msg := "Magpie is not running"
-		if errStr != "" && !strings.Contains(errStr, "connection refused") {
+		refreshMS = 60000
+		msg := locales.InfoMagpieDown()
+		if !isOfflineError(errStr) {
 			msg = errStr
 		}
 		children = append(children, &rpc.UINode{
 			Type:  "text",
 			Key:   "offline",
-			Props: map[string]any{"text": msg, "tone": "muted"},
+			Props: map[string]any{"text": msg, "tone": "muted", "wrap": true},
 		})
 	} else {
 		children = append(children,
@@ -266,9 +339,9 @@ func buildRenderResult(u *magpie.Usage, errStr string) rpc.UIRenderResult {
 		badge = magpie.Cost(u.Today.Cost)
 	}
 	return rpc.UIRenderResult{
-		Title:     "Magpie",
+		Title:     locales.InfoMagpie(),
 		Badge:     badge,
-		RefreshMS: 15000,
+		RefreshMS: refreshMS,
 		Root: &rpc.UINode{
 			Type:  "infoCard",
 			Key:   "magpie-card",
@@ -309,13 +382,23 @@ func formatTokens(n int) string {
 }
 
 func resolveAgentSessionID(ctx context.Context, peer *rpc.Peer, sessionID, paneID string) string {
-	if peer == nil || (paneID == "" && sessionID == "") {
+	if peer == nil {
 		return ""
 	}
 	var st rpc.HostGetStateResult
 	if err := peer.Call(ctx, "host.getState", rpc.HostGetStateParams{}, &st); err != nil {
 		return ""
 	}
+	if sessionID == "" {
+		sessionID = st.ActiveSession
+	}
+	if paneID == "" {
+		paneID = st.FocusedPane
+	}
+	if paneID == "" && sessionID == "" {
+		return ""
+	}
+	var matchedPaneID string
 	for _, s := range st.State.Sessions {
 		for _, pn := range s.Panes {
 			if paneID != "" && pn.ID != paneID {
@@ -330,6 +413,17 @@ func resolveAgentSessionID(ctx context.Context, peer *rpc.Peer, sessionID, paneI
 			if pn.AgentSession != nil && pn.AgentSession.ID != "" {
 				return pn.AgentSession.ID
 			}
+			matchedPaneID = pn.ID
+			break
+		}
+	}
+	if matchedPaneID == "" {
+		matchedPaneID = paneID
+	}
+	if matchedPaneID != "" {
+		var env rpc.PaneGetEnvResult
+		if err := peer.Call(ctx, "pane.getEnv", rpc.PaneGetEnvParams{Pane: matchedPaneID}, &env); err == nil && env.AgentSessionID != "" {
+			return env.AgentSessionID
 		}
 	}
 	return ""

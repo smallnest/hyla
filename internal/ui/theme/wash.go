@@ -7,6 +7,12 @@ import (
 	"hyla/internal/ui/wash"
 )
 
+// ParseColor parses hex (#rgb, #rrggbb, #rrggbbaa), rgb(), rgba(), and
+// transparent color literals into a ui.Color.
+func ParseColor(raw string) (ui.Color, bool) {
+	return wash.ParseColor(raw)
+}
+
 // WashOpacity is how much of the window's background the wash covers
 // while the material shows: the setting's, else the default.
 func WashOpacity(s settings.Settings) float32 {

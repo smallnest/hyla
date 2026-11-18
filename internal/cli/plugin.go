@@ -15,6 +15,7 @@ import (
 
 	"hyla/internal/build"
 	"hyla/internal/client"
+	"hyla/internal/plugins/daemonhost"
 	"hyla/internal/plugins/manifest"
 	"hyla/internal/plugins/rpc"
 )
@@ -278,14 +279,14 @@ func pluginDevCmd(store *manifest.Store, args []string) error {
 			if cur != lastSig {
 				lastSig = cur
 				fmt.Printf("[%s] change detected, reloading %s…\n", time.Now().Format("15:04:05"), inst.Entry.ID)
+				if curInst, lerr := store.Link(dir, f.set["grantAll"]); lerr == nil {
+					inst = curInst
+				}
 				if _, err := manifest.ApplyBase(store); err != nil {
 					fmt.Fprintf(os.Stderr, "reload error: %v\n", err)
 				}
 				_ = syncExistingPluginAgentIntegrations(store)
 				notifyDaemonPluginReload()
-				if curInst, lerr := store.Link(dir, f.set["grantAll"]); lerr == nil {
-					inst = curInst
-				}
 				if inst.Manifest != nil && inst.Manifest.Daemon != nil {
 					notifyDaemonPluginRestart(inst.Entry.ID)
 				}
@@ -470,22 +471,13 @@ func pluginLogsCmd(store *manifest.Store, args []string) error {
 		}
 	}
 
-	path, err := store.LogPath(id)
+	_, txt, count, err := daemonhost.ReadPluginLogs(store, id, lines)
 	if err != nil {
 		return err
 	}
-	b, err := os.ReadFile(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return err
+	if count > 0 {
+		fmt.Print(txt)
 	}
-	all := strings.Split(strings.TrimRight(string(b), "\n"), "\n")
-	if len(all) > lines {
-		all = all[len(all)-lines:]
-	}
-	fmt.Println(strings.Join(all, "\n"))
 	return nil
 }
 
@@ -606,12 +598,13 @@ id = "aurora-mist"
 name = "Aurora Mist"
 file = "washes/aurora.toml"
 `, id, name),
-		"detect/agent.toml": `name = "sample-agent"
+		"detect/agent.toml": `id = "sample-agent"
 
 [[rules]]
-state = "waiting"
-wait_kind = "permission"
-pattern = "(?i)allow|approve\\?"
+id = "sample-agent.permission"
+state = "blocked"
+visible_blocker = true
+regex = ["(?i)allow|approve\\?"]
 `,
 		"marks/agent.svg": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M5.5 8l1.8 1.8L10.8 6.2"/></svg>
 `,
@@ -621,8 +614,8 @@ cursor-color = #7dd3fc
 `,
 		"washes/aurora.toml": `id = "aurora-mist"
 name = "Aurora Mist"
-light = "#f4f7fb"
-dark = "#141824"
+light = ["#f4f7fb", "#e6eefb"]
+dark = ["#141824", "#1b2438"]
 light_glow = "#cfe5ff"
 dark_glow = "#263b5e"
 `,

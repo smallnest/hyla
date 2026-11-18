@@ -75,4 +75,44 @@ func TestResolveAgentSessionIDAndBadge(t *testing.T) {
 	if !strings.Contains(string(raw), "This conversation") || !strings.Contains(string(raw), "0.4200") {
 		t.Fatalf("expected resolved AgentSessionID conversation usage in rendered tree, got: %s", raw)
 	}
+
+	// Fallback when HostGetStateResult has empty AgentSessionID -> pane.getEnv resolves it.
+	cHost2, cPlugin2 := net.Pipe()
+	defer cHost2.Close()
+	defer cPlugin2.Close()
+	hostPeer2 := rpc.NewPeer(cHost2, cHost2, cHost2)
+	hostPeer2.Handle("host.getState", func(ctx context.Context, method string, params json.RawMessage) (any, error) {
+		return rpc.HostGetStateResult{
+			ActiveSession: "hyla-sess-1",
+			FocusedPane:   "pane-1",
+			State: proto.State{
+				Sessions: []proto.Session{{
+					ID:    "hyla-sess-1",
+					Focus: "pane-1",
+					Panes: []proto.Pane{{ID: "pane-1", Agent: "claude"}},
+				}},
+			},
+		}, nil
+	})
+	hostPeer2.Handle("pane.getEnv", func(ctx context.Context, method string, params json.RawMessage) (any, error) {
+		var p rpc.PaneGetEnvParams
+		_ = json.Unmarshal(params, &p)
+		if p.Pane == "pane-1" {
+			return rpc.PaneGetEnvResult{AgentSessionID: "agent-conv-xyz"}, nil
+		}
+		return rpc.PaneGetEnvResult{}, nil
+	})
+	pluginPeer2 := rpc.NewPeer(cPlugin2, cPlugin2, cPlugin2)
+	defer pluginPeer2.Close()
+	hostPeer2.Start(ctx)
+	go runServer(ctx, pluginPeer2)
+
+	var renderRes2 rpc.UIRenderResult
+	if err := hostPeer2.Call(ctx, "ui.render", rpc.UIRenderParams{SlotID: "magpie"}, &renderRes2); err != nil {
+		t.Fatal(err)
+	}
+	raw2, _ := json.Marshal(renderRes2.Root)
+	if !strings.Contains(string(raw2), "This conversation") || !strings.Contains(string(raw2), "0.4200") {
+		t.Fatalf("expected pane.getEnv fallback to resolve session usage, got: %s", raw2)
+	}
 }

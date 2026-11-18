@@ -82,7 +82,7 @@ func execSinglePluginHook(pluginID, rootDir, agent, event, scriptPath string, st
 		if err != nil {
 			return err
 		}
-		expanded := strings.ReplaceAll(string(raw), "__HYLA__", hyla())
+		expanded := strings.ReplaceAll(string(raw), "__HYLA__", shellQuote(hyla()))
 		if string(raw) != expanded {
 			cmd = exec.CommandContext(ctx, "/bin/sh", "-c", expanded)
 		} else {
@@ -110,12 +110,15 @@ type syncedPluginAgentAssets struct {
 	HookFiles []string `json:"hookFiles,omitempty"`
 }
 
-func pluginAgentAssetsStatePath() string {
+func pluginAgentAssetsStatePath(store *manifest.Store) string {
+	if store != nil && store.BaseDir != "" {
+		return filepath.Join(store.BaseDir, "plugin-agent-assets.json")
+	}
 	return filepath.Join(proto.Dir(), "plugin-agent-assets.json")
 }
 
-func loadSyncedPluginAgentAssets() syncedPluginAgentAssets {
-	data, err := os.ReadFile(pluginAgentAssetsStatePath())
+func loadSyncedPluginAgentAssets(store *manifest.Store) syncedPluginAgentAssets {
+	data, err := os.ReadFile(pluginAgentAssetsStatePath(store))
 	if err != nil {
 		return syncedPluginAgentAssets{}
 	}
@@ -124,52 +127,97 @@ func loadSyncedPluginAgentAssets() syncedPluginAgentAssets {
 	return st
 }
 
-func saveSyncedPluginAgentAssets(st syncedPluginAgentAssets) error {
+func saveSyncedPluginAgentAssets(store *manifest.Store, st syncedPluginAgentAssets) error {
 	data, err := json.MarshalIndent(st, "", "  ")
 	if err != nil {
 		return err
 	}
-	return writeFileAtomic(pluginAgentAssetsStatePath(), append(data, '\n'))
+	return writeFileAtomic(pluginAgentAssetsStatePath(store), append(data, '\n'))
+}
+
+// SyncPluginAgentIntegrations reconciles plugin hooks and skills for agents
+// where Hyla's base skill or hook integration is already installed.
+func SyncPluginAgentIntegrations(store *manifest.Store, snap *manifest.Snapshot) error {
+	_, err := syncExistingPluginAgentIntegrationsWithSnap(store, snap)
+	return err
 }
 
 func syncExistingPluginAgentIntegrations(store *manifest.Store) error {
+	_, err := syncExistingPluginAgentIntegrationsWithSnap(store, nil)
+	return err
+}
+
+func syncExistingPluginAgentIntegrationsWithSnap(store *manifest.Store, snap *manifest.Snapshot) (*manifest.Snapshot, error) {
 	if store == nil {
 		store = manifest.DefaultStore()
 	}
-	// Only update agent targets where Hyla's base skill or hook is already installed.
-	if st, err := os.Stat(pluginAgentAssetsStatePath()); err != nil || st.IsDir() {
-		// Nothing synced previously unless agents have existing hooks/skills; check SkillStates.
-		anyInstalled := false
-		for _, s := range SkillStates() {
-			if s.State != "missing" {
-				anyInstalled = true
-				break
-			}
+	claudeInstalled, agentsInstalled := false, false
+	for _, s := range SkillStates() {
+		if s.State == "missing" {
+			continue
 		}
-		if !anyInstalled {
-			return nil
+		if s.Agent == "claude" {
+			claudeInstalled = true
+		} else if s.Agent == "agents" {
+			agentsInstalled = true
 		}
 	}
-	return applyPluginAgentIntegrations(store, "", true)
+	prev := loadSyncedPluginAgentAssets(store)
+	if !claudeInstalled && !agentsInstalled {
+		if len(prev.SkillDirs) == 0 && len(prev.HookFiles) == 0 {
+			return snap, nil
+		}
+		return applyPluginAgentIntegrationsWithTargets(store, snap, "", false, map[string]bool{})
+	}
+	targets := map[string]bool{
+		"claude": claudeInstalled,
+		"agents": agentsInstalled,
+	}
+	return applyPluginAgentIntegrationsWithTargets(store, snap, "", true, targets)
 }
 
 func applyPluginAgentIntegrations(store *manifest.Store, agentFilter string, install bool) error {
+	_, err := applyPluginAgentIntegrationsWithTargets(store, nil, agentFilter, install, nil)
+	return err
+}
+
+func applyPluginAgentIntegrationsWithTargets(store *manifest.Store, snap *manifest.Snapshot, agentFilter string, install bool, targets map[string]bool) (*manifest.Snapshot, error) {
 	if store == nil {
 		store = manifest.DefaultStore()
 	}
-	snap, err := manifest.ApplyBase(store)
-	if err != nil {
-		return err
+	if snap == nil {
+		var err error
+		snap, err = manifest.ApplyBase(store)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	prev := loadSyncedPluginAgentAssets()
+	wantAgent := func(agent string) bool {
+		if !matchesAgentFilter(agent, agentFilter) {
+			return false
+		}
+		if targets != nil {
+			switch strings.ToLower(strings.TrimSpace(agent)) {
+			case "claude":
+				return targets["claude"]
+			case "codex", "opencode", "pi", "agents":
+				return targets["agents"]
+			default:
+				return false
+			}
+		}
+		return true
+	}
+
+	prev := loadSyncedPluginAgentAssets(store)
 	next := syncedPluginAgentAssets{}
 
 	// 1. Reconcile plugin skills cleanly without touching Hyla's built-in skill.
 	desiredSkills := map[string]manifest.SkillAsset{}
 	if install {
 		for _, sk := range snap.Skills {
-			if !matchesAgentFilter(sk.Agent, agentFilter) {
+			if !wantAgent(sk.Agent) {
 				continue
 			}
 			targetDir, ok := pluginSkillTargetDir(sk.Agent, sk.Name)
@@ -192,7 +240,7 @@ func applyPluginAgentIntegrations(store *manifest.Store, agentFilter string, ins
 
 	for targetDir, sk := range desiredSkills {
 		if err := syncPluginSkillDir(sk.Dir, targetDir); err != nil {
-			return err
+			return snap, err
 		}
 		next.SkillDirs = append(next.SkillDirs, targetDir)
 	}
@@ -212,15 +260,17 @@ func applyPluginAgentIntegrations(store *manifest.Store, agentFilter string, ins
 	opencodeDir := filepath.Join(dirOf("XDG_CONFIG_HOME", ".config"), "opencode")
 
 	if agentFilter == "" || agentFilter == "claude" {
-		hooks := collectHooks(snap.Hooks, "claude", install)
+		claudeInstall := install && wantAgent("claude")
+		hooks := collectHooks(snap.Hooks, "claude", claudeInstall)
 		if err := reconcileJSONPluginHooks(filepath.Join(claudeDir, "settings.json"), "claude", hooks); err != nil {
-			return err
+			return snap, err
 		}
 	}
 	if agentFilter == "" || agentFilter == "codex" || agentFilter == "agents" {
-		hooks := collectHooks(snap.Hooks, "codex", install)
+		codexInstall := install && wantAgent("codex")
+		hooks := collectHooks(snap.Hooks, "codex", codexInstall)
 		if err := reconcileJSONPluginHooks(filepath.Join(codexDir, "hooks.json"), "codex", hooks); err != nil {
-			return err
+			return snap, err
 		}
 	}
 
@@ -228,7 +278,7 @@ func applyPluginAgentIntegrations(store *manifest.Store, agentFilter string, ins
 	desiredFiles := map[string][]byte{}
 	if install {
 		for _, hk := range snap.Hooks {
-			if !matchesAgentFilter(hk.Agent, agentFilter) {
+			if !wantAgent(hk.Agent) {
 				continue
 			}
 			if hk.Agent != "pi" && hk.Agent != "opencode" {
@@ -250,19 +300,28 @@ func applyPluginAgentIntegrations(store *manifest.Store, agentFilter string, ins
 	}
 	for _, oldFile := range prev.HookFiles {
 		if _, keep := desiredFiles[oldFile]; !keep {
-			_ = os.Remove(oldFile)
-			_ = os.Remove(filepath.Dir(oldFile))
+			if agentFilter == "" || hookFileMatchesFilter(oldFile, agentFilter, piDir, opencodeDir) {
+				_ = os.Remove(oldFile)
+				_ = os.Remove(filepath.Dir(oldFile))
+			} else {
+				next.HookFiles = append(next.HookFiles, oldFile)
+			}
 		}
 	}
 	for dst, data := range desiredFiles {
-		if err := writeFileAtomic(dst, data); err != nil {
-			return err
+		if cur, rerr := os.ReadFile(dst); rerr != nil || !bytes.Equal(cur, data) {
+			if err := writeFileAtomic(dst, data); err != nil {
+				return snap, err
+			}
 		}
 		next.HookFiles = append(next.HookFiles, dst)
 	}
 	slices.Sort(next.HookFiles)
 
-	return saveSyncedPluginAgentAssets(next)
+	if slices.Equal(prev.SkillDirs, next.SkillDirs) && slices.Equal(prev.HookFiles, next.HookFiles) {
+		return snap, nil
+	}
+	return snap, saveSyncedPluginAgentAssets(store, next)
 }
 
 func collectHooks(all []manifest.HookAsset, agent string, install bool) []manifest.HookAsset {
@@ -325,6 +384,21 @@ func skillDirMatchesFilter(dir, filter string) bool {
 		return strings.HasPrefix(dir, agentsRoot+string(filepath.Separator))
 	}
 	return false
+}
+
+func hookFileMatchesFilter(file, filter, piDir, opencodeDir string) bool {
+	sep := string(filepath.Separator)
+	switch strings.ToLower(strings.TrimSpace(filter)) {
+	case "pi":
+		return strings.HasPrefix(file, filepath.Join(piDir, "extensions")+sep)
+	case "opencode":
+		return strings.HasPrefix(file, filepath.Join(opencodeDir, "plugins")+sep)
+	case "agents", "codex":
+		return strings.HasPrefix(file, filepath.Join(piDir, "extensions")+sep) ||
+			strings.HasPrefix(file, filepath.Join(opencodeDir, "plugins")+sep)
+	default:
+		return false
+	}
 }
 
 func syncPluginSkillDir(srcDir, dstDir string) error {
@@ -391,12 +465,15 @@ func expandPluginTemplateBytes(b []byte) []byte {
 	return bytes.ReplaceAll(b, []byte("__HYLA__"), []byte(hyla()))
 }
 
-func pluginHookCommand(pluginID, agent, event string) string {
-	args := fmt.Sprintf("hook plugin %s %s %s", pluginID, agent, event)
+func shellQuote(s string) string {
 	if runtime.GOOS == "windows" {
-		return `"` + hyla() + `" ` + args
+		return `"` + s + `"`
 	}
-	return "'" + strings.ReplaceAll(hyla(), "'", `'\''`) + "' " + args
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
+}
+
+func pluginHookCommand(pluginID, agent, event string) string {
+	return shellQuote(hyla()) + fmt.Sprintf(" hook plugin %s %s %s", pluginID, agent, event)
 }
 
 func isPluginHookCommand(cmd string) bool {

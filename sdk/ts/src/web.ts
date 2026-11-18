@@ -58,6 +58,7 @@ export function readThemeTokens(): Record<string, string> {
     "--hyla-control",
     "--hyla-text",
     "--hyla-muted",
+    "--hyla-text-muted",
     "--hyla-faint",
     "--hyla-accent",
     "--hyla-attention",

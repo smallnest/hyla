@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -27,30 +26,39 @@ import (
 // EventCallback is invoked asynchronously off interactive widget actions.
 type EventCallback func(componentID, eventType string, value any)
 
+type cachedAsset struct {
+	svg *ui.SVG
+	bmp *ui.Bitmap
+}
+
 // RenderState stores ephemeral UI widget bindings across rebuilds (never ui.Element references).
 type RenderState struct {
 	mu             sync.Mutex
 	bools          map[string]*bool
+	lastBoolProps  map[string]bool
 	strings        map[string]*string
 	lastStrProps   map[string]string
 	floats         map[string]*float64
 	lastFloatProps map[string]float64
-	folded         map[string]*bool
-	images         map[string]*ui.Bitmap
-	svgs           map[string]*ui.SVG
+	images         map[string]cachedAsset
 }
 
 func NewRenderState() *RenderState {
 	return &RenderState{
 		bools:          make(map[string]*bool),
+		lastBoolProps:  make(map[string]bool),
 		strings:        make(map[string]*string),
 		lastStrProps:   make(map[string]string),
 		floats:         make(map[string]*float64),
 		lastFloatProps: make(map[string]float64),
-		folded:         make(map[string]*bool),
-		images:         make(map[string]*ui.Bitmap),
-		svgs:           make(map[string]*ui.SVG),
+		images:         make(map[string]cachedAsset),
 	}
+}
+
+func (rs *RenderState) ClearAssets() {
+	rs.mu.Lock()
+	clear(rs.images)
+	rs.mu.Unlock()
 }
 
 func (rs *RenderState) getBool(key string, initial bool) *bool {
@@ -65,30 +73,23 @@ func (rs *RenderState) getBool(key string, initial bool) *bool {
 	return p
 }
 
-func (rs *RenderState) syncBool(key string, val bool) *bool {
+func (rs *RenderState) syncBoolProp(key string, propVal bool) *bool {
 	rs.mu.Lock()
 	defer rs.mu.Unlock()
+	if rs.lastBoolProps == nil {
+		rs.lastBoolProps = make(map[string]bool)
+	}
 	p, ok := rs.bools[key]
 	if !ok {
-		v := val
+		v := propVal
 		p = &v
 		rs.bools[key] = p
+		rs.lastBoolProps[key] = propVal
+		return p
 	}
-	return p
-}
-
-func (rs *RenderState) stringPtr(key, initial string) *string {
-	rs.mu.Lock()
-	defer rs.mu.Unlock()
-	p, ok := rs.strings[key]
-	if !ok {
-		v := initial
-		p = &v
-		rs.strings[key] = p
-		if rs.lastStrProps == nil {
-			rs.lastStrProps = make(map[string]string)
-		}
-		rs.lastStrProps[key] = initial
+	if rs.lastBoolProps[key] != propVal {
+		*p = propVal
+		rs.lastBoolProps[key] = propVal
 	}
 	return p
 }
@@ -110,22 +111,6 @@ func (rs *RenderState) syncStringProp(key, propVal string) *string {
 	if rs.lastStrProps[key] != propVal {
 		*p = propVal
 		rs.lastStrProps[key] = propVal
-	}
-	return p
-}
-
-func (rs *RenderState) floatPtr(key string, initial float64) *float64 {
-	rs.mu.Lock()
-	defer rs.mu.Unlock()
-	p, ok := rs.floats[key]
-	if !ok {
-		v := initial
-		p = &v
-		rs.floats[key] = p
-		if rs.lastFloatProps == nil {
-			rs.lastFloatProps = make(map[string]float64)
-		}
-		rs.lastFloatProps[key] = initial
 	}
 	return p
 }
@@ -155,43 +140,35 @@ func (rs *RenderState) loadImage(pluginDir, rel string) (svg *ui.SVG, bmp *ui.Bi
 	if pluginDir == "" || rel == "" {
 		return nil, nil
 	}
-	fullPath, err := manifest.ResolveWithin(pluginDir, rel)
-	if err != nil {
-		return nil, nil
-	}
+	cacheKey := pluginDir + "\x00" + rel
 	rs.mu.Lock()
-	if s, ok := rs.svgs[fullPath]; ok {
+	if cached, ok := rs.images[cacheKey]; ok {
 		rs.mu.Unlock()
-		return s, nil
-	}
-	if b, ok := rs.images[fullPath]; ok {
-		rs.mu.Unlock()
-		return nil, b
+		return cached.svg, cached.bmp
 	}
 	rs.mu.Unlock()
 
-	data, err := os.ReadFile(fullPath)
-	if err != nil {
-		return nil, nil
-	}
-	if strings.EqualFold(filepath.Ext(fullPath), ".svg") {
-		if parsed, err := ui.ParseSVG(data); err == nil {
-			rs.mu.Lock()
-			rs.svgs[fullPath] = parsed
-			rs.mu.Unlock()
-			return parsed, nil
-		}
-		return nil, nil
-	}
-	if decoded, err := ui.DecodeImage(data); err == nil {
-		if b, ok := decoded.(*ui.Bitmap); ok {
-			rs.mu.Lock()
-			rs.images[fullPath] = b
-			rs.mu.Unlock()
-			return nil, b
+	var asset cachedAsset
+	if fullPath, err := manifest.ResolveWithin(pluginDir, rel); err == nil {
+		if data, rerr := os.ReadFile(fullPath); rerr == nil {
+			if strings.HasSuffix(strings.ToLower(fullPath), ".svg") {
+				if parsed, perr := ui.ParseSVG(data); perr == nil {
+					asset.svg = parsed
+				}
+			} else if decoded, derr := ui.DecodeImage(data); derr == nil {
+				if b, ok := decoded.(*ui.Bitmap); ok {
+					asset.bmp = b
+				}
+			}
 		}
 	}
-	return nil, nil
+	rs.mu.Lock()
+	if rs.images == nil {
+		rs.images = make(map[string]cachedAsset)
+	}
+	rs.images[cacheKey] = asset
+	rs.mu.Unlock()
+	return asset.svg, asset.bmp
 }
 
 // RenderContext holds scoped metadata for rendering a declarative UINode tree.
@@ -566,6 +543,24 @@ func renderNode(c *ui.Context, rc RenderContext, n *rpc.UINode, scope string, id
 		variant := propString(n.Props, "variant", "secondary")
 		disabled := propBool(n.Props, "disabled", false)
 		keys := propString(n.Props, "keys", "")
+		if disabled {
+			btn := ui.ButtonBase(c.Key(key)).Height(28).Padding(0, 14).Radius(7).
+				AlignItems(ui.Center).Cursor(ui.CursorDefault).Label(label).Disabled(true)
+			switch variant {
+			case "ghost", "quiet":
+				btn.Padding(4, 8).Radius(6).TextColor(pal.TextMuted)
+			case "danger":
+				btn.Background(pal.Danger).TextColor(ui.Hex("#ffffff"))
+			case "primary":
+				btn.Background(pal.Accent).TextColor(ui.Hex("#ffffff"))
+			default:
+				btn.Background(pal.Control).TextColor(pal.TextMuted)
+			}
+			btn.Children(func() {
+				ui.Text(c.Key(key+"-lbl"), label).FontSize(12.5).FontWeight(500).SingleLine()
+			})
+			return
+		}
 		var clicked bool
 		switch variant {
 		case "primary":
@@ -579,7 +574,7 @@ func renderNode(c *ui.Context, rc RenderContext, n *rpc.UINode, scope string, id
 		default:
 			clicked = style.SizedButton(c, key, label, keys, false, 28, 7, pal)
 		}
-		if clicked && !disabled && rc.OnEvent != nil {
+		if clicked && rc.OnEvent != nil {
 			evName := n.OnClick
 			if evName == "" {
 				evName = "click"
@@ -589,8 +584,7 @@ func renderNode(c *ui.Context, rc RenderContext, n *rpc.UINode, scope string, id
 
 	case "toggle":
 		val := propBool(n.Props, "value", propBool(n.Props, "checked", false))
-		ptr := rc.State.syncBool(key, val)
-		*ptr = val
+		ptr := rc.State.syncBoolProp(key, val)
 		sw := style.Toggle(c.Key(key), ptr, pal)
 		sw.OnChange(func() {
 			if rc.OnEvent != nil {
@@ -604,44 +598,32 @@ func renderNode(c *ui.Context, rc RenderContext, n *rpc.UINode, scope string, id
 
 	case "segmented":
 		opts := parseOptions(n.Props)
-		curVal := propString(n.Props, "value", "")
-		selIdx := 0
-		for i, o := range opts {
-			if o.Value == curVal {
-				selIdx = i
-				break
-			}
-		}
 		if len(opts) == 0 {
 			return
 		}
-		track, thumb := ui.RGBA(0, 0, 0, 0.06), ui.Hex("#ffffff")
-		if pal.Dark {
-			track, thumb = ui.RGBA(255, 255, 255, 0.07), ui.RGBA(255, 255, 255, 0.2)
+		vals := make([]string, len(opts))
+		labels := make([]string, len(opts))
+		valid := make(map[string]bool, len(opts))
+		for i, o := range opts {
+			vals[i] = o.Value
+			labels[i] = o.Label
+			valid[o.Value] = true
 		}
-		seg := ui.SegmentedBase(c.Key(key), &selIdx, len(opts))
-		seg.Track.Height(24).Padding(2).Radius(7).Background(track).AlignItems(ui.Center).Children(func() {
-			for i, o := range opts {
-				item := seg.Segment(i).FillHeight().Padding(0, 10).Radius(5).Center()
-				if i == selIdx {
-					item.Background(thumb)
-				}
-				item.Children(func() {
-					col := pal.TextMuted
-					if i == selIdx {
-						col = pal.Text
-					}
-					ui.Text(c.Key(fmt.Sprintf("%s-o-%d", key, i)), o.Label).FontSize(12).TextColor(col).SingleLine()
-				})
-			}
-		})
-		seg.Track.OnChange(func() {
-			if selIdx >= 0 && selIdx < len(opts) && rc.OnEvent != nil {
+		curVal := propString(n.Props, "value", vals[0])
+		if !valid[curVal] {
+			curVal = vals[0]
+		}
+		ptr := rc.State.syncStringProp(key, curVal)
+		if !valid[*ptr] {
+			*ptr = curVal
+		}
+		kit.Segmented(c, key, ptr, vals, labels, func() {
+			if rc.OnEvent != nil {
 				evName := n.OnChange
 				if evName == "" {
 					evName = "change"
 				}
-				emitAsync(rc.OnEvent, compID, evName, opts[selIdx].Value)
+				emitAsync(rc.OnEvent, compID, evName, *ptr)
 			}
 		})
 
@@ -879,6 +861,9 @@ func applyTextStyle(el ui.Element, props map[string]any, st *rpc.UIStyle, pal *t
 	if propBool(props, "singleLine", false) {
 		el.SingleLine().Ellipsis("…")
 	}
+	if propBool(props, "wrap", false) || (st != nil && st.Wrap) {
+		el.Wrap()
+	}
 	if propBool(props, "tabular", false) {
 		el.FontFeatures("tnum")
 	}
@@ -921,7 +906,7 @@ func badgeColors(tone string, pal *theme.Palette) (fg, bg ui.Color) {
 	}
 }
 
-// ResolveColor parses "$token[@alpha]", "#rgb", "#rrggbb", "#rrggbbaa", and "rgba(r,g,b,a)".
+// ResolveColor parses "$token[@alpha]", "#rgb", "#rrggbb", "#rrggbbaa", "rgb(r,g,b)", and "rgba(r,g,b,a)".
 func ResolveColor(raw string, pal *theme.Palette) (ui.Color, bool) {
 	s := strings.TrimSpace(raw)
 	if s == "" {
@@ -947,7 +932,7 @@ func ResolveColor(raw string, pal *theme.Palette) (ui.Color, bool) {
 			c = pal.Done
 		case "danger":
 			c = pal.Danger
-		case "card":
+		case "card", "bg":
 			c = pal.Card
 		case "chip":
 			c = pal.Chip
@@ -981,46 +966,8 @@ func ResolveColor(raw string, pal *theme.Palette) (ui.Color, bool) {
 		}
 		return c, true
 	}
-	if strings.HasPrefix(s, "#") {
-		hex := s[1:]
-		switch len(hex) {
-		case 3:
-			r, e1 := strconv.ParseUint(strings.Repeat(hex[0:1], 2), 16, 8)
-			g, e2 := strconv.ParseUint(strings.Repeat(hex[1:2], 2), 16, 8)
-			b, e3 := strconv.ParseUint(strings.Repeat(hex[2:3], 2), 16, 8)
-			if e1 == nil && e2 == nil && e3 == nil {
-				return ui.RGBA(uint8(r), uint8(g), uint8(b), 1), true
-			}
-		case 6:
-			return ui.Hex(s), true
-		case 8:
-			r, e1 := strconv.ParseUint(hex[0:2], 16, 8)
-			g, e2 := strconv.ParseUint(hex[2:4], 16, 8)
-			b, e3 := strconv.ParseUint(hex[4:6], 16, 8)
-			a, e4 := strconv.ParseUint(hex[6:8], 16, 8)
-			if e1 == nil && e2 == nil && e3 == nil && e4 == nil {
-				return ui.RGBA(uint8(r), uint8(g), uint8(b), float32(a)/255), true
-			}
-		}
-		return ui.Color{}, false
-	}
-	low := strings.ToLower(s)
-	if strings.HasPrefix(low, "rgba(") && strings.HasSuffix(low, ")") {
-		parts := strings.Split(low[5:len(low)-1], ",")
-		if len(parts) == 4 {
-			r, e1 := strconv.Atoi(strings.TrimSpace(parts[0]))
-			g, e2 := strconv.Atoi(strings.TrimSpace(parts[1]))
-			b, e3 := strconv.Atoi(strings.TrimSpace(parts[2]))
-			a, e4 := strconv.ParseFloat(strings.TrimSpace(parts[3]), 32)
-			if e1 == nil && e2 == nil && e3 == nil && e4 == nil {
-				return ui.RGBA(uint8(clampByte(r)), uint8(clampByte(g)), uint8(clampByte(b)), float32(min(max(a, 0), 1))), true
-			}
-		}
-	}
-	return ui.Color{}, false
+	return theme.ParseColor(s)
 }
-
-func clampByte(v int) int { return min(max(v, 0), 255) }
 
 type selectOption struct {
 	Value string

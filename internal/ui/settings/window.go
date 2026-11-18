@@ -65,6 +65,13 @@ var settingsPages = []settingsPage{
 	{"advanced", locales.PageAdvanced, glyph.Of("f7-slider-horizontal-3"), false},
 }
 
+// PluginFieldDraft holds a single editable field's current buffer and baseline
+// value so Settings › Plugins keeps one stable address per input control.
+type PluginFieldDraft struct {
+	Value string
+	init  string
+}
+
 // State is what the Settings window keeps besides the settings.
 type State struct {
 	Page       string
@@ -101,15 +108,11 @@ type State struct {
 	Remote  draft.HostDraft    // the other machines' form
 	Feishu  draft.FeishuDraft  // the Feishu page's form
 
-	PluginDetail     string
-	PluginLogsID     string
-	PluginLogsText   string
-	PluginDraft      map[string]string
-	PluginSecrets    map[string]string
-	PluginDraftPtrs  map[string]*string
-	PluginSecretPtrs map[string]*string
-	PluginDraftInit  map[string]string
-	NavRevealed      string
+	PluginDetail   string
+	PluginLogsID   string
+	PluginLogsText string
+	PluginDrafts   map[string]*PluginFieldDraft
+	NavRevealed    string
 }
 
 // checkUpdates asks the updater for a newer app, which none does where
@@ -463,6 +466,11 @@ func view(x App, c *ui.Context) {
 // It returns what search.ResultsWithPlugins does.
 func searchSettings(x App, allPages []settingsPage) (map[string][]string, map[string][]string) {
 	ss, s := x.SettingsState(), x.Settings()
+	if strings.TrimSpace(ss.Query) == "" {
+		kit.Hits, kit.Reveal = nil, ""
+		ss.Revealed = ""
+		return nil, nil
+	}
 	var extras []search.PluginEntry
 	if pa := x.PluginsView(); pa != nil {
 		extras = pa.SearchEntries()
@@ -1536,7 +1544,7 @@ func keyboardPage(x App, c *ui.Context, pal *theme.Palette) {
 			if kit.Hits != nil {
 				found = found && kit.Hits[strings.TrimSuffix(x.ActionTitle(act.ID), "…")]
 			}
-			inGroup := act.Menu == menu || (menu == "Plugins" && act.PluginID != "")
+			inGroup := (act.PluginID == "" && act.Menu == menu) || (menu == "Plugins" && act.PluginID != "")
 			if inGroup && found {
 				acts = append(acts, act)
 			}
@@ -1550,10 +1558,12 @@ func keyboardPage(x App, c *ui.Context, pal *theme.Palette) {
 		} else {
 			title = map[string]func() string{"Hyla": locales.MenuApp, "Session": locales.MenuSession, "Edit": locales.MenuEdit, "Pane": locales.MenuPane, "View": locales.MenuView}[menu]()
 		}
-		kit.Group(c, pal, title, "", func() {
-			for _, act := range acts {
-				shortcutRow(x, c, pal, act)
-			}
+		ui.Column(c.Key("kb-grp-"+menu)).Gap(8).Children(func() {
+			kit.Group(c, pal, title, "", func() {
+				for _, act := range acts {
+					shortcutRow(x, c, pal, act)
+				}
+			})
 		})
 	}
 	ui.Text(c, locales.SetKeyboardHelp()).FontSize(12).TextColor(pal.TextFaint).Padding(0, 4)

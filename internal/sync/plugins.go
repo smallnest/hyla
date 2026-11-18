@@ -47,7 +47,7 @@ func collectPluginState(st *manifest.Store) (*manifest.Registry, map[string]json
 				Plugins: make(map[string]manifest.RegistryEntry, len(reg.Plugins)),
 			}
 			for id, e := range reg.Plugins {
-				if manifest.ValidateID(id) != nil {
+				if id == "hyla.feishu" || manifest.ValidateID(id) != nil {
 					continue
 				}
 				e.LinkPath = ""
@@ -92,7 +92,7 @@ func collectPluginState(st *manifest.Store) (*manifest.Registry, map[string]json
 				continue
 			}
 			id := strings.TrimSuffix(name, ".json")
-			if manifest.ValidateID(id) != nil {
+			if id == "hyla.feishu" || manifest.ValidateID(id) != nil {
 				continue
 			}
 			raw, rerr := os.ReadFile(filepath.Join(st.ConfigDir(), name))
@@ -130,72 +130,101 @@ func computeStateHash(local []byte, reg *manifest.Registry, cfgs map[string]json
 	return hashOf(b)
 }
 
-func applyRemotePlugins(st *manifest.Store, remoteReg *manifest.Registry, remoteCfgs map[string]json.RawMessage) error {
+func applyRemotePlugins(st *manifest.Store, remoteReg *manifest.Registry, remoteCfgs map[string]json.RawMessage, pluginsSynced bool) error {
 	if st == nil {
 		st = syncPluginStore()
 	}
-	if remoteReg == nil && len(remoteCfgs) == 0 {
+	hasPluginState := pluginsSynced || remoteReg != nil || len(remoteCfgs) > 0
+	if !hasPluginState {
 		return nil
 	}
 
-	if remoteReg != nil {
+	if remoteReg != nil || pluginsSynced {
 		localReg, err := st.LoadRegistry()
 		if err != nil {
 			return err
 		}
-		ver := remoteReg.Version
-		if ver == 0 {
-			ver = 1
+		ver := 1
+		remoteCount := 0
+		if remoteReg != nil {
+			if remoteReg.Version != 0 {
+				ver = remoteReg.Version
+			}
+			remoteCount = len(remoteReg.Plugins)
 		}
 		merged := &manifest.Registry{
 			Version: ver,
-			Plugins: make(map[string]manifest.RegistryEntry, len(remoteReg.Plugins)),
+			Plugins: make(map[string]manifest.RegistryEntry, remoteCount),
 		}
-		for id, rEntry := range remoteReg.Plugins {
-			if manifest.ValidateID(id) != nil {
+		if remoteReg != nil {
+			for id, rEntry := range remoteReg.Plugins {
+				if id == "hyla.feishu" || manifest.ValidateID(id) != nil {
+					continue
+				}
+				rEntry.LinkPath = ""
+				rEntry.SyncedEnabled = nil
+
+				localEntry, hasLocal := localReg.Plugins[id]
+				isBuiltin := manifest.IsBuiltin(id)
+				hasLocalLink := hasLocal && localEntry.Source == "link" && localEntry.LinkPath != "" && manifestExists(localEntry.LinkPath)
+				pDir, _ := st.PluginDir(id)
+				hasUnpacked := pDir != "" && manifestExists(pDir)
+
+				if hasLocal && localEntry.InstalledAt != 0 && rEntry.InstalledAt == 0 {
+					rEntry.InstalledAt = localEntry.InstalledAt
+				}
+
+				switch {
+				case isBuiltin:
+					rEntry.Source = "builtin"
+					rEntry.PendingInstall = false
+				case hasLocalLink:
+					rEntry.Source = "link"
+					rEntry.LinkPath = localEntry.LinkPath
+					rEntry.PendingInstall = false
+				case hasUnpacked:
+					if rEntry.Source == "link" || rEntry.Source == "" {
+						rEntry.Source = "package"
+					}
+					rEntry.PendingInstall = false
+				default:
+					// Plugin is not installed on this machine: mark pending_install and
+					// keep it disabled instead of silently downloading external code.
+					desired := rEntry.Enabled
+					rEntry.PendingInstall = true
+					rEntry.Enabled = false
+					rEntry.SyncedEnabled = &desired
+					if rEntry.Source == "link" || rEntry.Source == "" {
+						rEntry.Source = "package"
+					}
+				}
+				merged.Plugins[id] = rEntry
+			}
+		}
+		_, regStatErr := os.Stat(st.RegistryPath())
+		if len(merged.Plugins) > 0 || len(localReg.Plugins) > 0 || regStatErr == nil {
+			if err := st.SaveRegistry(merged); err != nil {
+				return err
+			}
+		}
+	}
+
+	if entries, err := os.ReadDir(st.ConfigDir()); err == nil {
+		for _, de := range entries {
+			if de.IsDir() || de.Type()&os.ModeSymlink != 0 {
 				continue
 			}
-			rEntry.LinkPath = ""
-			rEntry.SyncedEnabled = nil
-
-			localEntry, hasLocal := localReg.Plugins[id]
-			isBuiltin := manifest.IsBuiltin(id)
-			hasLocalLink := hasLocal && localEntry.Source == "link" && localEntry.LinkPath != "" && manifestExists(localEntry.LinkPath)
-			pDir, _ := st.PluginDir(id)
-			hasUnpacked := pDir != "" && manifestExists(pDir)
-
-			if hasLocal && localEntry.InstalledAt != 0 && rEntry.InstalledAt == 0 {
-				rEntry.InstalledAt = localEntry.InstalledAt
+			name := de.Name()
+			if !strings.HasSuffix(name, ".json") {
+				continue
 			}
-
-			switch {
-			case isBuiltin:
-				rEntry.Source = "builtin"
-				rEntry.PendingInstall = false
-			case hasLocalLink:
-				rEntry.Source = "link"
-				rEntry.LinkPath = localEntry.LinkPath
-				rEntry.PendingInstall = false
-			case hasUnpacked:
-				if rEntry.Source == "link" || rEntry.Source == "" {
-					rEntry.Source = "package"
-				}
-				rEntry.PendingInstall = false
-			default:
-				// Plugin is not installed on this machine: mark pending_install and
-				// keep it disabled instead of silently downloading external code.
-				desired := rEntry.Enabled
-				rEntry.PendingInstall = true
-				rEntry.Enabled = false
-				rEntry.SyncedEnabled = &desired
-				if rEntry.Source == "link" || rEntry.Source == "" {
-					rEntry.Source = "package"
-				}
+			id := strings.TrimSuffix(name, ".json")
+			if id == "hyla.feishu" || manifest.ValidateID(id) != nil {
+				continue
 			}
-			merged.Plugins[id] = rEntry
-		}
-		if err := st.SaveRegistry(merged); err != nil {
-			return err
+			if _, keep := remoteCfgs[id]; !keep {
+				_ = os.Remove(filepath.Join(st.ConfigDir(), name))
+			}
 		}
 	}
 
@@ -204,7 +233,7 @@ func applyRemotePlugins(st *manifest.Store, remoteReg *manifest.Registry, remote
 			return err
 		}
 		for id, raw := range remoteCfgs {
-			if manifest.ValidateID(id) != nil || !json.Valid(raw) {
+			if id == "hyla.feishu" || manifest.ValidateID(id) != nil || !json.Valid(raw) {
 				continue
 			}
 			var obj map[string]any

@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -76,12 +75,13 @@ func getBuiltinRunner(pluginID, hostKind string) BuiltinRunnerFunc {
 }
 
 type ManagerOptions struct {
-	HostKind    string // HostKindDaemon or HostKindApp
-	HylaVersion string
-	Store       *manifest.Store
-	Bridge      HostBridge
-	LocaleFunc  func() string
-	ThemeFunc   func() (appearance string, dark bool)
+	HostKind        string // HostKindDaemon or HostKindApp
+	HylaVersion     string
+	Store           *manifest.Store
+	Bridge          HostBridge
+	LocaleFunc      func() string
+	ThemeFunc       func() (appearance string, dark bool)
+	OnSettingsSaved func(pluginID string)
 }
 
 // Manager supervises out-of-process and built-in plugin hosts for either hylad or the GUI app.
@@ -112,15 +112,8 @@ type managedPlugin struct {
 	cancel        context.CancelFunc
 	stopping      bool
 	startWait     chan struct{} // closed when current start attempt completes
+	startCancel   context.CancelFunc
 	backoffTimer  *time.Timer
-}
-
-// IsEnabled reports whether pluginID is currently tracked as enabled (and not pending install).
-func (m *Manager) IsEnabled(pluginID string) bool {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	mp, ok := m.plugins[pluginID]
-	return ok && mp.installed.Entry.Enabled && !mp.installed.Entry.PendingInstall
 }
 
 // NewManager creates a new plugin host supervisor.
@@ -150,9 +143,15 @@ func (m *Manager) Reload() error {
 	if err != nil {
 		return err
 	}
+	return m.ReloadWithPlugins(list)
+}
+
+// ReloadWithPlugins reconciles active specs against a pre-discovered plugin list.
+func (m *Manager) ReloadWithPlugins(list []manifest.InstalledPlugin) error {
 
 	var toStop []*managedPlugin
 	var toAutoStart []string
+	var cancels []context.CancelFunc
 
 	m.mu.Lock()
 	if m.closed {
@@ -171,6 +170,11 @@ func (m *Manager) Reload() error {
 					cur.backoffTimer.Stop()
 					cur.backoffTimer = nil
 				}
+				if cur.startCancel != nil {
+					cancels = append(cancels, cur.startCancel)
+					cur.startCancel = nil
+				}
+				cur.startWait = nil
 				if cur.peer != nil || cur.cmd != nil {
 					toStop = append(toStop, m.detachLocked(cur))
 				}
@@ -189,7 +193,7 @@ func (m *Manager) Reload() error {
 				state:     StateStopped,
 			}
 			m.plugins[id] = mp
-			if m.shouldAutoStart(p, spec) {
+			if spec.AutoStart || spec.KeepAlive {
 				toAutoStart = append(toAutoStart, id)
 			}
 			continue
@@ -207,20 +211,25 @@ func (m *Manager) Reload() error {
 			}
 			cur.crashes = nil
 			cur.lastError = ""
+			if cur.startCancel != nil {
+				cancels = append(cancels, cur.startCancel)
+				cur.startCancel = nil
+			}
+			cur.startWait = nil
 			if cur.peer != nil || cur.cmd != nil {
 				toStop = append(toStop, m.detachLocked(cur))
-				if m.shouldAutoStart(p, spec) {
+				if spec.AutoStart || spec.KeepAlive {
 					toAutoStart = append(toAutoStart, id)
 				}
 			} else if cur.state == StateDegraded || cur.state == StateError {
 				cur.state = StateStopped
-				if m.shouldAutoStart(p, spec) {
+				if spec.AutoStart || spec.KeepAlive {
 					toAutoStart = append(toAutoStart, id)
 				}
 			}
 			continue
 		}
-		if m.shouldAutoStart(p, spec) && cur.state == StateStopped && cur.peer == nil {
+		if (spec.AutoStart || spec.KeepAlive) && cur.state == StateStopped && cur.peer == nil {
 			toAutoStart = append(toAutoStart, id)
 		}
 	}
@@ -230,6 +239,11 @@ func (m *Manager) Reload() error {
 				mp.backoffTimer.Stop()
 				mp.backoffTimer = nil
 			}
+			if mp.startCancel != nil {
+				cancels = append(cancels, mp.startCancel)
+				mp.startCancel = nil
+			}
+			mp.startWait = nil
 			if mp.peer != nil || mp.cmd != nil {
 				toStop = append(toStop, m.detachLocked(mp))
 			}
@@ -238,6 +252,9 @@ func (m *Manager) Reload() error {
 	}
 	m.mu.Unlock()
 
+	for _, cfn := range cancels {
+		cfn()
+	}
 	for _, mp := range toStop {
 		m.terminateDetached(mp)
 	}
@@ -266,16 +283,26 @@ func (m *Manager) ShutdownAll() {
 	m.mu.Lock()
 	m.closed = true
 	var active []*managedPlugin
+	var cancels []context.CancelFunc
 	for _, mp := range m.plugins {
 		if mp.backoffTimer != nil {
 			mp.backoffTimer.Stop()
 			mp.backoffTimer = nil
 		}
+		if mp.startCancel != nil {
+			cancels = append(cancels, mp.startCancel)
+			mp.startCancel = nil
+		}
+		mp.startWait = nil
 		if mp.peer != nil || mp.cmd != nil {
 			active = append(active, m.detachLocked(mp))
 		}
 	}
 	m.mu.Unlock()
+
+	for _, cfn := range cancels {
+		cfn()
+	}
 
 	var wg sync.WaitGroup
 	for _, mp := range active {
@@ -306,6 +333,8 @@ func (m *Manager) Restart(ctx context.Context, pluginID string) error {
 	m.mu.Lock()
 	mp, ok := m.plugins[pluginID]
 	var detached *managedPlugin
+	var prevStart chan struct{}
+	var prevCancel context.CancelFunc
 	if ok {
 		if mp.backoffTimer != nil {
 			mp.backoffTimer.Stop()
@@ -313,12 +342,28 @@ func (m *Manager) Restart(ctx context.Context, pluginID string) error {
 		}
 		mp.crashes = nil
 		mp.lastError = ""
+		if mp.startWait != nil {
+			prevStart = mp.startWait
+			prevCancel = mp.startCancel
+			mp.startWait = nil
+			mp.startCancel = nil
+		}
 		if mp.peer != nil || mp.cmd != nil {
 			detached = m.detachLocked(mp)
 		}
 		mp.state = StateStopped
 	}
 	m.mu.Unlock()
+	if prevCancel != nil {
+		prevCancel()
+	}
+	if prevStart != nil {
+		select {
+		case <-prevStart:
+		case <-ctx.Done():
+			return rpc.NewError(rpc.ErrCodeTimeout, ctx.Err().Error())
+		}
+	}
 	if detached != nil {
 		m.terminateDetached(detached)
 	}
@@ -379,21 +424,29 @@ func (m *Manager) EnsureStarted(ctx context.Context, pluginID string) error {
 			mp.backoffTimer = nil
 		}
 		waitCh := make(chan struct{})
+		startCtx, startCancel := context.WithCancel(ctx)
 		mp.startWait = waitCh
+		mp.startCancel = startCancel
 		mp.state = StateStarting
 		installed := mp.installed
 		spec := *mp.spec
 		m.mu.Unlock()
 
-		err := m.startProcess(ctx, pluginID, installed, &spec)
+		err := m.startProcess(startCtx, pluginID, installed, &spec, waitCh)
 
+		startCancel()
 		m.mu.Lock()
 		mp = m.plugins[pluginID]
 		if mp != nil && mp.startWait == waitCh {
 			mp.startWait = nil
+			mp.startCancel = nil
 			if err != nil {
-				mp.state = StateError
-				mp.lastError = err.Error()
+				if mp.installed.Entry.Enabled {
+					mp.state = StateError
+					mp.lastError = err.Error()
+				} else {
+					mp.state = StateStopped
+				}
 			}
 		}
 		m.mu.Unlock()
@@ -402,22 +455,13 @@ func (m *Manager) EnsureStarted(ctx context.Context, pluginID string) error {
 	}
 }
 
-func (m *Manager) startProcess(ctx context.Context, id string, p manifest.InstalledPlugin, spec *manifest.HostProcessSpec) error {
+func (m *Manager) startProcess(ctx context.Context, id string, p manifest.InstalledPlugin, spec *manifest.HostProcessSpec, waitCh chan struct{}) error {
 	dataDir, err := m.opts.Store.DataDir(id)
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(dataDir, 0o755); err != nil {
-		return err
-	}
-	logPath, err := m.opts.Store.LogPath(id)
-	if err != nil {
-		return err
-	}
-	lw, err := newRotatingLogWriter(logPath)
-	if err != nil {
-		return err
-	}
+	builtinFn := getBuiltinRunner(id, m.opts.HostKind)
+	inProcessBuiltin := builtinFn != nil && p.Builtin
 
 	procCtx, procCancel := context.WithCancel(context.Background())
 	var (
@@ -425,8 +469,8 @@ func (m *Manager) startProcess(ctx context.Context, id string, p manifest.Instal
 		cmd        *exec.Cmd
 		cleanups   []func()
 		acceptConn func(context.Context) error
+		lw         *rotatingLogWriter
 	)
-	cleanups = append(cleanups, func() { _ = lw.Close() })
 
 	cleanupAll := func() {
 		procCancel()
@@ -442,15 +486,29 @@ func (m *Manager) startProcess(ctx context.Context, id string, p manifest.Instal
 		}
 	}
 
-	if fn := getBuiltinRunner(id, m.opts.HostKind); fn != nil && p.Builtin {
+	if inProcessBuiltin {
 		cHost, cPlugin := net.Pipe()
 		peer = rpc.NewPeer(cHost, cHost, cHost)
 		pluginPeer := rpc.NewPeer(cPlugin, cPlugin, cPlugin)
 		go func() {
 			defer cPlugin.Close()
-			fn(procCtx, pluginPeer)
+			builtinFn(procCtx, pluginPeer)
 		}()
 	} else {
+		if err := os.MkdirAll(dataDir, 0o755); err != nil {
+			return err
+		}
+		hasDualHosts := p.Manifest != nil && p.Manifest.Daemon != nil && p.Manifest.App != nil
+		logPath, err := m.opts.Store.HostLogPath(id, m.opts.HostKind, hasDualHosts)
+		if err != nil {
+			return err
+		}
+		lw, err = newRotatingLogWriter(logPath)
+		if err != nil {
+			return err
+		}
+		cleanups = append(cleanups, func() { _ = lw.Close() })
+
 		argv, err := resolveCommand(p.RootDir, spec.Command)
 		if err != nil {
 			cleanupAll()
@@ -503,6 +561,7 @@ func (m *Manager) startProcess(ctx context.Context, id string, p manifest.Instal
 				errCh := make(chan error, 1)
 				go func() {
 					c, aerr := ln.Accept()
+					_ = ln.Close()
 					if aerr != nil {
 						errCh <- aerr
 						return
@@ -600,10 +659,10 @@ func (m *Manager) startProcess(ctx context.Context, id string, p manifest.Instal
 		return rpc.NewError(rpc.ErrCodeTargetNotFound, "plugin host shutting down")
 	}
 	mp := m.plugins[id]
-	if mp == nil {
+	if mp == nil || mp.startWait != waitCh || !mp.installed.Entry.Enabled {
 		m.mu.Unlock()
 		cleanupAll()
-		return rpc.NewError(rpc.ErrCodeTargetNotFound, "plugin removed during startup")
+		return rpc.NewError(rpc.ErrCodeTargetNotFound, "plugin start superseded, removed, or disabled")
 	}
 	waitDone := make(chan struct{})
 	runCleanup := sync.OnceFunc(func() {
@@ -804,6 +863,14 @@ func (m *Manager) terminateDetached(mp *managedPlugin) {
 
 // Call invokes a Host -> Plugin RPC method with permission gating and lazy activation.
 func (m *Manager) Call(ctx context.Context, pluginID, method string, params any, out any) error {
+	m.mu.Lock()
+	_, known := m.plugins[pluginID]
+	m.mu.Unlock()
+	if !known {
+		if err := m.Reload(); err != nil {
+			return err
+		}
+	}
 	if !m.allowHostToPluginCall(pluginID, method) {
 		return rpc.NewError(rpc.ErrCodePermissionDenied, fmt.Sprintf("plugin %q lacks permission for %s", pluginID, method))
 	}
@@ -1008,13 +1075,12 @@ func (m *Manager) ListStatuses() []rpc.PluginStatus {
 	return out
 }
 
-// Logs tails the stderr log file of pluginID.
+// Logs tails the stderr log file(s) of pluginID.
 func (m *Manager) Logs(pluginID string, lines int) (rpc.PluginLogsResult, error) {
-	p, err := m.opts.Store.LogPath(pluginID)
+	p, txt, count, err := ReadPluginLogs(m.opts.Store, pluginID, lines)
 	if err != nil {
 		return rpc.PluginLogsResult{}, err
 	}
-	txt, count := TailLog(p, lines)
 	return rpc.PluginLogsResult{Path: p, Text: txt, Lines: count}, nil
 }
 
@@ -1080,184 +1146,97 @@ func requiredPluginToHostPerm(method string) string {
 	}
 }
 
-func (m *Manager) registerBridgeHandlers(id string, peer *rpc.Peer) {
-	check := func(method string) error {
-		req := requiredPluginToHostPerm(method)
-		if req != "" && !m.hasPermission(id, req) {
-			return rpc.NewError(rpc.ErrCodePermissionDenied, fmt.Sprintf("plugin %q lacks permission %q for %s", id, req, method))
-		}
-		return nil
+func (m *Manager) checkBridgePerm(id, method string) error {
+	req := requiredPluginToHostPerm(method)
+	if req != "" && !m.hasPermission(id, req) {
+		return rpc.NewError(rpc.ErrCodePermissionDenied, fmt.Sprintf("plugin %q lacks permission %q for %s", id, req, method))
 	}
+	return nil
+}
 
-	peer.Handle("host.getState", func(ctx context.Context, method string, raw json.RawMessage) (any, error) {
-		if err := check(method); err != nil {
+func handleBridgeCall[P any, R any](m *Manager, id string, peer *rpc.Peer, method string, allowEmpty bool, fn func(context.Context, string, P) (R, error)) {
+	peer.Handle(method, func(ctx context.Context, method string, raw json.RawMessage) (any, error) {
+		if err := m.checkBridgePerm(id, method); err != nil {
 			return nil, err
 		}
 		if m.opts.Bridge == nil {
 			return nil, rpc.NewError(rpc.ErrCodeCapabilityUnsupported, "bridge unavailable")
 		}
-		var p rpc.HostGetStateParams
-		if len(raw) > 0 {
-			_ = json.Unmarshal(raw, &p)
+		var p P
+		if !allowEmpty || len(raw) > 0 {
+			if err := json.Unmarshal(raw, &p); err != nil {
+				if !allowEmpty {
+					return nil, rpc.NewError(rpc.ErrCodeInvalidParams, err.Error())
+				}
+			}
 		}
+		return fn(ctx, id, p)
+	})
+}
+
+func handleBridgeExec[P any](m *Manager, id string, peer *rpc.Peer, method string, optionalBridge, allowEmpty bool, fn func(context.Context, string, P) error) {
+	peer.Handle(method, func(ctx context.Context, method string, raw json.RawMessage) (any, error) {
+		if err := m.checkBridgePerm(id, method); err != nil {
+			return nil, err
+		}
+		if m.opts.Bridge == nil {
+			if optionalBridge {
+				return struct{}{}, nil
+			}
+			return nil, rpc.NewError(rpc.ErrCodeCapabilityUnsupported, "bridge unavailable")
+		}
+		var p P
+		if !allowEmpty || len(raw) > 0 {
+			if err := json.Unmarshal(raw, &p); err != nil {
+				if !allowEmpty {
+					return nil, rpc.NewError(rpc.ErrCodeInvalidParams, err.Error())
+				}
+			}
+		}
+		return struct{}{}, fn(ctx, id, p)
+	})
+}
+
+func (m *Manager) registerBridgeHandlers(id string, peer *rpc.Peer) {
+	handleBridgeCall(m, id, peer, "host.getState", true, func(ctx context.Context, id string, p rpc.HostGetStateParams) (*rpc.HostGetStateResult, error) {
 		return m.opts.Bridge.GetState(ctx, id, p)
 	})
-
-	peer.Handle("pane.readScreen", func(ctx context.Context, method string, raw json.RawMessage) (any, error) {
-		if err := check(method); err != nil {
-			return nil, err
-		}
-		if m.opts.Bridge == nil {
-			return nil, rpc.NewError(rpc.ErrCodeCapabilityUnsupported, "bridge unavailable")
-		}
-		var p rpc.PaneReadScreenParams
-		if err := json.Unmarshal(raw, &p); err != nil {
-			return nil, rpc.NewError(rpc.ErrCodeInvalidParams, err.Error())
-		}
+	handleBridgeCall(m, id, peer, "pane.readScreen", false, func(ctx context.Context, id string, p rpc.PaneReadScreenParams) (*rpc.PaneReadScreenResult, error) {
 		return m.opts.Bridge.ReadScreen(ctx, id, p)
 	})
-
-	peer.Handle("pane.getEnv", func(ctx context.Context, method string, raw json.RawMessage) (any, error) {
-		if err := check(method); err != nil {
-			return nil, err
-		}
-		if m.opts.Bridge == nil {
-			return nil, rpc.NewError(rpc.ErrCodeCapabilityUnsupported, "bridge unavailable")
-		}
-		var p rpc.PaneGetEnvParams
-		if err := json.Unmarshal(raw, &p); err != nil {
-			return nil, rpc.NewError(rpc.ErrCodeInvalidParams, err.Error())
-		}
+	handleBridgeCall(m, id, peer, "pane.getEnv", false, func(ctx context.Context, id string, p rpc.PaneGetEnvParams) (*rpc.PaneGetEnvResult, error) {
 		return m.opts.Bridge.GetEnv(ctx, id, p)
 	})
-
-	peer.Handle("session.create", func(ctx context.Context, method string, raw json.RawMessage) (any, error) {
-		if err := check(method); err != nil {
-			return nil, err
-		}
-		if m.opts.Bridge == nil {
-			return nil, rpc.NewError(rpc.ErrCodeCapabilityUnsupported, "bridge unavailable")
-		}
-		var p proto.CreateParams
-		if err := json.Unmarshal(raw, &p); err != nil {
-			return nil, rpc.NewError(rpc.ErrCodeInvalidParams, err.Error())
-		}
+	handleBridgeCall(m, id, peer, "session.create", false, func(ctx context.Context, id string, p proto.CreateParams) (*rpc.SessionCreateResult, error) {
 		return m.opts.Bridge.CreateSession(ctx, id, p)
 	})
 
-	peer.Handle("pane.sendInput", func(ctx context.Context, method string, raw json.RawMessage) (any, error) {
-		if err := check(method); err != nil {
-			return nil, err
-		}
-		if m.opts.Bridge == nil {
-			return nil, rpc.NewError(rpc.ErrCodeCapabilityUnsupported, "bridge unavailable")
-		}
-		var p rpc.PaneSendInputParams
-		if err := json.Unmarshal(raw, &p); err != nil {
-			return nil, rpc.NewError(rpc.ErrCodeInvalidParams, err.Error())
-		}
-		return struct{}{}, m.opts.Bridge.SendInput(ctx, id, p)
+	handleBridgeExec(m, id, peer, "pane.sendInput", false, false, func(ctx context.Context, id string, p rpc.PaneSendInputParams) error {
+		return m.opts.Bridge.SendInput(ctx, id, p)
 	})
-
-	peer.Handle("pane.sendKey", func(ctx context.Context, method string, raw json.RawMessage) (any, error) {
-		if err := check(method); err != nil {
-			return nil, err
-		}
-		if m.opts.Bridge == nil {
-			return nil, rpc.NewError(rpc.ErrCodeCapabilityUnsupported, "bridge unavailable")
-		}
-		var p rpc.PaneSendKeyParams
-		if err := json.Unmarshal(raw, &p); err != nil {
-			return nil, rpc.NewError(rpc.ErrCodeInvalidParams, err.Error())
-		}
-		return struct{}{}, m.opts.Bridge.SendKey(ctx, id, p)
+	handleBridgeExec(m, id, peer, "pane.sendKey", false, false, func(ctx context.Context, id string, p rpc.PaneSendKeyParams) error {
+		return m.opts.Bridge.SendKey(ctx, id, p)
 	})
-
-	peer.Handle("pane.reportStatus", func(ctx context.Context, method string, raw json.RawMessage) (any, error) {
-		if err := check(method); err != nil {
-			return nil, err
-		}
-		if m.opts.Bridge == nil {
-			return nil, rpc.NewError(rpc.ErrCodeCapabilityUnsupported, "bridge unavailable")
-		}
-		var p rpc.PaneReportStatusParams
-		if err := json.Unmarshal(raw, &p); err != nil {
-			return nil, rpc.NewError(rpc.ErrCodeInvalidParams, err.Error())
-		}
-		return struct{}{}, m.opts.Bridge.ReportStatus(ctx, id, p)
+	handleBridgeExec(m, id, peer, "pane.reportStatus", false, false, func(ctx context.Context, id string, p rpc.PaneReportStatusParams) error {
+		return m.opts.Bridge.ReportStatus(ctx, id, p)
 	})
-
-	peer.Handle("pane.focus", func(ctx context.Context, method string, raw json.RawMessage) (any, error) {
-		if err := check(method); err != nil {
-			return nil, err
-		}
-		if m.opts.Bridge == nil {
-			return nil, rpc.NewError(rpc.ErrCodeCapabilityUnsupported, "bridge unavailable")
-		}
-		var p rpc.PaneFocusParams
-		if err := json.Unmarshal(raw, &p); err != nil {
-			return nil, rpc.NewError(rpc.ErrCodeInvalidParams, err.Error())
-		}
-		return struct{}{}, m.opts.Bridge.FocusPane(ctx, id, p)
+	handleBridgeExec(m, id, peer, "pane.focus", false, false, func(ctx context.Context, id string, p rpc.PaneFocusParams) error {
+		return m.opts.Bridge.FocusPane(ctx, id, p)
 	})
-
-	peer.Handle("ui.invalidate", func(ctx context.Context, method string, raw json.RawMessage) (any, error) {
-		if err := check(method); err != nil {
-			return nil, err
-		}
-		if m.opts.Bridge == nil {
-			return struct{}{}, nil
-		}
-		var p rpc.UIInvalidateParams
-		if len(raw) > 0 {
-			_ = json.Unmarshal(raw, &p)
-		}
-		return struct{}{}, m.opts.Bridge.InvalidateUI(ctx, id, p)
+	handleBridgeExec(m, id, peer, "ui.invalidate", true, true, func(ctx context.Context, id string, p rpc.UIInvalidateParams) error {
+		return m.opts.Bridge.InvalidateUI(ctx, id, p)
 	})
-
-	peer.Handle("ui.openPane", func(ctx context.Context, method string, raw json.RawMessage) (any, error) {
-		if err := check(method); err != nil {
-			return nil, err
-		}
-		if m.opts.Bridge == nil {
-			return nil, rpc.NewError(rpc.ErrCodeCapabilityUnsupported, "bridge unavailable")
-		}
-		var p rpc.UIOpenPaneParams
-		if err := json.Unmarshal(raw, &p); err != nil {
-			return nil, rpc.NewError(rpc.ErrCodeInvalidParams, err.Error())
-		}
+	handleBridgeExec(m, id, peer, "ui.openPane", false, false, func(ctx context.Context, id string, p rpc.UIOpenPaneParams) error {
 		if p.Plugin == "" {
 			p.Plugin = id
 		}
-		return struct{}{}, m.opts.Bridge.OpenPane(ctx, id, p)
+		return m.opts.Bridge.OpenPane(ctx, id, p)
 	})
-
-	peer.Handle("ui.notify", func(ctx context.Context, method string, raw json.RawMessage) (any, error) {
-		if err := check(method); err != nil {
-			return nil, err
-		}
-		if m.opts.Bridge == nil {
-			return struct{}{}, nil
-		}
-		var p rpc.UINotifyParams
-		if err := json.Unmarshal(raw, &p); err != nil {
-			return nil, rpc.NewError(rpc.ErrCodeInvalidParams, err.Error())
-		}
-		return struct{}{}, m.opts.Bridge.NotifyUI(ctx, id, p)
+	handleBridgeExec(m, id, peer, "ui.notify", true, false, func(ctx context.Context, id string, p rpc.UINotifyParams) error {
+		return m.opts.Bridge.NotifyUI(ctx, id, p)
 	})
-
-	peer.Handle("webview.emit", func(ctx context.Context, method string, raw json.RawMessage) (any, error) {
-		if err := check(method); err != nil {
-			return nil, err
-		}
-		if m.opts.Bridge == nil {
-			return nil, rpc.NewError(rpc.ErrCodeCapabilityUnsupported, "bridge unavailable")
-		}
-		var p rpc.WebViewEmitParams
-		if err := json.Unmarshal(raw, &p); err != nil {
-			return nil, rpc.NewError(rpc.ErrCodeInvalidParams, err.Error())
-		}
-		return struct{}{}, m.opts.Bridge.WebViewEmit(ctx, id, p)
+	handleBridgeExec(m, id, peer, "webview.emit", false, false, func(ctx context.Context, id string, p rpc.WebViewEmitParams) error {
+		return m.opts.Bridge.WebViewEmit(ctx, id, p)
 	})
 
 	peer.Handle("plugin.getSettings", func(ctx context.Context, method string, raw json.RawMessage) (any, error) {
@@ -1343,8 +1322,9 @@ func (m *Manager) registerBridgeHandlers(id string, peer *rpc.Peer) {
 				return nil, err
 			}
 		}
+		if m.opts.OnSettingsSaved != nil && (p.Settings != nil || len(p.Secrets) > 0) {
+			m.opts.OnSettingsSaved(id)
+		}
 		return struct{}{}, nil
 	})
 }
-
-var _ = errors.New

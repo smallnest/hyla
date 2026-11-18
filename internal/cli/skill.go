@@ -259,15 +259,18 @@ func writeSkill(dir string) error {
 	return writeFileAtomic(p, []byte(skillGuide))
 }
 
-// SyncSkill keeps what agents load of Hyla current with this hyla, which
-// every hyla, the app and the CLI, does as it starts. It updates what is
-// this Hyla's alone, so that a development build, with a directory of its
-// own, takes nothing from the installed Hyla: its own copy of the skill,
-// where its installs link to, and the plugins of Pi and OpenCode written
-// to run its hyla command. The installs older hylas wrote, copies of the
-// skill, go to the installed Hyla, which makes them links. It installs
-// nothing that isn't.
+// SyncSkill keeps what agents load of Hyla current with this hyla.
 func SyncSkill() {
+	syncSkillWithSnap(nil)
+}
+
+// SyncSkillPreload keeps agent skills/hooks current and returns the loaded
+// plugin base snapshot if one was computed, avoiding redundant startup scans.
+func SyncSkillPreload() *manifest.Snapshot {
+	return syncSkillWithSnap(nil)
+}
+
+func syncSkillWithSnap(snap *manifest.Snapshot) *manifest.Snapshot {
 	for _, dir := range skillDirs("") {
 		p := filepath.Join(dir, "SKILL.md")
 		if t, err := os.Readlink(p); err == nil {
@@ -292,7 +295,8 @@ func SyncSkill() {
 			}
 		}
 	}
-	_ = syncExistingPluginAgentIntegrations(manifest.DefaultStore())
+	usedSnap, _ := syncExistingPluginAgentIntegrationsWithSnap(manifest.DefaultStore(), snap)
+	return usedSnap
 }
 
 // adoptCopies tells the installed Hyla, which takes the skill's copies,

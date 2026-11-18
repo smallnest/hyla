@@ -110,3 +110,117 @@ dir = "skills/extra-guide"
 		t.Fatalf("user hook should still exist:\n%s", s)
 	}
 }
+
+func TestPluginAgentIntegrationsCrossAgentAndNoOpAvoidsWrites(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("HYLA_HOME", filepath.Join(home, ".hyla"))
+	t.Setenv("CLAUDE_CONFIG_DIR", filepath.Join(home, ".claude"))
+	t.Setenv("PI_CODING_AGENT_DIR", filepath.Join(home, ".pi", "agent"))
+	t.Setenv("XDG_CONFIG_HOME", filepath.Join(home, ".config"))
+
+	pluginDir := filepath.Join(home, "multi-plugin")
+	_ = os.MkdirAll(filepath.Join(pluginDir, "hooks"), 0o755)
+	_ = os.MkdirAll(filepath.Join(pluginDir, "skills", "cl-sk"), 0o755)
+	_ = os.MkdirAll(filepath.Join(pluginDir, "skills", "ag-sk"), 0o755)
+	_ = os.WriteFile(filepath.Join(pluginDir, manifest.ManifestFileName), []byte(`
+api_version = 1
+id = "com.example.multi"
+name = "Multi Agent"
+version = "1.0.0"
+
+[[hooks]]
+agent = "claude"
+event = "Stop"
+script = "hooks/claude.sh"
+
+[[hooks]]
+agent = "pi"
+event = "session_start"
+script = "hooks/pi.ts"
+
+[[skills]]
+agent = "claude"
+name = "cl-sk"
+dir = "skills/cl-sk"
+
+[[skills]]
+agent = "codex"
+name = "ag-sk"
+dir = "skills/ag-sk"
+`), 0o644)
+	_ = os.WriteFile(filepath.Join(pluginDir, "hooks", "claude.sh"), []byte("#!/bin/sh\necho ok\n"), 0o755)
+	_ = os.WriteFile(filepath.Join(pluginDir, "hooks", "pi.ts"), []byte("export default () => {}\n"), 0o644)
+	_ = os.WriteFile(filepath.Join(pluginDir, "skills", "cl-sk", "SKILL.md"), []byte("claude\n"), 0o644)
+	_ = os.WriteFile(filepath.Join(pluginDir, "skills", "ag-sk", "SKILL.md"), []byte("agents\n"), 0o644)
+
+	st := &manifest.Store{BaseDir: t.TempDir()}
+	if _, err := st.Link(pluginDir, true); err != nil {
+		t.Fatal(err)
+	}
+
+	// Only claude base skill installed -> syncExisting must NOT install agents/pi assets.
+	if err := writeSkill(filepath.Join(home, ".claude", "skills", "hyla")); err != nil {
+		t.Fatal(err)
+	}
+	if err := syncExistingPluginAgentIntegrations(st); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(home, ".claude", "skills", "cl-sk", "SKILL.md")); err != nil {
+		t.Fatalf("expected claude plugin skill installed: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(home, ".agents", "skills", "ag-sk")); !os.IsNotExist(err) {
+		t.Fatal("must not install agents plugin skill when base agents skill is missing")
+	}
+
+	// Install pi hook via explicit "pi" filter, then remove via "claude" filter -> pi hook file MUST stay!
+	if err := applyPluginAgentIntegrations(st, "pi", true); err != nil {
+		t.Fatal(err)
+	}
+	piHook := filepath.Join(home, ".pi", "agent", "extensions", "hyla-plugin-com.example.multi-pi.ts")
+	if _, err := os.Stat(piHook); err != nil {
+		t.Fatalf("expected pi hook installed: %v", err)
+	}
+	if err := applyPluginAgentIntegrations(st, "claude", false); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(piHook); err != nil {
+		t.Fatalf("claude filter deleted pi hook file: %v", err)
+	}
+
+	// Re-sync existing targets first, then verify a subsequent repeat no-op does not touch state file.
+	if err := syncExistingPluginAgentIntegrations(st); err != nil {
+		t.Fatal(err)
+	}
+	statePath := pluginAgentAssetsStatePath(st)
+	beforeInfo, err := os.Stat(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := syncExistingPluginAgentIntegrations(st); err != nil {
+		t.Fatal(err)
+	}
+	afterInfo, err := os.Stat(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !beforeInfo.ModTime().Equal(afterInfo.ModTime()) {
+		t.Fatalf("expected zero writes to %s on no-op sync", statePath)
+	}
+
+	// execSinglePluginHook quotes binary paths containing spaces safely.
+	spaceHome := filepath.Join(home, "dir with spaces")
+	_ = os.MkdirAll(filepath.Join(spaceHome, "bin"), 0o755)
+	fakeBin := filepath.Join(spaceHome, "bin", "hyla")
+	_ = os.WriteFile(fakeBin, []byte("#!/bin/sh\necho ran\n"), 0o755)
+	hookScript := filepath.Join(pluginDir, "hooks", "spaced.sh")
+	_ = os.WriteFile(hookScript, []byte("#!/bin/sh\nout=$(__HYLA__)\n[ \"$out\" = \"ran\" ]\n"), 0o755)
+
+	t.Setenv("HYLA_HOME", spaceHome)
+	if err := execSinglePluginHook("com.example.multi", pluginDir, "claude", "Stop", hookScript, nil); err != nil {
+		t.Fatalf("execSinglePluginHook with spaces in HYLA_HOME failed: %v", err)
+	}
+	if quoted := shellQuote("/tmp/my app/hyla"); quoted != "'/tmp/my app/hyla'" && quoted != `"/tmp/my app/hyla"` {
+		t.Fatalf("unexpected shellQuote: %q", quoted)
+	}
+}

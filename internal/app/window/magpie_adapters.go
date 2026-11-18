@@ -17,16 +17,26 @@ func (a *App) MagpieNow() *magpieview.Info { return a.Magpie }
 
 func (a *App) SetMagpie(st *magpieview.Info) { a.Magpie = st }
 
+// hasMagpieFixture reports whether the card should fall back to magpieview
+// (only when Plugins is nil, or an offline test pre-seeded a.Magpie with no
+// daemon client and the hyla.magpie plugin still enabled).
+func (a *App) hasMagpieFixture() bool {
+	if a.Magpie == nil || (a.Magpie.Usage == nil && a.Magpie.Err == "") {
+		return false
+	}
+	if a.Plugins == nil {
+		return true
+	}
+	if !a.Plugins.IsPluginEnabled("hyla.magpie") {
+		return false
+	}
+	return a.Local().Client == nil
+}
+
 // infoMagpie draws Magpie's card.
 func (a *App) infoMagpie(c *ui.Context, pal *theme.Palette) {
-	hasTestFixture := a.Magpie != nil && (a.Magpie.Usage != nil || a.Magpie.Err != "")
-	if !hasTestFixture && a.Plugins != nil {
-		if !a.Plugins.IsPluginEnabled("hyla.magpie") {
-			return
-		}
-		if a.hostSupportsPlugins(a.Local()) {
-			return
-		}
+	if a.Plugins != nil && !a.hasMagpieFixture() {
+		return
 	}
 	magpieview.Card(a, c, pal)
 }

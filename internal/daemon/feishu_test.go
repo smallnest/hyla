@@ -270,3 +270,46 @@ func TestConversationOfCommands(t *testing.T) {
 		t.Error("sh names no conversation")
 	}
 }
+
+func TestFeishuDirectAndPaneAnswer(t *testing.T) {
+	d := testDaemon(t)
+	d.initPlugins()
+	t.Cleanup(func() {
+		if d.plugins != nil {
+			d.plugins.ShutdownAll()
+		}
+		proto.ClearPluginAgents()
+	})
+	for _, st := range d.pluginList() {
+		if st.ID == "hyla.feishu" {
+			t.Fatal("hyla.feishu must not be listed as a plugin")
+		}
+	}
+	if _, err := d.call(&controlConn{}, "feishu.status", nil); err != nil {
+		t.Fatalf("feishu.status failed: %v", err)
+	}
+	d.sessions = []*session{{
+		id:    "s1",
+		focus: "p1",
+		panes: []*pane{{
+			sid:  "s1",
+			info: proto.Pane{ID: "p1"},
+		}},
+	}}
+	d.panes["p1"] = d.sessions[0].panes[0]
+
+	if _, err := d.chatSend(proto.ChatSendParams{Session: "s1", Pane: "p1", Text: "hello"}); err == nil {
+		t.Fatal("expected error when no terminal and no feishu bot running")
+	}
+	rawAns, _ := json.Marshal(proto.AnswerParams{Pane: "p1", Dir: "/tmp/ans"})
+	if _, err := d.call(&controlConn{}, "pane.answer", rawAns); err != nil {
+		t.Fatalf("pane.answer failed: %v", err)
+	}
+	pn := d.findPane("p1")
+	pn.mu.Lock()
+	ansLegacy, ansNew := pn.info.FeishuAnswer, pn.info.AnswerDir
+	pn.mu.Unlock()
+	if ansLegacy != "/tmp/ans" || ansNew != "/tmp/ans" {
+		t.Fatalf("pane.answer did not populate both fields: FeishuAnswer=%q AnswerDir=%q", ansLegacy, ansNew)
+	}
+}

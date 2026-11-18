@@ -104,7 +104,7 @@ func TerminalThemes() []string {
 	for _, n := range base {
 		seen[n] = true
 	}
-	out := make([]string, 0, 1+len(base)+len(pluginNames))
+	out := make([]string, 0, 1+len(base))
 	out = append(out, "hyla")
 	out = append(out, base...)
 	pluginThemeMu.RLock()

@@ -6,7 +6,11 @@ import (
 	"slices"
 	"testing"
 
+	"hyla/internal/actions"
+	"hyla/internal/detect"
 	"hyla/internal/plugins/manifest"
+	"hyla/internal/proto"
+	"hyla/internal/ui/wash"
 )
 
 func TestCLIPluginInitPackInstallPermissionsRemove(t *testing.T) {
@@ -91,5 +95,57 @@ func TestCLIPluginInitPackInstallPermissionsRemove(t *testing.T) {
 	reg, _ = st.LoadRegistry()
 	if _, exists := reg.Plugins["com.example.ts"]; exists {
 		t.Fatal("expected com.example.ts removed from registry")
+	}
+}
+
+func TestPackTemplateManifestWashAndDetectParseCleanly(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HYLA_HOME", home)
+	t.Setenv("HYLA_NO_KEYCHAIN", "1")
+	t.Cleanup(func() {
+		actions.ClearPluginActions()
+		proto.ClearPluginAgents()
+		detect.ClearPlugins()
+		_ = wash.ReloadPlugins(nil)
+	})
+
+	packDir := filepath.Join(t.TempDir(), "pack")
+	if err := pluginCmd([]string{"init", "--template", "pack", "--id", "com.example.packcheck", "--name", "Pack Check", packDir}); err != nil {
+		t.Fatalf("init pack: %v", err)
+	}
+	m, err := manifest.LoadFile(packDir)
+	if err != nil {
+		t.Fatalf("manifest.LoadFile: %v", err)
+	}
+	if m.ID != "com.example.packcheck" {
+		t.Fatalf("manifest id = %q", m.ID)
+	}
+
+	st := manifest.DefaultStore()
+	if _, err := st.Link(packDir, true); err != nil {
+		t.Fatalf("Link: %v", err)
+	}
+	snap, err := manifest.ApplyBase(st)
+	if err != nil {
+		t.Fatalf("ApplyBase: %v", err)
+	}
+	if len(snap.Errors) > 0 {
+		t.Fatalf("ApplyBase snap.Errors = %v", snap.Errors)
+	}
+	if err := wash.ReloadPlugins(snap.Washes); err != nil {
+		t.Fatalf("wash.ReloadPlugins: %v", err)
+	}
+	foundWash := false
+	for _, w := range wash.PluginList() {
+		if w.ID == "aurora-mist" {
+			foundWash = true
+		}
+	}
+	if !foundWash {
+		t.Fatal("expected aurora-mist wash loaded from pack scaffold")
+	}
+	res := detect.Detect("sample-agent", detect.Input{Screen: "Allow this tool? Approve?"})
+	if res.State != detect.Blocked || !res.Visible {
+		t.Fatalf("unexpected detect result for pack scaffold: %+v", res)
 	}
 }

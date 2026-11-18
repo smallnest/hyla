@@ -86,6 +86,23 @@ func (s *Store) LogPath(id string) (string, error) {
 	return filepath.Join(s.LogsDir(), id+".log"), nil
 }
 
+// AppLogPath returns the log path for an [app] host process when a plugin also declares [daemon].
+func (s *Store) AppLogPath(id string) (string, error) {
+	if err := ValidateID(id); err != nil {
+		return "", err
+	}
+	return filepath.Join(s.LogsDir(), id+"-app.log"), nil
+}
+
+// HostLogPath selects the stderr log path for hostKind ("daemon" vs "app"),
+// disambiguating [app] to <id>-app.log when the manifest declares both [daemon] and [app].
+func (s *Store) HostLogPath(id, hostKind string, hasDualHosts bool) (string, error) {
+	if hostKind == "app" && hasDualHosts {
+		return s.AppLogPath(id)
+	}
+	return s.LogPath(id)
+}
+
 // LoadConfig reads plugin-config/<id>.json as a JSON object map.
 // Missing file returns an empty map without error.
 func (s *Store) LoadConfig(id string) (map[string]any, error) {

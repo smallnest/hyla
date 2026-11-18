@@ -2,11 +2,13 @@ package window
 
 import (
 	"context"
+	"maps"
 	"os"
 	"slices"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/egoist/mygo"
@@ -14,6 +16,9 @@ import (
 
 	"hyla/internal/actions"
 	"hyla/internal/app/host"
+	"hyla/internal/build"
+	"hyla/internal/cli"
+	"hyla/internal/plugins/daemonhost"
 	"hyla/internal/plugins/manifest"
 	"hyla/internal/plugins/rpc"
 	"hyla/internal/plugins/uihost"
@@ -34,7 +39,7 @@ func (a *App) infoPluginCards(c *ui.Context, pal *theme.Palette, s *proto.Sessio
 	if a.Plugins == nil {
 		return
 	}
-	hasMagpieFixture := a.Magpie != nil && (a.Magpie.Usage != nil || a.Magpie.Err != "")
+	hasMagpieFixture := a.hasMagpieFixture()
 	h := a.pluginHostForSession(s)
 	hostKey := a.pluginHostKey(h)
 
@@ -107,7 +112,7 @@ func (a *App) infoPluginCards(c *ui.Context, pal *theme.Palette, s *proto.Sessio
 		slotCopy := sl
 		info.Card(c, a, pal, foldKey, svg, title, aside, func() {
 			ui.Column(c.Key("plg-card-body-"+foldKey)).Padding(8, 12, 12, 12).Gap(6).AlignItems(ui.Stretch).Children(func() {
-				a.renderCachedPluginSlot(c, pal, hostKey, slotCopy, sessID, paneID, cr)
+				a.renderPluginSlot(c, pal, hostKey, slotCopy, sessID, paneID, cr, false)
 			})
 		})
 	}
@@ -179,7 +184,7 @@ func (a *App) PluginSide(c *ui.Context, pal *theme.Palette, s *proto.Session, ta
 	cr := a.Plugins.RenderSlot(hostKey, sl, req)
 	ui.Scroll(c.Key("plg-side-"+tabID)).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
 		ui.Column(c.Key("plg-side-col-"+tabID)).Padding(8, 12, 12, 12).Gap(8).AlignItems(ui.Stretch).Children(func() {
-			a.renderCachedPluginSlot(c, pal, hostKey, sl, sessID, paneID, cr)
+			a.renderPluginSlot(c, pal, hostKey, sl, sessID, paneID, cr, false)
 		})
 	})
 }
@@ -279,12 +284,12 @@ func (a *App) PluginPaneBody(c *ui.Context, pal *theme.Palette, s *proto.Session
 	cr := a.Plugins.RenderSlot(hostKey, sl, req)
 	ui.Scroll(c.Key("plg-pane-"+p.ID)).Grow(1).MinHeight(0).AlignItems(ui.Stretch).Children(func() {
 		ui.Column(c.Key("plg-pane-col-"+p.ID)).Padding(12, 16, 16, 16).Gap(8).AlignItems(ui.Stretch).Children(func() {
-			a.renderCachedPluginSlot(c, pal, hostKey, sl, sessID, p.ID, cr)
+			a.renderPluginSlot(c, pal, hostKey, sl, sessID, p.ID, cr, false)
 		})
 	})
 }
 
-func (a *App) renderCachedPluginSlot(c *ui.Context, pal *theme.Palette, hostKey string, sl uihost.SlotEntry, sessID, paneID string, cr uihost.CachedRender) {
+func (a *App) renderPluginSlot(c *ui.Context, pal *theme.Palette, hostKey string, sl uihost.SlotEntry, sessID, paneID string, cr uihost.CachedRender, settingsSearch bool) {
 	if cr.Loading {
 		ui.Row(c.Key("loading")).Gap(6).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, locales.PluginLoading()).FontSize(12).TextColor(pal.TextMuted)
@@ -298,12 +303,20 @@ func (a *App) renderCachedPluginSlot(c *ui.Context, pal *theme.Palette, hostKey 
 	if cr.Result == nil || cr.Result.Root == nil {
 		return
 	}
+	if !cr.InFlight && cr.Result.RefreshMS > 0 {
+		due := time.Duration(cr.Result.RefreshMS)*time.Millisecond - time.Since(cr.FetchedAt)
+		if due < 50*time.Millisecond {
+			due = 50 * time.Millisecond
+		}
+		c.After(due)
+	}
 	uihost.Render(c, uihost.RenderContext{
-		PluginID:  sl.PluginID,
-		SlotID:    sl.Slot.ID,
-		PluginDir: sl.PluginDir,
-		Palette:   pal,
-		State:     a.Plugins.State,
+		PluginID:       sl.PluginID,
+		SlotID:         sl.Slot.ID,
+		PluginDir:      sl.PluginDir,
+		Palette:        pal,
+		State:          a.Plugins.State,
+		SettingsSearch: settingsSearch,
 		OnEvent: func(componentID, eventType string, value any) {
 			a.Plugins.DispatchEvent(hostKey, sl, rpc.UIEventParams{
 				SlotID:      sl.Slot.ID,
@@ -496,9 +509,9 @@ func (a *App) effectivePluginSlots(h *host.Host, mount string, s *proto.Session,
 			out = append(out, sl)
 		}
 	}
-	if a.hostSupportsPlugins(h) && a.DaemonPluginStatuses != nil {
+	if a.hostSupportsPlugins(h) {
 		hostKey := a.pluginHostKey(h)
-		for _, st := range a.DaemonPluginStatuses[hostKey] {
+		for _, st := range a.daemonPluginStatuses(hostKey) {
 			if !st.Enabled || st.PendingInstall {
 				continue
 			}
@@ -571,7 +584,7 @@ func (a *App) findEffectiveSlot(h *host.Host, pluginID, slotID string) (uihost.S
 	if localSl, ok := a.Plugins.FindSlot(pluginID, slotID); ok && localSl.Host == "app" {
 		return localSl, true
 	}
-	if a.hostSupportsPlugins(h) && a.DaemonPluginStatuses != nil {
+	if a.hostSupportsPlugins(h) {
 		hostKey := a.pluginHostKey(h)
 		localDir := ""
 		if snap := a.Plugins.Snapshot(); snap != nil {
@@ -582,7 +595,7 @@ func (a *App) findEffectiveSlot(h *host.Host, pluginID, slotID string) (uihost.S
 				}
 			}
 		}
-		for _, st := range a.DaemonPluginStatuses[hostKey] {
+		for _, st := range a.daemonPluginStatuses(hostKey) {
 			if st.ID != pluginID || !st.Enabled || st.PendingInstall {
 				continue
 			}
@@ -612,14 +625,59 @@ func (a *App) isEffectivePluginEnabled(h *host.Host, pluginID string) bool {
 	if h == nil || !h.Remote() {
 		return a.Plugins.IsPluginEnabled(pluginID)
 	}
-	if a.hostSupportsPlugins(h) && a.DaemonPluginStatuses != nil {
-		for _, st := range a.DaemonPluginStatuses[a.pluginHostKey(h)] {
+	if a.hostSupportsPlugins(h) {
+		for _, st := range a.daemonPluginStatuses(a.pluginHostKey(h)) {
 			if st.ID == pluginID && st.Enabled && !st.PendingInstall {
 				return true
 			}
 		}
 	}
 	return a.Plugins.IsPluginEnabled(pluginID)
+}
+
+type cachedPluginConfig struct {
+	modTime time.Time
+	size    int64
+	exists  bool
+	cfg     map[string]any
+}
+
+type cachedPluginSecret struct {
+	has bool
+	at  time.Time
+}
+
+type pluginUICache struct {
+	mu          sync.Mutex
+	configs     map[string]cachedPluginConfig
+	secrets     map[string]cachedPluginSecret
+	appStatuses []rpc.PluginStatus
+	appStatusAt time.Time
+}
+
+func (a *App) invalidatePluginUICache() {
+	a.pluginCache.mu.Lock()
+	clear(a.pluginCache.configs)
+	clear(a.pluginCache.secrets)
+	a.pluginCache.appStatuses = nil
+	a.pluginCache.appStatusAt = time.Time{}
+	a.pluginCache.mu.Unlock()
+}
+
+func (a *App) invalidatePluginUICacheFor(id string) {
+	if id == "" {
+		a.invalidatePluginUICache()
+		return
+	}
+	a.pluginCache.mu.Lock()
+	delete(a.pluginCache.configs, id)
+	prefix := id + "\x00"
+	for k := range a.pluginCache.secrets {
+		if strings.HasPrefix(k, prefix) {
+			delete(a.pluginCache.secrets, k)
+		}
+	}
+	a.pluginCache.mu.Unlock()
 }
 
 // appPluginsSettings adapts *App and uihost.Coordinator to Settings › Plugins.
@@ -645,17 +703,27 @@ func (p *appPluginsSettings) List() []manifest.InstalledPlugin {
 }
 
 func (p *appPluginsSettings) DaemonStatuses() []rpc.PluginStatus {
-	if p.a.DaemonPluginStatuses == nil {
-		return nil
-	}
-	return p.a.DaemonPluginStatuses["local"]
+	return p.a.daemonPluginStatuses("local")
 }
 
 func (p *appPluginsSettings) AppStatuses() []rpc.PluginStatus {
 	if p.a.Plugins == nil || p.a.Plugins.AppMgr == nil {
 		return nil
 	}
-	return p.a.Plugins.AppMgr.ListStatuses()
+	p.a.pluginCache.mu.Lock()
+	if !p.a.pluginCache.appStatusAt.IsZero() && time.Since(p.a.pluginCache.appStatusAt) < time.Second {
+		out := slices.Clone(p.a.pluginCache.appStatuses)
+		p.a.pluginCache.mu.Unlock()
+		return out
+	}
+	p.a.pluginCache.mu.Unlock()
+
+	list := p.a.Plugins.AppMgr.ListStatuses()
+	p.a.pluginCache.mu.Lock()
+	p.a.pluginCache.appStatuses = slices.Clone(list)
+	p.a.pluginCache.appStatusAt = time.Now()
+	p.a.pluginCache.mu.Unlock()
+	return list
 }
 
 func (p *appPluginsSettings) ReloadAll() {
@@ -677,7 +745,14 @@ func (p *appPluginsSettings) InstallPackage() {
 		if err != nil || len(paths) == 0 {
 			return
 		}
-		_, ierr := st.InstallPackage(paths[0], manifest.InstallOptions{Enable: true, GrantAll: false})
+		_, ierr := st.InstallPackage(paths[0], manifest.InstallOptions{
+			Enable:         true,
+			GrantAll:       false,
+			CurrentVersion: build.Version(),
+		})
+		if ierr == nil {
+			_ = cli.SyncPluginAgentIntegrations(st, nil)
+		}
 		p.a.main(func() {
 			if ierr != nil {
 				p.a.toast(ierr.Error())
@@ -686,28 +761,36 @@ func (p *appPluginsSettings) InstallPackage() {
 				}
 				return
 			}
+			p.a.State.Soon()
 			_ = p.a.reloadPlugins(true)
 		})
 	}()
 }
 
 func (p *appPluginsSettings) SetEnabled(id string, on bool) {
-	if err := p.store().Enable(id, on); err != nil {
+	st := p.store()
+	if err := st.Enable(id, on); err != nil {
 		p.a.toast(err.Error())
 		return
 	}
+	_ = cli.SyncPluginAgentIntegrations(st, nil)
+	p.a.State.Soon()
 	_ = p.a.reloadPlugins(true)
 }
 
 func (p *appPluginsSettings) SetPermission(id, scope string, granted bool) {
-	if err := p.store().SetPermission(id, scope, granted); err != nil {
+	st := p.store()
+	if err := st.SetPermission(id, scope, granted); err != nil {
 		p.a.toast(err.Error())
 		return
 	}
+	_ = cli.SyncPluginAgentIntegrations(st, nil)
+	p.a.State.Soon()
 	_ = p.a.reloadPlugins(true)
 }
 
 func (p *appPluginsSettings) Restart(id string) {
+	p.a.invalidatePluginUICache()
 	if p.a.Plugins != nil && p.a.Plugins.AppMgr != nil {
 		for _, st := range p.a.Plugins.AppMgr.ListStatuses() {
 			if st.ID == id {
@@ -715,6 +798,7 @@ func (p *appPluginsSettings) Restart(id string) {
 					ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 					defer cancel()
 					_ = p.a.Plugins.AppMgr.Restart(ctx, id)
+					p.a.invalidatePluginUICache()
 					p.a.InvalidatePluginUI()
 				}()
 				break
@@ -723,8 +807,10 @@ func (p *appPluginsSettings) Restart(id string) {
 	}
 	h := p.a.Local()
 	if p.a.hostSupportsPlugins(h) && h.Client != nil {
+		p.a.localDaemonReloadPending.Add(1)
 		h.Client.Go("plugin.restart", rpc.PluginControlParams{PluginID: id}, func(err error) {
 			if err != nil {
+				p.a.consumeLocalDaemonReload()
 				p.a.main(func() { p.a.toast(err.Error()) })
 				return
 			}
@@ -734,10 +820,12 @@ func (p *appPluginsSettings) Restart(id string) {
 }
 
 func (p *appPluginsSettings) Remove(id string) {
-	if err := p.store().Remove(id, false); err != nil {
+	st := p.store()
+	if err := st.Remove(id, false); err != nil {
 		p.a.toast(err.Error())
 		return
 	}
+	_ = cli.SyncPluginAgentIntegrations(st, nil)
 	if p.a.Ss.PluginDetail == id {
 		p.a.Ss.PluginDetail = ""
 	}
@@ -745,47 +833,93 @@ func (p *appPluginsSettings) Remove(id string) {
 		p.a.Ss.PluginLogsID = ""
 		p.a.Ss.PluginLogsText = ""
 	}
+	p.a.State.Soon()
 	_ = p.a.reloadPlugins(true)
 }
 
 func (p *appPluginsSettings) ReadLogs(id string) string {
-	path, err := p.store().LogPath(id)
+	_, text, _, err := daemonhost.ReadPluginLogs(p.store(), id, 100)
 	if err != nil {
 		return err.Error()
 	}
-	b, err := os.ReadFile(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return ""
-		}
-		return err.Error()
-	}
-	lines := strings.Split(strings.TrimRight(string(b), "\n"), "\n")
-	if len(lines) > 100 {
-		lines = lines[len(lines)-100:]
-	}
-	return strings.Join(lines, "\n")
+	return strings.TrimRight(text, "\n")
 }
 
 func (p *appPluginsSettings) LoadConfig(id string) map[string]any {
-	cfg, err := p.store().LoadConfig(id)
+	st := p.store()
+	cfgPath, pathErr := st.ConfigPath(id)
+	var (
+		statOK  bool
+		exists  bool
+		modTime time.Time
+		size    int64
+	)
+	if pathErr == nil {
+		if fi, err := os.Stat(cfgPath); err == nil {
+			statOK, exists, modTime, size = true, true, fi.ModTime(), fi.Size()
+		} else if os.IsNotExist(err) {
+			statOK, exists = true, false
+		}
+	}
+
+	p.a.pluginCache.mu.Lock()
+	if ent, ok := p.a.pluginCache.configs[id]; ok && statOK && ent.exists == exists && (!exists || (ent.modTime.Equal(modTime) && ent.size == size)) {
+		out := maps.Clone(ent.cfg)
+		p.a.pluginCache.mu.Unlock()
+		return out
+	}
+	p.a.pluginCache.mu.Unlock()
+
+	cfg, err := st.LoadConfig(id)
 	if err != nil {
 		return map[string]any{}
 	}
+	if cfg == nil {
+		cfg = map[string]any{}
+	}
+	p.a.pluginCache.mu.Lock()
+	if p.a.pluginCache.configs == nil {
+		p.a.pluginCache.configs = make(map[string]cachedPluginConfig)
+	}
+	p.a.pluginCache.configs[id] = cachedPluginConfig{
+		modTime: modTime,
+		size:    size,
+		exists:  exists,
+		cfg:     maps.Clone(cfg),
+	}
+	p.a.pluginCache.mu.Unlock()
 	return cfg
 }
 
 func (p *appPluginsSettings) SaveConfig(id string, cfg map[string]any) {
-	if err := p.store().SaveConfig(id, cfg); err != nil {
+	st := p.store()
+	if err := st.SaveConfig(id, cfg); err != nil {
 		p.a.toast(err.Error())
 		return
 	}
+	p.a.invalidatePluginUICacheFor(id)
+	p.a.State.Soon()
 	_ = p.a.reloadPlugins(true)
 }
 
 func (p *appPluginsSettings) HasSecret(id, key string) bool {
+	cacheKey := id + "\x00" + key
+	p.a.pluginCache.mu.Lock()
+	if ent, ok := p.a.pluginCache.secrets[cacheKey]; ok && time.Since(ent.at) < 2*time.Second {
+		p.a.pluginCache.mu.Unlock()
+		return ent.has
+	}
+	p.a.pluginCache.mu.Unlock()
+
 	v, ok, _ := p.store().GetSecret(id, key)
-	return ok && v != ""
+	has := ok && v != ""
+	p.a.pluginCache.mu.Lock()
+	if p.a.pluginCache.secrets == nil {
+		p.a.pluginCache.secrets = make(map[string]cachedPluginSecret)
+	}
+	p.a.pluginCache.secrets[cacheKey] = cachedPluginSecret{has: has, at: time.Now()}
+	p.a.pluginCache.mu.Unlock()
+	return has
 }
 
 func (p *appPluginsSettings) SetSecret(id, key, val string) {
@@ -793,6 +927,14 @@ func (p *appPluginsSettings) SetSecret(id, key, val string) {
 		p.a.toast(err.Error())
 		return
 	}
+	cacheKey := id + "\x00" + key
+	p.a.pluginCache.mu.Lock()
+	if p.a.pluginCache.secrets == nil {
+		p.a.pluginCache.secrets = make(map[string]cachedPluginSecret)
+	}
+	p.a.pluginCache.secrets[cacheKey] = cachedPluginSecret{has: val != "", at: time.Now()}
+	p.a.pluginCache.mu.Unlock()
+	p.a.State.Soon()
 	_ = p.a.reloadPlugins(true)
 }
 
@@ -903,7 +1045,7 @@ func (p *appPluginsSettings) RenderSettingsPage(c *ui.Context, pal *theme.Palett
 		return false
 	}
 	ui.Column(c.Key("plg-page-slot-"+pageID)).Gap(16).AlignItems(ui.Stretch).Children(func() {
-		p.a.renderSettingsPluginSlot(c, pal, "local", sl, cr)
+		p.a.renderPluginSlot(c, pal, "local", sl, "", "", cr, true)
 	})
 	return true
 }
@@ -970,7 +1112,7 @@ func (p *appPluginsSettings) RenderSettingsMount(c *ui.Context, pal *theme.Palet
 						ui.Text(c.Key(slotKey+"-hdr"), title).FontSize(12).FontWeight(600).TextColor(pal.TextMuted)
 					})
 				}
-				p.a.renderSettingsPluginSlot(c, pal, "local", slotCopy, cr)
+				p.a.renderPluginSlot(c, pal, "local", slotCopy, "", "", cr, true)
 			})
 			continue
 		}
@@ -978,47 +1120,15 @@ func (p *appPluginsSettings) RenderSettingsMount(c *ui.Context, pal *theme.Palet
 		if needsGroupWrap {
 			kit.Group(c, pal, title, "", func() {
 				ui.Column(c.Key(slotKey)).Padding(8, 0).Gap(8).AlignItems(ui.Stretch).Children(func() {
-					p.a.renderSettingsPluginSlot(c, pal, "local", slotCopy, cr)
+					p.a.renderPluginSlot(c, pal, "local", slotCopy, "", "", cr, true)
 				})
 			})
 		} else {
 			ui.Column(c.Key(slotKey)).Gap(16).AlignItems(ui.Stretch).Children(func() {
-				p.a.renderSettingsPluginSlot(c, pal, "local", slotCopy, cr)
+				p.a.renderPluginSlot(c, pal, "local", slotCopy, "", "", cr, true)
 			})
 		}
 	}
-}
-
-func (a *App) renderSettingsPluginSlot(c *ui.Context, pal *theme.Palette, hostKey string, sl uihost.SlotEntry, cr uihost.CachedRender) {
-	if cr.Loading {
-		ui.Row(c.Key("loading")).Gap(6).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, locales.PluginLoading()).FontSize(12).TextColor(pal.TextMuted)
-		})
-		return
-	}
-	if cr.Error != "" {
-		ui.Text(c.Key("err"), cr.Error).FontSize(12).TextColor(pal.Danger).Wrap()
-		return
-	}
-	if cr.Result == nil || cr.Result.Root == nil {
-		return
-	}
-	uihost.Render(c, uihost.RenderContext{
-		PluginID:       sl.PluginID,
-		SlotID:         sl.Slot.ID,
-		PluginDir:      sl.PluginDir,
-		Palette:        pal,
-		State:          a.Plugins.State,
-		SettingsSearch: true,
-		OnEvent: func(componentID, eventType string, value any) {
-			a.Plugins.DispatchEvent(hostKey, sl, rpc.UIEventParams{
-				SlotID:      sl.Slot.ID,
-				ComponentID: componentID,
-				EventType:   eventType,
-				Value:       value,
-			})
-		},
-	}, cr.Result.Root)
 }
 
 func hasSettingsGroupOrCard(n *rpc.UINode) bool {

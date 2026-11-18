@@ -71,7 +71,6 @@ type Daemon struct {
 	bot       *bot
 	feishu    *feishu.Bot // the bot's connection, while it runs
 	feishuApp sharedFeishu
-	channels  []ChannelDriver
 	// restoredAt is when what a restore started again last changed, as
 	// Unix milliseconds (store.go).
 	restoredAt int64
@@ -278,7 +277,7 @@ func Run(opts Options) error {
 	if d.plugins != nil {
 		d.plugins.ShutdownAll()
 	}
-	d.stopChannels()
+	d.stopFeishu()
 	ln.Close()
 	d.net.close()
 	if d.restarting {
@@ -439,17 +438,15 @@ func (d *Daemon) tickLoop() {
 	t := time.NewTicker(400 * time.Millisecond)
 	defer t.Stop()
 	for now := range t.C {
-		// Ordinary daemon plugins NEVER keep hylad alive unless keep_alive=true
-		// (or an active ChannelDriver holds KeepAlive=true).
+		// Ordinary daemon plugins NEVER keep hylad alive unless keep_alive=true.
 		keepAlivePlugins := d.plugins != nil && d.plugins.HasKeepAliveRunning()
-		channelKeepAlive := d.channelKeepAlive()
 		d.mu.Lock()
 		panes := make([]*pane, 0, len(d.panes))
 		for _, p := range d.panes {
 			panes = append(panes, p)
 		}
 		// A server, or a hylad others reach over the network, stays.
-		bot := channelKeepAlive || keepAlivePlugins
+		bot := d.bot != nil || keepAlivePlugins
 		idle := len(d.sessions) == 0 && d.conns == 0 && !d.opts.Serve && !d.net.active() && !bot
 		if !idle {
 			d.idleAt = now

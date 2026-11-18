@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+
+	"hyla/internal/plugins/manifest"
 )
 
 const MaxLogBytes = 4 << 20 // 4 MiB per plugin stderr log file
@@ -81,4 +83,30 @@ func TailLog(path string, lines int) (string, int) {
 		rawLines = rawLines[len(rawLines)-lines:]
 	}
 	return strings.Join(rawLines, "\n") + "\n", len(rawLines)
+}
+
+// ReadPluginLogs tails plugin stderr log file(s), checking both the primary
+// log (<id>.log) and the disambiguated [app] log (<id>-app.log) when both exist.
+func ReadPluginLogs(store *manifest.Store, pluginID string, lines int) (string, string, int, error) {
+	if store == nil {
+		store = manifest.DefaultStore()
+	}
+	mainPath, err := store.LogPath(pluginID)
+	if err != nil {
+		return "", "", 0, err
+	}
+	appPath, err := store.AppLogPath(pluginID)
+	if err != nil {
+		return "", "", 0, err
+	}
+	mainTxt, mainN := TailLog(mainPath, lines)
+	appTxt, appN := TailLog(appPath, lines)
+	switch {
+	case mainN > 0 && appN > 0:
+		return mainPath, "[daemon]\n" + mainTxt + "\n[app]\n" + appTxt, mainN + appN, nil
+	case appN > 0:
+		return appPath, appTxt, appN, nil
+	default:
+		return mainPath, mainTxt, mainN, nil
+	}
 }

@@ -180,8 +180,9 @@ title = "Bad"
 		t.Fatal("expected error for unknown settings mount")
 	}
 
-	// WebView mode on settings.* mounts fails
-	badSetWeb := []byte(`
+	// WebView mode on non-pane mounts fails
+	for _, badMount := range []string{"settings.page", "info.card", "side.tab", "palette", "sidebar.menu"} {
+		badSetWeb := []byte(`
 api_version = 1
 id = "com.acme.badsetweb"
 name = "Bad"
@@ -190,12 +191,27 @@ version = "0.1.0"
 scopes = ["ui.webview"]
 [[ui.slots]]
 id = "s1"
-mount = "settings.page"
+mount = "` + badMount + `"
 title = "Bad"
 mode = "webview"
 `)
-	if _, err := Parse(badSetWeb); err == nil {
-		t.Fatal("expected error for webview mode on settings.page")
+		if _, err := Parse(badSetWeb); err == nil {
+			t.Fatalf("expected error for webview mode on %s", badMount)
+		}
+	}
+
+	// Unsafe hook/skill/wash/pet identifiers rejected cleanly
+	for _, badTOML := range []string{
+		"[[hooks]]\nagent = \"claude; rm -rf /\"\nevent = \"Stop\"\nscript = \"h.sh\"\n",
+		"[[hooks]]\nagent = \"claude\"\nevent = \"Stop && id\"\nscript = \"h.sh\"\n",
+		"[[skills]]\nagent = \"claude\"\nname = \"../escape\"\ndir = \"sk\"\n",
+		"[[washes]]\nid = \"bad wash\"\nname = \"Bad\"\nfile = \"w.toml\"\n",
+		"[[pets]]\nid = \"pet;id\"\ndir = \"p\"\n",
+	} {
+		doc := append([]byte("api_version = 1\nid = \"com.acme.badtok\"\nname = \"Bad\"\nversion = \"0.1.0\"\n"), []byte(badTOML)...)
+		if _, err := Parse(doc); err == nil {
+			t.Fatalf("expected identifier validation failure for:\n%s", badTOML)
+		}
 	}
 }
 
@@ -235,6 +251,41 @@ func TestStoreConfigSecretsAndPermissions(t *testing.T) {
 	}
 	if _, ok, err := st.GetSecret(id, "api_key"); err != nil || ok {
 		t.Fatalf("expected deleted secret, got ok=%v err=%v", ok, err)
+	}
+
+	// Directory-discovered plugin supports SetPermission & GrantPermissions, and Remove(..., true) purges secrets and logs.
+	dirPlugID := "com.example.dirplug"
+	dirPlugRoot := filepath.Join(st.PluginsDir(), dirPlugID)
+	_ = os.MkdirAll(dirPlugRoot, 0o755)
+	_ = os.WriteFile(filepath.Join(dirPlugRoot, ManifestFileName), []byte(`
+api_version = 1
+id = "com.example.dirplug"
+name = "Dir Plug"
+version = "1.0.0"
+[permissions]
+scopes = ["session.read", "secrets"]
+[[settings]]
+key = "tok"
+title = "Token"
+type = "secret"
+`), 0o644)
+	if err := st.SetPermission(dirPlugID, PermSessionRead, true); err != nil {
+		t.Fatalf("SetPermission on dir plugin: %v", err)
+	}
+	if err := st.SetSecret(dirPlugID, "tok", "secret-val"); err != nil {
+		t.Fatal(err)
+	}
+	appLog, _ := st.AppLogPath(dirPlugID)
+	_ = os.MkdirAll(filepath.Dir(appLog), 0o755)
+	_ = os.WriteFile(appLog, []byte("app log\n"), 0o644)
+	if err := st.Remove(dirPlugID, true); err != nil {
+		t.Fatalf("Remove dir plugin: %v", err)
+	}
+	if _, err := os.Stat(appLog); !os.IsNotExist(err) {
+		t.Fatalf("expected app log deleted by Remove(..., true), err=%v", err)
+	}
+	if _, ok, _ := st.GetSecret(dirPlugID, "tok"); ok {
+		t.Fatal("expected secret purged by Remove(..., true)")
 	}
 }
 

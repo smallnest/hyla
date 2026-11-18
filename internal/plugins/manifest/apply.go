@@ -58,16 +58,15 @@ type PluginActionMeta struct {
 
 // Snapshot holds the resolved base-layer state across all discovered plugins.
 type Snapshot struct {
-	Plugins         []InstalledPlugin
-	DisabledActions []string
-	Marks           []MarkAsset
-	Themes          []ThemeAsset
-	Washes          []WashAsset
-	Pets            []PetAsset
-	Hooks           []HookAsset
-	Skills          []SkillAsset
-	ActionTargets   map[string]PluginActionMeta
-	Errors          []string
+	Plugins       []InstalledPlugin
+	Marks         []MarkAsset
+	Themes        []ThemeAsset
+	Washes        []WashAsset
+	Pets          []PetAsset
+	Hooks         []HookAsset
+	Skills        []SkillAsset
+	ActionTargets map[string]PluginActionMeta
+	Errors        []string
 }
 
 // ApplyBase discovers plugins in s and refreshes all base-layer registries:
@@ -112,13 +111,14 @@ func ApplyBase(s *Store) (*Snapshot, error) {
 		for _, a := range m.Actions {
 			qid := QualifyActionID(m.ID, a.ID)
 			act := actions.Action{
-				ID:       qid,
-				Title:    a.Title,
-				Menu:     a.Menu,
-				Keys:     a.Shortcut,
-				Remote:   a.Remote,
-				PluginID: m.ID,
-				When:     a.When,
+				ID:        qid,
+				Title:     a.Title,
+				Menu:      a.Menu,
+				Keys:      a.Shortcut,
+				Remote:    a.Remote,
+				PluginID:  m.ID,
+				NoPalette: !a.Palette,
+				When:      a.When,
 			}
 			acts = append(acts, act)
 			snap.ActionTargets[qid] = PluginActionMeta{
@@ -243,7 +243,6 @@ func ApplyBase(s *Store) (*Snapshot, error) {
 	}
 
 	actions.SetDisabledPluginActions(disabledActions)
-	snap.DisabledActions = disabledActions
 	if err := detect.ReloadPlugins(detectItems); err != nil {
 		snap.Errors = append(snap.Errors, err.Error())
 	}

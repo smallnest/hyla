@@ -7,6 +7,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
+	appsettings "hyla/internal/settings"
 	"hyla/internal/plugins/manifest"
 	"hyla/internal/plugins/rpc"
 	"hyla/internal/ui/settings/search"
@@ -19,8 +20,10 @@ type stubApp struct {
 	pv PluginsApp
 }
 
-func (s *stubApp) SettingsState() *State  { return s.ss }
-func (s *stubApp) PluginsView() PluginsApp { return s.pv }
+func (s *stubApp) SettingsState() *State           { return s.ss }
+func (s *stubApp) PluginsView() PluginsApp         { return s.pv }
+func (s *stubApp) Settings() *appsettings.Settings { return &appsettings.Settings{} }
+func (s *stubApp) ActionTitle(id string) string    { return id }
 
 type recordingPluginsApp struct {
 	plugins []manifest.InstalledPlugin
@@ -35,6 +38,7 @@ type recordingPluginsApp struct {
 	saveCalls    []map[string]any
 	secretCalls  []string
 	mountCalls   []string
+	searchCalls  int
 	renderSlotFn func(c *ui.Context, pal *theme.Palette, mount, pluginID string)
 }
 
@@ -95,7 +99,10 @@ func (r *recordingPluginsApp) RenderSettingsMount(c *ui.Context, pal *theme.Pale
 		r.renderSlotFn(c, pal, mount, pluginID)
 	}
 }
-func (r *recordingPluginsApp) SearchEntries() []search.PluginEntry { return nil }
+func (r *recordingPluginsApp) SearchEntries() []search.PluginEntry {
+	r.searchCalls++
+	return nil
+}
 
 func TestPluginsSettingsInteractiveCommits(t *testing.T) {
 	pv := &recordingPluginsApp{
@@ -353,8 +360,8 @@ func TestPluginsDraftSyncsExternalConfigAndPreservesEdits(t *testing.T) {
 	// Untouched draft reflects external config update (e.g., via plugin.setSettings).
 	pv.cfg["endpoint"] = "http://updated"
 	tt.Frame()
-	if got := app.ss.PluginDraft["com.example.syncdraft|endpoint"]; got != "http://updated" {
-		t.Fatalf("expected untouched draft synced to http://updated, got %q", got)
+	if d := app.ss.PluginDrafts["com.example.syncdraft|endpoint"]; d == nil || d.Value != "http://updated" {
+		t.Fatalf("expected untouched draft synced to http://updated, got %v", d)
 	}
 
 	// User-edited draft is preserved even if external config changes underneath.
@@ -374,8 +381,8 @@ func TestPluginsDraftSyncsExternalConfigAndPreservesEdits(t *testing.T) {
 
 	pv.cfg["endpoint"] = "http://external-overwrite"
 	tt.Frame()
-	if got := app.ss.PluginDraft["com.example.syncdraft|endpoint"]; got != "http://user-wip" {
-		t.Fatalf("expected user-edited draft preserved, got %q", got)
+	if d := app.ss.PluginDrafts["com.example.syncdraft|endpoint"]; d == nil || d.Value != "http://user-wip" {
+		t.Fatalf("expected user-edited draft preserved, got %v", d)
 	}
 
 	// Invalid integer input leaves cfg unchanged on Save.
@@ -395,5 +402,98 @@ func TestPluginsDraftSyncsExternalConfigAndPreservesEdits(t *testing.T) {
 	tt.ClickAt(saves[1].Bounds.X+saves[1].Bounds.W/2, saves[1].Bounds.Y+saves[1].Bounds.H/2)
 	if pv.cfg["count"] != 5 {
 		t.Fatalf("invalid integer should not overwrite cfg[count]=5, got %v", pv.cfg["count"])
+	}
+}
+
+func TestPluginSettingsBlankSecretAndClearNumericAndSearchShortCircuit(t *testing.T) {
+	pv := &recordingPluginsApp{
+		cfg:     map[string]any{"count": 9},
+		secrets: map[string]string{"token": "existing-secret"},
+		plugins: []manifest.InstalledPlugin{{
+			Entry: manifest.RegistryEntry{ID: "com.example.secnum", Enabled: true, Version: "1.0.0"},
+			Manifest: &manifest.Manifest{
+				ID:      "com.example.secnum",
+				Name:    "SecNum",
+				Version: "1.0.0",
+				Settings: []manifest.SettingSpec{
+					{Key: "token", Type: "secret", Title: "Token"},
+					{Key: "count", Type: "integer", Title: "Count", Default: 3},
+				},
+			},
+		}},
+	}
+	app := &stubApp{
+		ss: &State{Page: "plugins", PluginDetail: "com.example.secnum"},
+		pv: pv,
+	}
+
+	// Empty query must short-circuit searchSettings without invoking SearchEntries().
+	searchSettings(app, nil)
+	if pv.searchCalls != 0 {
+		t.Fatalf("expected 0 SearchEntries calls on empty query, got %d", pv.searchCalls)
+	}
+	app.ss.Query = "tok"
+	searchSettings(app, nil)
+	if pv.searchCalls != 1 {
+		t.Fatalf("expected 1 SearchEntries call on non-empty query, got %d", pv.searchCalls)
+	}
+
+	tt := ui.NewTester(func(c *ui.Context) {
+		pal := theme.For(c)
+		ui.Scroll(c.Key("root-scroll")).Fill().Children(func() {
+			ui.Column(c).Width(700).Padding(20).Children(func() {
+				pluginsPage(app, c, pal)
+			})
+		})
+	}, 760, 600)
+	tt.Frame()
+
+	var saves []ui.AccessInfo
+	for _, a := range tt.AccessAll() {
+		if a.Role == ui.RoleButton && a.Name == "Save" {
+			saves = append(saves, a)
+		}
+	}
+	if len(saves) < 2 {
+		t.Fatalf("expected 2 Save buttons, got %d", len(saves))
+	}
+	// Clicking Save with blank secret field must NOT call SetSecret("").
+	tt.ClickAt(saves[0].Bounds.X+saves[0].Bounds.W/2, saves[0].Bounds.Y+saves[0].Bounds.H/2)
+	tt.Frame()
+	if len(pv.secretCalls) != 0 || pv.secrets["token"] != "existing-secret" {
+		t.Fatalf("blank secret Save should preserve existing secret, secretCalls=%v", pv.secretCalls)
+	}
+
+	// Clearing integer field back to "" and clicking Save deletes cfg["count"] so default applies.
+	var inputs []ui.AccessInfo
+	for _, a := range tt.AccessAll() {
+		if a.Role == ui.RoleTextField {
+			inputs = append(inputs, a)
+		}
+	}
+	if len(inputs) < 2 {
+		t.Fatalf("expected 2 inputs, got %d", len(inputs))
+	}
+	tt.ClickAt(inputs[1].Bounds.X+10, inputs[1].Bounds.Y+inputs[1].Bounds.H/2)
+	tt.Key(ui.Cmd, ui.KeyA)
+	tt.Key(0, ui.KeyBackspace)
+	tt.Frame()
+	tt.ClickAt(saves[1].Bounds.X+saves[1].Bounds.W/2, saves[1].Bounds.Y+saves[1].Bounds.H/2)
+	tt.Frame()
+	if _, exists := pv.cfg["count"]; exists {
+		t.Fatalf("expected clearing integer setting to delete key from config, got %v", pv.cfg["count"])
+	}
+
+	// Large float64 integers unmarshaled from JSON (e.g. 1_000_000) must not render in scientific notation ("1e+06").
+	pv.cfg["count"] = float64(1000000)
+	app.ss.PluginDrafts = nil
+	tt.Frame()
+	if got := app.ss.PluginDrafts["com.example.secnum|count"]; got == nil || got.Value != "1000000" {
+		t.Fatalf("expected large float64 integer rendered as '1000000', got %+v", got)
+	}
+	tt.ClickAt(saves[1].Bounds.X+saves[1].Bounds.W/2, saves[1].Bounds.Y+saves[1].Bounds.H/2)
+	tt.Frame()
+	if pv.cfg["count"] != 1000000 {
+		t.Fatalf("expected saving large float64 integer to keep 1000000, got %v (%T)", pv.cfg["count"], pv.cfg["count"])
 	}
 }

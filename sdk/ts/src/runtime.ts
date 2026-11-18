@@ -80,8 +80,13 @@ export class RPCPeer {
   >();
   private handlers = new Map<string, MethodHandler>();
   private buffer = "";
+  private droppingOversized = false;
   private closed = false;
   private hostClient: HostClient;
+  private readonly handleData = (chunk: string): void => this.onChunk(chunk);
+  private readonly handleEnd = (): void => this.close(new Error("stream closed"));
+  private readonly handleError = (err: unknown): void =>
+    this.close(err instanceof Error ? err : new Error(String(err)));
 
   constructor(
     private readonly reader: Readable,
@@ -90,11 +95,9 @@ export class RPCPeer {
   ) {
     this.hostClient = new HostClient(this);
     this.reader.setEncoding("utf8");
-    this.reader.on("data", (chunk: string) => this.onChunk(chunk));
-    this.reader.on("end", () => this.close(new Error("stream closed")));
-    this.reader.on("error", (err: unknown) =>
-      this.close(err instanceof Error ? err : new Error(String(err))),
-    );
+    this.reader.on("data", this.handleData);
+    this.reader.on("end", this.handleEnd);
+    this.reader.on("error", this.handleError);
   }
 
   get host(): HostClient {
@@ -149,6 +152,17 @@ export class RPCPeer {
   close(reason = new Error("closed")): void {
     if (this.closed) return;
     this.closed = true;
+    this.buffer = "";
+    this.droppingOversized = false;
+    this.reader.off?.("data", this.handleData);
+    this.reader.off?.("end", this.handleEnd);
+    this.reader.off?.("error", this.handleError);
+    const r = this.reader as Readable & { pause?: () => void; unref?: () => void; destroy?: () => void };
+    r.pause?.();
+    r.unref?.();
+    if (this.reader !== process.stdin) {
+      r.destroy?.();
+    }
     for (const [k, p] of this.pending) {
       this.pending.delete(k);
       p.reject(reason);
@@ -157,6 +171,7 @@ export class RPCPeer {
   }
 
   private writeFrame(env: RPCEnvelope): void {
+    if (this.closed) return;
     const raw = JSON.stringify(env) + "\n";
     if (Buffer.byteLength(raw, "utf8") > MAX_FRAME_BYTES) {
       throw new PluginRPCError(ErrorCode.PayloadTooLarge, "frame exceeds 16 MiB limit");
@@ -165,22 +180,41 @@ export class RPCPeer {
   }
 
   private onChunk(chunk: string): void {
+    if (this.closed) return;
     this.buffer += chunk;
-    if (Buffer.byteLength(this.buffer, "utf8") > MAX_FRAME_BYTES) {
+    while (true) {
+      if (this.droppingOversized) {
+        const nl = this.buffer.indexOf("\n");
+        if (nl < 0) {
+          this.buffer = "";
+          return;
+        }
+        this.buffer = this.buffer.slice(nl + 1);
+        this.droppingOversized = false;
+        continue;
+      }
+      const idx = this.buffer.indexOf("\n");
+      if (idx < 0) break;
+      const rawLine = this.buffer.slice(0, idx);
+      this.buffer = this.buffer.slice(idx + 1);
+      if (Buffer.byteLength(rawLine, "utf8") > MAX_FRAME_BYTES) {
+        this.writeFrame({
+          jsonrpc: JSONRPC_VERSION,
+          error: { code: ErrorCode.PayloadTooLarge, message: "incoming line exceeds 16 MiB limit" },
+        });
+        continue;
+      }
+      const line = rawLine.trim();
+      if (!line) continue;
+      this.onLine(line);
+    }
+    if (!this.droppingOversized && Buffer.byteLength(this.buffer, "utf8") > MAX_FRAME_BYTES) {
       this.buffer = "";
+      this.droppingOversized = true;
       this.writeFrame({
         jsonrpc: JSONRPC_VERSION,
         error: { code: ErrorCode.PayloadTooLarge, message: "incoming line exceeds 16 MiB limit" },
       });
-      return;
-    }
-    while (true) {
-      const idx = this.buffer.indexOf("\n");
-      if (idx < 0) break;
-      const line = this.buffer.slice(0, idx).trim();
-      this.buffer = this.buffer.slice(idx + 1);
-      if (!line) continue;
-      this.onLine(line);
     }
   }
 

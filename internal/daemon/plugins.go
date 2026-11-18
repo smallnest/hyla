@@ -27,7 +27,6 @@ func (d *Daemon) pluginStore() *manifest.Store {
 }
 
 func (d *Daemon) initPlugins() {
-	d.ensureDefaultChannels()
 	st := d.pluginStore()
 	if _, err := manifest.ApplyBase(st); err != nil && d.log != nil {
 		d.log.Printf("plugins base apply: %v", err)
@@ -243,7 +242,7 @@ func (d *Daemon) pluginChat(p proto.ChatParams, agent, conv, dir, paneID string,
 	return res.Chat, true, nil
 }
 
-func (d *Daemon) pluginChatSend(p proto.ChatSendParams, pn *pane, agent, conv, dir string) (bool, bool, error) {
+func (d *Daemon) pluginChatSend(p proto.ChatSendParams, pn *pane, agent, conv, dir, ansDir string) (bool, bool, error) {
 	if d.plugins == nil {
 		return false, false, nil
 	}
@@ -261,7 +260,7 @@ func (d *Daemon) pluginChatSend(p proto.ChatSendParams, pn *pane, agent, conv, d
 		ConversationID: conv,
 		Dir:            dir,
 		Text:           p.Text,
-		AnswerDir:      pn.info.ChannelAnswerDir(),
+		AnswerDir:      ansDir,
 	}, &res)
 	if err != nil {
 		return false, true, err
@@ -372,11 +371,15 @@ func (b *daemonPluginBridge) GetEnv(ctx context.Context, pluginID string, p rpc.
 		return nil, rpc.NewError(rpc.ErrCodeTargetNotFound, fmt.Sprintf("pane %q not found", p.Pane))
 	}
 	pn.mu.Lock()
+	agentSessID := pn.info.AgentSessionID
+	if agentSessID == "" && pn.info.AgentSession != nil {
+		agentSessID = pn.info.AgentSession.ID
+	}
 	res := &rpc.PaneGetEnvResult{
 		Dir:            pn.info.WorkDir(),
 		Process:        pn.info.Process,
 		Agent:          pn.info.Agent,
-		AgentSessionID: pn.info.AgentSessionID,
+		AgentSessionID: agentSessID,
 	}
 	pn.mu.Unlock()
 	b.d.mu.Lock()
@@ -413,7 +416,7 @@ func (b *daemonPluginBridge) SendKey(ctx context.Context, pluginID string, p rpc
 	if pn.term == nil {
 		return rpc.NewError(rpc.ErrCodeCapabilityUnsupported, "pane does not accept terminal keys")
 	}
-	data, ok := encodeKeyName(p.Key)
+	data, ok := rpc.EncodeKey(p.Key)
 	if !ok {
 		return rpc.NewError(rpc.ErrCodeInvalidParams, fmt.Sprintf("unsupported key %q", p.Key))
 	}
@@ -538,32 +541,4 @@ func (b *daemonPluginBridge) WebViewEmit(ctx context.Context, pluginID string, p
 	})
 	b.d.mu.Unlock()
 	return nil
-}
-
-func encodeKeyName(k string) ([]byte, bool) {
-	switch strings.ToLower(strings.TrimSpace(k)) {
-	case "enter", "return":
-		return []byte("\r"), true
-	case "tab":
-		return []byte("\t"), true
-	case "space":
-		return []byte(" "), true
-	case "backspace":
-		return []byte{0x7f}, true
-	case "escape", "esc":
-		return []byte{0x1b}, true
-	case "up":
-		return []byte("\x1b[A"), true
-	case "down":
-		return []byte("\x1b[B"), true
-	case "right":
-		return []byte("\x1b[C"), true
-	case "left":
-		return []byte("\x1b[D"), true
-	}
-	low := strings.ToLower(strings.TrimSpace(k))
-	if rest, ok := strings.CutPrefix(low, "ctrl+"); ok && len(rest) == 1 && rest[0] >= 'a' && rest[0] <= 'z' {
-		return []byte{rest[0] - 'a' + 1}, true
-	}
-	return nil, false
 }

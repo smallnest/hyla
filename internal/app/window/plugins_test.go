@@ -1342,8 +1342,8 @@ default = "https://helper.local/0"
 	}
 
 	// Verify [[settings]] shows initial default before clicking button.
-	if a.Ss.PluginDraft["com.example.appproc|endpoint"] != "https://helper.local/0" {
-		t.Fatalf("expected initial draft https://helper.local/0, got %q", a.Ss.PluginDraft["com.example.appproc|endpoint"])
+	if d := a.Ss.PluginDrafts["com.example.appproc|endpoint"]; d == nil || d.Value != "https://helper.local/0" {
+		t.Fatalf("expected initial draft https://helper.local/0, got %v", d)
 	}
 
 	// Click button -> runs ui.event -> calls plugin.setSettings + ui.notify -> repaints updated tree & syncs untouched draft.
@@ -1362,8 +1362,8 @@ default = "https://helper.local/0"
 	}
 	// Reloading plugin settings view should pick up endpoint written by plugin.setSettings because user did not edit field.
 	tt.Frame()
-	if got := a.Ss.PluginDraft["com.example.appproc|endpoint"]; got != "https://helper.local/1" {
-		t.Fatalf("expected PluginDraft synced to plugin.setSettings value, got %q", got)
+	if d := a.Ss.PluginDrafts["com.example.appproc|endpoint"]; d == nil || d.Value != "https://helper.local/1" {
+		t.Fatalf("expected PluginDraft synced to plugin.setSettings value, got %v", d)
 	}
 }
 

@@ -68,7 +68,7 @@ func Row(c *ui.Context, pal *theme.Palette, label, detail string, control func()
 // segmented chooses one of ids into value, as macOS's segmented control
 // shows it: a soft track, the choice a lighter fill raised a hair, thin
 // separators between the others, and labels of one weight.
-func Segmented(c *ui.Context, key string, value *string, ids, labels []string) {
+func Segmented(c *ui.Context, key string, value *string, ids, labels []string, onChange ...func()) {
 	pal := theme.For(c)
 	i := max(slices.Index(ids, *value), 0)
 	track, thumb := ui.RGBA(0, 0, 0, 0.06), ui.Hex("#ffffff")
@@ -100,7 +100,14 @@ func Segmented(c *ui.Context, key string, value *string, ids, labels []string) {
 		}
 	})
 	// The choice lands after this runs: take it then.
-	seg.Track.OnChange(func() { *value = ids[i] })
+	seg.Track.OnChange(func() {
+		*value = ids[i]
+		for _, fn := range onChange {
+			if fn != nil {
+				fn()
+			}
+		}
+	})
 }
 
 // The search's finds on the page shown, by label, which Row and Group

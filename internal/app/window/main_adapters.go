@@ -28,6 +28,7 @@ func (a *App) Language() string { return uisettings.LocaleTag(a.settingsIn.Langu
 // settings window's title, the pet's, and the tray's menu.
 func (a *App) LanguageChanged() {
 	a.UpdateNow(func() {
+		a.refreshPluginLocaleAndTheme()
 		mygo.App.SetMenu(a.menu())
 		if a.SetWin != nil {
 			a.SetWin.SetTitle(locales.SettingsTitle())

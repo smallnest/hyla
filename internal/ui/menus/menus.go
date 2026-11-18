@@ -189,7 +189,7 @@ func Menu(a App) *mygo.Menu {
 func PluginMenuItems(a App) []*mygo.MenuItem {
 	var out []*mygo.MenuItem
 	for _, act := range actions.List() {
-		if act.PluginID == "" || act.Menu == "" {
+		if act.PluginID == "" || act.Menu == "" || strings.EqualFold(act.Menu, "Context") {
 			continue
 		}
 		out = append(out, Item(a, act.ID))

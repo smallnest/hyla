@@ -24,6 +24,22 @@ func MigratePluginConfig(st *manifest.Store) error {
 	if st == nil {
 		st = manifest.DefaultStore()
 	}
+	// Fast-path guard: skip Keychain GetSecret IPC and RemoveAll once migrated or absent.
+	reg, regErr := st.LoadRegistry()
+	var hasReg bool
+	if regErr == nil && reg != nil {
+		_, hasReg = reg.Plugins[pluginID]
+	}
+	cfgPath, cfgPathErr := st.ConfigPath(pluginID)
+	_, cfgStatErr := os.Stat(cfgPath)
+	secPath, secPathErr := st.SecretsPath(pluginID)
+	_, secStatErr := os.Stat(secPath)
+	hasCfg := cfgPathErr == nil && cfgStatErr == nil
+	hasSecFile := secPathErr == nil && secStatErr == nil
+	if !hasReg && !hasCfg && !hasSecFile {
+		return nil
+	}
+
 	cfg, err := st.LoadConfig(pluginID)
 	if err != nil {
 		cfg = nil
@@ -37,6 +53,7 @@ func MigratePluginConfig(st *manifest.Store) error {
 		return err
 	}
 	keepPluginConfig(st)
+	_ = st.DeleteSecret(pluginID, "appSecret")
 	return st.Remove(pluginID, true)
 }
 
@@ -73,7 +90,7 @@ func migrateSettings(cfg map[string]any, secret string, hasSecret bool) error {
 		changed = true
 	}
 	if raw, ok := cfg["allow"]; ok {
-		if allow := parseAllow(raw); !slices.Equal(allow, cur.Allow) {
+		if allow := parseAllow(raw); len(allow) > 0 && !slices.Equal(allow, cur.Allow) {
 			cur.Allow = allow
 			changed = true
 		}

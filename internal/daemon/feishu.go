@@ -29,43 +29,6 @@ type bot struct {
 	err       error // why the last connection ended, if it did
 }
 
-type feishuChannelDriver struct{ d *Daemon }
-
-func (c *feishuChannelDriver) ID() string { return "hyla.feishu" }
-
-func (c *feishuChannelDriver) Active() bool { return c.d.feishuBot() != nil }
-
-func (c *feishuChannelDriver) KeepAlive() bool {
-	c.d.mu.Lock()
-	defer c.d.mu.Unlock()
-	return c.d.bot != nil
-}
-
-func (c *feishuChannelDriver) Prompt(session, text string) error {
-	b := c.d.feishuBot()
-	if b == nil {
-		return errors.New("no chat drives this session")
-	}
-	return b.Prompt(session, text)
-}
-
-func (c *feishuChannelDriver) Call(method string, raw json.RawMessage) (any, bool, error) {
-	switch method {
-	case "feishu.status":
-		return c.d.feishuStatus(), true, nil
-	case "feishu.chats", "feishu.feed", "feishu.send":
-		res, err := c.d.feishuWindow(method, raw)
-		return res, true, err
-	case "feishu.message", "feishu.keep", "feishu.kept", "feishu.take":
-		res, err := c.d.feishuShared(method, raw)
-		return res, true, err
-	default:
-		return nil, false, nil
-	}
-}
-
-func (c *feishuChannelDriver) Stop() { c.d.stopFeishu() }
-
 // feishuConfig is what the bot connects with: the configuration's Feishu
 // keys, its yolo switch for them, and the app's secret, with a digest of
 // the three, so that a restart knows whether anything changed.
@@ -124,12 +87,10 @@ func (d *Daemon) feishuBot() *feishu.Bot {
 
 // startFeishu connects the bot, or stops the last one.
 func (d *Daemon) startFeishu() {
-	d.ensureDefaultChannels()
 	d.restartFeishu(true)
 }
 
 func (d *Daemon) restartFeishu(force bool) {
-	d.ensureDefaultChannels()
 	cfg := loadFeishuConfig()
 	if !settings.FeishuSet(&cfg.settings) {
 		d.stopFeishu()

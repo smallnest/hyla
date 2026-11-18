@@ -3,7 +3,7 @@ package uihost
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -44,6 +44,14 @@ type CachedRender struct {
 	reqLocale string
 }
 
+type renderKey struct {
+	hostKey   string
+	pluginID  string
+	slotID    string
+	sessionID string
+	paneID    string
+}
+
 // Coordinator ties together local [app] plugin processes, Declarative UI rendering cache,
 // Sandboxed WebView bridge, and daemon plugin RPC calls.
 type Coordinator struct {
@@ -56,11 +64,14 @@ type Coordinator struct {
 	DaemonFn   func(hostKey string) DaemonCaller
 	RemoteRef  func(hostKey string) bool
 	PaneHostFn func(sessionID, paneID string) string
+	LocaleFunc            func() string
+	ThemeFunc             func() (appearance string, dark bool)
+	OnPluginSettingsSaved func(pluginID string)
 
 	mu      sync.Mutex
 	snap    *manifest.Snapshot
 	slots   []SlotEntry
-	renders map[string]*CachedRender // key: hostKey+"|"+pluginID+"|"+slotID+"|"+sessionID+"|"+paneID
+	renders map[renderKey]*CachedRender
 }
 
 // NewCoordinator constructs the UI plugin coordinator.
@@ -72,13 +83,30 @@ func NewCoordinator(store *manifest.Store, appBridge daemonhost.HostBridge, hyla
 		State:    NewRenderState(),
 		Store:    store,
 		OnUpdate: onUpdate,
-		renders:  make(map[string]*CachedRender),
+		renders:  make(map[renderKey]*CachedRender),
 	}
 	c.AppMgr = daemonhost.NewManager(daemonhost.ManagerOptions{
 		HostKind:    daemonhost.HostKindApp,
 		HylaVersion: hylaVersion,
 		Store:       store,
 		Bridge:      appBridge,
+		LocaleFunc: func() string {
+			if c.LocaleFunc != nil {
+				return c.LocaleFunc()
+			}
+			return "en"
+		},
+		ThemeFunc: func() (string, bool) {
+			if c.ThemeFunc != nil {
+				return c.ThemeFunc()
+			}
+			return "system", false
+		},
+		OnSettingsSaved: func(pluginID string) {
+			if c.OnPluginSettingsSaved != nil {
+				c.OnPluginSettingsSaved(pluginID)
+			}
+		},
 	})
 	c.Web = NewWebBridge(store, nil, c.handleWebRPC)
 	return c
@@ -89,6 +117,14 @@ func (c *Coordinator) Reload() (*manifest.Snapshot, error) {
 	snap, err := manifest.ApplyBase(c.Store)
 	if err != nil {
 		return nil, err
+	}
+	return c.ReloadWithSnapshot(snap)
+}
+
+// ReloadWithSnapshot refreshes slot metadata and AppMgr from an already-computed snapshot.
+func (c *Coordinator) ReloadWithSnapshot(snap *manifest.Snapshot) (*manifest.Snapshot, error) {
+	if snap == nil {
+		return c.Reload()
 	}
 	var slots []SlotEntry
 	for _, p := range snap.Plugins {
@@ -136,8 +172,14 @@ func (c *Coordinator) Reload() (*manifest.Snapshot, error) {
 	clear(c.renders)
 	c.mu.Unlock()
 
+	if c.State != nil {
+		c.State.ClearAssets()
+	}
+	if c.Web != nil {
+		c.Web.SetPluginsSnapshot(snap.Plugins)
+	}
 	if c.AppMgr != nil {
-		_ = c.AppMgr.Reload()
+		_ = c.AppMgr.ReloadWithPlugins(snap.Plugins)
 	}
 	return snap, nil
 }
@@ -211,14 +253,10 @@ func (c *Coordinator) IsPluginEnabled(pluginID string) bool {
 func (c *Coordinator) Invalidate(pluginID string, slotIDs []string) {
 	c.mu.Lock()
 	for k, cr := range c.renders {
-		parts := strings.SplitN(k, "|", 4)
-		if len(parts) < 3 {
+		if pluginID != "" && k.pluginID != pluginID {
 			continue
 		}
-		if parts[1] != pluginID {
-			continue
-		}
-		if len(slotIDs) == 0 || containsStr(slotIDs, parts[2]) {
+		if len(slotIDs) == 0 || slices.Contains(slotIDs, k.slotID) {
 			cr.Invalid = true
 		}
 	}
@@ -229,19 +267,16 @@ func (c *Coordinator) Invalidate(pluginID string, slotIDs []string) {
 	}
 }
 
-func containsStr(ss []string, target string) bool {
-	for _, s := range ss {
-		if s == target {
-			return true
-		}
-	}
-	return false
-}
-
 // RenderSlot returns the cached render state immediately without blocking the UI thread,
 // scheduling an asynchronous ui.render fetch if needed.
 func (c *Coordinator) RenderSlot(hostKey string, sl SlotEntry, req rpc.UIRenderParams) CachedRender {
-	cacheKey := fmt.Sprintf("%s|%s|%s|%s|%s", hostKey, sl.PluginID, sl.Slot.ID, req.SessionID, req.PaneID)
+	cacheKey := renderKey{
+		hostKey:   hostKey,
+		pluginID:  sl.PluginID,
+		slotID:    sl.Slot.ID,
+		sessionID: req.SessionID,
+		paneID:    req.PaneID,
+	}
 
 	c.mu.Lock()
 	cr := c.renders[cacheKey]
@@ -306,7 +341,13 @@ func (c *Coordinator) RenderSlot(hostKey string, sl SlotEntry, req rpc.UIRenderP
 
 // CachedRender returns the currently cached render snapshot for a slot without triggering a fetch.
 func (c *Coordinator) CachedRender(hostKey, pluginID, slotID, sessionID, paneID string) (CachedRender, bool) {
-	cacheKey := fmt.Sprintf("%s|%s|%s|%s|%s", hostKey, pluginID, slotID, sessionID, paneID)
+	cacheKey := renderKey{
+		hostKey:   hostKey,
+		pluginID:  pluginID,
+		slotID:    slotID,
+		sessionID: sessionID,
+		paneID:    paneID,
+	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	cr := c.renders[cacheKey]
@@ -318,7 +359,13 @@ func (c *Coordinator) CachedRender(hostKey, pluginID, slotID, sessionID, paneID 
 
 // DispatchEvent sends a ui.event RPC asynchronously and updates cached slot UI on completion.
 func (c *Coordinator) DispatchEvent(hostKey string, sl SlotEntry, ev rpc.UIEventParams) {
-	cacheKey := fmt.Sprintf("%s|%s|%s|%s|%s", hostKey, sl.PluginID, sl.Slot.ID, ev.SessionID, ev.PaneID)
+	cacheKey := renderKey{
+		hostKey:   hostKey,
+		pluginID:  sl.PluginID,
+		slotID:    sl.Slot.ID,
+		sessionID: ev.SessionID,
+		paneID:    ev.PaneID,
+	}
 	go func() {
 		var res rpc.UIEventResult
 		err := c.callHost(hostKey, sl.PluginID, sl.Host, "ui.event", ev, &res)
@@ -342,8 +389,7 @@ func (c *Coordinator) DispatchEvent(hostKey string, sl SlotEntry, ev rpc.UIEvent
 			}
 			if res.Invalidate {
 				for k, cur := range c.renders {
-					parts := strings.SplitN(k, "|", 4)
-					if len(parts) >= 2 && parts[1] == sl.PluginID {
+					if k.pluginID == sl.PluginID {
 						cur.Invalid = true
 					}
 				}

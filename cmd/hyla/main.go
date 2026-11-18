@@ -89,7 +89,7 @@ func runApp() {
 		return
 	}
 	profiling.Start()
-	cli.SyncSkill()
+	window.PreseedPluginSnapshot(cli.SyncSkillPreload())
 	// Updates from Hyla's GitHub releases, in a window of native UI.
 	mygo.Use(native.Plugin)
 	if err := window.RegisterPluginProtocol(); err != nil {

@@ -23,6 +23,7 @@ import (
 	"hyla/internal/actions"
 	"hyla/internal/build"
 	"hyla/internal/client"
+	"hyla/internal/pets"
 	"hyla/internal/plugins/manifest"
 	"hyla/internal/proto"
 	"hyla/internal/remote"
@@ -72,10 +73,10 @@ var removed = map[string]string{
 	"--host":   "nothing acts on another machine now: run hyla there, over ssh",
 }
 
-func preloadPluginBase() {
+func preloadPluginBase() *manifest.Snapshot {
 	snap, err := manifest.ApplyBase(manifest.DefaultStore())
 	if err != nil {
-		return
+		return nil
 	}
 	wash.ReloadPlugins(snap.Washes)
 	var washIDs []string
@@ -83,11 +84,13 @@ func preloadPluginBase() {
 		washIDs = append(washIDs, w.ID)
 	}
 	settings.SetPluginBackgrounds(washIDs)
+	pets.ReloadPlugins(snap.Pets)
+	return snap
 }
 
 func Run(args []string) int {
-	SyncSkill()
-	preloadPluginBase()
+	snap := preloadPluginBase()
+	syncSkillWithSnap(snap)
 	if len(args) > 0 {
 		if what, ok := removed[args[0]]; ok {
 			fmt.Fprintf(os.Stderr, "hyla: %s is gone: %s\n", args[0], what)

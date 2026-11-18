@@ -145,6 +145,31 @@ func (s *Store) saveRegistryLocked(reg *Registry) error {
 	return writeFileAtomic(s.RegistryPath(), data, 0o755, 0o644)
 }
 
+func (s *Store) ensureEntryLocked(reg *Registry, id string) (RegistryEntry, bool) {
+	if entry, ok := reg.Plugins[id]; ok {
+		return entry, true
+	}
+	builtinsMu.RLock()
+	b, isBuiltin := builtins[id]
+	builtinsMu.RUnlock()
+	if isBuiltin {
+		return builtinDefaultEntry(b), true
+	}
+	// Check unpacked directory-discovered plugins placed directly under plugins/<id>.
+	if dir, err := s.PluginDir(id); err == nil {
+		if m, merr := LoadFile(dir); merr == nil {
+			return RegistryEntry{
+				ID:          id,
+				Enabled:     true,
+				Version:     m.Version,
+				Source:      "directory",
+				InstalledAt: time.Now().UnixMilli(),
+			}, true
+		}
+	}
+	return RegistryEntry{}, false
+}
+
 // Enable turns a plugin on or off in plugins.json.
 func (s *Store) Enable(id string, enabled bool) error {
 	if err := ValidateID(id); err != nil {
@@ -156,28 +181,7 @@ func (s *Store) Enable(id string, enabled bool) error {
 	if err != nil {
 		return err
 	}
-	entry, ok := reg.Plugins[id]
-	if !ok {
-		builtinsMu.RLock()
-		b, isBuiltin := builtins[id]
-		builtinsMu.RUnlock()
-		if !isBuiltin {
-			// Check whether plugin directory exists on disk even if missing from plugins.json.
-			dir, _ := s.PluginDir(id)
-			if m, err := LoadFile(dir); err == nil {
-				entry = RegistryEntry{
-					ID:          id,
-					Version:     m.Version,
-					Source:      "package",
-					InstalledAt: time.Now().UnixMilli(),
-				}
-				ok = true
-			}
-		} else {
-			entry = builtinDefaultEntry(b)
-			ok = true
-		}
-	}
+	entry, ok := s.ensureEntryLocked(reg, id)
 	if !ok {
 		return fmt.Errorf("plugin %q is not installed", id)
 	}
@@ -201,15 +205,9 @@ func (s *Store) SetPermission(id, scope string, granted bool) error {
 	if err != nil {
 		return err
 	}
-	entry, ok := reg.Plugins[id]
+	entry, ok := s.ensureEntryLocked(reg, id)
 	if !ok {
-		builtinsMu.RLock()
-		b, isBuiltin := builtins[id]
-		builtinsMu.RUnlock()
-		if !isBuiltin {
-			return fmt.Errorf("plugin %q is not installed", id)
-		}
-		entry = builtinDefaultEntry(b)
+		return fmt.Errorf("plugin %q is not installed", id)
 	}
 	has := slices.Contains(entry.GrantedPermissions, scope)
 	if granted && !has {
@@ -241,7 +239,7 @@ func (s *Store) GrantPermissions(id string, scopes []string) error {
 	if err != nil {
 		return err
 	}
-	entry, ok := reg.Plugins[id]
+	entry, ok := s.ensureEntryLocked(reg, id)
 	if !ok {
 		return fmt.Errorf("plugin %q is not installed", id)
 	}
@@ -269,6 +267,9 @@ func (s *Store) Link(dir string, grantAll bool) (*InstalledPlugin, error) {
 	m, err := LoadFile(absDir)
 	if err != nil {
 		return nil, err
+	}
+	if isBuiltinEntry(m.ID) {
+		return nil, fmt.Errorf("cannot link plugin %q: conflicts with built-in plugin", m.ID)
 	}
 	now := time.Now().UnixMilli()
 	var granted []string
@@ -336,12 +337,51 @@ func (s *Store) Remove(id string, purgeConfig bool) error {
 	}
 	registryMu.Unlock()
 
+	// Inspect declared secret keys and existing secrets file before deleting files on purgeConfig.
+	var secretKeys []string
+	if purgeConfig {
+		rootDir := entry.LinkPath
+		if entry.Source != "link" {
+			if d, derr := s.PluginDir(id); derr == nil {
+				rootDir = d
+			}
+		}
+		if rootDir != "" {
+			if m, merr := LoadFile(rootDir); merr == nil {
+				for _, st := range m.Settings {
+					if st.Type == "secret" && st.Key != "" {
+						secretKeys = append(secretKeys, st.Key)
+					}
+				}
+			}
+		}
+		if sp, serr := s.SecretsPath(id); serr == nil {
+			if raw, rerr := os.ReadFile(sp); rerr == nil {
+				var secMap map[string]string
+				if json.Unmarshal(raw, &secMap) == nil {
+					for k := range secMap {
+						if k != "" && !slices.Contains(secretKeys, k) {
+							secretKeys = append(secretKeys, k)
+						}
+					}
+				}
+			}
+		}
+		// Legacy Feishu migration secret key cleanup if present in OS keychain.
+		if id == "hyla.feishu" && !slices.Contains(secretKeys, "appSecret") {
+			secretKeys = append(secretKeys, "appSecret")
+		}
+	}
+
 	if entry.Source != "link" {
 		if dir, err := s.PluginDir(id); err == nil {
 			_ = os.RemoveAll(dir)
 		}
 	}
 	if purgeConfig {
+		for _, k := range secretKeys {
+			_ = s.DeleteSecret(id, k)
+		}
 		if p, err := s.ConfigPath(id); err == nil {
 			_ = os.Remove(p)
 		}
@@ -353,6 +393,11 @@ func (s *Store) Remove(id string, purgeConfig bool) error {
 		}
 		if p, err := s.LogPath(id); err == nil {
 			_ = os.Remove(p)
+			_ = os.Remove(p + ".1")
+		}
+		if p, err := s.AppLogPath(id); err == nil {
+			_ = os.Remove(p)
+			_ = os.Remove(p + ".1")
 		}
 	}
 	return nil
@@ -481,6 +526,11 @@ func (s *Store) Discover() ([]InstalledPlugin, error) {
 		return out[i].Entry.ID < out[j].Entry.ID
 	})
 	return out, nil
+}
+
+// IsBuiltin reports whether id is a bundled built-in plugin registered in the binary.
+func IsBuiltin(id string) bool {
+	return isBuiltinEntry(id)
 }
 
 func isBuiltinEntry(id string) bool {

@@ -103,7 +103,6 @@ command = ["./bin/demo-daemon"]
 transport = "stdio"          # "stdio" (default) | "socket"
 auto_start = false           # start lazily on first RPC unless true
 keep_alive = false           # true keeps hylad running even when idle
-activation_events = []
 min_restart_ms = 500
 max_crashes_per_minute = 5   # triggers degraded state if exceeded
 
@@ -202,7 +201,6 @@ Every Plugin -> Host RPC call passes through the Host RPC gateway, which enforce
 | `secrets` | **Yes** | `secrets` passed to `plugin.getSettings` and written via `plugin.setSettings` |
 | `notifications` | No | `ui.notify` |
 | `filesystem.workspace` | **Yes** | Workspace file access referenced by panes |
-| `channel.provider` | **Yes** | Interactive external chat channel drivers |
 
 ---
 

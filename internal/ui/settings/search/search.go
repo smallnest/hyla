@@ -190,6 +190,8 @@ var PageWords = map[string]string{
 	"notifications": "alerts sound badge dock notify",
 	"keyboard":      "shortcuts keybindings keys hotkeys",
 	"feishu":        "lark bot chat message im app secret",
+	"plugins":       "plugin extension pack theme wash pet agent hook",
+	"sync":          "cloud backup machine device config settings",
 	"agents":        "claude codex ai skill cli remote control",
 	"hosts":         "remote ssh tailcat server machine wsl",
 	"advanced":      "config file daemon hylad log reset",

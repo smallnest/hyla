@@ -59,7 +59,7 @@ func (d *Daemon) chatOf(p proto.ChatParams) (proto.Chat, error) {
 	out := proto.Chat{Session: p.Session, Pane: pane, Agent: agent, Read: now.UnixMilli(), Input: takes}
 	// A chat drives a pane that runs no terminal, and runs its prompt as a
 	// turn, once it has a conversation to go on with.
-	out.Turn = !takes && conv != "" && d.channelActive()
+	out.Turn = !takes && conv != "" && d.feishuBot() != nil
 	if pn != nil {
 		out.Session = pn.sid
 	}
@@ -106,9 +106,9 @@ func (d *Daemon) chatSend(p proto.ChatSendParams) (bool, error) {
 		return false, nil
 	}
 	pn.mu.Lock()
-	runs, sid, agent, conv, dir := pn.term != nil && pn.proc != nil, pn.sid, pn.info.Agent, pn.info.AgentSessionID, pn.info.WorkDir()
+	runs, sid, agent, conv, dir, ansDir := pn.term != nil && pn.proc != nil, pn.sid, pn.info.Agent, pn.info.AgentSessionID, pn.info.WorkDir(), pn.info.ChannelAnswerDir()
 	pn.mu.Unlock()
-	if started, handled, perr := d.pluginChatSend(p, pn, agent, conv, dir); handled {
+	if started, handled, perr := d.pluginChatSend(p, pn, agent, conv, dir, ansDir); handled {
 		return started, perr
 	}
 	if runs {
@@ -116,11 +116,11 @@ func (d *Daemon) chatSend(p proto.ChatSendParams) (bool, error) {
 		pn.input([]byte("\r"))
 		return true, nil
 	}
-	ch := d.activeChannel()
-	if ch == nil {
+	b := d.feishuBot()
+	if b == nil {
 		return false, errors.New("no chat drives this session")
 	}
-	return true, ch.Prompt(sid, text)
+	return true, b.Prompt(sid, text)
 }
 
 func pluginHasChat(agent string) bool {

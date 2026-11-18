@@ -112,6 +112,9 @@ func (s *Store) InstallPackage(pkgPath string, opts InstallOptions) (*InstalledP
 	if err != nil {
 		return nil, err
 	}
+	if isBuiltinEntry(m.ID) {
+		return nil, fmt.Errorf("cannot install package %q: conflicts with built-in plugin", m.ID)
+	}
 	if opts.CurrentVersion != "" {
 		if err := m.CompatibleWith(opts.CurrentVersion); err != nil {
 			return nil, err

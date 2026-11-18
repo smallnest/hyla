@@ -13,6 +13,7 @@ import (
 
 	"hyla/internal/actions"
 	"hyla/internal/app/host"
+	"hyla/internal/plugins/uihost"
 	"hyla/internal/proto"
 	"hyla/internal/settings"
 	"hyla/internal/ui/fuzzy"
@@ -226,7 +227,14 @@ func Items(st *State, app App) []item {
 		cmds = append(cmds, item{title: locales.PaletteOpenInBrowser(), detail: proto.BrowserURL(q), top: true,
 			run: func() { app.Run("pane.browser") }})
 	}
+	curSess := app.Session(app.Shown())
 	for _, act := range actions.List() {
+		if act.NoPalette {
+			continue
+		}
+		if act.When != "" && !uihost.MatchesWhen(act.When, curSess, nil) {
+			continue
+		}
 		id := act.ID
 		// A global shortcut shows too, marked, though the menus leave it to
 		// the system to take.
@@ -239,7 +247,7 @@ func Items(st *State, app App) []item {
 	}
 	for _, page := range app.Pages() {
 		id := page.ID
-		cmds = append(cmds, item{title: locales.PaletteSettingsPage(func() string { return page.Title }()), words: "settings preferences " + id + " " + search.PageWords[id], run: func() { app.OpenSettings(id) }})
+		cmds = append(cmds, item{title: locales.PaletteSettingsPage(page.Title), words: "settings preferences " + id + " " + search.PageWords[id], run: func() { app.OpenSettings(id) }})
 	}
 	cmds = append(cmds, item{title: locales.PaletteRestartService(), detail: locales.PaletteRestartServiceDetail(),
 		words: en.PaletteRestartService() + " " + en.PaletteRestartServiceDetail(), run: app.RestartDaemon})
