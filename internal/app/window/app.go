@@ -468,6 +468,8 @@ func (a *App) EventOf(h *host.Host, cl *client.Client, m proto.Message) {
 			}
 		}
 		a.RefreshDaemonPluginStatuses(h)
+	case "plugin.status":
+		a.RefreshDaemonPluginStatuses(h)
 	}
 }
 

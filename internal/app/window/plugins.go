@@ -116,6 +116,10 @@ func (a *App) initPlugins(snap *manifest.Snapshot) {
 	coord.LocaleFunc = a.pluginLocaleValue
 	coord.ThemeFunc = a.pluginThemeValue
 	coord.OnPluginSettingsSaved = a.invalidatePluginUICacheFor
+	coord.OnStatusChange = func(pluginID, state string) {
+		a.invalidatePluginStatusCache()
+		a.InvalidatePluginUI()
+	}
 	coord.DaemonFn = a.pluginDaemonCaller
 	coord.RemoteRef = a.pluginRemoteRef
 	coord.PaneHostFn = func(sessionID, paneID string) string {

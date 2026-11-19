@@ -26,15 +26,17 @@ func (s *stubApp) Settings() *appsettings.Settings { return &appsettings.Setting
 func (s *stubApp) ActionTitle(id string) string    { return id }
 
 type recordingPluginsApp struct {
-	plugins []manifest.InstalledPlugin
-	cfg     map[string]any
-	secrets map[string]string
+	plugins     []manifest.InstalledPlugin
+	cfg         map[string]any
+	secrets     map[string]string
+	daemonState string
 
 	enabledCalls []bool
 	permCalls    []struct {
 		scope   string
 		granted bool
 	}
+	restartCalls []string
 	saveCalls    []map[string]any
 	secretCalls  []string
 	mountCalls   []string
@@ -44,7 +46,14 @@ type recordingPluginsApp struct {
 
 func (r *recordingPluginsApp) List() []manifest.InstalledPlugin { return r.plugins }
 func (r *recordingPluginsApp) DaemonStatuses() []rpc.PluginStatus {
-	return []rpc.PluginStatus{{ID: "com.example.ui", State: "running"}}
+	st := r.daemonState
+	if st == "" {
+		st = "running"
+	}
+	if !r.plugins[0].Entry.Enabled {
+		st = "stopped"
+	}
+	return []rpc.PluginStatus{{ID: r.plugins[0].Entry.ID, State: st, Enabled: r.plugins[0].Entry.Enabled}}
 }
 func (r *recordingPluginsApp) AppStatuses() []rpc.PluginStatus { return nil }
 func (r *recordingPluginsApp) ReloadAll()                      {}
@@ -52,6 +61,11 @@ func (r *recordingPluginsApp) InstallPackage()                 {}
 func (r *recordingPluginsApp) SetEnabled(id string, on bool) {
 	r.enabledCalls = append(r.enabledCalls, on)
 	r.plugins[0].Entry.Enabled = on
+	if on {
+		r.daemonState = "running"
+	} else {
+		r.daemonState = "stopped"
+	}
 }
 func (r *recordingPluginsApp) SetPermission(id, scope string, granted bool) {
 	r.permCalls = append(r.permCalls, struct {
@@ -66,7 +80,7 @@ func (r *recordingPluginsApp) SetPermission(id, scope string, granted bool) {
 		r.plugins[0].Entry.GrantedPermissions = slices.DeleteFunc(r.plugins[0].Entry.GrantedPermissions, func(s string) bool { return s == scope })
 	}
 }
-func (r *recordingPluginsApp) Restart(id string)         {}
+func (r *recordingPluginsApp) Restart(id string) { r.restartCalls = append(r.restartCalls, id) }
 func (r *recordingPluginsApp) Remove(id string)          {}
 func (r *recordingPluginsApp) ReadLogs(id string) string { return "" }
 func (r *recordingPluginsApp) LoadConfig(id string) map[string]any {
@@ -495,5 +509,109 @@ func TestPluginSettingsBlankSecretAndClearNumericAndSearchShortCircuit(t *testin
 	tt.Frame()
 	if pv.cfg["count"] != 1000000 {
 		t.Fatalf("expected saving large float64 integer to keep 1000000, got %v (%T)", pv.cfg["count"], pv.cfg["count"])
+	}
+}
+
+func TestPluginsSettingsDisabledStateAndRestartButton(t *testing.T) {
+	pv := &recordingPluginsApp{
+		cfg:         map[string]any{},
+		secrets:     map[string]string{},
+		daemonState: "running",
+		plugins: []manifest.InstalledPlugin{{
+			Entry: manifest.RegistryEntry{
+				ID:      "com.example.proc",
+				Enabled: true,
+				Version: "1.0.0",
+			},
+			Manifest: &manifest.Manifest{
+				ID:      "com.example.proc",
+				Name:    "Proc Demo",
+				Version: "1.0.0",
+				Daemon: &manifest.HostProcessSpec{
+					Command: []string{"echo"},
+				},
+			},
+		}},
+	}
+	app := &stubApp{
+		ss: &State{Page: "plugins"},
+		pv: pv,
+	}
+
+	tt := ui.NewTester(func(c *ui.Context) {
+		pal := theme.For(c)
+		ui.Scroll(c.Key("root-scroll")).Fill().Children(func() {
+			ui.Column(c).Width(700).Padding(20).Children(func() {
+				pluginsPage(app, c, pal)
+			})
+		})
+	}, 760, 600)
+	tt.Frame()
+
+	findRestart := func() ui.AccessInfo {
+		for _, a := range tt.AccessAll() {
+			if a.Role == ui.RoleButton && a.Name == "Restart" {
+				return a
+			}
+		}
+		t.Fatalf("expected Restart button in AccessAll: %+v", tt.AccessAll())
+		return ui.AccessInfo{}
+	}
+	findSwitch := func() ui.AccessInfo {
+		for _, a := range tt.AccessAll() {
+			if a.Role == ui.RoleSwitch {
+				return a
+			}
+		}
+		t.Fatalf("expected enable switch in AccessAll")
+		return ui.AccessInfo{}
+	}
+
+	// Enabled -> shows running and Restart button is enabled & clickable.
+	if !tt.HasText("running") {
+		t.Fatalf("expected running status text; texts=%v", tt.Texts())
+	}
+	rst := findRestart()
+	if rst.Disabled {
+		t.Fatal("expected Restart button enabled when plugin is enabled")
+	}
+	tt.ClickAt(rst.Bounds.X+rst.Bounds.W/2, rst.Bounds.Y+rst.Bounds.H/2)
+	tt.Frame()
+	if len(pv.restartCalls) != 1 || pv.restartCalls[0] != "com.example.proc" {
+		t.Fatalf("restartCalls = %v, want [com.example.proc]", pv.restartCalls)
+	}
+
+	// Toggle switch OFF -> shows stopped, Restart stays visible with Disabled=true and ignores clicks.
+	sw := findSwitch()
+	tt.ClickAt(sw.Bounds.X+sw.Bounds.W/2, sw.Bounds.Y+sw.Bounds.H/2)
+	tt.Frame()
+	if !tt.HasText("stopped") {
+		t.Fatalf("expected stopped status text after disable; texts=%v", tt.Texts())
+	}
+	rst = findRestart()
+	if !rst.Disabled {
+		t.Fatal("expected Restart button disabled when plugin is disabled")
+	}
+	tt.ClickAt(rst.Bounds.X+rst.Bounds.W/2, rst.Bounds.Y+rst.Bounds.H/2)
+	tt.Frame()
+	if len(pv.restartCalls) != 1 {
+		t.Fatalf("disabled Restart button should not trigger Restart; restartCalls=%v", pv.restartCalls)
+	}
+
+	// Toggle switch ON -> shows running and Restart becomes enabled & clickable again.
+	sw = findSwitch()
+	tt.ClickAt(sw.Bounds.X+sw.Bounds.W/2, sw.Bounds.Y+sw.Bounds.H/2)
+	tt.Frame()
+	if !tt.HasText("running") {
+		t.Fatalf("expected running status text after enable; texts=%v", tt.Texts())
+	}
+	rst = findRestart()
+	if rst.Disabled {
+		t.Fatal("expected Restart button re-enabled when plugin is enabled")
+	}
+	tt.ClickAt(rst.Bounds.X+rst.Bounds.W/2, rst.Bounds.Y+rst.Bounds.H/2)
+	tt.Frame()
+	if len(pv.restartCalls) != 2 {
+		t.Fatalf("expected Restart to work after re-enabling; restartCalls=%v", pv.restartCalls)
 	}
 }

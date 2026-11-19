@@ -656,6 +656,13 @@ type pluginUICache struct {
 	appStatusAt time.Time
 }
 
+func (a *App) invalidatePluginStatusCache() {
+	a.pluginCache.mu.Lock()
+	a.pluginCache.appStatuses = nil
+	a.pluginCache.appStatusAt = time.Time{}
+	a.pluginCache.mu.Unlock()
+}
+
 func (a *App) invalidatePluginUICache() {
 	a.pluginCache.mu.Lock()
 	clear(a.pluginCache.configs)
@@ -791,32 +798,45 @@ func (p *appPluginsSettings) SetPermission(id, scope string, granted bool) {
 }
 
 func (p *appPluginsSettings) Restart(id string) {
-	p.a.invalidatePluginUICache()
-	if p.a.Plugins != nil && p.a.Plugins.AppMgr != nil {
-		for _, st := range p.a.Plugins.AppMgr.ListStatuses() {
-			if st.ID == id {
-				go func() {
-					ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-					defer cancel()
-					_ = p.a.Plugins.AppMgr.Restart(ctx, id)
-					p.a.invalidatePluginUICache()
-					p.a.InvalidatePluginUI()
-				}()
-				break
-			}
+	var (
+		enabled   bool
+		hasApp    bool
+		hasDaemon bool
+	)
+	for _, plg := range p.List() {
+		if plg.Entry.ID == id {
+			enabled = plg.Entry.Enabled && !plg.Entry.PendingInstall
+			hasApp = plg.Manifest != nil && plg.Manifest.App != nil
+			hasDaemon = plg.Manifest != nil && plg.Manifest.Daemon != nil
+			break
 		}
 	}
-	h := p.a.Local()
-	if p.a.hostSupportsPlugins(h) && h.Client != nil {
-		p.a.localDaemonReloadPending.Add(1)
-		h.Client.Go("plugin.restart", rpc.PluginControlParams{PluginID: id}, func(err error) {
-			if err != nil {
-				p.a.consumeLocalDaemonReload()
-				p.a.main(func() { p.a.toast(err.Error()) })
-				return
-			}
-			p.a.RefreshDaemonPluginStatuses(h)
-		})
+	if !enabled {
+		return
+	}
+	p.a.invalidatePluginUICache()
+	if hasApp && p.a.Plugins != nil && p.a.Plugins.AppMgr != nil {
+		go func() {
+			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			defer cancel()
+			_ = p.a.Plugins.AppMgr.Restart(ctx, id)
+			p.a.invalidatePluginUICache()
+			p.a.InvalidatePluginUI()
+		}()
+	}
+	if hasDaemon {
+		h := p.a.Local()
+		if p.a.hostSupportsPlugins(h) && h.Client != nil {
+			p.a.localDaemonReloadPending.Add(1)
+			h.Client.Go("plugin.restart", rpc.PluginControlParams{PluginID: id}, func(err error) {
+				if err != nil {
+					p.a.consumeLocalDaemonReload()
+					p.a.main(func() { p.a.toast(err.Error()) })
+					return
+				}
+				p.a.RefreshDaemonPluginStatuses(h)
+			})
+		}
 	}
 }
 

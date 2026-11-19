@@ -57,6 +57,14 @@ func (d *Daemon) initPlugins() {
 			}
 			return app, app == "dark"
 		},
+		OnStatusChange: func(pluginID, state string) {
+			d.mu.Lock()
+			d.broadcastLocked(proto.Message{
+				Event:  "plugin.status",
+				Plugin: pluginID,
+			})
+			d.mu.Unlock()
+		},
 	})
 	if err := d.plugins.Reload(); err != nil && d.log != nil {
 		d.log.Printf("plugins reload: %v", err)

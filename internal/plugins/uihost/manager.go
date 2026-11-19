@@ -67,6 +67,7 @@ type Coordinator struct {
 	LocaleFunc            func() string
 	ThemeFunc             func() (appearance string, dark bool)
 	OnPluginSettingsSaved func(pluginID string)
+	OnStatusChange        func(pluginID, state string)
 
 	mu      sync.Mutex
 	snap    *manifest.Snapshot
@@ -105,6 +106,11 @@ func NewCoordinator(store *manifest.Store, appBridge daemonhost.HostBridge, hyla
 		OnSettingsSaved: func(pluginID string) {
 			if c.OnPluginSettingsSaved != nil {
 				c.OnPluginSettingsSaved(pluginID)
+			}
+		},
+		OnStatusChange: func(pluginID, state string) {
+			if c.OnStatusChange != nil {
+				c.OnStatusChange(pluginID, state)
 			}
 		},
 	})

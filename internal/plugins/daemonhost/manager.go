@@ -82,6 +82,7 @@ type ManagerOptions struct {
 	LocaleFunc      func() string
 	ThemeFunc       func() (appearance string, dark bool)
 	OnSettingsSaved func(pluginID string)
+	OnStatusChange  func(pluginID, state string)
 }
 
 // Manager supervises out-of-process and built-in plugin hosts for either hylad or the GUI app.
@@ -136,8 +137,14 @@ func NewManager(opts ManagerOptions) *Manager {
 	}
 }
 
+func (m *Manager) notifyStatus(id, state string) {
+	if m.opts.OnStatusChange != nil {
+		m.opts.OnStatusChange(id, state)
+	}
+}
+
 // Reload discovers installed plugins, reconciles active specs, stops disabled/removed
-// plugins, and auto-starts plugins marked auto_start=true or keep_alive=true.
+// plugins, and auto-starts enabled plugins.
 func (m *Manager) Reload() error {
 	list, err := m.opts.Store.Discover()
 	if err != nil {
@@ -151,6 +158,7 @@ func (m *Manager) ReloadWithPlugins(list []manifest.InstalledPlugin) error {
 
 	var toStop []*managedPlugin
 	var toAutoStart []string
+	var statusStopped []string
 	var cancels []context.CancelFunc
 
 	m.mu.Lock()
@@ -166,6 +174,9 @@ func (m *Manager) ReloadWithPlugins(list []manifest.InstalledPlugin) error {
 		cur := m.plugins[id]
 		if !p.Entry.Enabled || p.Entry.PendingInstall || p.Manifest == nil || spec == nil {
 			if cur != nil {
+				if cur.state != StateStopped {
+					statusStopped = append(statusStopped, id)
+				}
 				if cur.backoffTimer != nil {
 					cur.backoffTimer.Stop()
 					cur.backoffTimer = nil
@@ -193,9 +204,7 @@ func (m *Manager) ReloadWithPlugins(list []manifest.InstalledPlugin) error {
 				state:     StateStopped,
 			}
 			m.plugins[id] = mp
-			if spec.AutoStart || spec.KeepAlive {
-				toAutoStart = append(toAutoStart, id)
-			}
+			toAutoStart = append(toAutoStart, id)
 			continue
 		}
 		changed := cur.installed.Entry.SHA256 != p.Entry.SHA256 ||
@@ -218,23 +227,23 @@ func (m *Manager) ReloadWithPlugins(list []manifest.InstalledPlugin) error {
 			cur.startWait = nil
 			if cur.peer != nil || cur.cmd != nil {
 				toStop = append(toStop, m.detachLocked(cur))
-				if spec.AutoStart || spec.KeepAlive {
-					toAutoStart = append(toAutoStart, id)
-				}
 			} else if cur.state == StateDegraded || cur.state == StateError {
 				cur.state = StateStopped
-				if spec.AutoStart || spec.KeepAlive {
-					toAutoStart = append(toAutoStart, id)
-				}
 			}
+			toAutoStart = append(toAutoStart, id)
 			continue
 		}
-		if (spec.AutoStart || spec.KeepAlive) && cur.state == StateStopped && cur.peer == nil {
+		if cur.state == StateStopped && cur.peer == nil && cur.startWait == nil {
+			cur.crashes = nil
+			cur.lastError = ""
 			toAutoStart = append(toAutoStart, id)
 		}
 	}
 	for id, mp := range m.plugins {
 		if !seen[id] {
+			if mp.state != StateStopped {
+				statusStopped = append(statusStopped, id)
+			}
 			if mp.backoffTimer != nil {
 				mp.backoffTimer.Stop()
 				mp.backoffTimer = nil
@@ -257,6 +266,9 @@ func (m *Manager) ReloadWithPlugins(list []manifest.InstalledPlugin) error {
 	}
 	for _, mp := range toStop {
 		m.terminateDetached(mp)
+	}
+	for _, id := range statusStopped {
+		m.notifyStatus(id, StateStopped)
 	}
 	for _, id := range toAutoStart {
 		go func(pid string) {
@@ -332,10 +344,16 @@ func (m *Manager) HasKeepAliveRunning() bool {
 func (m *Manager) Restart(ctx context.Context, pluginID string) error {
 	m.mu.Lock()
 	mp, ok := m.plugins[pluginID]
+	if ok && (!mp.installed.Entry.Enabled || mp.installed.Entry.PendingInstall) {
+		m.mu.Unlock()
+		return rpc.NewError(rpc.ErrCodePermissionDenied, fmt.Sprintf("plugin %q is disabled", pluginID))
+	}
 	var detached *managedPlugin
 	var prevStart chan struct{}
 	var prevCancel context.CancelFunc
+	wasActive := false
 	if ok {
+		wasActive = mp.state != StateStopped
 		if mp.backoffTimer != nil {
 			mp.backoffTimer.Stop()
 			mp.backoffTimer = nil
@@ -366,6 +384,9 @@ func (m *Manager) Restart(ctx context.Context, pluginID string) error {
 	}
 	if detached != nil {
 		m.terminateDetached(detached)
+	}
+	if wasActive {
+		m.notifyStatus(pluginID, StateStopped)
 	}
 	return m.EnsureStarted(ctx, pluginID)
 }
@@ -431,10 +452,12 @@ func (m *Manager) EnsureStarted(ctx context.Context, pluginID string) error {
 		installed := mp.installed
 		spec := *mp.spec
 		m.mu.Unlock()
+		m.notifyStatus(pluginID, StateStarting)
 
 		err := m.startProcess(startCtx, pluginID, installed, &spec, waitCh)
 
 		startCancel()
+		var finalState string
 		m.mu.Lock()
 		mp = m.plugins[pluginID]
 		if mp != nil && mp.startWait == waitCh {
@@ -447,10 +470,14 @@ func (m *Manager) EnsureStarted(ctx context.Context, pluginID string) error {
 				} else {
 					mp.state = StateStopped
 				}
+				finalState = mp.state
 			}
 		}
 		m.mu.Unlock()
 		close(waitCh)
+		if err != nil && finalState != "" {
+			m.notifyStatus(pluginID, finalState)
+		}
 		return err
 	}
 }
@@ -689,6 +716,7 @@ func (m *Manager) startProcess(ctx context.Context, id string, p manifest.Instal
 	m.mu.Unlock()
 
 	go m.watchProcess(id, mp, cmd, peer, waitDone, runCleanup)
+	m.notifyStatus(id, StateRunning)
 	return nil
 }
 
@@ -745,6 +773,7 @@ func (m *Manager) watchProcess(id string, mp *managedPlugin, cmd *exec.Cmd, peer
 	if expectedStop {
 		mp.state = StateStopped
 		m.mu.Unlock()
+		m.notifyStatus(id, StateStopped)
 		return
 	}
 
@@ -771,12 +800,13 @@ func (m *Manager) watchProcess(id string, mp *managedPlugin, cmd *exec.Cmd, peer
 	if len(recent) >= maxCrashes {
 		mp.state = StateDegraded
 		m.mu.Unlock()
+		m.notifyStatus(id, StateDegraded)
 		return
 	}
 
 	mp.state = StateError
 	backoff := crashBackoff(len(recent), mp.spec)
-	shouldRestart := mp.spec != nil && (mp.spec.AutoStart || mp.spec.KeepAlive)
+	shouldRestart := mp.spec != nil && mp.installed.Entry.Enabled
 	if shouldRestart {
 		mp.backoffTimer = time.AfterFunc(backoff, func() {
 			ctx, c := context.WithTimeout(context.Background(), 15*time.Second)
@@ -785,6 +815,7 @@ func (m *Manager) watchProcess(id string, mp *managedPlugin, cmd *exec.Cmd, peer
 		})
 	}
 	m.mu.Unlock()
+	m.notifyStatus(id, StateError)
 }
 
 func crashBackoff(crashesInWindow int, spec *manifest.HostProcessSpec) time.Duration {
@@ -1077,6 +1108,12 @@ func (m *Manager) ListStatuses() []rpc.PluginStatus {
 			if mp.state == StateRunning && !mp.startedAt.IsZero() {
 				st.UptimeMS = now.Sub(mp.startedAt).Milliseconds()
 			}
+		}
+		if !p.Entry.Enabled || p.Entry.PendingInstall {
+			st.State = StateStopped
+			st.PID = 0
+			st.LastError = ""
+			st.UptimeMS = 0
 		}
 		out = append(out, st)
 	}

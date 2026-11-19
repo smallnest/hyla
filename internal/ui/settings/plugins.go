@@ -120,12 +120,16 @@ func pluginsPage(x App, c *ui.Context, pal *theme.Palette) {
 			case plg.Entry.Source == "link" && plg.Entry.LinkPath != "":
 				metaParts = append(metaParts, locales.SetPluginsLinked(plg.Entry.LinkPath))
 			}
-			if st.State != "" && !plg.Entry.PendingInstall {
+			if !plg.Entry.PendingInstall {
 				stateStr := st.State
-				if st.PID > 0 {
+				if !plg.Entry.Enabled {
+					stateStr = "stopped"
+				} else if st.PID > 0 {
 					stateStr += fmt.Sprintf(" (pid %d)", st.PID)
 				}
-				metaParts = append(metaParts, stateStr)
+				if stateStr != "" {
+					metaParts = append(metaParts, stateStr)
+				}
 			}
 			detail := strings.Join(metaParts, " · ")
 
@@ -144,8 +148,8 @@ func pluginsPage(x App, c *ui.Context, pal *theme.Palette) {
 						}
 					}
 				}
-				if plg.Manifest != nil && (plg.Manifest.Daemon != nil || plg.Manifest.App != nil) && plg.Entry.Enabled && !plg.Entry.PendingInstall {
-					if style.Button(c, "plg-rst-"+id, locales.SetPluginsRestart(), "", false, pal) {
+				if plg.Manifest != nil && (plg.Manifest.Daemon != nil || plg.Manifest.App != nil) && !plg.Entry.PendingInstall {
+					if style.ButtonDisabled(c, "plg-rst-"+id, locales.SetPluginsRestart(), "", false, !plg.Entry.Enabled, pal) {
 						pa.Restart(id)
 					}
 				}
@@ -184,7 +188,7 @@ func pluginsPage(x App, c *ui.Context, pal *theme.Palette) {
 			})
 
 			errMsg := plg.LoadError
-			if errMsg == "" {
+			if errMsg == "" && plg.Entry.Enabled {
 				errMsg = st.LastError
 			}
 			if errMsg != "" {

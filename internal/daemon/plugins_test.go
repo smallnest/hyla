@@ -5,7 +5,9 @@ import (
 	"io"
 	"log"
 	"testing"
+	"time"
 
+	"hyla/internal/plugins/daemonhost"
 	"hyla/internal/plugins/rpc"
 	"hyla/internal/proto"
 )
@@ -109,4 +111,63 @@ func TestDaemonPluginListCallAndPluginPanePersistence(t *testing.T) {
 	if len(cmd) != 3 || cmd[0] != "myagent-cli" || cmd[2] != "conv-123" {
 		t.Fatalf("unexpected plugin resumeCommand: %v", cmd)
 	}
+}
+
+func TestDaemonPluginStartupAndToggleLifecycle(t *testing.T) {
+	dir := t.TempDir()
+	d := &Daemon{
+		dir:      dir,
+		log:      log.New(io.Discard, "", 0),
+		panes:    map[string]*pane{},
+		subs:     map[*controlConn]struct{}{},
+		watchers: map[*controlConn]struct{}{},
+		clients:  map[*proto.ClientInfo]struct{}{},
+		changeCh: make(chan struct{}, 1),
+		saveCh:   make(chan struct{}, 1),
+		quit:     make(chan struct{}),
+	}
+	empty := ""
+	d.viewed.Store(&empty)
+	d.initPlugins()
+	t.Cleanup(func() {
+		if d.plugins != nil {
+			d.plugins.ShutdownAll()
+		}
+		proto.ClearPluginAgents()
+	})
+
+	waitMagpieState := func(want string) rpc.PluginStatus {
+		deadline := time.Now().Add(5 * time.Second)
+		for time.Now().Before(deadline) {
+			for _, st := range d.pluginList() {
+				if st.ID == "hyla.magpie" && st.State == want {
+					return st
+				}
+			}
+			time.Sleep(25 * time.Millisecond)
+		}
+		t.Fatalf("timed out waiting for hyla.magpie state %q; list=%+v", want, d.pluginList())
+		return rpc.PluginStatus{}
+	}
+
+	// Enabled built-in hyla.magpie starts automatically even though its manifest has AutoStart=false.
+	waitMagpieState(daemonhost.StateRunning)
+
+	// Disabling stops it to StateStopped.
+	if err := d.pluginStore().Enable("hyla.magpie", false); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.plugins.Reload(); err != nil {
+		t.Fatal(err)
+	}
+	waitMagpieState(daemonhost.StateStopped)
+
+	// Re-enabling starts it back to StateRunning.
+	if err := d.pluginStore().Enable("hyla.magpie", true); err != nil {
+		t.Fatal(err)
+	}
+	if err := d.plugins.Reload(); err != nil {
+		t.Fatal(err)
+	}
+	waitMagpieState(daemonhost.StateRunning)
 }

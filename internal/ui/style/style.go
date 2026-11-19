@@ -97,6 +97,12 @@ func Button(c *ui.Context, key, label, keys string, primary bool, pal *theme.Pal
 	return SizedButton(c, key, label, keys, primary, 30, 8, pal)
 }
 
+// ButtonDisabled renders a Button that may be disabled: non-interactive, muted,
+// and returning false when disabled is true.
+func ButtonDisabled(c *ui.Context, key, label, keys string, primary, disabled bool, pal *theme.Palette) bool {
+	return sizedButton(c, key, label, keys, primary, 30, 8, pal, false, disabled)
+}
+
 // quietButton is a button under others, as a link: its label in the muted
 // text, in the accent under the pointer, its detail as the tooltip.
 func QuietButton(c *ui.Context, key, label, tip string, pal *theme.Palette) bool {
@@ -126,21 +132,30 @@ func SizedButton(c *ui.Context, key, label, keys string, primary bool, height, r
 }
 
 func SizedButtonAt(c *ui.Context, key, label, keys string, primary bool, height, radius float32, pal *theme.Palette, focus bool) bool {
-	b := ui.ButtonBase(c.Key(key)).Height(height).Padding(0, 14).Gap(8).Radius(radius).AlignItems(ui.Center).Label(label)
-	if focus {
+	return sizedButton(c, key, label, keys, primary, height, radius, pal, focus, false)
+}
+
+func sizedButton(c *ui.Context, key, label, keys string, primary bool, height, radius float32, pal *theme.Palette, focus, disabled bool) bool {
+	b := ui.ButtonBase(c.Key(key)).Height(height).Padding(0, 14).Gap(8).Radius(radius).AlignItems(ui.Center).Label(label).Disabled(disabled)
+	if focus && !disabled {
 		b.AutoFocus()
 	}
 	bg, fg := pal.Control, pal.Text
 	if primary {
 		bg, fg = pal.Accent, ui.Hex("#ffffff")
 	}
-	switch {
-	case b.Pressed():
-		bg = bg.Mix(ui.Hex("#000000"), 0.08)
-	case b.Hovered() && primary:
-		bg = bg.Mix(ui.Hex("#ffffff"), 0.08)
-	case b.Hovered():
-		bg = pal.ControlHover
+	if disabled {
+		bg, fg = pal.Control, pal.TextFaint
+		b.Opacity(0.5)
+	} else {
+		switch {
+		case b.Pressed():
+			bg = bg.Mix(ui.Hex("#000000"), 0.08)
+		case b.Hovered() && primary:
+			bg = bg.Mix(ui.Hex("#ffffff"), 0.08)
+		case b.Hovered():
+			bg = pal.ControlHover
+		}
 	}
 	Face(b, pal, b.AnimateColor("bg", bg, ui.Animation{Duration: 90e6})).TextColor(fg)
 	b.Children(func() {
@@ -149,7 +164,7 @@ func SizedButtonAt(c *ui.Context, key, label, keys string, primary bool, height,
 			ui.Text(c, keys).FontSize(12).TextColor(fg.Alpha(0.55)).SingleLine()
 		}
 	})
-	return b.Clicked()
+	return !disabled && b.Clicked()
 }
 
 // toggle is hyla's switch: a track that shows on and off alike, the
