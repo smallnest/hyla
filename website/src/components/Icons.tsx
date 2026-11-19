@@ -41,6 +41,11 @@ export const LayersIcon = icon(() => (
     <path d="m2 12 10 5 10-5" />
   </>
 ));
+export const PuzzleIcon = icon(() => (
+  <>
+    <path d="M19 13h-2a2 2 0 0 1 0-4h2V6a1 1 0 0 0-1-1h-3a2 2 0 0 1-4 0H8a1 1 0 0 0-1 1v3a2 2 0 0 1 0 4v3a1 1 0 0 0 1 1h3a2 2 0 0 1 4 0h3a1 1 0 0 0 1-1v-3Z" />
+  </>
+));
 export const BotIcon = icon(() => (
   <>
     <rect width="16" height="12" x="4" y="8" rx="2" />

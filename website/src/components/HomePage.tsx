@@ -13,12 +13,13 @@ import {
   PauseIcon,
   PhoneIcon,
   PlayIcon,
+  PuzzleIcon,
   ServerIcon,
   TerminalIcon,
 } from './Icons';
 import { localize, pageHead, type Locale } from '../lib/i18n';
 
-const icons = [TerminalIcon, LayersIcon, ServerIcon, BellIcon, BotIcon, PhoneIcon];
+const icons = [TerminalIcon, LayersIcon, ServerIcon, BellIcon, BotIcon, PhoneIcon, PuzzleIcon];
 const featureLinks = [
   '/docs/configuration',
   '/docs/panes',
@@ -26,6 +27,7 @@ const featureLinks = [
   '/docs/status',
   '/docs/agents',
   '/docs/quick-start',
+  '/docs/plugin-tutorial',
 ];
 
 // Every machine Hyla drives, or is made of: the ticker between the hero and
@@ -125,6 +127,13 @@ const copy = {
         points: ['no relay, no account', 'Android APK'],
         label: 'Remote',
       },
+      {
+        from: 'hyla',
+        title: 'Plugins, without a rebuild',
+        body: 'Teach Hyla an agent, bring a theme, draw a card, a page or a pane.',
+        points: ['a pack of files', 'a process, or a WebView', 'link it, or pack and share'],
+        label: 'Plugins',
+      },
     ] as Feature[],
     pocketKicker: '05 — android',
     pocketTitle: 'Hyla, in your pocket',
@@ -210,6 +219,13 @@ const copy = {
         points: ['リレーもアカウントも不要', 'Android APK'],
         label: 'リモート',
       },
+      {
+        from: 'hyla',
+        title: '作り直さずに拡張',
+        body: 'エージェントを教え、テーマを持ち込み、カードやページ、ペインを描く。',
+        points: ['ファイルだけのパック', 'プロセス、または WebView', 'リンクで使う。配るならパッケージ'],
+        label: 'プラグイン',
+      },
     ] as Feature[],
     pocketKicker: '05 — android',
     pocketTitle: 'ポケットの中の Hyla',
@@ -293,6 +309,13 @@ const copy = {
         body: '地址加密码就连上另一台机器；APK 读同一批会话。',
         points: ['不需要中继和账号', 'Android APK'],
         label: '远程',
+      },
+      {
+        from: 'hyla',
+        title: '插件，无需重新编译',
+        body: '教会 Hyla 一个新的智能体，带一个主题，画一张卡片、一个页面或一个窗格。',
+        points: ['一个只有文件的包', '一个进程，或一个 WebView', '本地 link，分享就打包'],
+        label: '插件',
       },
     ] as Feature[],
     pocketKicker: '05 — android',
