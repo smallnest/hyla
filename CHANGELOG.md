@@ -4,6 +4,26 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.18.0
+
+- **Pane › Open Hongguo Drama Pane** (`⌥⌘V` on macOS, `Ctrl+Alt+V` on
+  Windows and Linux, or from the command palette) opens a built-in short
+  drama pane powered by MyGo's native video player. Browse the full catalog
+  with infinite scrolling across **All**, **Recommended**, **Live Action**,
+  **Comic** and **Ranking**, search by title, resume from **History**, and
+  let **Auto-Pause** pause playback whenever a coding agent finishes its
+  turn (`ffmpeg` is used locally to decrypt protected episodes; hosts keep
+  open Hongguo panes across restarts with their next update).
+- Enabled plugins now start automatically when Hyla or `hylad` launches and
+  as soon as they are enabled in **Settings › Plugins**, while disabled
+  plugins stay `stopped` on startup and stop right away when disabled
+  (hosts get the daemon-side behavior with their next update). While a
+  plugin is disabled in **Settings › Plugins**, its **Restart** button stays
+  visible but disabled, and stale runtime errors are cleared.
+- In Simplified Chinese, the four pane entries in the **Pane** menu
+  (**新建浏览器窗格**, **打开时间线窗格**, **打开子代理窗格**,
+  **打开红果短剧窗格**) now use 窗格 consistently instead of 面板.
+
 ## 3.17.7
 
 - A pane keeps its terminal when the agent in it quits: Ctrl+C twice in
