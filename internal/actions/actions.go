@@ -74,6 +74,7 @@ var All = []Action{
 	{ID: "files.toggle", Title: "Toggle Files", Menu: "View", Keys: "CmdOrCtrl+Alt+F", Remote: true},
 	{ID: "info.toggle", Title: "Toggle Info", Menu: "View", Keys: "CmdOrCtrl+Alt+I", Remote: true},
 	{ID: "subagents.open", Title: "Open Subagents Pane", Menu: "Pane", Keys: "CmdOrCtrl+Alt+S", Remote: true},
+	{ID: "hongguo.open", Title: "Open Hongguo Drama Pane", Menu: "Pane", Keys: "CmdOrCtrl+Alt+V", Remote: true},
 	// The chat's toggle is no menu item and has no shortcut: the palette
 	// lists every action, which is where a terminal's pane takes the
 	// conversation in place of its terminal.
@@ -112,6 +113,7 @@ var pcKeys = map[string]string{
 	"pane.browser":      "Alt+Shift+B",
 	"timeline.open":     "CmdOrCtrl+Alt+T",
 	"subagents.open":    "Ctrl+Alt+S",
+	"hongguo.open":      "Ctrl+Alt+V",
 	"pane.zoom":         "Ctrl+Shift+Enter",
 	"pane.next":         "Ctrl+Shift+]",
 	"pane.previous":     "Ctrl+Shift+[",

@@ -30,6 +30,7 @@ import (
 	"hyla/internal/actions"
 	"hyla/internal/adblock"
 	"hyla/internal/app/filepane"
+	"hyla/internal/app/hongguo"
 	configsync "hyla/internal/app/sync"
 	"hyla/internal/client"
 	"hyla/internal/plugins/rpc"
@@ -38,6 +39,7 @@ import (
 	"hyla/internal/remote"
 	"hyla/internal/settings"
 	"hyla/internal/ui/confirm"
+	"hyla/internal/ui/hongguoview"
 	"hyla/internal/ui/hosts"
 	"hyla/internal/ui/k8sdialog"
 	"hyla/internal/ui/marks"
@@ -272,6 +274,12 @@ type App struct {
 	// session it shows (subagents.go), and what a subagents pane shows of
 	// its session (subagents_pane.go).
 	Subagents *subagentsview.Info
+	// HongguoSvc and Hongguo back the built-in Hongguo short drama panes.
+	HongguoSvc       *hongguo.Service
+	Hongguo          map[string]*hongguoview.State
+	hongguoWorking   map[string]bool
+	hongguoMain      func(func())
+	hongguoOpenVideo func(localPath, streamURL string) (*ui.VideoPlayer, error)
 
 	// quitting is set while the quit quit-ends-sessions makes ends the
 	// sessions, either while it asks or once its answer does.
@@ -302,7 +310,7 @@ type App struct {
 // confirmation is a question the app asks before something it cannot undo.
 
 func newApp() *App {
-	a := &App{Terms: map[string]*termEntry{}, Webs: map[string]*webpane.Entry{}, Statuses: map[string]proto.Status{}, Active: true, focused: true,
+	a := &App{Terms: map[string]*termEntry{}, Webs: map[string]*webpane.Entry{}, Hongguo: map[string]*hongguoview.State{}, hongguoWorking: map[string]bool{}, Statuses: map[string]proto.Status{}, Active: true, focused: true,
 		Refs: map[string]*ui.Handle{}, Focus: map[string]string{}, ArrivedPanes: map[string]bool{}, quitCh: make(chan struct{})}
 	a.loadPrefs()
 	// The logos the user gave the agents Hyla has none for, as the
@@ -495,6 +503,11 @@ func (a *App) TakeStateOf(h *host.Host, st proto.State) {
 			a.DropWeb(id)
 		}
 	}
+	for id := range a.Hongguo {
+		if !live[id] {
+			a.DropHongguo(id)
+		}
+	}
 	if a.Plugins != nil && a.Plugins.Web != nil {
 		a.Plugins.Web.ReleaseStale(live)
 	}
@@ -535,6 +548,7 @@ func (a *App) TakeStateOf(h *host.Host, st proto.State) {
 	} else if first || hostFirst && a.hostOf(a.Selected) == h {
 		a.selectSession(a.Selected)
 	}
+	a.checkHongguoAutoPause(first)
 	a.notify(first)
 	a.UpdateTitle()
 }
@@ -616,7 +630,7 @@ func (a *App) notify(first bool) {
 		default:
 			continue
 		}
-		if a.settingsIn.BounceDock && (s.Status == proto.Waiting || s.Status == proto.Failed) {
+		if a.Win != nil && a.settingsIn.BounceDock && (s.Status == proto.Waiting || s.Status == proto.Failed) {
 			mygo.App.Dock.Bounce(false)
 		}
 		a.showNotification(s.ID, title, body)
@@ -629,7 +643,9 @@ func (a *App) notify(first bool) {
 	if !a.settingsIn.DockBadge {
 		waiting = 0
 	}
-	mygo.App.SetBadgeCount(waiting)
+	if a.Win != nil {
+		mygo.App.SetBadgeCount(waiting)
+	}
 }
 
 func (a *App) UpdateTitle() {

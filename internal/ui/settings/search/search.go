@@ -172,6 +172,7 @@ var ActionWords = map[string]string{
 	"changes.toggle":       "git diff branch panel changes",
 	"files.toggle":         "file tree browser folder explore panel",
 	"subagents.open":       "subagent subagents delegated parallel agent pane open",
+	"hongguo.open":         "hongguo drama short video break player 红果 短剧 摸鱼 刷剧",
 	"pane.chat":            "chat conversation transcript messages prompt agent talk",
 	"text.bigger":          "zoom in font size larger increase text",
 	"text.smaller":         "zoom out font size decrease text",

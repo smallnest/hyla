@@ -52,6 +52,7 @@ type savedPane struct {
 	File        string            `json:"file,omitempty"`
 	Timeline    string            `json:"timeline,omitempty"`
 	Subagents   bool              `json:"subagents,omitempty"`
+	Hongguo     bool              `json:"hongguo,omitempty"`
 	Plugin      string            `json:"plugin,omitempty"`
 	PluginView  string            `json:"pluginView,omitempty"`
 	PluginArgs  map[string]string `json:"pluginArgs,omitempty"`
@@ -99,7 +100,7 @@ func (d *Daemon) saveState() {
 		ss := savedSession{ID: s.id, Project: s.project, Name: s.name, AgentNamed: s.agentNamed, Created: s.created, Layout: s.layout, Focus: s.focus}
 		for _, p := range s.panes {
 			p.mu.Lock()
-			sp := savedPane{ID: p.info.ID, Dir: p.info.Dir, Command: p.info.Command, URL: p.info.URL, File: p.info.File, Timeline: p.info.Timeline, Subagents: p.info.Subagents,
+			sp := savedPane{ID: p.info.ID, Dir: p.info.Dir, Command: p.info.Command, URL: p.info.URL, File: p.info.File, Timeline: p.info.Timeline, Subagents: p.info.Subagents, Hongguo: p.info.Hongguo,
 				Plugin: p.info.Plugin, PluginView: p.info.PluginView, PluginArgs: p.info.PluginArgs, PluginTitle: p.info.PluginTitle,
 				Background: p.bg != nil,
 				Agent:      p.info.AgentSession, Turn: p.info.Turn, Created: p.info.Created, Cols: p.info.Cols, Rows: p.info.Rows}
@@ -211,9 +212,9 @@ func (d *Daemon) restore() {
 // app shows.
 func (d *Daemon) restorePane(sid string, sp savedPane) *pane {
 	now := time.Now().UnixMilli()
-	if sp.URL != "" || sp.File != "" || sp.Timeline != "" || sp.Subagents || sp.Plugin != "" {
+	if sp.URL != "" || sp.File != "" || sp.Timeline != "" || sp.Subagents || sp.Hongguo || sp.Plugin != "" {
 		p, _ := newPane(d, sid, proto.Pane{
-			ID: sp.ID, Dir: sp.Dir, URL: sp.URL, File: sp.File, Timeline: sp.Timeline, Subagents: sp.Subagents,
+			ID: sp.ID, Dir: sp.Dir, URL: sp.URL, File: sp.File, Timeline: sp.Timeline, Subagents: sp.Subagents, Hongguo: sp.Hongguo,
 			Plugin: sp.Plugin, PluginView: sp.PluginView, PluginArgs: sp.PluginArgs, PluginTitle: sp.PluginTitle,
 			Title: sp.Title, Status: proto.Idle, Since: now,
 			Created: sp.Created, Restored: true,

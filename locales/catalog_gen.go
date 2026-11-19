@@ -9415,3 +9415,537 @@ func SetPluginsHeaderDetail() string { return In(i18n.Locale()).SetPluginsHeader
 func (msgs Messages) SetPluginsHeaderDetail() string {
 	return Catalog.Format(msgs.locale, "setPluginsHeaderDetail", nil)
 }
+
+// ActionHongguoOpen says "Open Hongguo Drama Pane"
+// in the language the app shows.
+func ActionHongguoOpen() string { return In(i18n.Locale()).ActionHongguoOpen() }
+
+// ActionHongguoOpen says "Open Hongguo Drama Pane"
+// in the language of msgs.
+func (msgs Messages) ActionHongguoOpen() string {
+	return Catalog.Format(msgs.locale, "actionHongguoOpen", nil)
+}
+
+// HongguoTitle says "Hongguo Drama"
+// in the language the app shows.
+func HongguoTitle() string { return In(i18n.Locale()).HongguoTitle() }
+
+// HongguoTitle says "Hongguo Drama"
+// in the language of msgs.
+func (msgs Messages) HongguoTitle() string {
+	return Catalog.Format(msgs.locale, "hongguoTitle", nil)
+}
+
+// HongguoSearchPlaceholder says "Search dramas…"
+// in the language the app shows.
+func HongguoSearchPlaceholder() string { return In(i18n.Locale()).HongguoSearchPlaceholder() }
+
+// HongguoSearchPlaceholder says "Search dramas…"
+// in the language of msgs.
+func (msgs Messages) HongguoSearchPlaceholder() string {
+	return Catalog.Format(msgs.locale, "hongguoSearchPlaceholder", nil)
+}
+
+// HongguoHistory says "History"
+// in the language the app shows.
+func HongguoHistory() string { return In(i18n.Locale()).HongguoHistory() }
+
+// HongguoHistory says "History"
+// in the language of msgs.
+func (msgs Messages) HongguoHistory() string {
+	return Catalog.Format(msgs.locale, "hongguoHistory", nil)
+}
+
+// HongguoNextBatch says "Next Batch"
+// in the language the app shows.
+func HongguoNextBatch() string { return In(i18n.Locale()).HongguoNextBatch() }
+
+// HongguoNextBatch says "Next Batch"
+// in the language of msgs.
+func (msgs Messages) HongguoNextBatch() string {
+	return Catalog.Format(msgs.locale, "hongguoNextBatch", nil)
+}
+
+// HongguoLoadMore says "Load More"
+// in the language the app shows.
+func HongguoLoadMore() string { return In(i18n.Locale()).HongguoLoadMore() }
+
+// HongguoLoadMore says "Load More"
+// in the language of msgs.
+func (msgs Messages) HongguoLoadMore() string {
+	return Catalog.Format(msgs.locale, "hongguoLoadMore", nil)
+}
+
+// HongguoTabAll says "All"
+// in the language the app shows.
+func HongguoTabAll() string { return In(i18n.Locale()).HongguoTabAll() }
+
+// HongguoTabAll says "All"
+// in the language of msgs.
+func (msgs Messages) HongguoTabAll() string {
+	return Catalog.Format(msgs.locale, "hongguoTabAll", nil)
+}
+
+// HongguoTabRecommend says "Recommended"
+// in the language the app shows.
+func HongguoTabRecommend() string { return In(i18n.Locale()).HongguoTabRecommend() }
+
+// HongguoTabRecommend says "Recommended"
+// in the language of msgs.
+func (msgs Messages) HongguoTabRecommend() string {
+	return Catalog.Format(msgs.locale, "hongguoTabRecommend", nil)
+}
+
+// HongguoTabLive says "Live Action"
+// in the language the app shows.
+func HongguoTabLive() string { return In(i18n.Locale()).HongguoTabLive() }
+
+// HongguoTabLive says "Live Action"
+// in the language of msgs.
+func (msgs Messages) HongguoTabLive() string {
+	return Catalog.Format(msgs.locale, "hongguoTabLive", nil)
+}
+
+// HongguoTabComic says "Comic"
+// in the language the app shows.
+func HongguoTabComic() string { return In(i18n.Locale()).HongguoTabComic() }
+
+// HongguoTabComic says "Comic"
+// in the language of msgs.
+func (msgs Messages) HongguoTabComic() string {
+	return Catalog.Format(msgs.locale, "hongguoTabComic", nil)
+}
+
+// HongguoTabRank says "Ranking"
+// in the language the app shows.
+func HongguoTabRank() string { return In(i18n.Locale()).HongguoTabRank() }
+
+// HongguoTabRank says "Ranking"
+// in the language of msgs.
+func (msgs Messages) HongguoTabRank() string {
+	return Catalog.Format(msgs.locale, "hongguoTabRank", nil)
+}
+
+// HongguoLoadingMore says "Loading more…"
+// in the language the app shows.
+func HongguoLoadingMore() string { return In(i18n.Locale()).HongguoLoadingMore() }
+
+// HongguoLoadingMore says "Loading more…"
+// in the language of msgs.
+func (msgs Messages) HongguoLoadingMore() string {
+	return Catalog.Format(msgs.locale, "hongguoLoadingMore", nil)
+}
+
+// HongguoLoadedCount says "{count} dramas"
+// in the language the app shows.
+func HongguoLoadedCount(count string) string { return In(i18n.Locale()).HongguoLoadedCount(count) }
+
+// HongguoLoadedCount says "{count} dramas"
+// in the language of msgs.
+func (msgs Messages) HongguoLoadedCount(count string) string {
+	return Catalog.Format(msgs.locale, "hongguoLoadedCount", map[string]any{"count": count})
+}
+
+// HongguoLoadedAll says "All {count} dramas loaded"
+// in the language the app shows.
+func HongguoLoadedAll(count string) string { return In(i18n.Locale()).HongguoLoadedAll(count) }
+
+// HongguoLoadedAll says "All {count} dramas loaded"
+// in the language of msgs.
+func (msgs Messages) HongguoLoadedAll(count string) string {
+	return Catalog.Format(msgs.locale, "hongguoLoadedAll", map[string]any{"count": count})
+}
+
+// HongguoRefresh says "Refresh"
+// in the language the app shows.
+func HongguoRefresh() string { return In(i18n.Locale()).HongguoRefresh() }
+
+// HongguoRefresh says "Refresh"
+// in the language of msgs.
+func (msgs Messages) HongguoRefresh() string {
+	return Catalog.Format(msgs.locale, "hongguoRefresh", nil)
+}
+
+// HongguoFeatured says "Featured"
+// in the language the app shows.
+func HongguoFeatured() string { return In(i18n.Locale()).HongguoFeatured() }
+
+// HongguoFeatured says "Featured"
+// in the language of msgs.
+func (msgs Messages) HongguoFeatured() string {
+	return Catalog.Format(msgs.locale, "hongguoFeatured", nil)
+}
+
+// HongguoWatchNow says "Watch Now"
+// in the language the app shows.
+func HongguoWatchNow() string { return In(i18n.Locale()).HongguoWatchNow() }
+
+// HongguoWatchNow says "Watch Now"
+// in the language of msgs.
+func (msgs Messages) HongguoWatchNow() string {
+	return Catalog.Format(msgs.locale, "hongguoWatchNow", nil)
+}
+
+// HongguoContinueWatching says "Continue Watching"
+// in the language the app shows.
+func HongguoContinueWatching() string { return In(i18n.Locale()).HongguoContinueWatching() }
+
+// HongguoContinueWatching says "Continue Watching"
+// in the language of msgs.
+func (msgs Messages) HongguoContinueWatching() string {
+	return Catalog.Format(msgs.locale, "hongguoContinueWatching", nil)
+}
+
+// HongguoResume says "Resume"
+// in the language the app shows.
+func HongguoResume() string { return In(i18n.Locale()).HongguoResume() }
+
+// HongguoResume says "Resume"
+// in the language of msgs.
+func (msgs Messages) HongguoResume() string {
+	return Catalog.Format(msgs.locale, "hongguoResume", nil)
+}
+
+// HongguoBackToList says "List"
+// in the language the app shows.
+func HongguoBackToList() string { return In(i18n.Locale()).HongguoBackToList() }
+
+// HongguoBackToList says "List"
+// in the language of msgs.
+func (msgs Messages) HongguoBackToList() string {
+	return Catalog.Format(msgs.locale, "hongguoBackToList", nil)
+}
+
+// HongguoEpisodes says "Episodes"
+// in the language the app shows.
+func HongguoEpisodes() string { return In(i18n.Locale()).HongguoEpisodes() }
+
+// HongguoEpisodes says "Episodes"
+// in the language of msgs.
+func (msgs Messages) HongguoEpisodes() string {
+	return Catalog.Format(msgs.locale, "hongguoEpisodes", nil)
+}
+
+// HongguoEpisodeCount says "{count} eps"
+// in the language the app shows.
+func HongguoEpisodeCount(count string) string { return In(i18n.Locale()).HongguoEpisodeCount(count) }
+
+// HongguoEpisodeCount says "{count} eps"
+// in the language of msgs.
+func (msgs Messages) HongguoEpisodeCount(count string) string {
+	return Catalog.Format(msgs.locale, "hongguoEpisodeCount", map[string]any{"count": count})
+}
+
+// HongguoEpisodeNum says "Ep {num}"
+// in the language the app shows.
+func HongguoEpisodeNum(num string) string { return In(i18n.Locale()).HongguoEpisodeNum(num) }
+
+// HongguoEpisodeNum says "Ep {num}"
+// in the language of msgs.
+func (msgs Messages) HongguoEpisodeNum(num string) string {
+	return Catalog.Format(msgs.locale, "hongguoEpisodeNum", map[string]any{"num": num})
+}
+
+// HongguoEpisodeOf says "Ep {num} · {total} total"
+// in the language the app shows.
+func HongguoEpisodeOf(num string, total string) string {
+	return In(i18n.Locale()).HongguoEpisodeOf(num, total)
+}
+
+// HongguoEpisodeOf says "Ep {num} · {total} total"
+// in the language of msgs.
+func (msgs Messages) HongguoEpisodeOf(num string, total string) string {
+	return Catalog.Format(msgs.locale, "hongguoEpisodeOf", map[string]any{"num": num, "total": total})
+}
+
+// HongguoLoadingFeed says "Loading dramas…"
+// in the language the app shows.
+func HongguoLoadingFeed() string { return In(i18n.Locale()).HongguoLoadingFeed() }
+
+// HongguoLoadingFeed says "Loading dramas…"
+// in the language of msgs.
+func (msgs Messages) HongguoLoadingFeed() string {
+	return Catalog.Format(msgs.locale, "hongguoLoadingFeed", nil)
+}
+
+// HongguoLoadingEpisodes says "Loading episodes…"
+// in the language the app shows.
+func HongguoLoadingEpisodes() string { return In(i18n.Locale()).HongguoLoadingEpisodes() }
+
+// HongguoLoadingEpisodes says "Loading episodes…"
+// in the language of msgs.
+func (msgs Messages) HongguoLoadingEpisodes() string {
+	return Catalog.Format(msgs.locale, "hongguoLoadingEpisodes", nil)
+}
+
+// HongguoLoadingStream says "Resolving stream…"
+// in the language the app shows.
+func HongguoLoadingStream() string { return In(i18n.Locale()).HongguoLoadingStream() }
+
+// HongguoLoadingStream says "Resolving stream…"
+// in the language of msgs.
+func (msgs Messages) HongguoLoadingStream() string {
+	return Catalog.Format(msgs.locale, "hongguoLoadingStream", nil)
+}
+
+// HongguoDecrypting says "Decrypting video…"
+// in the language the app shows.
+func HongguoDecrypting() string { return In(i18n.Locale()).HongguoDecrypting() }
+
+// HongguoDecrypting says "Decrypting video…"
+// in the language of msgs.
+func (msgs Messages) HongguoDecrypting() string {
+	return Catalog.Format(msgs.locale, "hongguoDecrypting", nil)
+}
+
+// HongguoBuffering says "Buffering…"
+// in the language the app shows.
+func HongguoBuffering() string { return In(i18n.Locale()).HongguoBuffering() }
+
+// HongguoBuffering says "Buffering…"
+// in the language of msgs.
+func (msgs Messages) HongguoBuffering() string {
+	return Catalog.Format(msgs.locale, "hongguoBuffering", nil)
+}
+
+// HongguoNoResults says "No dramas found for \"{query}\""
+// in the language the app shows.
+func HongguoNoResults(query string) string { return In(i18n.Locale()).HongguoNoResults(query) }
+
+// HongguoNoResults says "No dramas found for \"{query}\""
+// in the language of msgs.
+func (msgs Messages) HongguoNoResults(query string) string {
+	return Catalog.Format(msgs.locale, "hongguoNoResults", map[string]any{"query": query})
+}
+
+// HongguoNoFeed says "Unable to load dramas"
+// in the language the app shows.
+func HongguoNoFeed() string { return In(i18n.Locale()).HongguoNoFeed() }
+
+// HongguoNoFeed says "Unable to load dramas"
+// in the language of msgs.
+func (msgs Messages) HongguoNoFeed() string {
+	return Catalog.Format(msgs.locale, "hongguoNoFeed", nil)
+}
+
+// HongguoNoEpisodes says "No playable episodes available"
+// in the language the app shows.
+func HongguoNoEpisodes() string { return In(i18n.Locale()).HongguoNoEpisodes() }
+
+// HongguoNoEpisodes says "No playable episodes available"
+// in the language of msgs.
+func (msgs Messages) HongguoNoEpisodes() string {
+	return Catalog.Format(msgs.locale, "hongguoNoEpisodes", nil)
+}
+
+// HongguoHistoryEmpty says "No watch history yet"
+// in the language the app shows.
+func HongguoHistoryEmpty() string { return In(i18n.Locale()).HongguoHistoryEmpty() }
+
+// HongguoHistoryEmpty says "No watch history yet"
+// in the language of msgs.
+func (msgs Messages) HongguoHistoryEmpty() string {
+	return Catalog.Format(msgs.locale, "hongguoHistoryEmpty", nil)
+}
+
+// HongguoClearHistory says "Clear"
+// in the language the app shows.
+func HongguoClearHistory() string { return In(i18n.Locale()).HongguoClearHistory() }
+
+// HongguoClearHistory says "Clear"
+// in the language of msgs.
+func (msgs Messages) HongguoClearHistory() string {
+	return Catalog.Format(msgs.locale, "hongguoClearHistory", nil)
+}
+
+// HongguoAutoPause says "Auto-Pause"
+// in the language the app shows.
+func HongguoAutoPause() string { return In(i18n.Locale()).HongguoAutoPause() }
+
+// HongguoAutoPause says "Auto-Pause"
+// in the language of msgs.
+func (msgs Messages) HongguoAutoPause() string {
+	return Catalog.Format(msgs.locale, "hongguoAutoPause", nil)
+}
+
+// HongguoAutoPauseTip says "Pause automatically when the coding agent finishes"
+// in the language the app shows.
+func HongguoAutoPauseTip() string { return In(i18n.Locale()).HongguoAutoPauseTip() }
+
+// HongguoAutoPauseTip says "Pause automatically when the coding agent finishes"
+// in the language of msgs.
+func (msgs Messages) HongguoAutoPauseTip() string {
+	return Catalog.Format(msgs.locale, "hongguoAutoPauseTip", nil)
+}
+
+// HongguoAutoPausedNotice says "Agent finished — paused · Click to resume"
+// in the language the app shows.
+func HongguoAutoPausedNotice() string { return In(i18n.Locale()).HongguoAutoPausedNotice() }
+
+// HongguoAutoPausedNotice says "Agent finished — paused · Click to resume"
+// in the language of msgs.
+func (msgs Messages) HongguoAutoPausedNotice() string {
+	return Catalog.Format(msgs.locale, "hongguoAutoPausedNotice", nil)
+}
+
+// HongguoFooterHint says "Auto-pauses when your coding agent finishes"
+// in the language the app shows.
+func HongguoFooterHint() string { return In(i18n.Locale()).HongguoFooterHint() }
+
+// HongguoFooterHint says "Auto-pauses when your coding agent finishes"
+// in the language of msgs.
+func (msgs Messages) HongguoFooterHint() string {
+	return Catalog.Format(msgs.locale, "hongguoFooterHint", nil)
+}
+
+// HongguoResetDevice says "Reset Device"
+// in the language the app shows.
+func HongguoResetDevice() string { return In(i18n.Locale()).HongguoResetDevice() }
+
+// HongguoResetDevice says "Reset Device"
+// in the language of msgs.
+func (msgs Messages) HongguoResetDevice() string {
+	return Catalog.Format(msgs.locale, "hongguoResetDevice", nil)
+}
+
+// HongguoFfmpegMissing says "ffmpeg is required to decrypt protected episodes (macOS: brew install ffmpeg)"
+// in the language the app shows.
+func HongguoFfmpegMissing() string { return In(i18n.Locale()).HongguoFfmpegMissing() }
+
+// HongguoFfmpegMissing says "ffmpeg is required to decrypt protected episodes (macOS: brew install ffmpeg)"
+// in the language of msgs.
+func (msgs Messages) HongguoFfmpegMissing() string {
+	return Catalog.Format(msgs.locale, "hongguoFfmpegMissing", nil)
+}
+
+// HongguoErrorAnonymous says "Anonymous device limit reached; try resetting the device"
+// in the language the app shows.
+func HongguoErrorAnonymous() string { return In(i18n.Locale()).HongguoErrorAnonymous() }
+
+// HongguoErrorAnonymous says "Anonymous device limit reached; try resetting the device"
+// in the language of msgs.
+func (msgs Messages) HongguoErrorAnonymous() string {
+	return Catalog.Format(msgs.locale, "hongguoErrorAnonymous", nil)
+}
+
+// HongguoErrorRateLimit says "Too many requests; try again shortly"
+// in the language the app shows.
+func HongguoErrorRateLimit() string { return In(i18n.Locale()).HongguoErrorRateLimit() }
+
+// HongguoErrorRateLimit says "Too many requests; try again shortly"
+// in the language of msgs.
+func (msgs Messages) HongguoErrorRateLimit() string {
+	return Catalog.Format(msgs.locale, "hongguoErrorRateLimit", nil)
+}
+
+// HongguoErrorNetwork says "Network request failed"
+// in the language the app shows.
+func HongguoErrorNetwork() string { return In(i18n.Locale()).HongguoErrorNetwork() }
+
+// HongguoErrorNetwork says "Network request failed"
+// in the language of msgs.
+func (msgs Messages) HongguoErrorNetwork() string {
+	return Catalog.Format(msgs.locale, "hongguoErrorNetwork", nil)
+}
+
+// HongguoErrorUnavailable says "This content is unavailable"
+// in the language the app shows.
+func HongguoErrorUnavailable() string { return In(i18n.Locale()).HongguoErrorUnavailable() }
+
+// HongguoErrorUnavailable says "This content is unavailable"
+// in the language of msgs.
+func (msgs Messages) HongguoErrorUnavailable() string {
+	return Catalog.Format(msgs.locale, "hongguoErrorUnavailable", nil)
+}
+
+// HongguoErrorDevice says "Anonymous device was rejected; try resetting"
+// in the language the app shows.
+func HongguoErrorDevice() string { return In(i18n.Locale()).HongguoErrorDevice() }
+
+// HongguoErrorDevice says "Anonymous device was rejected; try resetting"
+// in the language of msgs.
+func (msgs Messages) HongguoErrorDevice() string {
+	return Catalog.Format(msgs.locale, "hongguoErrorDevice", nil)
+}
+
+// HongguoShortDrama says "Drama"
+// in the language the app shows.
+func HongguoShortDrama() string { return In(i18n.Locale()).HongguoShortDrama() }
+
+// HongguoShortDrama says "Drama"
+// in the language of msgs.
+func (msgs Messages) HongguoShortDrama() string {
+	return Catalog.Format(msgs.locale, "hongguoShortDrama", nil)
+}
+
+// HongguoPlay says "Play"
+// in the language the app shows.
+func HongguoPlay() string { return In(i18n.Locale()).HongguoPlay() }
+
+// HongguoPlay says "Play"
+// in the language of msgs.
+func (msgs Messages) HongguoPlay() string {
+	return Catalog.Format(msgs.locale, "hongguoPlay", nil)
+}
+
+// HongguoPause says "Pause"
+// in the language the app shows.
+func HongguoPause() string { return In(i18n.Locale()).HongguoPause() }
+
+// HongguoPause says "Pause"
+// in the language of msgs.
+func (msgs Messages) HongguoPause() string {
+	return Catalog.Format(msgs.locale, "hongguoPause", nil)
+}
+
+// HongguoPrevEp says "Previous Episode"
+// in the language the app shows.
+func HongguoPrevEp() string { return In(i18n.Locale()).HongguoPrevEp() }
+
+// HongguoPrevEp says "Previous Episode"
+// in the language of msgs.
+func (msgs Messages) HongguoPrevEp() string {
+	return Catalog.Format(msgs.locale, "hongguoPrevEp", nil)
+}
+
+// HongguoNextEp says "Next Episode"
+// in the language the app shows.
+func HongguoNextEp() string { return In(i18n.Locale()).HongguoNextEp() }
+
+// HongguoNextEp says "Next Episode"
+// in the language of msgs.
+func (msgs Messages) HongguoNextEp() string {
+	return Catalog.Format(msgs.locale, "hongguoNextEp", nil)
+}
+
+// HongguoMute says "Mute"
+// in the language the app shows.
+func HongguoMute() string { return In(i18n.Locale()).HongguoMute() }
+
+// HongguoMute says "Mute"
+// in the language of msgs.
+func (msgs Messages) HongguoMute() string {
+	return Catalog.Format(msgs.locale, "hongguoMute", nil)
+}
+
+// HongguoUnmute says "Unmute"
+// in the language the app shows.
+func HongguoUnmute() string { return In(i18n.Locale()).HongguoUnmute() }
+
+// HongguoUnmute says "Unmute"
+// in the language of msgs.
+func (msgs Messages) HongguoUnmute() string {
+	return Catalog.Format(msgs.locale, "hongguoUnmute", nil)
+}
+
+// HongguoPageOf says "Page {page} / {total}"
+// in the language the app shows.
+func HongguoPageOf(page string, total string) string {
+	return In(i18n.Locale()).HongguoPageOf(page, total)
+}
+
+// HongguoPageOf says "Page {page} / {total}"
+// in the language of msgs.
+func (msgs Messages) HongguoPageOf(page string, total string) string {
+	return Catalog.Format(msgs.locale, "hongguoPageOf", map[string]any{"page": page, "total": total})
+}

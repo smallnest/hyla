@@ -125,6 +125,8 @@ func (a *App) run(id string, args map[string]string) {
 		a.toggleSide(sideInfo)
 	case "subagents.open":
 		a.openSubagents()
+	case "hongguo.open":
+		a.openHongguo()
 	case "pane.chat":
 		a.toggleChat()
 	case "pet.toggle":

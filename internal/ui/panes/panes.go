@@ -37,9 +37,10 @@ type App interface {
 	// CloseSession closes a session, by its id, asking first when asked
 	// to.
 	CloseSession(id string, ask bool)
-	// DropTerms and DropWeb drop a pane's terminal and its page.
+	// DropTerms, DropWeb and DropHongguo drop a pane's terminal, page and drama player.
 	DropTerms(pane string)
 	DropWeb(pane string)
+	DropHongguo(pane string)
 	// FocusTerminal gives the keyboard to the pane the user is in.
 	FocusTerminal()
 	// PaneRef is the handle a pane's terminal binds.
@@ -68,11 +69,12 @@ type App interface {
 	// their terminal's place.
 	PaneChat() map[string]bool
 
-	// FilePane, PaneBrowser, TimelineBody, SubagentsBody and ChatBody are
+	// FilePane, PaneBrowser, TimelineBody, SubagentsBody, HongguoBody and ChatBody are
 	// the card's body, by kind.
 	FilePane(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane)
 	TimelineBody(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane)
 	SubagentsBody(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane)
+	HongguoBody(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane)
 	PaneBrowser(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown float32, s *proto.Session, p *proto.Pane, top, left, right, multi, focused, hovered bool) (dragging bool)
 	ChatBody(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane)
 	PluginPaneBody(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane)
@@ -275,6 +277,7 @@ func ClosePane(x App, s *proto.Session, pane string, ask bool) {
 	}
 	x.DropTerms(pane)
 	x.DropWeb(pane)
+	x.DropHongguo(pane)
 	x.CallPane(pane, "pane.close", proto.IDParams{ID: pane}, nil)
 	x.FocusTerminal()
 }

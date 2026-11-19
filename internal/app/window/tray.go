@@ -58,6 +58,7 @@ func (a *App) windowClosed() {
 	for id := range a.Webs {
 		a.DropWeb(id)
 	}
+	a.dropAllHongguo()
 	a.ReportViewNow()
 }
 

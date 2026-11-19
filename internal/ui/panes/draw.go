@@ -298,6 +298,9 @@ func PaneCard(x App, c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown f
 		} else if p.SubagentsPane() {
 			dragging = paneHeader(x, c, pal, bar, shown, s, p, top, left, right, multi, focused, hovered)
 			x.SubagentsBody(c, pal, s, p)
+		} else if p.HongguoPane() {
+			dragging = paneHeader(x, c, pal, bar, shown, s, p, top, left, right, multi, focused, hovered)
+			x.HongguoBody(c, pal, s, p)
 		} else if p.PluginPane() {
 			dragging = paneHeader(x, c, pal, bar, shown, s, p, top, left, right, multi, focused, hovered)
 			x.PluginPaneBody(c, pal, s, p)
@@ -558,7 +561,7 @@ func paneHeader(x App, c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown
 				grip.Background(pal.RowHover).Cursor(ui.CursorGrab)
 			}
 		}
-		bare := p.TimelinePane() || p.SubagentsPane() || p.PluginPane()
+		bare := p.TimelinePane() || p.SubagentsPane() || p.HongguoPane() || p.PluginPane()
 		grip.Children(func() {
 			// A timeline's header names the agent whose turns it shows,
 			// and wears no program's icon: the pane runs none. The
@@ -575,6 +578,8 @@ func paneHeader(x App, c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown
 				} else {
 					ui.Icon(c, glyph.ProgramIcon(mark)).Size(14, 14).TextColor(pal.TextFaint)
 				}
+			} else if p.HongguoPane() {
+				ui.Icon(c, glyph.Drama).Size(14, 14).TextColor(pal.TextFaint)
 			} else if p.PluginPane() {
 				ui.Icon(c, glyph.Plugins).Size(14, 14).TextColor(pal.TextFaint)
 			}
@@ -585,7 +590,10 @@ func paneHeader(x App, c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown
 			if p.SubagentsPane() {
 				title = locales.SideSubagents()
 			}
-			if !multi && !p.PluginPane() {
+			if p.HongguoPane() {
+				title = locales.HongguoTitle()
+			}
+			if !multi && !p.PluginPane() && !p.HongguoPane() {
 				title, size = s.DisplayName(x.Settings().SessionName), 14
 			}
 			name := ui.Text(c, title).FontSize(size).FontWeight(600).TextColor(pal.Text).SingleLine().Ellipsis("…").Shrink(1).MinWidth(30)

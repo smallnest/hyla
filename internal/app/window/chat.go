@@ -53,7 +53,7 @@ func (a *App) toggleChat() {
 		return
 	}
 	p := s.PaneByID(a.focusOf(s))
-	if p == nil || p.Browser() || p.FilePane() || p.TimelinePane() || p.SubagentsPane() || p.PluginPane() || panes.HasChat(p) {
+	if p == nil || p.Browser() || p.FilePane() || p.TimelinePane() || p.SubagentsPane() || p.HongguoPane() || p.PluginPane() || panes.HasChat(p) {
 		return
 	}
 	if a.PaneChatMap == nil {

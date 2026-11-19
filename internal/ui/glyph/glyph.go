@@ -77,6 +77,8 @@ func Try(name string) (*ui.SVG, bool) {
 		return Sort, true
 	case "plugins", "plugin":
 		return Plugins, true
+	case "drama":
+		return Drama, true
 	}
 	b, err := files.ReadFile("icons/" + name + ".svg")
 	if err != nil {
@@ -143,6 +145,14 @@ var (
 	K8s = Drawn(`<path d="M8 1.7 13.2 4.2 14.4 9.8 10.9 14.3 5.1 14.3 1.6 9.8 2.8 4.2Z"/><circle cx="8" cy="8.3" r="1.9"/><path d="M8 6.4V3.3M9.5 7.2l2.7-2M9.8 8.6l3.4.7M8.9 9.9l1.5 3.1M7.1 9.9l-1.5 3.1M6.2 8.6l-3.4.7M6.5 7.2l-2.7-2"/>`)
 	// Plugins is a modular grid with one offset piece joining it.
 	Plugins = Drawn(`<rect x="2.2" y="2.2" width="5" height="5" rx="1.2"/><rect x="8.8" y="8.8" width="5" height="5" rx="1.2"/><rect x="2.2" y="8.8" width="5" height="5" rx="1.2"/><rect x="9.4" y="1.6" width="5" height="5" rx="1.2"/>`)
+	// Drama and player controls for Hongguo short dramas.
+	Drama       = Drawn(`<rect x="2.5" y="2" width="11" height="12" rx="2.2"/><path d="M6.5 5.4v5.2l4.2-2.6z"/>`)
+	Play        = Drawn(`<path d="M4.5 3.2v9.6l8-4.8z"/>`)
+	Pause       = Drawn(`<path d="M5.2 3.5v9M10.8 3.5v9"/>`)
+	Volume      = Drawn(`<path d="M2.5 6.2H5l3.5-2.8v9.2L5 9.8H2.5z"/><path d="M11 5.6a3.4 3.4 0 0 1 0 4.8M12.9 3.9a5.8 5.8 0 0 1 0 8.2"/>`)
+	VolumeMuted = Drawn(`<path d="M2.5 6.2H5l3.5-2.8v9.2L5 9.8H2.5z"/><path d="M11.2 6l3.3 4M14.5 6l-3.3 4"/>`)
+	History     = Drawn(`<path d="M3.2 4.3A5.8 5.8 0 1 1 2.2 8"/><path d="M2.4 2.2v2.7h2.7"/><path d="M8 5.2v3l2.1 1.3"/>`)
+	Episodes    = Drawn(`<rect x="2.2" y="2.5" width="4.6" height="4.6" rx="1"/><rect x="9.2" y="2.5" width="4.6" height="4.6" rx="1"/><rect x="2.2" y="9.2" width="4.6" height="4.6" rx="1"/><rect x="9.2" y="9.2" width="4.6" height="4.6" rx="1"/>`)
 )
 
 // MenuIcon is an icon as a menu item's image, made once: the items that
@@ -191,6 +201,9 @@ func ProgramIcon(p *proto.Pane) *ui.SVG {
 	}
 	if p.Browser() {
 		return Globe
+	}
+	if p.HongguoPane() {
+		return Drama
 	}
 	for _, name := range []string{p.Agent, p.Process, p.Runtime} {
 		if i := ProgramIcons[name]; i != nil {

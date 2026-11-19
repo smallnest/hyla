@@ -250,7 +250,7 @@ func (d *Daemon) startPane(sid string, p proto.CreateParams, dir string) (*pane,
 		ID: newID(), Dir: dir, Command: p.Command, Status: proto.Idle, Since: now, Created: now,
 		Cols: p.Cols, Rows: p.Rows,
 	}
-	if p.URL != "" && p.File == "" && p.Timeline == "" && !p.Subagents {
+	if p.URL != "" && p.File == "" && p.Timeline == "" && !p.Subagents && !p.Hongguo {
 		info.URL, info.Command = proto.BrowserURL(p.URL), nil
 	}
 	if p.File != "" {
@@ -267,8 +267,11 @@ func (d *Daemon) startPane(sid string, p proto.CreateParams, dir string) (*pane,
 	if p.Subagents {
 		info.URL, info.File, info.Timeline, info.Subagents, info.Command = "", "", "", true, nil
 	}
+	if p.Hongguo {
+		info.URL, info.File, info.Timeline, info.Subagents, info.Hongguo, info.Command = "", "", "", false, true, nil
+	}
 	if p.Plugin != "" {
-		info.URL, info.File, info.Timeline, info.Subagents, info.Command = "", "", "", false, nil
+		info.URL, info.File, info.Timeline, info.Subagents, info.Hongguo, info.Command = "", "", "", false, false, nil
 		info.Plugin, info.PluginView, info.PluginArgs, info.PluginTitle = p.Plugin, p.PluginView, p.PluginArgs, p.PluginTitle
 	}
 	pn, err := newPane(d, sid, info)

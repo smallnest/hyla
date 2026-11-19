@@ -26,6 +26,7 @@ require (
 	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/ProtonMail/go-crypto v1.4.1 // indirect
 	github.com/akutz/memconn v0.1.0 // indirect
+	github.com/beilunyang/openhongguo v0.4.0 // indirect
 	github.com/cloudflare/circl v1.6.3 // indirect
 	github.com/creachadair/msync v0.10.1 // indirect
 	github.com/creack/pty v1.1.24 // indirect

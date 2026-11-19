@@ -3,6 +3,7 @@ package window
 import (
 	"encoding/json"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -40,10 +41,16 @@ func subagentsDemo(t *testing.T) *App {
 	return a
 }
 
+var useUpdaterOnce sync.Once
+
+func useUpdaterPlugin() {
+	useUpdaterOnce.Do(func() { mygo.Use(updater.Plugin) })
+}
+
 // The View menu carries the side panel's views, the Subagents one too: a
 // view no menu opens is one the user cannot find.
 func TestViewMenuSubagents(t *testing.T) {
-	mygo.Use(updater.Plugin)
+	useUpdaterPlugin()
 	a := testApp(t)
 	m := a.Menu()
 	for _, id := range []string{"subagents.open", "info.toggle", "files.toggle", "changes.toggle"} {

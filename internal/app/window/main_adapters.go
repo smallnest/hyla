@@ -73,6 +73,7 @@ func (a *App) BeforeQuit(e *mygo.QuitEvent) {
 // WillQuit destroys the tray's icon, which Windows would leave in the
 // notification area until the pointer passes over it.
 func (a *App) WillQuit() {
+	a.dropAllHongguo()
 	a.shutdownPlugins()
 	if a.Tray != nil {
 		a.Tray.Destroy()

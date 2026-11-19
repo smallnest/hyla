@@ -199,6 +199,7 @@ type Pane struct {
 	// subagents, which runs no shell either.
 	Timeline  string `json:"timeline,omitempty"`
 	Subagents bool   `json:"subagents,omitempty"`
+	Hongguo   bool   `json:"hongguo,omitempty"`
 	// Plugin names the plugin that owns a custom plugin pane, with
 	// PluginView naming its slot/view and PluginArgs its open parameters.
 	Plugin      string            `json:"plugin,omitempty"`
@@ -672,11 +673,11 @@ func (s *Session) PaneByID(id string) *Pane {
 // TimelineShown is the pane a timeline pane shows: the pane it names, or,
 // once that one closed, the session's own pane; nil when it has none.
 func (s *Session) TimelineShown(p *Pane) *Pane {
-	if q := s.PaneByID(p.Timeline); q != nil && !q.TimelinePane() && !q.SubagentsPane() {
+	if q := s.PaneByID(p.Timeline); q != nil && !q.TimelinePane() && !q.SubagentsPane() && !q.HongguoPane() {
 		return q
 	}
 	for i := range s.Panes {
-		if q := &s.Panes[i]; !q.TimelinePane() && !q.SubagentsPane() {
+		if q := &s.Panes[i]; !q.TimelinePane() && !q.SubagentsPane() && !q.HongguoPane() {
 			return q
 		}
 	}
@@ -739,6 +740,9 @@ func (p *Pane) PaneName() string {
 	if p.SubagentsPane() {
 		return "subagents"
 	}
+	if p.HongguoPane() {
+		return "hongguo"
+	}
 	if p.PluginPane() {
 		if t := strings.TrimSpace(p.PluginTitle); t != "" {
 			return t
@@ -791,6 +795,10 @@ func (p *Pane) TimelinePane() bool { return p.Timeline != "" }
 // a terminal.
 func (p *Pane) SubagentsPane() bool { return p.Subagents }
 
+// HongguoPane reports whether the pane shows Hongguo short dramas, not a
+// terminal.
+func (p *Pane) HongguoPane() bool { return p.Hongguo }
+
 // PluginPane reports whether the pane shows a custom plugin view, not a terminal.
 func (p *Pane) PluginPane() bool { return p.Plugin != "" }
 
@@ -803,9 +811,9 @@ func (p *Pane) ChannelAnswerDir() string {
 }
 
 // Shown reports whether the pane shows what the app draws rather than a
-// program's cells: a browser's page, a file, a timeline, the subagents, or a plugin view.
+// program's cells: a browser's page, a file, a timeline, the subagents, Hongguo dramas, or a plugin view.
 func (p *Pane) Shown() bool {
-	return p.Browser() || p.FilePane() || p.TimelinePane() || p.SubagentsPane() || p.PluginPane()
+	return p.Browser() || p.FilePane() || p.TimelinePane() || p.SubagentsPane() || p.HongguoPane() || p.PluginPane()
 }
 
 // WorkDir is where the pane works: the foreground program's directory,
@@ -1129,6 +1137,7 @@ type (
 		File        string            `json:"file,omitempty"`
 		Timeline    string            `json:"timeline,omitempty"`
 		Subagents   bool              `json:"subagents,omitempty"`
+		Hongguo     bool              `json:"hongguo,omitempty"`
 		Plugin      string            `json:"plugin,omitempty"`
 		PluginView  string            `json:"pluginView,omitempty"`
 		PluginArgs  map[string]string `json:"pluginArgs,omitempty"`
