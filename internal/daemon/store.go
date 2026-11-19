@@ -238,6 +238,7 @@ func (d *Daemon) restorePane(sid string, sp savedPane) *pane {
 	}
 	if sp.Background {
 		p.bg = newBackground("")
+		p.info.Background = true
 		return p
 	}
 	// The shell alone: what ran in it may not want to run again unasked.

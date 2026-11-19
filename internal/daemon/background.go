@@ -414,6 +414,7 @@ func (d *Daemon) setBackground(id string) error {
 	p.closed = false
 	p.changed = make(chan struct{})
 	p.bg = newBackground("")
+	p.info.Background = true
 	p.info.Status, p.info.Message = proto.Idle, ""
 	p.mu.Unlock()
 	go d.changed()

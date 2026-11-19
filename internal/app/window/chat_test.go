@@ -155,9 +155,9 @@ func (f *fakeHylad) conn(t *testing.T, c net.Conn) {
 func chatApp(t *testing.T) (*App, *fakeHylad) {
 	t.Helper()
 	a := testApp(t)
-	// The pane's agent runs without a terminal, as a Feishu chat's does: its
-	// conversation is the chat the view shows.
-	a.session("s1").Panes[0].AgentSessionID = "ses_x"
+	// The pane runs commands instead of a terminal, as a Feishu chat's does:
+	// its conversation is the chat the view shows.
+	a.session("s1").Panes[0].Background = true
 	home := t.TempDir()
 	path := filepath.Join(home, "config")
 	if err := os.WriteFile(path, []byte("feishu-app = cli_test\n"), 0o600); err != nil {

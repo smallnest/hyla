@@ -23,7 +23,7 @@ func chatDemo(t *testing.T) *App {
 	a := testApp(t)
 	s := a.session("s1")
 	p := &s.Panes[0]
-	p.AgentSessionID, p.Title = "ses_x", "hyla"
+	p.Background, p.Title = true, "hyla"
 	const start = int64(1_761_285_600_000)
 	at := func(n int64) int64 { return start + n*1000 }
 	s.Zoomed = p.ID // one pane, as wide as the window: the column floats in it
@@ -73,11 +73,13 @@ func TestChatBody(t *testing.T) {
 // agent runs one, with no toggle: a chat that drives a pane without a
 // terminal gives it that, and a plain shell keeps its terminal.
 func TestPanesWithAChat(t *testing.T) {
-	driven := &proto.Pane{AgentSessionID: "ses_x"}
+	driven := &proto.Pane{Background: true}
 	if !panes.HasChat(driven) {
-		t.Error("a pane whose agent runs without a terminal shows no chat")
+		t.Error("a pane that runs commands shows no chat")
 	}
-	for _, p := range []*proto.Pane{{Shell: "zsh"}, {Agent: "claude", AgentSessionID: "ses_x"}} {
+	// A terminal's pane shows its terminal, even once its agent has quit
+	// and only the conversation it left is named.
+	for _, p := range []*proto.Pane{{Shell: "zsh"}, {Agent: "claude", AgentSessionID: "ses_x"}, {AgentSessionID: "ses_x"}} {
 		if panes.HasChat(p) {
 			t.Errorf("the pane %+v shows a chat, not its terminal", p)
 		}
@@ -253,10 +255,10 @@ func TestToggleChatFromThePalette(t *testing.T) {
 	if a.PaneChatMap["a"] {
 		t.Error("the pane kept the chat")
 	}
-	s.Panes[0].AgentSessionID = "ses_x"
+	s.Panes[0].Background = true
 	a.toggleChat()
 	if a.PaneChatMap["a"] {
-		t.Error("a pane without a terminal toggled")
+		t.Error("a pane that runs commands toggled")
 	}
 
 	for _, act := range actions.List() {

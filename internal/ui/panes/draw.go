@@ -200,11 +200,11 @@ func divider(x App, c *ui.Context, pal *theme.Palette, s *proto.Session, l *prot
 }
 
 // HasChat tells whether a pane shows its session's conversation in its
-// terminal's place: a pane whose agent runs without a terminal, as the one
-// a Feishu chat drives does, which names the conversation it runs but no
-// agent of the pane's own. A pane whose agent runs in its terminal, as one
-// the user started, keeps its terminal.
-func HasChat(p *proto.Pane) bool { return p.Agent == "" && p.AgentSessionID != "" }
+// terminal's place: a pane that runs commands instead of a terminal, as the
+// one a chat drives does. A pane the user runs an agent in keeps its
+// terminal, as it does once the agent ends and only its conversation is
+// left: an agent that quits leaves a terminal, not a chat.
+func HasChat(p *proto.Pane) bool { return p.Background }
 
 // PaneCard is a pane: a card with a header and the terminal. top, left and
 // right tell that it touches the window's edges, where the header drags

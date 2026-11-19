@@ -206,7 +206,7 @@ type Pane struct {
 	PluginArgs  map[string]string `json:"pluginArgs,omitempty"`
 	PluginTitle string            `json:"pluginTitle,omitempty"`
 	Dir         string            `json:"dir,omitempty"` // the shell's working directory
-	Command   []string `json:"command,omitempty"`
+	Command     []string          `json:"command,omitempty"`
 	// Process is the foreground program, "" while the shell is.
 	Process string `json:"process,omitempty"`
 	// ProcessDir is the foreground program's working directory, as a
@@ -222,6 +222,10 @@ type Pane struct {
 	Runtime string `json:"runtime,omitempty"`
 	// Shell is the name of the pane's shell, as "fish".
 	Shell string `json:"shell,omitempty"`
+	// Background is a pane that runs a session's commands instead of a
+	// terminal, as the one a chat drives does: it draws its conversation
+	// where a terminal would be.
+	Background bool `json:"background,omitempty"`
 
 	Status Status `json:"status"`
 	// Unread: something happened that the user has not seen: the work
@@ -1130,10 +1134,10 @@ type (
 		PluginArgs  map[string]string `json:"pluginArgs,omitempty"`
 		PluginTitle string            `json:"pluginTitle,omitempty"`
 		After       string            `json:"after,omitempty"` // put it after this session
-		Cols      int    `json:"cols,omitempty"`
-		Rows      int    `json:"rows,omitempty"`
-		Worktree  string `json:"worktree,omitempty"`
-		Base      string `json:"base,omitempty"`
+		Cols        int               `json:"cols,omitempty"`
+		Rows        int               `json:"rows,omitempty"`
+		Worktree    string            `json:"worktree,omitempty"`
+		Base        string            `json:"base,omitempty"`
 	}
 	// BackgroundParams are a background command's: the id it is known by,
 	// as a chat's, and Out, the file its output goes to; the session is
