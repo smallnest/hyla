@@ -4,6 +4,16 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.17.6
+
+- The docs have a plugin tutorial: a pack of a theme, a wash and an agent,
+  a card that runs in the daemon, and a sandboxed WebView pane, with the
+  commands, settings, permissions, logs and packaging — in English,
+  简体中文 and 日本語. The plugin reference now says what a pack's files
+  hold (detection rules, washes, pets and their spritesheets, hooks and
+  skills) and when a slot or an action is offered, and the home page links
+  to the tutorial.
+
 ## 3.17.5
 
 - A session a Feishu chat drives — one whose agent runs without a terminal
