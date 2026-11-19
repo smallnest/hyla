@@ -4,6 +4,12 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.17.7
+
+- A pane keeps its terminal when the agent in it quits: Ctrl+C twice in
+  opencode, or `/exit` in Claude Code, left the pane showing the chat view,
+  which only a session a chat drives — Feishu's, say — should show.
+
 ## 3.17.6
 
 - The docs have a plugin tutorial: a pack of a theme, a wash and an agent,
