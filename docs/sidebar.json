@@ -24,6 +24,7 @@
       "cli",
       "agents",
       "feishu",
+      "plugin-tutorial",
       "plugins"
     ]
   },

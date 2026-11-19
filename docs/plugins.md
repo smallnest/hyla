@@ -7,6 +7,10 @@ description: Extend Hyla with declarative asset packs, out-of-process JSON-RPC 2
 
 Hyla's plugin system allows developers to extend terminal agent detection, UI chrome, command palettes, custom panes, and external chat channels without recompiling Hyla itself.
 
+::: tip
+New to plugins? [Build a plugin](./plugin-tutorial.md) walks through one of each layer — a theme and agent pack, a card in the daemon, and a WebView pane — with settings, logging and packaging.
+:::
+
 ## Architecture (3 Layers)
 
 Plugins combine one or more progressive layers depending on what they need:
@@ -201,6 +205,112 @@ Every Plugin -> Host RPC call passes through the Host RPC gateway, which enforce
 | `secrets` | **Yes** | `secrets` passed to `plugin.getSettings` and written via `plugin.setSettings` |
 | `notifications` | No | `ui.notify` |
 | `filesystem.workspace` | **Yes** | Workspace file access referenced by panes |
+
+### Pack files: what a manifest's files hold
+
+A pack's manifest names files. These are their formats.
+
+#### Agent detection (`detect/*.toml`)
+
+`processes` in `[[agents]]` says which program the pane runs; the detect file says what the screen means while it runs:
+
+```toml
+id = "my-agent"
+
+[[rules]]
+id = "my-agent.permission"
+state = "blocked"            # idle | working | blocked | unknown
+visible_blocker = true       # raise the session to waiting, and notify
+priority = 10
+contains = ["Do you want to proceed?"]
+line_regex = ["^\\s*[›>]\\s"]
+```
+
+A rule's gates all have to hold: `contains` (substrings, case ignored), `regex`, `line_regex` (one regex that matches one line), and `all`, `any`, `not` of gates nested in each other. `region` reads only part of the screen:
+
+| Field | Says |
+| --- | --- |
+| `state` | What the agent is: `idle`, `working`, `blocked` or `unknown` |
+| `visible_*` | `visible_idle`, `visible_working`, `visible_blocker`: the state shows, rather than the last one that did |
+| `skip_state_update` | The screen matches, but the state stays as it was — a blocker drawn over a working agent |
+| `priority` | Which rule wins when several match, higher first |
+
+A `blocked` rule that is visible is what turns a session to *waiting*, raises it in the sidebar and notifies you.
+
+The agent's `mark` is an SVG at 16×16 drawn with `currentColor`, so it takes the tint of whatever shows it; `mark_full_color = true` keeps the SVG's own colours instead.
+
+#### Themes (`themes/*.ghostty`)
+
+A Ghostty theme, as Ghostty writes it: `background`, `foreground`, `cursor-color`, `selection-background`, and `palette = 0=#…` through `15=#…`.
+
+#### Washes (`washes/*.toml`)
+
+The window's background, a gradient per appearance:
+
+```toml
+id = "aurora-mist"          # unique beside Hyla's own washes
+name = "Aurora Mist"
+light = ["#f4f7fb", "#e6eefb"]   # the gradient's stops
+light_glow = "#cfe5ff"           # the light behind the window
+light_angle = 135                # degrees
+dark = ["#141824", "#1b2438"]
+dark_glow = "#263b5e"
+dark_angle = 135
+```
+
+#### Pets (`pets/<dir>/pet.json`)
+
+A sprite sheet with a `pet.json` beside it:
+
+```json
+{
+  "id": "pixel-fox",
+  "displayName": "Pixel Fox",
+  "name": "Pixel Fox",
+  "description": "A fox that watches the panes",
+  "spritesheetPath": "sheet.webp",
+  "spriteVersionNumber": 2
+}
+```
+
+Frames are **192×208** pixels, **8 to a row**, and each row is one animation, in this order: idle, run right, run left, wave, jump, fail, waiting, working, review (version 2 adds look right and look left). A row's first few frames may be the whole animation — idle is 6 of its 8 — so the rest of the row is empty.
+
+#### Hooks and skills
+
+```toml
+[[hooks]]
+agent = "claude"      # claude | codex
+event = "Stop"        # the agent's own event name
+script = "hooks/on-stop.sh"
+
+[[skills]]
+agent = "claude"
+name = "my-skill"
+dir = "skills/my-skill"
+```
+
+A hook is installed into that agent's own hook settings, and runs with the agent's event. A skill is copied into the agent's skills folder, so the agent can read it as it reads its other skills. Both are removed when the plugin is disabled or removed.
+
+### When a slot or an action shows
+
+`when = "…"` on a `[[ui.slots]]` or an `[[actions]]` entry says when it is offered. Clauses are joined with `,` or `&` — all of them have to hold — and `!` negates one:
+
+```toml
+when = "pane.agent,!agent:claude"
+```
+
+| Atom | Holds when |
+| --- | --- |
+| `session.selected` | A session is shown |
+| `project.selected` | The session belongs to a project |
+| `pane.selected` | The session has a focused pane |
+| `pane.terminal` | The focused pane runs a terminal |
+| `pane.agent` | A coding agent runs in it |
+| `pane.browser`, `pane.file`, `pane.plugin` | It is a browser, file or plugin pane |
+| `agent:<id>` | The agent Hyla knows it as is `<id>`, as `agent:claude` |
+| `always` | Always — the default |
+
+An action's `target` says who handles it: `app` and `daemon` reach the plugin's process of that host, and `open_pane` opens the slot named by `view`. `menu` puts it in that menu, `palette = true` in the command palette, `shortcut` binds a key, and `remote = true` lets a remote session run it.
 
 ---
 

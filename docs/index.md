@@ -29,6 +29,7 @@ Quitting Hyla (<kbd>⌘</kbd> <kbd>Q</kbd>) leaves your sessions running. To end
 - **[Drag & drop](./drops.md)**: files into panes, panes onto panes, folders onto the sidebar.
 - **[Remote machines](./remote.md)**: SSH, WSL, a Kubernetes pod or another Hyla, listed beside your own sessions.
 - **[Hyla Pocket](./pocket.md)**: the same sessions on an Android phone.
+- **[Plugins](./plugins.md)**: teach Hyla an agent of your own, bring a theme, draw a card or a pane — and [build one](./plugin-tutorial.md) with the tutorial.
 - **[Appearance](./appearance.md)**: translucency, glass, pictures, and the animation between sessions.
 - **[The frog](./frog.md)** on the window's edge, if you keep it.
 
