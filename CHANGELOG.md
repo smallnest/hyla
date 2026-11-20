@@ -4,6 +4,15 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.20.0
+
+- The UI framework Hyla is built on, MyGo, is 0.10.0 now: a popup attached
+  to a field is never taller than the window, so a long list scrolls inside
+  it; a triple click selects a paragraph; layout takes about a twelfth less
+  time; and a large Markdown document, as a chat's answer, reparses with a
+  fraction of the allocations. Hyla reads its pages with newer x/net and
+  x/exp, larksuite's SDK and modernc's libraries.
+
 ## 3.19.1
 
 - Installing a plugin from the marketplace no longer gives up on a slow
