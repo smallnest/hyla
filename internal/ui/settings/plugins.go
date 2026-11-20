@@ -9,6 +9,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/plugins/manifest"
+	"hyla/internal/plugins/market"
 	"hyla/internal/plugins/rpc"
 	"hyla/internal/ui/confirm"
 	"hyla/internal/ui/controls"
@@ -29,7 +30,15 @@ type PluginSettingsPage struct {
 	Icon     *ui.SVG
 }
 
-// PluginsApp exposes plugin lifecycle, permissions, configuration, and logs to Settings › Plugins.
+// MarketState captures the current Plugin Marketplace catalog and install state.
+type MarketState struct {
+	Plugins    []market.Plugin
+	Loading    bool
+	Error      string
+	Installing map[string]bool
+}
+
+// PluginsApp exposes plugin lifecycle, permissions, configuration, logs, and marketplace to Settings › Plugins.
 type PluginsApp interface {
 	List() []manifest.InstalledPlugin
 	DaemonStatuses() []rpc.PluginStatus
@@ -49,6 +58,10 @@ type PluginsApp interface {
 	RenderSettingsPage(c *ui.Context, pal *theme.Palette, pageID string) bool
 	RenderSettingsMount(c *ui.Context, pal *theme.Palette, mount, pluginID string)
 	SearchEntries() []search.PluginEntry
+	Market() MarketState
+	RefreshMarket()
+	InstallMarketPlugin(p market.Plugin)
+	OpenPluginURL(rawURL string)
 }
 
 // PluginRowTitle returns the display title shown for a plugin row in Settings › Plugins.
@@ -89,128 +102,237 @@ func pluginsPage(x App, c *ui.Context, pal *theme.Palette) {
 		kit.Group(c, pal, locales.SetPluginsInstalledGroup(), "", func() {
 			kit.Row(c, pal, locales.SetPluginsEmptyTitle(), locales.SetPluginsEmptyDetail(), func() {})
 		})
-		return
-	}
-
-	statusByID := map[string]rpc.PluginStatus{}
-	for _, st := range pa.DaemonStatuses() {
-		statusByID[st.ID] = st
-	}
-	for _, st := range pa.AppStatuses() {
-		if cur, exists := statusByID[st.ID]; !exists || st.State == "running" || st.State == "degraded" || cur.State == "" || cur.State == "stopped" {
+	} else {
+		statusByID := map[string]rpc.PluginStatus{}
+		for _, st := range pa.DaemonStatuses() {
 			statusByID[st.ID] = st
 		}
-	}
-
-	kit.Group(c, pal, locales.SetPluginsInstalledGroup(), "", func() {
-		for _, p := range installed {
-			plg := p
-			id := plg.Entry.ID
-			st := statusByID[id]
-
-			name := PluginRowTitle(plg)
-
-			var metaParts []string
-			metaParts = append(metaParts, id)
-			switch {
-			case plg.Entry.PendingInstall:
-				metaParts = append(metaParts, locales.SetPluginsPendingDetail())
-			case plg.Builtin:
-				metaParts = append(metaParts, locales.SetPluginsBuiltin())
-			case plg.Entry.Source == "link" && plg.Entry.LinkPath != "":
-				metaParts = append(metaParts, locales.SetPluginsLinked(plg.Entry.LinkPath))
-			}
-			if !plg.Entry.PendingInstall {
-				stateStr := st.State
-				if !plg.Entry.Enabled {
-					stateStr = "stopped"
-				} else if st.PID > 0 {
-					stateStr += fmt.Sprintf(" (pid %d)", st.PID)
-				}
-				if stateStr != "" {
-					metaParts = append(metaParts, stateStr)
-				}
-			}
-			detail := strings.Join(metaParts, " · ")
-
-			hasSettingsSlot := pluginHasSettingsDrawerSlot(plg.Manifest)
-			kit.Row(c, pal, name, detail, func() {
-				if plg.Manifest != nil && (len(plg.Manifest.Permissions.Scopes) > 0 || len(plg.Manifest.Settings) > 0 || hasSettingsSlot) {
-					label := locales.SetPluginsSettings()
-					if ss.PluginDetail == id {
-						label = locales.ActionClose()
-					}
-					if style.Button(c, "plg-cfg-"+id, label, "", false, pal) {
-						if ss.PluginDetail == id {
-							ss.PluginDetail = ""
-						} else {
-							ss.PluginDetail = id
-						}
-					}
-				}
-				if plg.Manifest != nil && (plg.Manifest.Daemon != nil || plg.Manifest.App != nil) && !plg.Entry.PendingInstall {
-					if style.ButtonDisabled(c, "plg-rst-"+id, locales.SetPluginsRestart(), "", false, !plg.Entry.Enabled, pal) {
-						pa.Restart(id)
-					}
-				}
-				logLbl := locales.SetPluginsLogs()
-				if ss.PluginLogsID == id {
-					logLbl = locales.SetPluginsHideLogs()
-				}
-				if style.Button(c, "plg-log-"+id, logLbl, "", false, pal) {
-					if ss.PluginLogsID == id {
-						ss.PluginLogsID = ""
-						ss.PluginLogsText = ""
-					} else {
-						ss.PluginLogsID = id
-						ss.PluginLogsText = pa.ReadLogs(id)
-					}
-				}
-				if !plg.Builtin {
-					if style.Button(c, "plg-rm-"+id, locales.SetPluginsRemove(), "", false, pal) {
-						pid, pname := id, name
-						ss.Confirm = &confirm.Ask{
-							Open:    true,
-							Title:   locales.SetPluginsConfirmRemoveTitle(pname),
-							Detail:  locales.SetPluginsConfirmRemoveDetail(),
-							Action:  locales.SetPluginsRemove(),
-							Destroy: true,
-							Run:     func() { pa.Remove(pid) },
-						}
-					}
-				}
-				if !plg.Entry.PendingInstall {
-					on := plg.Entry.Enabled
-					style.Toggle(c.Key("plg-en-"+id), &on, pal).OnChange(func() {
-						pa.SetEnabled(id, on)
-					})
-				}
-			})
-
-			errMsg := plg.LoadError
-			if errMsg == "" && plg.Entry.Enabled {
-				errMsg = st.LastError
-			}
-			if errMsg != "" {
-				ui.Text(c.Key("plg-err-"+id), errMsg).FontSize(12).TextColor(pal.Danger).LineHeight(1.35).Wrap().Padding(0, 0, 8, 0)
-			}
-
-			if ss.PluginDetail == id && plg.Manifest != nil {
-				pluginDetailDrawer(c, pal, ss, pa, plg)
-			}
-			if ss.PluginLogsID == id {
-				txt := ss.PluginLogsText
-				if txt == "" {
-					txt = "(empty)"
-				}
-				ui.Column(c.Key("plg-logs-"+id)).Height(140).Radius(8).Padding(8, 10).Margin(0, 0, 10, 0).Background(pal.Card).Children(func() {
-					ui.Scroll(c.Key("plg-log-scroll-"+id)).Grow(1).MinHeight(0).Children(func() {
-						ui.Text(c, txt).Font("monospace").FontSize(11).TextColor(pal.TextMuted).Wrap()
-					})
-				})
+		for _, st := range pa.AppStatuses() {
+			if cur, exists := statusByID[st.ID]; !exists || st.State == "running" || st.State == "degraded" || cur.State == "" || cur.State == "stopped" {
+				statusByID[st.ID] = st
 			}
 		}
+
+		kit.Group(c, pal, locales.SetPluginsInstalledGroup(), "", func() {
+			for _, p := range installed {
+				plg := p
+				id := plg.Entry.ID
+				st := statusByID[id]
+
+				name := PluginRowTitle(plg)
+
+				var metaParts []string
+				metaParts = append(metaParts, id)
+				switch {
+				case plg.Entry.PendingInstall:
+					metaParts = append(metaParts, locales.SetPluginsPendingDetail())
+				case plg.Builtin:
+					metaParts = append(metaParts, locales.SetPluginsBuiltin())
+				case plg.Entry.Source == "link" && plg.Entry.LinkPath != "":
+					metaParts = append(metaParts, locales.SetPluginsLinked(plg.Entry.LinkPath))
+				}
+				if !plg.Entry.PendingInstall {
+					stateStr := st.State
+					if !plg.Entry.Enabled {
+						stateStr = "stopped"
+					} else if st.PID > 0 {
+						stateStr += fmt.Sprintf(" (pid %d)", st.PID)
+					}
+					if stateStr != "" {
+						metaParts = append(metaParts, stateStr)
+					}
+				}
+				detail := strings.Join(metaParts, " · ")
+
+				hasSettingsSlot := pluginHasSettingsDrawerSlot(plg.Manifest)
+				kit.Row(c, pal, name, detail, func() {
+					if plg.Manifest != nil && (len(plg.Manifest.Permissions.Scopes) > 0 || len(plg.Manifest.Settings) > 0 || hasSettingsSlot) {
+						label := locales.SetPluginsSettings()
+						if ss.PluginDetail == id {
+							label = locales.ActionClose()
+						}
+						if style.Button(c, "plg-cfg-"+id, label, "", false, pal) {
+							if ss.PluginDetail == id {
+								ss.PluginDetail = ""
+							} else {
+								ss.PluginDetail = id
+							}
+						}
+					}
+					if plg.Manifest != nil && (plg.Manifest.Daemon != nil || plg.Manifest.App != nil) && !plg.Entry.PendingInstall {
+						if style.ButtonDisabled(c, "plg-rst-"+id, locales.SetPluginsRestart(), "", false, !plg.Entry.Enabled, pal) {
+							pa.Restart(id)
+						}
+					}
+					logLbl := locales.SetPluginsLogs()
+					if ss.PluginLogsID == id {
+						logLbl = locales.SetPluginsHideLogs()
+					}
+					if style.Button(c, "plg-log-"+id, logLbl, "", false, pal) {
+						if ss.PluginLogsID == id {
+							ss.PluginLogsID = ""
+							ss.PluginLogsText = ""
+						} else {
+							ss.PluginLogsID = id
+							ss.PluginLogsText = pa.ReadLogs(id)
+						}
+					}
+					if !plg.Builtin {
+						if style.Button(c, "plg-rm-"+id, locales.SetPluginsRemove(), "", false, pal) {
+							pid, pname := id, name
+							ss.Confirm = &confirm.Ask{
+								Open:    true,
+								Title:   locales.SetPluginsConfirmRemoveTitle(pname),
+								Detail:  locales.SetPluginsConfirmRemoveDetail(),
+								Action:  locales.SetPluginsRemove(),
+								Destroy: true,
+								Run:     func() { pa.Remove(pid) },
+							}
+						}
+					}
+					if !plg.Entry.PendingInstall {
+						on := plg.Entry.Enabled
+						style.Toggle(c.Key("plg-en-"+id), &on, pal).OnChange(func() {
+							pa.SetEnabled(id, on)
+						})
+					}
+				})
+
+				errMsg := plg.LoadError
+				if errMsg == "" && plg.Entry.Enabled {
+					errMsg = st.LastError
+				}
+				if errMsg != "" {
+					ui.Text(c.Key("plg-err-"+id), errMsg).FontSize(12).TextColor(pal.Danger).LineHeight(1.35).Wrap().Padding(0, 0, 8, 0)
+				}
+
+				if ss.PluginDetail == id && plg.Manifest != nil {
+					pluginDetailDrawer(c, pal, ss, pa, plg)
+				}
+				if ss.PluginLogsID == id {
+					txt := ss.PluginLogsText
+					if txt == "" {
+						txt = "(empty)"
+					}
+					ui.Column(c.Key("plg-logs-"+id)).Height(140).Radius(8).Padding(8, 10).Margin(0, 0, 10, 0).Background(pal.Card).Children(func() {
+						ui.Scroll(c.Key("plg-log-scroll-"+id)).Grow(1).MinHeight(0).Children(func() {
+							ui.Text(c, txt).Font("monospace").FontSize(11).TextColor(pal.TextMuted).Wrap()
+						})
+					})
+				}
+			}
+		})
+	}
+
+	pluginMarketGroup(c, pal, ss, pa, installed)
+}
+
+func pluginMarketGroup(c *ui.Context, pal *theme.Palette, ss *State, pa PluginsApp, installed []manifest.InstalledPlugin) {
+	ms := pa.Market()
+	installedByID := make(map[string]manifest.InstalledPlugin, len(installed))
+	for _, ip := range installed {
+		installedByID[ip.Entry.ID] = ip
+	}
+
+	kit.Group(c, pal, locales.SetPluginsMarketGroup(), locales.SetPluginsMarketDetail(), func() {
+		ui.Row(c.Key("plg-mkt-toolbar")).Padding(8, 0).Gap(8).AlignItems(ui.Center).Children(func() {
+			refreshLbl := locales.SetPluginsMarketRefresh()
+			if ms.Loading {
+				refreshLbl = locales.SetPluginsMarketRefreshing()
+			}
+			if style.ButtonDisabled(c, "plg-mkt-refresh", refreshLbl, "", false, ms.Loading, pal) {
+				pa.RefreshMarket()
+			}
+			if ms.Error != "" && len(ms.Plugins) > 0 {
+				ui.Text(c.Key("plg-mkt-offline"), locales.SetPluginsMarketOffline(ms.Error)).
+					FontSize(11.5).TextColor(pal.TextMuted).Wrap().Grow(1).MinWidth(0)
+			}
+		})
+
+		if len(ms.Plugins) == 0 {
+			title := locales.SetPluginsMarketEmptyTitle()
+			detail := locales.SetPluginsMarketEmptyDetail()
+			if ms.Loading {
+				title = locales.SetPluginsMarketRefreshing()
+				detail = ""
+			} else if ms.Error != "" {
+				detail = ms.Error
+			}
+			kit.Row(c, pal, title, detail, func() {})
+			return
+		}
+
+		for _, item := range ms.Plugins {
+			mp := item
+			title := mp.Name
+			if mp.Version != "" {
+				title += " · v" + mp.Version
+			}
+			var meta []string
+			meta = append(meta, mp.ID)
+			if mp.Author != "" {
+				meta = append(meta, locales.SetPluginsMarketBy(mp.Author))
+			}
+			var detailParts []string
+			if mp.Description != "" {
+				detailParts = append(detailParts, mp.Description)
+			}
+			detailParts = append(detailParts, strings.Join(meta, " · "))
+			detail := strings.Join(detailParts, "\n")
+
+			inst, isInstalled := installedByID[mp.ID]
+			hasUpdate := isInstalled && !inst.Builtin && !inst.Entry.PendingInstall && market.HasUpdate(inst.Entry.Version, mp.Version)
+			installing := ms.Installing[mp.ID]
+
+			kit.Row(c, pal, title, detail, func() {
+				if mp.Homepage != "" {
+					if style.Button(c, "plg-mkt-home-"+mp.ID, locales.SetPluginsMarketHomepage(), "", false, pal) {
+						pa.OpenPluginURL(mp.Homepage)
+					}
+				}
+				switch {
+				case installing:
+					_ = style.ButtonDisabled(c, "plg-mkt-inst-"+mp.ID, locales.SetPluginsMarketInstalling(), "", false, true, pal)
+				case isInstalled && inst.Builtin:
+					_ = style.ButtonDisabled(c, "plg-mkt-inst-"+mp.ID, locales.SetPluginsBuiltin(), "", false, true, pal)
+				case isInstalled && !inst.Entry.PendingInstall && !hasUpdate:
+					_ = style.ButtonDisabled(c, "plg-mkt-inst-"+mp.ID, locales.SetPluginsMarketInstalled(), "", false, true, pal)
+				default:
+					lbl := locales.SetPluginsMarketInstall()
+					confirmTitle := locales.SetPluginsConfirmInstallTitle(mp.Name, mp.Version)
+					if hasUpdate {
+						lbl = locales.SetPluginsMarketUpdate()
+						confirmTitle = locales.SetPluginsConfirmUpdateTitle(mp.Name, mp.Version)
+					}
+					if style.Button(c, "plg-mkt-inst-"+mp.ID, lbl, "", true, pal) {
+						pluginCopy := mp
+						ss.Confirm = &confirm.Ask{
+							Open:   true,
+							Title:  confirmTitle,
+							Detail: formatMarketPermissionsDetail(mp),
+							Action: lbl,
+							Run:    func() { pa.InstallMarketPlugin(pluginCopy) },
+						}
+					}
+				}
+			})
+		}
 	})
+}
+
+func formatMarketPermissionsDetail(mp market.Plugin) string {
+	if len(mp.Permissions) == 0 {
+		return locales.SetPluginsConfirmInstallNoPerms()
+	}
+	lines := make([]string, 0, len(mp.Permissions))
+	for _, sc := range mp.Permissions {
+		if info, ok := manifest.DescribePermission(sc); ok && info.Description != "" {
+			lines = append(lines, "• "+sc+" — "+info.Description)
+		} else {
+			lines = append(lines, "• "+sc)
+		}
+	}
+	return locales.SetPluginsConfirmInstallPerms(strings.Join(lines, "\n"))
 }
 
 func pluginHasSettingsDrawerSlot(m *manifest.Manifest) bool {

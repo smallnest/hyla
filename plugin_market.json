@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "plugins": [
+    {
+      "id": "hyla.timeline",
+      "name": "Timeline",
+      "author": "Hyla",
+      "description": "Interactive WebView timeline pane showing coding agent turns, tool spans, reasoning, and subagents.",
+      "homepage": "https://github.com/smallnest/hyla/tree/master/plugins/timeline",
+      "version": "1.0.0",
+      "min_hyla_version": "3.18.0",
+      "permissions": [
+        "ui.webview",
+        "ui.slot",
+        "session.read",
+        "timeline.read"
+      ],
+      "i18n": {
+        "zh-Hans": {
+          "name": "时间线",
+          "description": "交互式 WebView 时间线窗格，展示编程 Agent 的对话轮次、工具耗时、思考与子代理。"
+        },
+        "ja": {
+          "name": "タイムライン",
+          "description": "コーディングエージェントのターン、ツール実行、思考、サブエージェントを表示する WebView タイムラインペイン。"
+        }
+      },
+      "download_url": "https://github.com/smallnest/hyla/releases/latest/download/hyla.timeline-{version}-{os}-{arch}.hylapkg",
+      "sha256_url": "https://github.com/smallnest/hyla/releases/latest/download/hyla.timeline-{version}-{os}-{arch}.hylapkg.sha256"
+    }
+  ]
+}

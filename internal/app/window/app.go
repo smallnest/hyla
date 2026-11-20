@@ -298,6 +298,7 @@ type App struct {
 	shuttingDown             atomic.Bool
 	quitCh                   chan struct{}
 	pluginCache              pluginUICache
+	pluginMarket             pluginMarketState
 	lastPluginState          proto.State
 	lastPluginDark           bool
 	themeOff                 func()

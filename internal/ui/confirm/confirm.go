@@ -44,7 +44,7 @@ func Dialog(c *ui.Context, pal *theme.Palette, pending **Ask) bool {
 		}
 		style.Floating(panel.Width(width).Padding(22).Gap(8).Radius(14).Background(pal.Popover), pal).Label(cf.Title)
 		ui.Text(c, cf.Title).FontSize(15).FontWeight(650).TextColor(pal.Text)
-		ui.Text(c, cf.Detail).FontSize(13).TextColor(pal.TextMuted).LineHeight(1.4)
+		ui.Text(c, cf.Detail).FontSize(13).TextColor(pal.TextMuted).LineHeight(1.4).Wrap()
 		ui.Row(c).Gap(8).Justify(ui.End).Margin(14, 0, 0, 0).Children(func() {
 			if cf.Ends {
 				// Return may be what a program reads, so this question

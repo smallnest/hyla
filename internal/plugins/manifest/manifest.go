@@ -508,7 +508,7 @@ func (m *Manifest) InLanguage(locale string) *Manifest {
 }
 
 func lookupLocaleTable(tables map[string]ManifestLocale, locale string) (ManifestLocale, bool) {
-	cands := localeCandidates(locale)
+	cands := LocaleCandidates(locale)
 	if len(cands) == 0 {
 		return ManifestLocale{}, false
 	}
@@ -527,7 +527,8 @@ func lookupLocaleTable(tables map[string]ManifestLocale, locale string) (Manifes
 	return ManifestLocale{}, false
 }
 
-func localeCandidates(locale string) []string {
+// LocaleCandidates returns normalized locale lookup fallbacks (most specific first).
+func LocaleCandidates(locale string) []string {
 	norm := strings.ToLower(strings.TrimSpace(strings.ReplaceAll(locale, "_", "-")))
 	if norm == "" {
 		return nil

@@ -3,7 +3,9 @@ package window
 import (
 	"context"
 	"maps"
+	"net/url"
 	"os"
+	"runtime"
 	"slices"
 	"sort"
 	"strconv"
@@ -20,6 +22,7 @@ import (
 	"hyla/internal/cli"
 	"hyla/internal/plugins/daemonhost"
 	"hyla/internal/plugins/manifest"
+	"hyla/internal/plugins/market"
 	"hyla/internal/plugins/rpc"
 	"hyla/internal/plugins/uihost"
 	"hyla/internal/proto"
@@ -706,6 +709,23 @@ type appPluginsSettings struct {
 	a *App
 }
 
+type pluginMarketState struct {
+	mu         sync.Mutex
+	catalog    *market.Catalog
+	loaded     bool
+	loading    bool
+	err        string
+	installing map[string]bool
+	client     *market.Client
+}
+
+func (m *pluginMarketState) httpClient() *market.Client {
+	if m.client != nil {
+		return m.client
+	}
+	return &market.Client{}
+}
+
 func (p *appPluginsSettings) store() *manifest.Store {
 	if p.a.Plugins != nil && p.a.Plugins.Store != nil {
 		return p.a.Plugins.Store
@@ -1183,9 +1203,17 @@ func hasSettingsGroupOrCard(n *rpc.UINode) bool {
 }
 
 func (p *appPluginsSettings) SearchEntries() []search.PluginEntry {
+	var out []search.PluginEntry
+	for _, mp := range p.cachedMarketPlugins() {
+		out = append(out, search.PluginEntry{
+			Page:  "plugins",
+			Label: mp.Name,
+			Words: strings.Join([]string{mp.ID, mp.Author, mp.Description, "market marketplace"}, " "),
+		})
+	}
 	installed := p.List()
 	if len(installed) == 0 {
-		return nil
+		return out
 	}
 	firstPageByPlugin := map[string]string{}
 	for _, pp := range p.SettingsPages() {
@@ -1193,7 +1221,6 @@ func (p *appPluginsSettings) SearchEntries() []search.PluginEntry {
 			firstPageByPlugin[pp.PluginID] = pp.ID
 		}
 	}
-	var out []search.PluginEntry
 	for _, ip := range installed {
 		if ip.Manifest == nil || ip.Entry.PendingInstall {
 			continue
@@ -1367,4 +1394,129 @@ func appendCachedNodeSearchEntries(out []search.PluginEntry, pageID, drawerPlugi
 		out = appendCachedNodeSearchEntries(out, pageID, drawerPluginID, baseWords, ch, depth+1)
 	}
 	return out
+}
+
+func (p *appPluginsSettings) cachedMarketPlugins() []market.Plugin {
+	ms := &p.a.pluginMarket
+	ms.mu.Lock()
+	if ms.catalog == nil {
+		ms.catalog, _ = market.Embedded()
+	}
+	cat := ms.catalog
+	ms.mu.Unlock()
+	if cat == nil {
+		return nil
+	}
+	return cat.InLanguage(p.a.pluginLocaleValue()).Plugins
+}
+
+func (p *appPluginsSettings) Market() uisettings.MarketState {
+	ms := &p.a.pluginMarket
+	ms.mu.Lock()
+	if ms.catalog == nil {
+		ms.catalog, _ = market.Embedded()
+	}
+	needRefresh := !ms.loaded && !ms.loading
+	cat := ms.catalog
+	loading := ms.loading
+	errStr := ms.err
+	installing := maps.Clone(ms.installing)
+	ms.mu.Unlock()
+
+	if needRefresh {
+		p.RefreshMarket()
+		ms.mu.Lock()
+		loading = ms.loading
+		ms.mu.Unlock()
+	}
+
+	var plugins []market.Plugin
+	if cat != nil {
+		plugins = cat.InLanguage(p.a.pluginLocaleValue()).Plugins
+	}
+	return uisettings.MarketState{
+		Plugins:    plugins,
+		Loading:    loading,
+		Error:      errStr,
+		Installing: installing,
+	}
+}
+
+func (p *appPluginsSettings) RefreshMarket() {
+	ms := &p.a.pluginMarket
+	ms.mu.Lock()
+	if ms.loading {
+		ms.mu.Unlock()
+		return
+	}
+	ms.loading = true
+	ms.loaded = true
+	client := ms.httpClient()
+	ms.mu.Unlock()
+	p.a.InvalidatePluginUI()
+
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		cat, _, err := client.FetchWithFallback(ctx)
+
+		ms.mu.Lock()
+		ms.loading = false
+		if cat != nil {
+			ms.catalog = cat
+		}
+		if err != nil {
+			ms.err = err.Error()
+		} else {
+			ms.err = ""
+		}
+		ms.mu.Unlock()
+		p.a.InvalidatePluginUI()
+	}()
+}
+
+func (p *appPluginsSettings) InstallMarketPlugin(mp market.Plugin) {
+	ms := &p.a.pluginMarket
+	ms.mu.Lock()
+	if ms.installing == nil {
+		ms.installing = make(map[string]bool)
+	}
+	if ms.installing[mp.ID] {
+		ms.mu.Unlock()
+		return
+	}
+	ms.installing[mp.ID] = true
+	client := ms.httpClient()
+	ms.mu.Unlock()
+	p.a.InvalidatePluginUI()
+
+	st := p.store()
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+		defer cancel()
+		inst, err := client.DownloadAndInstall(ctx, st, mp, runtime.GOOS, runtime.GOARCH, build.Version())
+		if err == nil {
+			_ = cli.SyncPluginAgentIntegrations(st, nil)
+		}
+		p.a.main(func() {
+			ms.mu.Lock()
+			delete(ms.installing, mp.ID)
+			ms.mu.Unlock()
+			if err != nil {
+				p.a.ShowPluginMessage(err.Error())
+				return
+			}
+			p.a.State.Soon()
+			_ = p.a.reloadPlugins(true)
+			p.a.ShowPluginMessage(locales.ToastPluginInstalled(mp.Name, inst.Entry.Version))
+		})
+	}()
+}
+
+func (p *appPluginsSettings) OpenPluginURL(rawURL string) {
+	u, err := url.Parse(strings.TrimSpace(rawURL))
+	if err != nil || (!strings.EqualFold(u.Scheme, "https") && !strings.EqualFold(u.Scheme, "http")) || strings.TrimSpace(u.Host) == "" {
+		return
+	}
+	_ = mygo.Shell.OpenExternal(u.String())
 }

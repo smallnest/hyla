@@ -9,6 +9,7 @@ import (
 
 	appsettings "hyla/internal/settings"
 	"hyla/internal/plugins/manifest"
+	"hyla/internal/plugins/market"
 	"hyla/internal/plugins/rpc"
 	"hyla/internal/ui/settings/search"
 	"hyla/internal/ui/theme"
@@ -42,10 +43,18 @@ type recordingPluginsApp struct {
 	mountCalls   []string
 	searchCalls  int
 	renderSlotFn func(c *ui.Context, pal *theme.Palette, mount, pluginID string)
+
+	market      MarketState
+	refreshCnt  int
+	installMkt  []market.Plugin
+	openedURLs  []string
 }
 
 func (r *recordingPluginsApp) List() []manifest.InstalledPlugin { return r.plugins }
 func (r *recordingPluginsApp) DaemonStatuses() []rpc.PluginStatus {
+	if len(r.plugins) == 0 {
+		return nil
+	}
 	st := r.daemonState
 	if st == "" {
 		st = "running"
@@ -116,6 +125,14 @@ func (r *recordingPluginsApp) RenderSettingsMount(c *ui.Context, pal *theme.Pale
 func (r *recordingPluginsApp) SearchEntries() []search.PluginEntry {
 	r.searchCalls++
 	return nil
+}
+func (r *recordingPluginsApp) Market() MarketState { return r.market }
+func (r *recordingPluginsApp) RefreshMarket()      { r.refreshCnt++ }
+func (r *recordingPluginsApp) InstallMarketPlugin(p market.Plugin) {
+	r.installMkt = append(r.installMkt, p)
+}
+func (r *recordingPluginsApp) OpenPluginURL(rawURL string) {
+	r.openedURLs = append(r.openedURLs, rawURL)
 }
 
 func TestPluginsSettingsInteractiveCommits(t *testing.T) {
@@ -613,5 +630,120 @@ func TestPluginsSettingsDisabledStateAndRestartButton(t *testing.T) {
 	tt.Frame()
 	if len(pv.restartCalls) != 2 {
 		t.Fatalf("expected Restart to work after re-enabling; restartCalls=%v", pv.restartCalls)
+	}
+}
+
+func TestPluginsMarketplaceRenderConfirmAndInstall(t *testing.T) {
+	pv := &recordingPluginsApp{
+		market: MarketState{
+			Plugins: []market.Plugin{
+				{
+					ID:          "org.example.newpkg",
+					Name:        "New Pack",
+					Author:      "Hyla",
+					Description: "Fresh marketplace plugin",
+					Homepage:    "https://github.com/smallnest/hyla",
+					Version:     "1.2.0",
+					Permissions: []string{"ui.webview", "session.read"},
+					DownloadURL: "https://example.com/new.hylapkg",
+				},
+				{
+					ID:          "org.example.uptodate",
+					Name:        "Up To Date",
+					Author:      "Hyla",
+					Version:     "1.0.0",
+					DownloadURL: "https://example.com/cur.hylapkg",
+				},
+				{
+					ID:          "org.example.outdated",
+					Name:        "Outdated",
+					Author:      "Hyla",
+					Version:     "2.0.0",
+					DownloadURL: "https://example.com/up.hylapkg",
+				},
+			},
+		},
+	}
+	app := &stubApp{
+		ss: &State{Page: "plugins"},
+		pv: pv,
+	}
+
+	tt := ui.NewTester(func(c *ui.Context) {
+		pal := theme.For(c)
+		ui.Scroll(c.Key("root-scroll")).Fill().Children(func() {
+			ui.Column(c).Width(700).Padding(20).Children(func() {
+				pluginsPage(app, c, pal)
+			})
+		})
+	}, 760, 900)
+	tt.Frame()
+
+	if !tt.HasText("Plugin Marketplace") || !tt.HasText("New Pack · v1.2.0") || !tt.HasText("No plugins installed") {
+		t.Fatalf("expected Marketplace even with zero installed plugins; texts=%v", tt.Texts())
+	}
+
+	// Click Refresh button.
+	if err := tt.Click("Refresh"); err != nil {
+		t.Fatalf("click Refresh: %v", err)
+	}
+	tt.Frame()
+	if pv.refreshCnt != 1 {
+		t.Fatalf("expected refreshCnt=1, got %d", pv.refreshCnt)
+	}
+
+	// Click Project button opens homepage.
+	if err := tt.Click("Project"); err != nil {
+		t.Fatalf("click Project: %v", err)
+	}
+	tt.Frame()
+	if len(pv.openedURLs) != 1 || pv.openedURLs[0] != "https://github.com/smallnest/hyla" {
+		t.Fatalf("openedURLs = %v", pv.openedURLs)
+	}
+
+	// Click Install -> sets confirmation dialog listing declared permissions before installing.
+	if err := tt.Click("Install"); err != nil {
+		t.Fatalf("click Install: %v", err)
+	}
+	tt.Frame()
+	if len(pv.installMkt) != 0 {
+		t.Fatalf("expected install not to run before confirmation")
+	}
+	if app.ss.Confirm == nil || !app.ss.Confirm.Open ||
+		!strings.Contains(app.ss.Confirm.Title, "New Pack") ||
+		!strings.Contains(app.ss.Confirm.Detail, "ui.webview") ||
+		!strings.Contains(app.ss.Confirm.Detail, "session.read") {
+		t.Fatalf("unexpected confirmation ask: %+v", app.ss.Confirm)
+	}
+	app.ss.Confirm.Run()
+	if len(pv.installMkt) != 1 || pv.installMkt[0].ID != "org.example.newpkg" {
+		t.Fatalf("installMkt after confirm = %+v", pv.installMkt)
+	}
+
+	// Now simulate installed plugins: "uptodate" (1.0.0) and "outdated" (1.0.0 -> 2.0.0 available).
+	pv.plugins = []manifest.InstalledPlugin{
+		{
+			Entry:    manifest.RegistryEntry{ID: "org.example.uptodate", Enabled: true, Version: "1.0.0"},
+			Manifest: &manifest.Manifest{ID: "org.example.uptodate", Name: "Up To Date", Version: "1.0.0"},
+		},
+		{
+			Entry:    manifest.RegistryEntry{ID: "org.example.outdated", Enabled: true, Version: "1.0.0"},
+			Manifest: &manifest.Manifest{ID: "org.example.outdated", Name: "Outdated", Version: "1.0.0"},
+		},
+	}
+	tt.Frame()
+
+	var foundInstalledDisabled, foundUpdateEnabled bool
+	for _, a := range tt.AccessAll() {
+		if a.Role == ui.RoleButton && a.Name == "Installed" && a.Disabled {
+			foundInstalledDisabled = true
+		}
+		if a.Role == ui.RoleButton && a.Name == "Update" && !a.Disabled {
+			foundUpdateEnabled = true
+		}
+	}
+	if !foundInstalledDisabled || !foundUpdateEnabled {
+		t.Fatalf("expected disabled Installed & enabled Update buttons; installed=%v update=%v access=%+v",
+			foundInstalledDisabled, foundUpdateEnabled, tt.AccessAll())
 	}
 }

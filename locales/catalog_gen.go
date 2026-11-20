@@ -9416,6 +9416,198 @@ func (msgs Messages) SetPluginsHeaderDetail() string {
 	return Catalog.Format(msgs.locale, "setPluginsHeaderDetail", nil)
 }
 
+// SetPluginsMarketGroup says "Plugin Marketplace"
+// in the language the app shows.
+func SetPluginsMarketGroup() string { return In(i18n.Locale()).SetPluginsMarketGroup() }
+
+// SetPluginsMarketGroup says "Plugin Marketplace"
+// in the language of msgs.
+func (msgs Messages) SetPluginsMarketGroup() string {
+	return Catalog.Format(msgs.locale, "setPluginsMarketGroup", nil)
+}
+
+// SetPluginsMarketDetail says "Browse curated plugins from Hyla's catalog and install them with one click."
+// in the language the app shows.
+func SetPluginsMarketDetail() string { return In(i18n.Locale()).SetPluginsMarketDetail() }
+
+// SetPluginsMarketDetail says "Browse curated plugins from Hyla's catalog and install them with one click."
+// in the language of msgs.
+func (msgs Messages) SetPluginsMarketDetail() string {
+	return Catalog.Format(msgs.locale, "setPluginsMarketDetail", nil)
+}
+
+// SetPluginsMarketRefresh says "Refresh"
+// in the language the app shows.
+func SetPluginsMarketRefresh() string { return In(i18n.Locale()).SetPluginsMarketRefresh() }
+
+// SetPluginsMarketRefresh says "Refresh"
+// in the language of msgs.
+func (msgs Messages) SetPluginsMarketRefresh() string {
+	return Catalog.Format(msgs.locale, "setPluginsMarketRefresh", nil)
+}
+
+// SetPluginsMarketRefreshing says "Refreshing…"
+// in the language the app shows.
+func SetPluginsMarketRefreshing() string { return In(i18n.Locale()).SetPluginsMarketRefreshing() }
+
+// SetPluginsMarketRefreshing says "Refreshing…"
+// in the language of msgs.
+func (msgs Messages) SetPluginsMarketRefreshing() string {
+	return Catalog.Format(msgs.locale, "setPluginsMarketRefreshing", nil)
+}
+
+// SetPluginsMarketEmptyTitle says "No marketplace plugins available"
+// in the language the app shows.
+func SetPluginsMarketEmptyTitle() string { return In(i18n.Locale()).SetPluginsMarketEmptyTitle() }
+
+// SetPluginsMarketEmptyTitle says "No marketplace plugins available"
+// in the language of msgs.
+func (msgs Messages) SetPluginsMarketEmptyTitle() string {
+	return Catalog.Format(msgs.locale, "setPluginsMarketEmptyTitle", nil)
+}
+
+// SetPluginsMarketEmptyDetail says "Check your network connection and click Refresh to load the marketplace catalog."
+// in the language the app shows.
+func SetPluginsMarketEmptyDetail() string { return In(i18n.Locale()).SetPluginsMarketEmptyDetail() }
+
+// SetPluginsMarketEmptyDetail says "Check your network connection and click Refresh to load the marketplace catalog."
+// in the language of msgs.
+func (msgs Messages) SetPluginsMarketEmptyDetail() string {
+	return Catalog.Format(msgs.locale, "setPluginsMarketEmptyDetail", nil)
+}
+
+// SetPluginsMarketHomepage says "Project"
+// in the language the app shows.
+func SetPluginsMarketHomepage() string { return In(i18n.Locale()).SetPluginsMarketHomepage() }
+
+// SetPluginsMarketHomepage says "Project"
+// in the language of msgs.
+func (msgs Messages) SetPluginsMarketHomepage() string {
+	return Catalog.Format(msgs.locale, "setPluginsMarketHomepage", nil)
+}
+
+// SetPluginsMarketInstall says "Install"
+// in the language the app shows.
+func SetPluginsMarketInstall() string { return In(i18n.Locale()).SetPluginsMarketInstall() }
+
+// SetPluginsMarketInstall says "Install"
+// in the language of msgs.
+func (msgs Messages) SetPluginsMarketInstall() string {
+	return Catalog.Format(msgs.locale, "setPluginsMarketInstall", nil)
+}
+
+// SetPluginsMarketUpdate says "Update"
+// in the language the app shows.
+func SetPluginsMarketUpdate() string { return In(i18n.Locale()).SetPluginsMarketUpdate() }
+
+// SetPluginsMarketUpdate says "Update"
+// in the language of msgs.
+func (msgs Messages) SetPluginsMarketUpdate() string {
+	return Catalog.Format(msgs.locale, "setPluginsMarketUpdate", nil)
+}
+
+// SetPluginsMarketInstalled says "Installed"
+// in the language the app shows.
+func SetPluginsMarketInstalled() string { return In(i18n.Locale()).SetPluginsMarketInstalled() }
+
+// SetPluginsMarketInstalled says "Installed"
+// in the language of msgs.
+func (msgs Messages) SetPluginsMarketInstalled() string {
+	return Catalog.Format(msgs.locale, "setPluginsMarketInstalled", nil)
+}
+
+// SetPluginsMarketInstalling says "Installing…"
+// in the language the app shows.
+func SetPluginsMarketInstalling() string { return In(i18n.Locale()).SetPluginsMarketInstalling() }
+
+// SetPluginsMarketInstalling says "Installing…"
+// in the language of msgs.
+func (msgs Messages) SetPluginsMarketInstalling() string {
+	return Catalog.Format(msgs.locale, "setPluginsMarketInstalling", nil)
+}
+
+// SetPluginsMarketBy says "by {author}"
+// in the language the app shows.
+func SetPluginsMarketBy(author string) string { return In(i18n.Locale()).SetPluginsMarketBy(author) }
+
+// SetPluginsMarketBy says "by {author}"
+// in the language of msgs.
+func (msgs Messages) SetPluginsMarketBy(author string) string {
+	return Catalog.Format(msgs.locale, "setPluginsMarketBy", map[string]any{"author": author})
+}
+
+// SetPluginsMarketOffline says "Showing built-in catalog ({err})"
+// in the language the app shows.
+func SetPluginsMarketOffline(err string) string {
+	return In(i18n.Locale()).SetPluginsMarketOffline(err)
+}
+
+// SetPluginsMarketOffline says "Showing built-in catalog ({err})"
+// in the language of msgs.
+func (msgs Messages) SetPluginsMarketOffline(err string) string {
+	return Catalog.Format(msgs.locale, "setPluginsMarketOffline", map[string]any{"err": err})
+}
+
+// SetPluginsConfirmInstallTitle says "Install {name} v{version}?"
+// in the language the app shows.
+func SetPluginsConfirmInstallTitle(name string, version string) string {
+	return In(i18n.Locale()).SetPluginsConfirmInstallTitle(name, version)
+}
+
+// SetPluginsConfirmInstallTitle says "Install {name} v{version}?"
+// in the language of msgs.
+func (msgs Messages) SetPluginsConfirmInstallTitle(name string, version string) string {
+	return Catalog.Format(msgs.locale, "setPluginsConfirmInstallTitle", map[string]any{"name": name, "version": version})
+}
+
+// SetPluginsConfirmUpdateTitle says "Update {name} to v{version}?"
+// in the language the app shows.
+func SetPluginsConfirmUpdateTitle(name string, version string) string {
+	return In(i18n.Locale()).SetPluginsConfirmUpdateTitle(name, version)
+}
+
+// SetPluginsConfirmUpdateTitle says "Update {name} to v{version}?"
+// in the language of msgs.
+func (msgs Messages) SetPluginsConfirmUpdateTitle(name string, version string) string {
+	return Catalog.Format(msgs.locale, "setPluginsConfirmUpdateTitle", map[string]any{"name": name, "version": version})
+}
+
+// SetPluginsConfirmInstallPerms says "This plugin requests the following permissions:\n{perms}\n\nDownload, verify, and enable this plugin?"
+// in the language the app shows.
+func SetPluginsConfirmInstallPerms(perms string) string {
+	return In(i18n.Locale()).SetPluginsConfirmInstallPerms(perms)
+}
+
+// SetPluginsConfirmInstallPerms says "This plugin requests the following permissions:\n{perms}\n\nDownload, verify, and enable this plugin?"
+// in the language of msgs.
+func (msgs Messages) SetPluginsConfirmInstallPerms(perms string) string {
+	return Catalog.Format(msgs.locale, "setPluginsConfirmInstallPerms", map[string]any{"perms": perms})
+}
+
+// SetPluginsConfirmInstallNoPerms says "This plugin does not request special permissions.\n\nDownload, verify, and enable this plugin?"
+// in the language the app shows.
+func SetPluginsConfirmInstallNoPerms() string {
+	return In(i18n.Locale()).SetPluginsConfirmInstallNoPerms()
+}
+
+// SetPluginsConfirmInstallNoPerms says "This plugin does not request special permissions.\n\nDownload, verify, and enable this plugin?"
+// in the language of msgs.
+func (msgs Messages) SetPluginsConfirmInstallNoPerms() string {
+	return Catalog.Format(msgs.locale, "setPluginsConfirmInstallNoPerms", nil)
+}
+
+// ToastPluginInstalled says "Installed {name} v{version}"
+// in the language the app shows.
+func ToastPluginInstalled(name string, version string) string {
+	return In(i18n.Locale()).ToastPluginInstalled(name, version)
+}
+
+// ToastPluginInstalled says "Installed {name} v{version}"
+// in the language of msgs.
+func (msgs Messages) ToastPluginInstalled(name string, version string) string {
+	return Catalog.Format(msgs.locale, "toastPluginInstalled", map[string]any{"name": name, "version": version})
+}
+
 // ActionHongguoOpen says "Open Hongguo Drama Pane"
 // in the language the app shows.
 func ActionHongguoOpen() string { return In(i18n.Locale()).ActionHongguoOpen() }
