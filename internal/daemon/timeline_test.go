@@ -2,13 +2,16 @@ package daemon
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/klauspost/compress/zstd"
 
+	"hyla/internal/plugins/rpc"
 	"hyla/internal/proto"
 )
 
@@ -158,8 +161,89 @@ func TestTimelineOf(t *testing.T) {
 		t.Errorf("codex turn %+v", tm.Turns[0])
 	}
 
+	// Antigravity CLI (both "agy" and "antigravity"), by workspace history or conversation ID.
+	agyRoot := filepath.Join(home, ".gemini", "antigravity-cli")
+	agyLog := filepath.Join(agyRoot, "brain", "agy-sess-1", ".system_generated", "logs", "transcript.jsonl")
+	if err := os.MkdirAll(filepath.Dir(agyLog), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	agyLines := `{"step_index":0,"source":"USER_EXPLICIT","type":"USER_INPUT","status":"DONE","created_at":"2026-11-20T07:50:00Z","content":"<USER_REQUEST>\nVerify agy\n</USER_REQUEST>"}
+{"step_index":1,"source":"MODEL","type":"PLANNER_RESPONSE","status":"DONE","created_at":"2026-11-20T07:50:01Z","thinking":"Check","tool_calls":[{"name":"read_file","args":{"Path":"\"go.mod\""}}]}
+{"step_index":2,"source":"MODEL","type":"GENERIC","status":"DONE","created_at":"2026-11-20T07:50:02Z","content":"Created At: 2026-11-20T07:50:02Z\nCompleted At: 2026-11-20T07:50:03Z\nmodule hyla"}
+{"step_index":3,"source":"MODEL","type":"PLANNER_RESPONSE","status":"DONE","created_at":"2026-11-20T07:50:03Z","content":"Done"}
+`
+	if err := os.WriteFile(agyLog, []byte(agyLines), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(agyRoot, "history.jsonl"), []byte(`{"workspace":"/tmp/my-proj","conversationId":"agy-sess-1"}`+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("AGY_DATA_DIR", agyRoot)
+	for i, ag := range []string{"agy", "antigravity"} {
+		pid := "p6_" + string(rune('a'+i))
+		d.panes[pid] = &pane{info: proto.Pane{ID: pid, Dir: dir, Agent: ag}}
+		tm, err = d.timelineOf(proto.TimelineParams{Pane: pid})
+		if err != nil || len(tm.Turns) != 1 || tm.Turns[0].Title != "Verify agy" {
+			t.Fatalf("%s timeline %+v, %v", ag, tm, err)
+		}
+		if len(tm.Turns[0].Children) < 2 {
+			t.Fatalf("%s children = %+v", ag, tm.Turns[0].Children)
+		}
+	}
+
 	// A pane that does not exist is an error.
 	if _, err := d.timelineOf(proto.TimelineParams{Pane: "nope"}); err == nil {
 		t.Error("a timeline of no pane")
+	}
+}
+
+func TestLegacyTimelinePaneMigrationAndBridge(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("CLAUDE_CONFIG_DIR", "")
+	d := testDaemon(t)
+
+	dir := "/tmp/my-proj"
+	project := filepath.Join(home, ".claude", "projects", "-tmp-my-proj")
+	if err := os.MkdirAll(project, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	lines := `{"type":"user","timestamp":"2026-11-16T10:00:00.000Z","message":{"role":"user","content":"Bridge turn"}}
+`
+	if err := os.WriteFile(filepath.Join(project, "sess-b.jsonl"), []byte(lines), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	d.panes["p1"] = &pane{info: proto.Pane{ID: "p1", Dir: dir, Agent: "claude", AgentSessionID: "sess-b"}}
+
+	// startPane migrates legacy proto.CreateParams{Timeline: "p1"} into hyla.timeline plugin pane.
+	pn, err := d.startPane("s1", proto.CreateParams{Timeline: "p1"}, dir)
+	if err != nil {
+		t.Fatalf("startPane legacy timeline: %v", err)
+	}
+	if !pn.info.PluginPane() || pn.info.Plugin != "hyla.timeline" || pn.info.PluginView != "timeline" ||
+		pn.info.PluginArgs["targetPane"] != "p1" || pn.info.Timeline != "" {
+		t.Fatalf("unexpected migrated startPane info: %+v", pn.info)
+	}
+
+	// restorePane migrates saved legacy Timeline field into hyla.timeline plugin pane.
+	restored := d.restorePane("s1", savedPane{ID: "t1", Dir: dir, Timeline: "p1"})
+	if restored == nil || !restored.info.PluginPane() || restored.info.Plugin != "hyla.timeline" ||
+		restored.info.PluginView != "timeline" || restored.info.PluginArgs["targetPane"] != "p1" || restored.info.Timeline != "" {
+		t.Fatalf("unexpected migrated restored pane: %+v", restored)
+	}
+
+	// daemonPluginBridge.GetTimeline returns timeline data and translates missing pane to ErrCodeTargetNotFound.
+	bridge := &daemonPluginBridge{d: d}
+	res, err := bridge.GetTimeline(context.Background(), "hyla.timeline", rpc.PaneGetTimelineParams{Session: "s1", Pane: "p1"})
+	if err != nil {
+		t.Fatalf("bridge.GetTimeline p1 failed: %v", err)
+	}
+	if len(res.Timeline.Turns) != 1 || res.Timeline.Turns[0].Title != "Bridge turn" {
+		t.Fatalf("unexpected bridge.GetTimeline result: %+v", res.Timeline)
+	}
+	_, err = bridge.GetTimeline(context.Background(), "hyla.timeline", rpc.PaneGetTimelineParams{Pane: "nope"})
+	var rpcErr *rpc.Error
+	if !errors.As(err, &rpcErr) || rpcErr.Code != rpc.ErrCodeTargetNotFound {
+		t.Fatalf("expected ErrCodeTargetNotFound for missing pane, got %v", err)
 	}
 }

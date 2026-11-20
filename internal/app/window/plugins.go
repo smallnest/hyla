@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 	"slices"
 	"strconv"
@@ -526,6 +527,7 @@ func (a *App) runPluginAction(id string, args map[string]string) bool {
 		PaneID:    paneID,
 		ProjectID: projectID,
 		Host:      hostKey,
+		Locale:    a.pluginLocaleValue(),
 	}
 	go func() {
 		res, err := a.Plugins.CallAction(hostKey, meta, req)
@@ -552,6 +554,10 @@ func (a *App) runPluginAction(id string, args map[string]string) bool {
 }
 
 func (a *App) openPluginPane(s *proto.Session, pluginID, slotID, title, direction string, args map[string]string) {
+	a.openPluginPaneWithOptions(s, pluginID, slotID, title, direction, "", args, false)
+}
+
+func (a *App) openPluginPaneWithOptions(s *proto.Session, pluginID, slotID, title, direction, splitPane string, args map[string]string, focusExisting bool) {
 	if s == nil {
 		h := a.Local()
 		if h.Client == nil {
@@ -569,10 +575,22 @@ func (a *App) openPluginPane(s *proto.Session, pluginID, slotID, title, directio
 	if a.remoteControl(h) == false && h.Remote() {
 		return
 	}
+	if focusExisting {
+		for i := range s.Panes {
+			pn := &s.Panes[i]
+			if pn.Plugin == pluginID && pn.PluginView == slotID && maps.Equal(pn.PluginArgs, args) {
+				a.setFocus(s, pn.ID)
+				return
+			}
+		}
+	}
 	if direction == "" {
 		direction = "right"
 	}
-	at := a.focusOf(s)
+	at := splitPane
+	if at == "" || s.PaneByID(at) == nil {
+		at = a.focusOf(s)
+	}
 	a.split(s, proto.CreateParams{
 		Split:       at,
 		Direction:   direction,
@@ -816,11 +834,36 @@ func (b *appPluginBridge) OpenPane(ctx context.Context, pluginID string, p rpc.U
 			openErr = rpc.NewError(rpc.ErrCodeRemoteControlDisabled, "remote control is disabled for remote host")
 			return
 		}
-		b.a.openPluginPane(s, plug, p.View, p.Title, p.Direction, p.Args)
+		b.a.openPluginPaneWithOptions(s, plug, p.View, p.Title, p.Direction, p.Split, p.Args, p.FocusExisting)
 	}); err != nil {
 		return err
 	}
 	return openErr
+}
+
+func (b *appPluginBridge) GetTimeline(ctx context.Context, pluginID string, p rpc.PaneGetTimelineParams) (*rpc.PaneGetTimelineResult, error) {
+	var h *host.Host
+	if err := b.a.callMainSync(ctx, func() {
+		if p.Pane != "" {
+			h = b.a.Owner[p.Pane]
+		}
+		if h == nil && p.Session != "" {
+			h = b.a.Owner[p.Session]
+		}
+		if h == nil && len(b.a.Machines) > 0 {
+			h = b.a.Local()
+		}
+	}); err != nil {
+		return nil, err
+	}
+	if h == nil || h.Client == nil {
+		return nil, rpc.NewError(rpc.ErrCodeCapabilityUnsupported, "daemon client unavailable")
+	}
+	var out proto.Timeline
+	if err := h.Client.Call("timeline.get", proto.TimelineParams{Session: p.Session, Pane: p.Pane}, &out); err != nil {
+		return nil, err
+	}
+	return &rpc.PaneGetTimelineResult{Timeline: out}, nil
 }
 
 func (b *appPluginBridge) NotifyUI(ctx context.Context, pluginID string, p rpc.UINotifyParams) error {

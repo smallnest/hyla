@@ -162,6 +162,8 @@ func (d *Daemon) recordedSubagents(agent, conv, dir string, now time.Time) []pro
 		steps, err = timeline.CodexFile(file, now)
 	case "opencode":
 		steps, err = timeline.OpenCode(file, conv, dir, now)
+	case "agy", "antigravity":
+		steps, err = timeline.AgyFile(file, now)
 	default:
 		steps, err = timeline.ClaudeFile(file, now)
 	}

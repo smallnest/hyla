@@ -28,6 +28,15 @@ func TestPluginKeybindAndBackgroundConfig(t *testing.T) {
 		t.Fatalf("format dropped disabled plugin keybind:\n%s", cfgText)
 	}
 
+	// Legacy built-in timeline.open keybind migrates cleanly to hyla.timeline.open.
+	sMig, probs := parse("keybind = cmd+alt+t=timeline.open\n")
+	if len(probs) != 0 {
+		t.Fatalf("legacy timeline.open migration produced problems: %v", probs)
+	}
+	if sMig.Shortcuts["hyla.timeline.open"] != "CmdOrCtrl+Alt+T" {
+		t.Fatalf("expected hyla.timeline.open shortcut CmdOrCtrl+Alt+T, got %+v", sMig.Shortcuts)
+	}
+
 	// Built-in namespace typo still produces config problem.
 	if _, probs := parse("keybind = cmd+alt+n=pane.split.bogus\n"); len(probs) == 0 {
 		t.Fatal("expected problem for invalid built-in action typo pane.split.bogus")

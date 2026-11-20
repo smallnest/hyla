@@ -69,10 +69,9 @@ type App interface {
 	// their terminal's place.
 	PaneChat() map[string]bool
 
-	// FilePane, PaneBrowser, TimelineBody, SubagentsBody, HongguoBody and ChatBody are
+	// FilePane, PaneBrowser, SubagentsBody, HongguoBody, ChatBody and PluginPaneBody are
 	// the card's body, by kind.
 	FilePane(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane)
-	TimelineBody(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane)
 	SubagentsBody(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane)
 	HongguoBody(c *ui.Context, pal *theme.Palette, s *proto.Session, p *proto.Pane)
 	PaneBrowser(c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown float32, s *proto.Session, p *proto.Pane, top, left, right, multi, focused, hovered bool) (dragging bool)

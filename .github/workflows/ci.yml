@@ -55,12 +55,19 @@ jobs:
         run: |
           sh -n scripts/install-server.sh
           sh -n scripts/build-server.sh
+          sh -n scripts/build-plugins.sh
           pwsh -NoProfile -Command '$e = $null; [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path scripts/install-server.ps1), [ref]$null, [ref]$e) | Out-Null; if ($e) { $e; exit 1 }'
 
   # The server build, built and run on each of its platforms.
   server:
     name: Server
     uses: ./.github/workflows/server.yml
+
+  # First-party plugins under plugins/ (and the Go plugin SDK): tested,
+  # cross-compiled for every release platform, and packed into .hylapkg archives.
+  plugins:
+    name: Plugins
+    uses: ./.github/workflows/plugins.yml
 
   # libghostty-vt, which the terminal downloads from the release of mygo's
   # plugin as a terminal is first made. Kept, so that the runs of the tests

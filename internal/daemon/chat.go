@@ -159,6 +159,9 @@ func (d *Daemon) chatLines(agent, conv, dir string, now time.Time) ([]proto.Chat
 		steps, err = timeline.CodexFile(file, now)
 	case "opencode":
 		steps, err = timeline.OpenCode(file, conv, dir, now)
+	case "agy", "antigravity":
+		steps, err = timeline.AgyFile(file, now)
+		model = timeline.AgyModel(file)
 	default:
 		steps, err = timeline.ClaudeFile(file, now)
 		model = timeline.ClaudeModel(file)

@@ -207,6 +207,18 @@ func (a *App) PluginPaneBody(c *ui.Context, pal *theme.Palette, s *proto.Session
 	if p == nil {
 		return
 	}
+	if p.Plugin == "" && p.Timeline != "" {
+		cp := *p
+		cp.Plugin = "hyla.timeline"
+		cp.PluginView = "timeline"
+		cp.PluginArgs = map[string]string{"targetPane": p.Timeline}
+		if sl, ok := a.findEffectiveSlot(a.pluginHostForSession(s), cp.Plugin, cp.PluginView); ok && sl.Slot.Title != "" {
+			cp.PluginTitle = sl.Slot.Title
+		} else {
+			cp.PluginTitle = "Timeline"
+		}
+		p = &cp
+	}
 	closeFallback := func() {
 		a.PaneMessage(c, pal, locales.PluginUnavailableTitle(), locales.PluginUnavailableDetail(p.Plugin), locales.PluginClosePane(), func() {
 			if s != nil {
@@ -469,6 +481,7 @@ func (a *App) appendPluginMountMenuItems(m *ui.Menu, mount string, s *proto.Sess
 						PaneID:    paneID,
 						ProjectID: projID,
 						Host:      hostKey,
+						Locale:    a.pluginLocaleValue(),
 					})
 					a.main(func() {
 						if err != nil {

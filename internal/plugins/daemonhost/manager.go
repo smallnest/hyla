@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -45,6 +46,7 @@ type HostBridge interface {
 	FocusPane(ctx context.Context, pluginID string, p rpc.PaneFocusParams) error
 	InvalidateUI(ctx context.Context, pluginID string, p rpc.UIInvalidateParams) error
 	OpenPane(ctx context.Context, pluginID string, p rpc.UIOpenPaneParams) error
+	GetTimeline(ctx context.Context, pluginID string, p rpc.PaneGetTimelineParams) (*rpc.PaneGetTimelineResult, error)
 	NotifyUI(ctx context.Context, pluginID string, p rpc.UINotifyParams) error
 	WebViewEmit(ctx context.Context, pluginID string, p rpc.WebViewEmitParams) error
 }
@@ -721,6 +723,10 @@ func (m *Manager) startProcess(ctx context.Context, id string, p manifest.Instal
 }
 
 func resolveCommand(rootDir string, argv []string) ([]string, error) {
+	return resolveCommandForOS(rootDir, argv, runtime.GOOS)
+}
+
+func resolveCommandForOS(rootDir string, argv []string, goos string) ([]string, error) {
 	if len(argv) == 0 || argv[0] == "" {
 		return nil, fmt.Errorf("empty command")
 	}
@@ -732,14 +738,35 @@ func resolveCommand(rootDir string, argv []string) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
+		if goos == "windows" {
+			resolved = preferWindowsExe(resolved)
+		}
 		out[0] = resolved
 	} else if !filepath.IsAbs(cmd0) && rootDir != "" {
 		cand := filepath.Join(rootDir, cmd0)
 		if st, err := os.Stat(cand); err == nil && !st.IsDir() {
 			out[0] = cand
+		} else if goos == "windows" {
+			if exe := preferWindowsExe(cand); exe != cand {
+				out[0] = exe
+			}
 		}
 	}
 	return out, nil
+}
+
+func preferWindowsExe(path string) string {
+	if strings.HasSuffix(strings.ToLower(path), ".exe") {
+		return path
+	}
+	if st, err := os.Stat(path); err == nil && !st.IsDir() {
+		return path
+	}
+	exe := path + ".exe"
+	if st, err := os.Stat(exe); err == nil && !st.IsDir() {
+		return exe
+	}
+	return path
 }
 
 func (m *Manager) watchProcess(id string, mp *managedPlugin, cmd *exec.Cmd, peer *rpc.Peer, waitDone chan struct{}, runCleanup func()) {
@@ -1053,7 +1080,12 @@ func (m *Manager) ListStatuses() []rpc.PluginStatus {
 	}
 	out := make([]rpc.PluginStatus, 0, len(list))
 	now := time.Now()
+	locale := ""
+	if m.opts.LocaleFunc != nil {
+		locale = m.opts.LocaleFunc()
+	}
 	for _, p := range list {
+		p = manifest.LocalizePlugin(p, locale)
 		st := rpc.PluginStatus{
 			ID:                 p.Entry.ID,
 			Enabled:            p.Entry.Enabled,
@@ -1067,13 +1099,6 @@ func (m *Manager) ListStatuses() []rpc.PluginStatus {
 		}
 		if p.Manifest != nil {
 			mf := p.Manifest
-			// A builtin's manifest is written once in the code: the app
-			// asks for its words in the language it shows.
-			if p.Builtin {
-				if bm, ok := manifest.BuiltinInLanguage(p.Entry.ID, m.opts.LocaleFunc()); ok {
-					mf = bm
-				}
-			}
 			st.Name = mf.Name
 			st.Version = mf.Version
 			st.Description = mf.Description
@@ -1174,6 +1199,8 @@ func requiredPluginToHostPerm(method string) string {
 		return manifest.PermSessionRead
 	case "pane.readScreen", "pane.getEnv":
 		return manifest.PermPaneRead
+	case "pane.getTimeline":
+		return manifest.PermTimelineRead
 	case "session.create":
 		return manifest.PermSessionCreate
 	case "pane.sendInput", "pane.sendKey", "pane.reportStatus":
@@ -1251,6 +1278,9 @@ func (m *Manager) registerBridgeHandlers(id string, peer *rpc.Peer) {
 	})
 	handleBridgeCall(m, id, peer, "pane.getEnv", false, func(ctx context.Context, id string, p rpc.PaneGetEnvParams) (*rpc.PaneGetEnvResult, error) {
 		return m.opts.Bridge.GetEnv(ctx, id, p)
+	})
+	handleBridgeCall(m, id, peer, "pane.getTimeline", false, func(ctx context.Context, id string, p rpc.PaneGetTimelineParams) (*rpc.PaneGetTimelineResult, error) {
+		return m.opts.Bridge.GetTimeline(ctx, id, p)
 	})
 	handleBridgeCall(m, id, peer, "session.create", false, func(ctx context.Context, id string, p proto.CreateParams) (*rpc.SessionCreateResult, error) {
 		return m.opts.Bridge.CreateSession(ctx, id, p)

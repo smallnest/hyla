@@ -73,6 +73,12 @@ type Snapshot struct {
 // actions, proto agents, and detect manifests. It returns a Snapshot of
 // validated asset paths for higher layers (marks, themes, washes, pets, hooks, skills).
 func ApplyBase(s *Store) (*Snapshot, error) {
+	return ApplyBaseInLanguage(s, "")
+}
+
+// ApplyBaseInLanguage discovers plugins in s, localizes manifests for locale,
+// and refreshes all base-layer registries.
+func ApplyBaseInLanguage(s *Store, locale string) (*Snapshot, error) {
 	if s == nil {
 		s = DefaultStore()
 	}
@@ -80,18 +86,25 @@ func ApplyBase(s *Store) (*Snapshot, error) {
 	if err != nil {
 		return nil, err
 	}
+	return ApplySnapshotInLanguage(plugins, locale), nil
+}
 
+// ApplySnapshotInLanguage localizes plugins into a fresh Snapshot without mutating
+// the input slice and refreshes base-layer registries (actions, agents, detect rules).
+func ApplySnapshotInLanguage(plugins []InstalledPlugin, locale string) *Snapshot {
 	actions.ClearPluginActions()
 	proto.ClearPluginAgents()
 
+	localized := make([]InstalledPlugin, 0, len(plugins))
 	snap := &Snapshot{
-		Plugins:       plugins,
 		ActionTargets: make(map[string]PluginActionMeta),
 	}
 	var detectItems []detect.PluginManifest
 	var disabledActions []string
 
-	for _, p := range plugins {
+	for _, orig := range plugins {
+		p := LocalizePlugin(orig, locale)
+		localized = append(localized, p)
 		if p.LoadError != "" {
 			snap.Errors = append(snap.Errors, fmt.Sprintf("%s: %s", p.Entry.ID, p.LoadError))
 		}
@@ -242,9 +255,10 @@ func ApplyBase(s *Store) (*Snapshot, error) {
 		}
 	}
 
+	snap.Plugins = localized
 	actions.SetDisabledPluginActions(disabledActions)
 	if err := detect.ReloadPlugins(detectItems); err != nil {
 		snap.Errors = append(snap.Errors, err.Error())
 	}
-	return snap, nil
+	return snap
 }

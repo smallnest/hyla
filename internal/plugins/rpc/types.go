@@ -243,6 +243,7 @@ type ActionInvokeParams struct {
 	PaneID    string            `json:"paneId,omitempty"`
 	ProjectID string            `json:"projectId,omitempty"`
 	Host      string            `json:"host,omitempty"`
+	Locale    string            `json:"locale,omitempty"`
 }
 
 type ActionInvokeResult struct {
@@ -251,11 +252,13 @@ type ActionInvokeResult struct {
 }
 
 type WebViewRPCParams struct {
-	SlotID    string          `json:"slotId"`
-	Method    string          `json:"method"`
-	Params    json.RawMessage `json:"params,omitempty"`
-	SessionID string          `json:"sessionId,omitempty"`
-	PaneID    string          `json:"paneId,omitempty"`
+	SlotID    string            `json:"slotId"`
+	Method    string            `json:"method"`
+	Params    json.RawMessage   `json:"params,omitempty"`
+	SessionID string            `json:"sessionId,omitempty"`
+	PaneID    string            `json:"paneId,omitempty"`
+	Locale    string            `json:"locale,omitempty"`
+	Args      map[string]string `json:"args,omitempty"`
 }
 
 type WebViewRPCResult struct {
@@ -340,12 +343,23 @@ type UIInvalidateParams struct {
 }
 
 type UIOpenPaneParams struct {
-	Session   string            `json:"session,omitempty"`
-	Plugin    string            `json:"plugin,omitempty"`
-	View      string            `json:"view"`
-	Title     string            `json:"title,omitempty"`
-	Args      map[string]string `json:"args,omitempty"`
-	Direction string            `json:"direction,omitempty"` // "right" | "down" | ""
+	Session       string            `json:"session,omitempty"`
+	Split         string            `json:"split,omitempty"`
+	Plugin        string            `json:"plugin,omitempty"`
+	View          string            `json:"view"`
+	Title         string            `json:"title,omitempty"`
+	Args          map[string]string `json:"args,omitempty"`
+	Direction     string            `json:"direction,omitempty"` // "right" | "down" | ""
+	FocusExisting bool              `json:"focusExisting,omitempty"`
+}
+
+type PaneGetTimelineParams struct {
+	Session string `json:"session,omitempty"`
+	Pane    string `json:"pane"`
+}
+
+type PaneGetTimelineResult struct {
+	Timeline proto.Timeline `json:"timeline"`
 }
 
 type UINotifyParams struct {

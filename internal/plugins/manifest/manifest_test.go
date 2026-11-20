@@ -467,3 +467,108 @@ func TestBuiltinWords(t *testing.T) {
 		t.Errorf("a builtin of one language says %q", got.Description)
 	}
 }
+
+func TestManifestI18nResolutionAndApplyBase(t *testing.T) {
+	tomlSrc := `
+api_version = 1
+id = "com.example.i18n"
+name = "Timeline"
+description = "Default EN desc"
+version = "1.0.0"
+
+[[actions]]
+id = "open"
+title = "Open Timeline Pane"
+target = "app"
+
+[[ui.slots]]
+id = "timeline"
+mount = "pane"
+title = "Timeline"
+
+[[settings]]
+key = "url"
+title = "Gateway URL"
+description = "EN URL desc"
+type = "string"
+placeholder = "http://localhost"
+
+[i18n.zh-Hans]
+name = "时间线"
+description = "中文描述"
+
+[i18n.zh-Hans.actions]
+open = "打开时间线窗格"
+
+[i18n.zh-Hans.slots]
+timeline = "时间线"
+
+[i18n.zh-Hans.settings.url]
+title = "网关地址"
+description = "中文地址描述"
+placeholder = "请输入地址"
+
+[i18n.ja]
+name = "タイムライン"
+description = "日本語の説明"
+
+[i18n.ja.actions]
+open = "タイムラインペインを開く"
+
+[i18n.ja.slots]
+timeline = "タイムライン"
+`
+	m, err := Parse([]byte(tomlSrc))
+	if err != nil {
+		t.Fatalf("Parse manifest: %v", err)
+	}
+
+	// Exact + alias lookup for zh-Hans / zh-CN / zh.
+	for _, loc := range []string{"zh-Hans", "zh-CN", "zh_cn", "zh"} {
+		zh := m.InLanguage(loc)
+		if zh.Name != "时间线" || zh.Description != "中文描述" ||
+			zh.Actions[0].Title != "打开时间线窗格" ||
+			zh.UI.Slots[0].Title != "时间线" ||
+			zh.Settings[0].Title != "网关地址" ||
+			zh.Settings[0].Description != "中文地址描述" ||
+			zh.Settings[0].Placeholder != "请输入地址" {
+			t.Fatalf("locale %q resolution mismatch: %+v", loc, zh)
+		}
+	}
+
+	// Prefix fallback ja-JP -> ja.
+	ja := m.InLanguage("ja-JP")
+	if ja.Name != "タイムライン" || ja.Actions[0].Title != "タイムラインペインを開く" || ja.Settings[0].Title != "Gateway URL" {
+		t.Fatalf("locale ja-JP fallback mismatch: %+v", ja)
+	}
+
+	// Source manifest remains completely untouched.
+	if m.Name != "Timeline" || m.Actions[0].Title != "Open Timeline Pane" || m.Settings[0].Title != "Gateway URL" {
+		t.Fatalf("source manifest was mutated: %+v", m)
+	}
+
+	// ApplyBaseInLanguage populates actions & Snapshot in requested locale.
+	base := t.TempDir()
+	useKC := false
+	st := &Store{BaseDir: base, UseKeychain: &useKC}
+	pDir := filepath.Join(base, "plg")
+	if err := os.MkdirAll(pDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(pDir, ManifestFileName), []byte(tomlSrc), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st.Link(pDir, true); err != nil {
+		t.Fatal(err)
+	}
+	snap, err := ApplyBaseInLanguage(st, "zh-Hans")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(snap.Plugins) != 1 || snap.Plugins[0].Manifest.Name != "时间线" {
+		t.Fatalf("ApplyBaseInLanguage did not localize snapshot plugin: %+v", snap.Plugins)
+	}
+	if meta := snap.ActionTargets["com.example.i18n.open"]; meta.Action.Title != "打开时间线窗格" {
+		t.Fatalf("ApplyBaseInLanguage did not localize action target: %+v", meta)
+	}
+}

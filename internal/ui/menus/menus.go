@@ -82,7 +82,6 @@ var titles = map[string]func() string{
 	"pane.split.right":    locales.ActionSplitRight,
 	"pane.split.down":     locales.ActionSplitDown,
 	"pane.browser":        locales.ActionNewBrowser,
-	"timeline.open":       locales.ActionTimelinePane,
 	"pane.zoom":           locales.ActionZoomPane,
 	"pane.next":           locales.ActionNextPane,
 	"pane.previous":       locales.ActionPreviousPane,
@@ -175,22 +174,50 @@ func Menu(a App) *mygo.Menu {
 		{Role: mygo.RoleEditMenu, Submenu: append([]*mygo.MenuItem{{Role: mygo.RoleUndo}, {Role: mygo.RoleRedo}, mygo.Separator(),
 			{Role: mygo.RoleCut}, {Role: mygo.RoleCopy}, {Role: mygo.RolePaste}, {Role: mygo.RoleSelectAll}, mygo.Separator()},
 			Items(a, "Edit", []string{"find.open", "find.next", "find.previous"})...)},
-		{Label: locales.MenuPane(), Submenu: Items(a, "Pane",
-			[]string{"pane.split.right", "pane.split.down"},
-			[]string{"pane.browser", "timeline.open", "subagents.open", "hongguo.open"},
-			[]string{"pane.zoom"},
-			[]string{"pane.next", "pane.previous", "pane.left", "pane.right", "pane.up", "pane.down"})},
+		{Label: locales.MenuPane(), Submenu: PaneMenuItems(a)},
 		{Label: locales.MenuView(), Submenu: view},
 		{Label: locales.MenuPlugins(), Submenu: pluginsSubmenu},
 		{Role: mygo.RoleWindowMenu},
 	})
 }
 
+// PaneMenuItems builds the items shown under the top-level Pane menu,
+// including enabled plugin actions targeting "Pane".
+func PaneMenuItems(a App) []*mygo.MenuItem {
+	out := Items(a, "Pane", []string{"pane.split.right", "pane.split.down"})
+	out = append(out, mygo.Separator(), Item(a, "pane.browser"), Item(a, "subagents.open"), Item(a, "hongguo.open"))
+	out = append(out, pluginItemsForMenu(a, "Pane")...)
+	out = append(out, mygo.Separator())
+	out = append(out, Items(a, "Pane",
+		[]string{"pane.zoom"},
+		[]string{"pane.next", "pane.previous", "pane.left", "pane.right", "pane.up", "pane.down"})...)
+	return out
+}
+
+func pluginItemsForMenu(a App, menu string) []*mygo.MenuItem {
+	var out []*mygo.MenuItem
+	for _, act := range actions.List() {
+		if act.PluginID == "" || !strings.EqualFold(strings.TrimSpace(act.Menu), menu) {
+			continue
+		}
+		out = append(out, Item(a, act.ID))
+	}
+	return out
+}
+
+func isDedicatedMenu(menu string) bool {
+	switch strings.ToLower(strings.TrimSpace(menu)) {
+	case "context", "pane", "session", "edit", "view":
+		return true
+	}
+	return false
+}
+
 // PluginMenuItems builds the items shown under the top-level Plugins menu.
 func PluginMenuItems(a App) []*mygo.MenuItem {
 	var out []*mygo.MenuItem
 	for _, act := range actions.List() {
-		if act.PluginID == "" || act.Menu == "" || strings.EqualFold(act.Menu, "Context") {
+		if act.PluginID == "" || act.Menu == "" || isDedicatedMenu(act.Menu) {
 			continue
 		}
 		out = append(out, Item(a, act.ID))

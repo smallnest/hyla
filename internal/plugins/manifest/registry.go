@@ -67,6 +67,19 @@ func BuiltinInLanguage(id, locale string) (*Manifest, bool) {
 	return b.InLanguage(locale), true
 }
 
+// LocalizePlugin returns a copy of p with its Manifest localized for locale.
+func LocalizePlugin(p InstalledPlugin, locale string) InstalledPlugin {
+	if p.Builtin {
+		if bm, ok := BuiltinInLanguage(p.Entry.ID, locale); ok && bm != nil {
+			p.Manifest = bm
+		}
+	}
+	if p.Manifest != nil {
+		p.Manifest = p.Manifest.InLanguage(locale)
+	}
+	return p
+}
+
 // InstalledPlugin represents a resolved plugin entry together with its parsed manifest.
 type InstalledPlugin struct {
 	Entry     RegistryEntry

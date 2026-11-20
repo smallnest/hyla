@@ -97,6 +97,13 @@ func runTestPluginHelper() {
 				return nil, err
 			}
 		}
+		if strings.Contains(string(params), "call-timeline") {
+			var tl rpc.PaneGetTimelineResult
+			if err := peer.Call(ctx, "pane.getTimeline", rpc.PaneGetTimelineParams{Pane: "p1"}, &tl); err != nil {
+				return nil, err
+			}
+			return rpc.AgentDetectResult{State: proto.Working, Rule: "tl:" + tl.Timeline.Agent}, nil
+		}
 		if strings.Contains(string(params), "settings-roundtrip") {
 			if err := peer.Call(ctx, "plugin.setSettings", rpc.PluginSetSettingsParams{
 				Settings: map[string]any{"tokenCount": 7},
@@ -165,6 +172,9 @@ func (b *fakeBridge) InvalidateUI(ctx context.Context, id string, p rpc.UIInvali
 }
 func (b *fakeBridge) OpenPane(ctx context.Context, id string, p rpc.UIOpenPaneParams) error {
 	return nil
+}
+func (b *fakeBridge) GetTimeline(ctx context.Context, id string, p rpc.PaneGetTimelineParams) (*rpc.PaneGetTimelineResult, error) {
+	return &rpc.PaneGetTimelineResult{Timeline: proto.Timeline{Pane: p.Pane, Agent: "claude"}}, nil
 }
 func (b *fakeBridge) NotifyUI(ctx context.Context, id string, p rpc.UINotifyParams) error {
 	return nil
@@ -249,6 +259,27 @@ HYLA_TEST_MODE = "ok"
 			var rpcErr *rpc.Error
 			if !errors.As(err, &rpcErr) || rpcErr.Code != rpc.ErrCodePermissionDenied {
 				t.Fatalf("expected ErrCodePermissionDenied from ungranted pane.sendInput, got %v", err)
+			}
+
+			// Call without timeline.read permission must return ErrCodePermissionDenied.
+			err = mgr.Call(ctx, "com.example.helper", "agent.detect", rpc.AgentDetectParams{Screen: "call-timeline"}, &det)
+			rpcErr = nil
+			if !errors.As(err, &rpcErr) || rpcErr.Code != rpc.ErrCodePermissionDenied {
+				t.Fatalf("expected ErrCodePermissionDenied from ungranted pane.getTimeline, got %v", err)
+			}
+
+			// Grant timeline.read and verify pane.getTimeline succeeds.
+			if err := st.GrantPermissions("com.example.helper", []string{"agent.provider", "session.read", manifest.PermTimelineRead}); err != nil {
+				t.Fatal(err)
+			}
+			if err := mgr.Reload(); err != nil {
+				t.Fatal(err)
+			}
+			if err := mgr.Call(ctx, "com.example.helper", "agent.detect", rpc.AgentDetectParams{Screen: "call-timeline"}, &det); err != nil {
+				t.Fatalf("expected pane.getTimeline to succeed after granting timeline.read: %v", err)
+			}
+			if det.Rule != "tl:claude" {
+				t.Fatalf("unexpected call-timeline rule: %q", det.Rule)
 			}
 
 			// Settings roundtrip works cleanly via Store.
@@ -360,6 +391,38 @@ func TestRotatingLogWriter(t *testing.T) {
 	_, lines := TailLog(p, 5)
 	if lines == 0 {
 		t.Fatal("expected TailLog to return lines after rotation")
+	}
+}
+
+func TestResolveCommandWindowsExe(t *testing.T) {
+	root := t.TempDir()
+	if realRoot, err := filepath.EvalSymlinks(root); err == nil {
+		root = realRoot
+	}
+	binDir := filepath.Join(root, "bin")
+	if err := os.MkdirAll(binDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	exePath := filepath.Join(binDir, "hyla-timeline.exe")
+	if err := os.WriteFile(exePath, []byte("exe"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	gotWin, err := resolveCommandForOS(root, []string{"./bin/hyla-timeline", "--flag"}, "windows")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(gotWin) != 2 || gotWin[0] != exePath || gotWin[1] != "--flag" {
+		t.Fatalf("windows resolved = %v, want [%s --flag]", gotWin, exePath)
+	}
+
+	gotUnix, err := resolveCommandForOS(root, []string{"./bin/hyla-timeline"}, "linux")
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantUnix := filepath.Join(binDir, "hyla-timeline")
+	if len(gotUnix) != 1 || gotUnix[0] != wantUnix {
+		t.Fatalf("linux resolved = %v, want [%s]", gotUnix, wantUnix)
 	}
 }
 

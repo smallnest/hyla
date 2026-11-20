@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"hyla/internal/proto"
+	"hyla/internal/settings"
 	"hyla/internal/timeline"
 	"hyla/locales"
 )
@@ -39,14 +40,15 @@ func (d *Daemon) timelineOf(p proto.TimelineParams) (proto.Timeline, error) {
 	}
 	var steps []timeline.Step
 	var err error
+	words := locales.In(settings.LanguageOf(settings.Load().Language))
 	switch {
 	case pn == nil:
-		t.Note = locales.InfoTimelineNoPane()
+		t.Note = words.InfoTimelineNoPane()
 	case !proto.StartsTimeline(agent):
 		if agent == "" {
-			t.Note = locales.InfoTimelineNoAgent()
+			t.Note = words.InfoTimelineNoAgent()
 		} else {
-			t.Note = locales.InfoTimelineUnread(agent)
+			t.Note = words.InfoTimelineUnread(agent)
 		}
 	default:
 		if tl, handled, perr := d.pluginTimeline(p, agent, conv, dir, pn); handled {
@@ -54,7 +56,7 @@ func (d *Daemon) timelineOf(p proto.TimelineParams) (proto.Timeline, error) {
 		}
 		file := timeline.Find(agent, conv, dir)
 		if file == "" {
-			t.Note = locales.InfoTimelineNone(dir)
+			t.Note = words.InfoTimelineNone(dir)
 			break
 		}
 		switch agent {
@@ -64,6 +66,8 @@ func (d *Daemon) timelineOf(p proto.TimelineParams) (proto.Timeline, error) {
 			steps, err = timeline.CodexFile(file, now)
 		case "opencode":
 			steps, err = timeline.OpenCode(file, conv, dir, now)
+		case "agy", "antigravity":
+			steps, err = timeline.AgyFile(file, now)
 		default:
 			steps, err = timeline.ClaudeFile(file, now)
 		}

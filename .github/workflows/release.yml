@@ -136,6 +136,13 @@ jobs:
     name: Server
     uses: ./.github/workflows/server.yml
 
+  # First-party plugins under plugins/: tested, cross-compiled for every
+  # platform, and packed into .hylapkg archives uploaded with the release.
+  plugins:
+    needs: draft-release
+    name: Plugins
+    uses: ./.github/workflows/plugins.yml
+
   # Signed apart from the jobs that run what was built, with the key the
   # app's updates are signed with, which the server build checks.
   server-sign:
@@ -166,15 +173,36 @@ jobs:
             build/server/*.zip build/server/*.zip.sig build/server/*.zip.sha256 \
             build/server/install-server.sh build/server/install-server.ps1
 
+  plugins-upload:
+    needs: [plugins, test]
+    name: Upload plugins
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v4
+        with:
+          name: plugins
+          path: build/plugins
+      - name: Upload
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v$(jq -r .version mygo.json)"
+          gh release upload "$tag" --repo "$GITHUB_REPOSITORY" --clobber \
+            build/plugins/*.hylapkg build/plugins/*.hylapkg.sha256
+
   # A release without the server build would break the install scripts'
   # latest links, and the app's Install and Update of hosts: say so before
   # it is published.
   assets:
-    needs: [build, server-sign]
+    needs: [build, server-sign, plugins-upload]
     name: Check the release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
       - env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -188,6 +216,9 @@ jobs:
             a="hyla-server-$version-$p.$ext"
             want="$want $a $a.sig $a.sha256"
           done
+          plugin_assets="$(go run ./scripts/build-plugins -list-assets)"
+          test -n "$plugin_assets"
+          want="$want $plugin_assets"
           for w in $want; do
             echo "$names" | grep -qxF "$w" || { echo "::error::v$version has no $w"; exit 1; }
           done

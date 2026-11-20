@@ -44,3 +44,26 @@ func TestPluginMenuItemsExcludesContextMenuOnly(t *testing.T) {
 		t.Fatalf("PluginMenuItems ids=%v, want top-level included and Context excluded", ids)
 	}
 }
+
+func TestPluginMenuPaneRoutingExcludesPluginsMenu(t *testing.T) {
+	t.Cleanup(actions.ClearPluginActions)
+	actions.SetPluginActions("hyla.timeline", []actions.Action{
+		{ID: "hyla.timeline.open", Title: "Open Timeline Pane", Menu: "Pane", Keys: "CmdOrCtrl+Alt+T", PluginID: "hyla.timeline"},
+	})
+	paneItems := PaneMenuItems(&stubMenusApp{})
+	var foundInPane bool
+	for _, it := range paneItems {
+		if it.ID == "hyla.timeline.open" {
+			foundInPane = true
+			break
+		}
+	}
+	if !foundInPane {
+		t.Fatal("expected Pane-targeted plugin action inside PaneMenuItems")
+	}
+	for _, it := range PluginMenuItems(&stubMenusApp{}) {
+		if it.ID == "hyla.timeline.open" {
+			t.Fatal("did not expect Pane-targeted plugin action duplicated inside PluginMenuItems")
+		}
+	}
+}

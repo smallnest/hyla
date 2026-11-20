@@ -217,3 +217,93 @@ func TestPluginHarnessFullRPCLifecycle(t *testing.T) {
 			invalidates, emitted, notifyTopics, shutdownCalled)
 	}
 }
+
+func TestHostGetTimelineAndOpenPaneOptions(t *testing.T) {
+	var gotTimelineReq PaneGetTimelineParams
+	var gotOpenReq UIOpenPaneParams
+	var mu sync.Mutex
+
+	plg := &Plugin{
+		Name:    "timeline-caller",
+		Version: "1.0.0",
+		OnAction: func(ctx context.Context, host *Host, p ActionInvokeParams) (ActionInvokeResult, error) {
+			if err := host.OpenPane(ctx, UIOpenPaneParams{
+				Session:       "s1",
+				Split:         "p1",
+				View:          "timeline",
+				Title:         "claude",
+				Args:          map[string]string{"targetPane": "p1"},
+				Direction:     "right",
+				FocusExisting: true,
+			}); err != nil {
+				return ActionInvokeResult{}, err
+			}
+			return ActionInvokeResult{OK: true}, nil
+		},
+		OnWebViewRPC: func(ctx context.Context, host *Host, p WebViewRPCParams) (WebViewRPCResult, error) {
+			res, err := host.GetTimeline(ctx, p.SessionID, p.Args["targetPane"])
+			if err != nil {
+				return WebViewRPCResult{}, err
+			}
+			b, err := json.Marshal(res)
+			return WebViewRPCResult{Data: b}, err
+		},
+	}
+
+	h := NewTestHarness(plg)
+	defer h.Close()
+
+	h.RegisterHostHandler("pane.getTimeline", func(ctx context.Context, params json.RawMessage) (any, error) {
+		mu.Lock()
+		_ = json.Unmarshal(params, &gotTimelineReq)
+		mu.Unlock()
+		return PaneGetTimelineResult{
+			Timeline: Timeline{
+				Session: "s1",
+				Pane:    "p1",
+				Agent:   "claude",
+				Turns:   []TimelineStep{{Kind: "turn", Title: "Fix bug", State: StepDone}},
+			},
+		}, nil
+	})
+	h.RegisterHostHandler("ui.openPane", func(ctx context.Context, params json.RawMessage) (any, error) {
+		mu.Lock()
+		_ = json.Unmarshal(params, &gotOpenReq)
+		mu.Unlock()
+		return map[string]any{"ok": true}, nil
+	})
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := h.Call(ctx, "initialize", InitializeParams{PluginID: "hyla.timeline", Host: "app"}, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	var actRes ActionInvokeResult
+	if err := h.Call(ctx, "action.invoke", ActionInvokeParams{ActionID: "open"}, &actRes); err != nil || !actRes.OK {
+		t.Fatalf("action.invoke failed: %+v err=%v", actRes, err)
+	}
+	var rpcRes WebViewRPCResult
+	if err := h.Call(ctx, "webview.rpc", WebViewRPCParams{
+		SlotID:    "timeline",
+		Method:    "fetch",
+		SessionID: "s1",
+		PaneID:    "tl-1",
+		Args:      map[string]string{"targetPane": "p1"},
+	}, &rpcRes); err != nil {
+		t.Fatalf("webview.rpc failed: %v", err)
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+	if gotOpenReq.Split != "p1" || !gotOpenReq.FocusExisting || gotOpenReq.Args["targetPane"] != "p1" {
+		t.Fatalf("unexpected UIOpenPaneParams: %+v", gotOpenReq)
+	}
+	if gotTimelineReq.Session != "s1" || gotTimelineReq.Pane != "p1" {
+		t.Fatalf("unexpected PaneGetTimelineParams: %+v", gotTimelineReq)
+	}
+	var tlRes PaneGetTimelineResult
+	if err := json.Unmarshal(rpcRes.Data, &tlRes); err != nil || len(tlRes.Timeline.Turns) != 1 || tlRes.Timeline.Turns[0].Title != "Fix bug" {
+		t.Fatalf("unexpected GetTimeline response: %s (%v)", rpcRes.Data, err)
+	}
+}

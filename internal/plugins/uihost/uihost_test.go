@@ -19,6 +19,7 @@ import (
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 
+	"hyla/internal/actions"
 	"hyla/internal/plugins/manifest"
 	"hyla/internal/plugins/rpc"
 	"hyla/internal/proto"
@@ -187,14 +188,14 @@ entry = "index.html"
 	fakePageOther := new(mygo.Page)
 
 	type ctxKey struct{}
-	bridge := NewWebBridge(st, func() *theme.Palette { return &theme.Dark }, func(ctx context.Context, pluginID, slotID, sessionID, paneID, method string, params json.RawMessage) (json.RawMessage, error) {
-		return json.Marshal(map[string]any{"echo": method, "slot": slotID})
+	bridge := NewWebBridge(st, func() *theme.Palette { return &theme.Dark }, func(ctx context.Context, pluginID, slotID, sessionID, paneID string, args map[string]string, method string, params json.RawMessage) (json.RawMessage, error) {
+		return json.Marshal(map[string]any{"echo": method, "slot": slotID, "targetPane": args["targetPane"]})
 	})
 	bridge.callerPageFn = func(ctx context.Context) *mygo.Page {
 		pg, _ := ctx.Value(ctxKey{}).(*mygo.Page)
 		return pg
 	}
-	bridge.bindings[fakePageValid] = pageBinding{PluginID: "com.example.panel", SlotID: "board", Page: fakePageValid}
+	bridge.bindings[fakePageValid] = pageBinding{PluginID: "com.example.panel", SlotID: "board", Args: map[string]string{"targetPane": "p1"}, Page: fakePageValid}
 	bridge.bindings[fakePageOther] = pageBinding{PluginID: "com.other.evil", SlotID: "x", Page: fakePageOther}
 
 	// 1. Static asset + CSP header
@@ -245,6 +246,9 @@ entry = "index.html"
 		bridge.ServeHTTP(rr, rpcReq)
 		if rr.Code != tc.want {
 			t.Fatalf("rpc %s status = %d, want %d (%s)", tc.name, rr.Code, tc.want, rr.Body.String())
+		}
+		if tc.want == http.StatusOK && !strings.Contains(rr.Body.String(), `"targetPane":"p1"`) {
+			t.Fatalf("expected forwarded binding args in rpc response, got %s", rr.Body.String())
 		}
 	}
 }
@@ -470,5 +474,118 @@ host = "daemon"
 	defer msgMu.Unlock()
 	if len(msgs) == 0 || !strings.Contains(msgs[0], "boom-event") {
 		t.Fatalf("expected DispatchEvent error surfaced via OnMessage, got %v", msgs)
+	}
+}
+
+func TestCoordinatorApplyLocaleAndBroadcastWebViewLocale(t *testing.T) {
+	t.Cleanup(actions.ClearPluginActions)
+	base := t.TempDir()
+	st := &manifest.Store{BaseDir: base, UseKeychain: boolPtr(false)}
+
+	pDir := filepath.Join(base, "i18n-plg")
+	if err := os.MkdirAll(filepath.Join(pDir, "web"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	_ = os.WriteFile(filepath.Join(pDir, manifest.ManifestFileName), []byte(`
+api_version = 1
+id = "com.example.locale"
+name = "Timeline"
+description = "EN desc"
+version = "1.0.0"
+
+[permissions]
+scopes = ["ui.slot", "ui.webview"]
+
+[[actions]]
+id = "open"
+title = "Open Timeline Pane"
+menu = "Pane"
+target = "app"
+view = "timeline"
+
+[[ui.slots]]
+id = "timeline"
+mount = "pane"
+title = "Timeline"
+mode = "webview"
+host = "app"
+web_root = "web"
+entry = "index.html"
+
+[i18n.zh-Hans]
+name = "时间线"
+description = "中文描述"
+
+[i18n.zh-Hans.actions]
+open = "打开时间线窗格"
+
+[i18n.zh-Hans.slots]
+timeline = "时间线"
+
+[i18n.ja]
+name = "タイムライン"
+description = "日本語の説明"
+
+[i18n.ja.actions]
+open = "タイムラインペインを開く"
+
+[i18n.ja.slots]
+timeline = "タイムライン"
+`), 0o644)
+	_ = os.WriteFile(filepath.Join(pDir, "web", "index.html"), []byte("<html>ok</html>"), 0o644)
+	if _, err := st.Link(pDir, true); err != nil {
+		t.Fatal(err)
+	}
+
+	loc := "zh-Hans"
+	updates := 0
+	coord := NewCoordinator(st, nil, "3.18.0", func() { updates++ })
+	coord.LocaleFunc = func() string { return loc }
+	if _, err := coord.Reload(); err != nil {
+		t.Fatal(err)
+	}
+
+	act, ok := actions.Find("com.example.locale.open")
+	if !ok || act.Title != "打开时间线窗格" {
+		t.Fatalf("initial zh-Hans action title=%q ok=%v", act.Title, ok)
+	}
+	if sl, ok := coord.FindSlot("com.example.locale", "timeline"); !ok || sl.Slot.Title != "时间线" {
+		t.Fatalf("initial zh-Hans slot=%+v ok=%v", sl, ok)
+	}
+
+	// Switch to Japanese and verify actions, slots, snapshot, and empty-target BroadcastLocaleChange.
+	loc = "ja"
+	coord.ApplyLocale("ja")
+	if act, _ = actions.Find("com.example.locale.open"); act.Title != "タイムラインペインを開く" {
+		t.Fatalf("ja action title=%q", act.Title)
+	}
+	if sl, _ := coord.FindSlot("com.example.locale", "timeline"); sl.Slot.Title != "タイムライン" {
+		t.Fatalf("ja slot=%+v", sl)
+	}
+
+	// Switch back to English and verify source strings are intact (not overwritten).
+	loc = "en"
+	coord.ApplyLocale("en")
+	if act, _ = actions.Find("com.example.locale.open"); act.Title != "Open Timeline Pane" {
+		t.Fatalf("en action title=%q", act.Title)
+	}
+	if snap := coord.Snapshot(); snap == nil || snap.Plugins[0].Manifest.Name != "Timeline" {
+		t.Fatalf("en snapshot manifest=%+v", snap)
+	}
+	if updates < 2 {
+		t.Fatalf("expected OnUpdate callbacks on ApplyLocale, got %d", updates)
+	}
+
+	// Verify BroadcastLocaleChange pushes locale.changed to open plugin WebView pages.
+	var gotEvs []WebEventPayload
+	coord.Web.emitPageFn = func(pg *mygo.Page, payload WebEventPayload) error {
+		gotEvs = append(gotEvs, payload)
+		return nil
+	}
+	pg := new(mygo.Page)
+	coord.Web.bindings[pg] = pageBinding{PluginID: "com.example.locale", SlotID: "timeline", PaneID: "p1", Page: pg}
+	coord.Web.BroadcastLocaleChange("zh-Hans")
+	if len(gotEvs) != 1 || gotEvs[0].Event != "locale.changed" || gotEvs[0].SlotID != "timeline" || !strings.Contains(gotEvs[0].Data, `"zh-Hans"`) {
+		t.Fatalf("unexpected BroadcastLocaleChange payloads: %+v", gotEvs)
 	}
 }

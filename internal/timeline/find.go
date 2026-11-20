@@ -12,8 +12,9 @@ import (
 // keeps them: Claude Code's transcript of the conversation in conv, else
 // the newest of dir's; DeepSeek Harness's log of dir's newest session;
 // Codex's rollout of the conversation, else the newest that ran in dir;
-// and OpenCode's store, which keeps every conversation. It returns ""
-// where it finds none.
+// Antigravity CLI's (`agy` / `antigravity`) transcript of the conversation or
+// newest workspace session; and OpenCode's store, which keeps every
+// conversation. It returns "" where it finds none.
 func Find(agent, conv, dir string) string {
 	switch agent {
 	case "claude":
@@ -24,6 +25,8 @@ func Find(agent, conv, dir string) string {
 		return codexRollout(conv, dir)
 	case "opencode":
 		return openCodeDB()
+	case "agy", "antigravity":
+		return agyTranscript(conv, dir)
 	}
 	return ""
 }
@@ -31,8 +34,8 @@ func Find(agent, conv, dir string) string {
 // FindConv returns the agent, and the records it keeps, of a conversation
 // whose id names it, for a pane that runs its agent without a terminal and
 // names no agent: OpenCode's store, which keeps every conversation under its
-// id, Claude Code's transcript of the id, and Codex's rollout. It returns ""
-// where none keeps it.
+// id, Claude Code's transcript of the id, Codex's rollout, and Antigravity
+// CLI's transcript. It returns "" where none keeps it.
 func FindConv(conv string) (agent, file string) {
 	if conv == "" {
 		return "", ""
@@ -45,6 +48,9 @@ func FindConv(conv string) (agent, file string) {
 	}
 	if p := codexByID(filepath.Join(codexHome(), "sessions"), conv); p != "" {
 		return "codex", p
+	}
+	if p := agyByID(agyHome(), conv); p != "" {
+		return "agy", p
 	}
 	return "", ""
 }

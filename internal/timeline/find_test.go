@@ -26,6 +26,8 @@ func TestFind(t *testing.T) {
 	t.Setenv("HOME", home)
 	t.Setenv("CLAUDE_CONFIG_DIR", "")
 	t.Setenv("DSH_HOME", "")
+	t.Setenv("AGY_DATA_DIR", "")
+	t.Setenv("ANTIGRAVITY_DATA_DIR", "")
 	dir := "/Users/me/api"
 	claude := filepath.Join(home, ".claude", "projects", "-Users-me-api")
 	if err := os.MkdirAll(claude, 0o755); err != nil {

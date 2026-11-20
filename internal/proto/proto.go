@@ -827,10 +827,10 @@ func (p *Pane) WorkDir() string {
 
 // StartsTimeline tells whether the agent's name is one the timeline reads
 // the records of: Claude Code's, Codex's, DeepSeek Harness's, OpenCode's,
-// or a registered plugin agent with timeline capability.
+// Antigravity's (`agy`), or a registered plugin agent with timeline capability.
 func StartsTimeline(agent string) bool {
 	switch agent {
-	case "claude", "codex", "dsh", "opencode":
+	case "claude", "codex", "dsh", "opencode", "agy", "antigravity":
 		return true
 	}
 	agentRegMu.RLock()

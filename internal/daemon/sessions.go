@@ -259,10 +259,10 @@ func (d *Daemon) startPane(sid string, p proto.CreateParams, dir string) (*pane,
 			info.Dir = filepath.Dir(p.File)
 		}
 	}
-	if p.Timeline != "" {
-		// The pane it shows names it, and a pane of another session shows
-		// nothing rather than a stranger's turns.
-		info.URL, info.File, info.Timeline, info.Command = "", "", p.Timeline, nil
+	if p.Timeline != "" && p.Plugin == "" {
+		info.URL, info.File, info.Timeline, info.Subagents, info.Hongguo, info.Command = "", "", "", false, false, nil
+		info.Plugin, info.PluginView, info.PluginTitle = "hyla.timeline", "timeline", "Timeline"
+		info.PluginArgs = map[string]string{"targetPane": p.Timeline}
 	}
 	if p.Subagents {
 		info.URL, info.File, info.Timeline, info.Subagents, info.Command = "", "", "", true, nil

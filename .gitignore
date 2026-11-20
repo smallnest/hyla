@@ -20,3 +20,5 @@ scripts/signing/*
 !scripts/signing/hyla-signing.crt
 scripts/signing.pw
 .signing/
+/plugins/*/bin/
+/plugins/*/*.hylapkg

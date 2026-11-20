@@ -10,6 +10,7 @@ import (
 
 	"hyla/internal/ui/menus"
 	"hyla/internal/ui/worktree"
+	"hyla/locales"
 )
 
 // The app, as the menus ask it.
@@ -104,7 +105,9 @@ func (a *App) run(id string, args map[string]string) {
 	case "pane.browser":
 		a.openBrowser(args["url"])
 	case "timeline.open":
-		a.openTimeline()
+		if !a.runPluginAction("hyla.timeline.open", args) {
+			a.toast(locales.PluginUnavailableDetail("hyla.timeline"))
+		}
 	case "pane.zoom":
 		a.zoomPane(s, "")
 	case "pane.next":

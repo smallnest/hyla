@@ -212,6 +212,13 @@ func (d *Daemon) restore() {
 // app shows.
 func (d *Daemon) restorePane(sid string, sp savedPane) *pane {
 	now := time.Now().UnixMilli()
+	if sp.Timeline != "" && sp.Plugin == "" {
+		sp.Plugin = "hyla.timeline"
+		sp.PluginView = "timeline"
+		sp.PluginTitle = "Timeline"
+		sp.PluginArgs = map[string]string{"targetPane": sp.Timeline}
+		sp.Timeline = ""
+	}
 	if sp.URL != "" || sp.File != "" || sp.Timeline != "" || sp.Subagents || sp.Hongguo || sp.Plugin != "" {
 		p, _ := newPane(d, sid, proto.Pane{
 			ID: sp.ID, Dir: sp.Dir, URL: sp.URL, File: sp.File, Timeline: sp.Timeline, Subagents: sp.Subagents, Hongguo: sp.Hongguo,

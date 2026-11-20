@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"slices"
 	"strings"
 	"time"
@@ -518,8 +519,12 @@ func (b *daemonPluginBridge) OpenPane(ctx context.Context, pluginID string, p rp
 	if plug == "" {
 		plug = pluginID
 	}
+	split := p.Split
+	if split == "" {
+		split = p.Session
+	}
 	cp := proto.CreateParams{
-		Split:       p.Session,
+		Split:       split,
 		Direction:   p.Direction,
 		Plugin:      plug,
 		PluginView:  p.View,
@@ -528,6 +533,20 @@ func (b *daemonPluginBridge) OpenPane(ctx context.Context, pluginID string, p rp
 	}
 	_, err := b.d.create(cp)
 	return err
+}
+
+func (b *daemonPluginBridge) GetTimeline(ctx context.Context, pluginID string, p rpc.PaneGetTimelineParams) (*rpc.PaneGetTimelineResult, error) {
+	tl, err := b.d.timelineOf(proto.TimelineParams{
+		Session: p.Session,
+		Pane:    p.Pane,
+	})
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, rpc.NewError(rpc.ErrCodeTargetNotFound, fmt.Sprintf("pane %q not found", p.Pane))
+		}
+		return nil, err
+	}
+	return &rpc.PaneGetTimelineResult{Timeline: tl}, nil
 }
 
 func (b *daemonPluginBridge) NotifyUI(ctx context.Context, pluginID string, p rpc.UINotifyParams) error {

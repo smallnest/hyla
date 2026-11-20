@@ -125,6 +125,14 @@ func (h *Host) OpenPane(ctx context.Context, p UIOpenPaneParams) error {
 	return h.p.Call(ctx, "ui.openPane", p, nil)
 }
 
+func (h *Host) GetTimeline(ctx context.Context, sessionID, paneID string) (*PaneGetTimelineResult, error) {
+	var out PaneGetTimelineResult
+	if err := h.p.Call(ctx, "pane.getTimeline", PaneGetTimelineParams{Session: sessionID, Pane: paneID}, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (h *Host) NotifyUI(ctx context.Context, p UINotifyParams) error {
 	return h.p.Call(ctx, "ui.notify", p, nil)
 }

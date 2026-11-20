@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"mime"
 	"net/http"
 	"net/url"
@@ -40,7 +41,7 @@ type WebEventPayload struct {
 var PluginWebEvent = mygo.NewEvent[WebEventPayload](EventName)
 
 // WebRPCHandler dispatches authenticated POST /_hyla/rpc calls from a sandboxed plugin WebView.
-type WebRPCHandler func(ctx context.Context, pluginID, slotID, sessionID, paneID, method string, params json.RawMessage) (json.RawMessage, error)
+type WebRPCHandler func(ctx context.Context, pluginID, slotID, sessionID, paneID string, args map[string]string, method string, params json.RawMessage) (json.RawMessage, error)
 
 // WebEntry tracks an instantiated sandboxed WebView for a plugin pane.
 type WebEntry struct {
@@ -57,6 +58,7 @@ type pageBinding struct {
 	SlotID    string
 	SessionID string
 	PaneID    string
+	Args      map[string]string
 	Page      *mygo.Page
 }
 
@@ -65,6 +67,7 @@ type WebBridge struct {
 	mu           sync.RWMutex
 	store        *manifest.Store
 	themeFn      func() *theme.Palette
+	localeFn     func() string
 	rpcFn        WebRPCHandler
 	openExtFn    func(string)
 	mainFn       func(func())
@@ -72,6 +75,7 @@ type WebBridge struct {
 	bindings     map[*mygo.Page]pageBinding
 	paneEntries   map[string]*WebEntry // keyed by paneID
 	callerPageFn  func(context.Context) *mygo.Page
+	emitPageFn    func(*mygo.Page, WebEventPayload) error
 	pluginCache   map[string]manifest.InstalledPlugin
 	pluginsCached bool
 	regExists     bool
@@ -95,6 +99,7 @@ func NewWebBridge(store *manifest.Store, themeFn func() *theme.Palette, rpcFn We
 		bindings:     make(map[*mygo.Page]pageBinding),
 		paneEntries:  make(map[string]*WebEntry),
 		callerPageFn: mygo.CallerPage,
+		emitPageFn:   PluginWebEvent.EmitPage,
 	}
 }
 
@@ -153,6 +158,13 @@ func (b *WebBridge) SetCallbacks(store *manifest.Store, themeFn func() *theme.Pa
 	b.mu.Unlock()
 }
 
+// SetLocaleFunc configures a callback returning the active plugin locale string.
+func (b *WebBridge) SetLocaleFunc(fn func() string) {
+	b.mu.Lock()
+	b.localeFn = fn
+	b.mu.Unlock()
+}
+
 // EnsurePaneWebView creates or returns an existing Untrusted, session-isolated WebView for pane p.
 func (b *WebBridge) EnsurePaneWebView(win *mygo.Window, sessionID string, p *proto.Pane, slot manifest.SlotSpec) *WebEntry {
 	b.mu.Lock()
@@ -201,6 +213,7 @@ func (b *WebBridge) EnsurePaneWebView(win *mygo.Window, sessionID string, p *pro
 		SlotID:    slot.ID,
 		SessionID: sessionID,
 		PaneID:    p.ID,
+		Args:      maps.Clone(p.PluginArgs),
 		Page:      pg,
 	}
 	b.paneEntries[p.ID] = entry
@@ -223,6 +236,14 @@ func (b *WebBridge) EnsurePaneWebView(win *mygo.Window, sessionID string, p *pro
 	}
 	startFile = strings.TrimPrefix(path.Clean("/"+startFile), "/")
 	targetURL := fmt.Sprintf("%s://%s/%s?slot=%s", WebScheme, p.Plugin, startFile, url.QueryEscape(slot.ID))
+	b.mu.RLock()
+	locFn := b.localeFn
+	b.mu.RUnlock()
+	if locFn != nil {
+		if loc := strings.TrimSpace(locFn()); loc != "" {
+			targetURL += "&locale=" + url.QueryEscape(loc)
+		}
+	}
 	pg.LoadURL(targetURL)
 	return entry
 }
@@ -319,6 +340,10 @@ func (b *WebBridge) Emit(pluginID, slotID, eventName string, data json.RawMessag
 		}
 	}
 	mainFn := b.mainFn
+	emitFn := b.emitPageFn
+	if emitFn == nil {
+		emitFn = PluginWebEvent.EmitPage
+	}
 	b.mu.RUnlock()
 
 	payload := WebEventPayload{
@@ -328,7 +353,7 @@ func (b *WebBridge) Emit(pluginID, slotID, eventName string, data json.RawMessag
 	}
 	send := func() {
 		for _, pg := range targets {
-			_ = PluginWebEvent.EmitPage(pg, payload)
+			_ = emitFn(pg, payload)
 		}
 	}
 	if len(targets) == 0 {
@@ -343,6 +368,15 @@ func (b *WebBridge) Emit(pluginID, slotID, eventName string, data json.RawMessag
 
 // BroadcastThemeChange notifies all open plugin WebViews that theme tokens changed.
 func (b *WebBridge) BroadcastThemeChange(dark bool, themeName string) {
+	b.broadcastAll("theme.changed", map[string]any{"dark": dark, "themeName": themeName})
+}
+
+// BroadcastLocaleChange notifies all open plugin WebViews that the app language changed.
+func (b *WebBridge) BroadcastLocaleChange(locale string) {
+	b.broadcastAll("locale.changed", map[string]any{"locale": locale})
+}
+
+func (b *WebBridge) broadcastAll(eventName string, body any) {
 	b.mu.RLock()
 	var targets []pageBinding
 	for _, bind := range b.bindings {
@@ -351,15 +385,19 @@ func (b *WebBridge) BroadcastThemeChange(dark bool, themeName string) {
 		}
 	}
 	mainFn := b.mainFn
+	emitFn := b.emitPageFn
+	if emitFn == nil {
+		emitFn = PluginWebEvent.EmitPage
+	}
 	b.mu.RUnlock()
 	if len(targets) == 0 {
 		return
 	}
-	data, _ := json.Marshal(map[string]any{"dark": dark, "themeName": themeName})
+	data, _ := json.Marshal(body)
 	send := func() {
 		for _, bind := range targets {
-			_ = PluginWebEvent.EmitPage(bind.Page, WebEventPayload{
-				Event:  "theme.changed",
+			_ = emitFn(bind.Page, WebEventPayload{
+				Event:  eventName,
 				SlotID: bind.SlotID,
 				Data:   string(data),
 			})
@@ -534,7 +572,7 @@ func (b *WebBridge) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if req.SlotID != "" {
 			slotID = req.SlotID
 		}
-		data, err := rpcFn(r.Context(), pluginID, slotID, bind.SessionID, bind.PaneID, req.Method, req.Params)
+		data, err := rpcFn(r.Context(), pluginID, slotID, bind.SessionID, bind.PaneID, maps.Clone(bind.Args), req.Method, req.Params)
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		if err != nil {
 			code := rpc.ErrCodeInternal
@@ -653,6 +691,12 @@ func ThemeCSS(pal *theme.Palette) string {
   --hyla-done: %s;
   --hyla-danger: %s;
   --hyla-divider: %s;
+  --hyla-tl-think: %s;
+  --hyla-tl-text: %s;
+  --hyla-tl-tool: %s;
+  --hyla-tl-sub: %s;
+  --hyla-tl-wait: %s;
+  --hyla-tl-fail: %s;
   --hyla-font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --hyla-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
@@ -679,6 +723,12 @@ html, body {
 		cssCol(pal.Done),
 		cssCol(pal.Danger),
 		cssCol(pal.Divider),
+		cssCol(pal.TlThink),
+		cssCol(pal.TlText),
+		cssCol(pal.TlTool),
+		cssCol(pal.TlSub),
+		cssCol(pal.TlWait),
+		cssCol(pal.TlFail),
 	)
 }
 

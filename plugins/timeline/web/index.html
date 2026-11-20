@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Timeline</title>
+  <link rel="stylesheet" href="/_hyla/theme.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar" id="topbar">
+      <div class="topbar-left">
+        <select class="pane-select" id="pane-select" hidden></select>
+        <div class="legend" id="legend">
+          <span class="legend-item"><i class="swatch think"></i><span data-i18n="think">Think</span></span>
+          <span class="legend-item"><i class="swatch text"></i><span data-i18n="text">Text</span></span>
+          <span class="legend-item"><i class="swatch tool"></i><span data-i18n="tool">Tool</span></span>
+          <span class="legend-item"><i class="swatch sub"></i><span data-i18n="sub">Subagent</span></span>
+          <span class="legend-item"><i class="swatch wait"></i><span data-i18n="wait">Waiting</span></span>
+          <span class="legend-item"><i class="swatch fail"></i><span data-i18n="fail">Failed</span></span>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button class="refresh-btn" id="refresh-btn" type="button">Refresh</button>
+      </div>
+    </header>
+    <main class="content" id="content"></main>
+  </div>
+  <script src="/_hyla/bridge.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -32,10 +32,25 @@ type Manifest struct {
 	Themes      []ThemeSpec       `toml:"themes" json:"themes,omitempty"`
 	Washes      []WashSpec        `toml:"washes" json:"washes,omitempty"`
 	Pets        []PetSpec         `toml:"pets" json:"pets,omitempty"`
-	Hooks       []HookSpec        `toml:"hooks" json:"hooks,omitempty"`
-	Skills      []SkillSpec       `toml:"skills" json:"skills,omitempty"`
-	Settings    []SettingSpec     `toml:"settings" json:"settings,omitempty"`
-	Env         map[string]string `toml:"env" json:"env,omitempty"`
+	Hooks       []HookSpec                `toml:"hooks" json:"hooks,omitempty"`
+	Skills      []SkillSpec               `toml:"skills" json:"skills,omitempty"`
+	Settings    []SettingSpec             `toml:"settings" json:"settings,omitempty"`
+	Env         map[string]string         `toml:"env" json:"env,omitempty"`
+	I18n        map[string]ManifestLocale `toml:"i18n" json:"i18n,omitempty"`
+}
+
+type SettingLocale struct {
+	Title       string `toml:"title" json:"title,omitempty"`
+	Description string `toml:"description" json:"description,omitempty"`
+	Placeholder string `toml:"placeholder" json:"placeholder,omitempty"`
+}
+
+type ManifestLocale struct {
+	Name        string                   `toml:"name" json:"name,omitempty"`
+	Description string                   `toml:"description" json:"description,omitempty"`
+	Actions     map[string]string        `toml:"actions" json:"actions,omitempty"`
+	Slots       map[string]string        `toml:"slots" json:"slots,omitempty"`
+	Settings    map[string]SettingLocale `toml:"settings" json:"settings,omitempty"`
 }
 
 type EnginesSpec struct {
@@ -427,6 +442,118 @@ func QualifyActionID(pluginID, actionID string) string {
 // HasPermission reports whether the manifest declared scope.
 func (m *Manifest) HasPermission(scope string) bool {
 	return slices.Contains(m.Permissions.Scopes, scope)
+}
+
+// InLanguage returns a localized shallow copy of m matching locale (or m itself
+// if m defines no matching [i18n.<locale>] table). Source slices are cloned
+// before modification so m is never mutated.
+func (m *Manifest) InLanguage(locale string) *Manifest {
+	if m == nil || len(m.I18n) == 0 {
+		return m
+	}
+	tr, ok := lookupLocaleTable(m.I18n, locale)
+	if !ok {
+		return m
+	}
+	out := *m
+	if tr.Name != "" {
+		out.Name = tr.Name
+	}
+	if tr.Description != "" {
+		out.Description = tr.Description
+	}
+	if len(m.Actions) > 0 {
+		out.Actions = slices.Clone(m.Actions)
+		if len(tr.Actions) > 0 {
+			for i := range out.Actions {
+				if title := tr.Actions[out.Actions[i].ID]; title != "" {
+					out.Actions[i].Title = title
+				} else if title := tr.Actions[QualifyActionID(m.ID, out.Actions[i].ID)]; title != "" {
+					out.Actions[i].Title = title
+				}
+			}
+		}
+	}
+	if len(m.UI.Slots) > 0 {
+		out.UI.Slots = slices.Clone(m.UI.Slots)
+		if len(tr.Slots) > 0 {
+			for i := range out.UI.Slots {
+				if title := tr.Slots[out.UI.Slots[i].ID]; title != "" {
+					out.UI.Slots[i].Title = title
+				}
+			}
+		}
+	}
+	if len(m.Settings) > 0 {
+		out.Settings = slices.Clone(m.Settings)
+		if len(tr.Settings) > 0 {
+			for i := range out.Settings {
+				sl, ok := tr.Settings[out.Settings[i].Key]
+				if !ok {
+					continue
+				}
+				if sl.Title != "" {
+					out.Settings[i].Title = sl.Title
+				}
+				if sl.Description != "" {
+					out.Settings[i].Description = sl.Description
+				}
+				if sl.Placeholder != "" {
+					out.Settings[i].Placeholder = sl.Placeholder
+				}
+			}
+		}
+	}
+	return &out
+}
+
+func lookupLocaleTable(tables map[string]ManifestLocale, locale string) (ManifestLocale, bool) {
+	cands := localeCandidates(locale)
+	if len(cands) == 0 {
+		return ManifestLocale{}, false
+	}
+	byNorm := make(map[string]ManifestLocale, len(tables))
+	for k, v := range tables {
+		norm := strings.ToLower(strings.TrimSpace(strings.ReplaceAll(k, "_", "-")))
+		if norm != "" {
+			byNorm[norm] = v
+		}
+	}
+	for _, cand := range cands {
+		if v, ok := byNorm[cand]; ok {
+			return v, true
+		}
+	}
+	return ManifestLocale{}, false
+}
+
+func localeCandidates(locale string) []string {
+	norm := strings.ToLower(strings.TrimSpace(strings.ReplaceAll(locale, "_", "-")))
+	if norm == "" {
+		return nil
+	}
+	out := make([]string, 0, 4)
+	add := func(s string) {
+		if s != "" && !slices.Contains(out, s) {
+			out = append(out, s)
+		}
+	}
+	add(norm)
+	switch {
+	case norm == "zh" || norm == "zh-cn" || norm == "zh-sg" || strings.HasPrefix(norm, "zh-hans"):
+		add("zh-hans")
+		add("zh-cn")
+		add("zh")
+	case norm == "zh-tw" || norm == "zh-hk" || norm == "zh-mo" || strings.HasPrefix(norm, "zh-hant"):
+		add("zh-hant")
+		add("zh-tw")
+		add("zh")
+	default:
+		if base, _, ok := strings.Cut(norm, "-"); ok && base != "" {
+			add(base)
+		}
+	}
+	return out
 }
 
 // CompatibleWith checks Engines.Hyla against currentVersion (semver minimal check, e.g. ">=3.0.0").

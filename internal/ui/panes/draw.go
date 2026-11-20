@@ -292,16 +292,13 @@ func PaneCard(x App, c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown f
 		if p.FilePane() {
 			dragging = paneHeader(x, c, pal, bar, shown, s, p, top, left, right, multi, focused, hovered)
 			x.FilePane(c, pal, s, p)
-		} else if p.TimelinePane() {
-			dragging = paneHeader(x, c, pal, bar, shown, s, p, top, left, right, multi, focused, hovered)
-			x.TimelineBody(c, pal, s, p)
 		} else if p.SubagentsPane() {
 			dragging = paneHeader(x, c, pal, bar, shown, s, p, top, left, right, multi, focused, hovered)
 			x.SubagentsBody(c, pal, s, p)
 		} else if p.HongguoPane() {
 			dragging = paneHeader(x, c, pal, bar, shown, s, p, top, left, right, multi, focused, hovered)
 			x.HongguoBody(c, pal, s, p)
-		} else if p.PluginPane() {
+		} else if p.PluginPane() || p.TimelinePane() {
 			dragging = paneHeader(x, c, pal, bar, shown, s, p, top, left, right, multi, focused, hovered)
 			x.PluginPaneBody(c, pal, s, p)
 		} else if p.Browser() {
@@ -563,37 +560,25 @@ func paneHeader(x App, c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown
 		}
 		bare := p.TimelinePane() || p.SubagentsPane() || p.HongguoPane() || p.PluginPane()
 		grip.Children(func() {
-			// A timeline's header names the agent whose turns it shows,
-			// and wears no program's icon: the pane runs none. The
-			// subagents' wears none either, and names the view.
-			mark := p
-			if p.TimelinePane() {
-				if q := s.TimelineShown(p); q != nil {
-					mark = q
-				}
-			}
 			if multi && !bare {
 				if p.Status != proto.Idle || p.Unread {
 					paints.StatusP(c, pal, p.Status, p.Unread, p.Progress, 13)
 				} else {
-					ui.Icon(c, glyph.ProgramIcon(mark)).Size(14, 14).TextColor(pal.TextFaint)
+					ui.Icon(c, glyph.ProgramIcon(p)).Size(14, 14).TextColor(pal.TextFaint)
 				}
 			} else if p.HongguoPane() {
 				ui.Icon(c, glyph.Drama).Size(14, 14).TextColor(pal.TextFaint)
-			} else if p.PluginPane() {
+			} else if p.PluginPane() || p.TimelinePane() {
 				ui.Icon(c, glyph.Plugins).Size(14, 14).TextColor(pal.TextFaint)
 			}
 			title, size := p.PaneName(), float32(13.5)
-			if p.TimelinePane() && mark.Agent != "" {
-				title = mark.Agent
-			}
 			if p.SubagentsPane() {
 				title = locales.SideSubagents()
 			}
 			if p.HongguoPane() {
 				title = locales.HongguoTitle()
 			}
-			if !multi && !p.PluginPane() && !p.HongguoPane() {
+			if !multi && !p.PluginPane() && !p.TimelinePane() && !p.HongguoPane() {
 				title, size = s.DisplayName(x.Settings().SessionName), 14
 			}
 			name := ui.Text(c, title).FontSize(size).FontWeight(600).TextColor(pal.Text).SingleLine().Ellipsis("…").Shrink(1).MinWidth(30)

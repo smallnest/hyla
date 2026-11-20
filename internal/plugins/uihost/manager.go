@@ -69,10 +69,11 @@ type Coordinator struct {
 	OnPluginSettingsSaved func(pluginID string)
 	OnStatusChange        func(pluginID, state string)
 
-	mu      sync.Mutex
-	snap    *manifest.Snapshot
-	slots   []SlotEntry
-	renders map[renderKey]*CachedRender
+	mu          sync.Mutex
+	basePlugins []manifest.InstalledPlugin
+	snap        *manifest.Snapshot
+	slots       []SlotEntry
+	renders     map[renderKey]*CachedRender
 }
 
 // NewCoordinator constructs the UI plugin coordinator.
@@ -115,16 +116,29 @@ func NewCoordinator(store *manifest.Store, appBridge daemonhost.HostBridge, hyla
 		},
 	})
 	c.Web = NewWebBridge(store, nil, c.handleWebRPC)
+	c.Web.SetLocaleFunc(c.currentLocale)
 	return c
+}
+
+func (c *Coordinator) currentLocale() string {
+	if c.LocaleFunc != nil {
+		return strings.TrimSpace(c.LocaleFunc())
+	}
+	return ""
 }
 
 // Reload discovers enabled plugins, refreshes slot metadata, and syncs AppMgr.
 func (c *Coordinator) Reload() (*manifest.Snapshot, error) {
-	snap, err := manifest.ApplyBase(c.Store)
+	base, err := c.Store.Discover()
 	if err != nil {
 		return nil, err
 	}
-	return c.ReloadWithSnapshot(snap)
+	baseCopy := slices.Clone(base)
+	snap := manifest.ApplySnapshotInLanguage(baseCopy, c.currentLocale())
+	c.mu.Lock()
+	c.basePlugins = baseCopy
+	c.mu.Unlock()
+	return c.applyReloadedSnapshot(snap)
 }
 
 // ReloadWithSnapshot refreshes slot metadata and AppMgr from an already-computed snapshot.
@@ -132,7 +146,81 @@ func (c *Coordinator) ReloadWithSnapshot(snap *manifest.Snapshot) (*manifest.Sna
 	if snap == nil {
 		return c.Reload()
 	}
+	baseCopy := slices.Clone(snap.Plugins)
+	localized := manifest.ApplySnapshotInLanguage(baseCopy, c.currentLocale())
+	c.mu.Lock()
+	c.basePlugins = baseCopy
+	c.mu.Unlock()
+	return c.applyReloadedSnapshot(localized)
+}
+
+func (c *Coordinator) applyReloadedSnapshot(snap *manifest.Snapshot) (*manifest.Snapshot, error) {
+	slots := slotsFromSnapshot(snap)
+
+	c.mu.Lock()
+	c.snap = snap
+	c.slots = slots
+	clear(c.renders)
+	c.mu.Unlock()
+
+	if c.State != nil {
+		c.State.ClearAssets()
+	}
+	if c.Web != nil {
+		c.Web.SetPluginsSnapshot(snap.Plugins)
+	}
+	if c.AppMgr != nil {
+		_ = c.AppMgr.ReloadWithPlugins(snap.Plugins)
+	}
+	return snap, nil
+}
+
+// ApplyLocale updates cached plugin manifests, actions, slots, and running plugins/WebViews for locale
+// without restarting child processes.
+func (c *Coordinator) ApplyLocale(locale string) {
+	c.mu.Lock()
+	baseCopy := slices.Clone(c.basePlugins)
+	c.mu.Unlock()
+	if len(baseCopy) == 0 && c.Store != nil {
+		if discovered, err := c.Store.Discover(); err == nil {
+			baseCopy = slices.Clone(discovered)
+			c.mu.Lock()
+			c.basePlugins = slices.Clone(baseCopy)
+			c.mu.Unlock()
+		}
+	}
+	if len(baseCopy) > 0 {
+		snap := manifest.ApplySnapshotInLanguage(baseCopy, locale)
+		slots := slotsFromSnapshot(snap)
+		c.mu.Lock()
+		c.snap = snap
+		c.slots = slots
+		clear(c.renders)
+		c.mu.Unlock()
+		if c.Web != nil {
+			c.Web.SetPluginsSnapshot(snap.Plugins)
+		}
+	} else {
+		c.mu.Lock()
+		clear(c.renders)
+		c.mu.Unlock()
+	}
+	if c.AppMgr != nil {
+		c.AppMgr.NotifyTopic("locale.changed", map[string]any{"locale": locale})
+	}
+	if c.Web != nil {
+		c.Web.BroadcastLocaleChange(locale)
+	}
+	if c.OnUpdate != nil {
+		c.OnUpdate()
+	}
+}
+
+func slotsFromSnapshot(snap *manifest.Snapshot) []SlotEntry {
 	var slots []SlotEntry
+	if snap == nil {
+		return slots
+	}
 	for _, p := range snap.Plugins {
 		if !p.Entry.Enabled || p.Entry.PendingInstall || p.Manifest == nil {
 			continue
@@ -171,23 +259,7 @@ func (c *Coordinator) ReloadWithSnapshot(snap *manifest.Snapshot) (*manifest.Sna
 		}
 		return slots[i].Slot.ID < slots[j].Slot.ID
 	})
-
-	c.mu.Lock()
-	c.snap = snap
-	c.slots = slots
-	clear(c.renders)
-	c.mu.Unlock()
-
-	if c.State != nil {
-		c.State.ClearAssets()
-	}
-	if c.Web != nil {
-		c.Web.SetPluginsSnapshot(snap.Plugins)
-	}
-	if c.AppMgr != nil {
-		_ = c.AppMgr.ReloadWithPlugins(snap.Plugins)
-	}
-	return snap, nil
+	return slots
 }
 
 // Shutdown stops all [app] plugin child processes cleanly.
@@ -440,7 +512,7 @@ func (c *Coordinator) CallAction(hostKey string, meta manifest.PluginActionMeta,
 	return &res, nil
 }
 
-func (c *Coordinator) handleWebRPC(ctx context.Context, pluginID, slotID, sessionID, paneID, method string, params json.RawMessage) (json.RawMessage, error) {
+func (c *Coordinator) handleWebRPC(ctx context.Context, pluginID, slotID, sessionID, paneID string, args map[string]string, method string, params json.RawMessage) (json.RawMessage, error) {
 	hostKey := ""
 	if c.PaneHostFn != nil {
 		hostKey = c.PaneHostFn(sessionID, paneID)
@@ -495,6 +567,8 @@ func (c *Coordinator) handleWebRPC(ctx context.Context, pluginID, slotID, sessio
 		Params:    params,
 		SessionID: sessionID,
 		PaneID:    paneID,
+		Locale:    c.currentLocale(),
+		Args:      args,
 	}
 	var res rpc.WebViewRPCResult
 	if err := c.callHostWithContext(ctx, hostKey, pluginID, hostKind, "webview.rpc", req, &res); err != nil {

@@ -63,7 +63,10 @@ entry = "index.html"
 	cssRec := httptest.NewRecorder()
 	bridge.ServeHTTP(cssRec, cssReq)
 	css := cssRec.Body.String()
-	for _, wantVar := range []string{"--hyla-muted:", "--hyla-text-muted:", "--hyla-font-ui:", "--hyla-font-mono:"} {
+	for _, wantVar := range []string{
+		"--hyla-muted:", "--hyla-text-muted:", "--hyla-font-ui:", "--hyla-font-mono:",
+		"--hyla-tl-think:", "--hyla-tl-text:", "--hyla-tl-tool:", "--hyla-tl-sub:", "--hyla-tl-wait:", "--hyla-tl-fail:",
+	} {
 		if !strings.Contains(css, wantVar) {
 			t.Fatalf("missing %s in ThemeCSS:\n%s", wantVar, css)
 		}

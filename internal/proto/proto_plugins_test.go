@@ -8,7 +8,7 @@ func TestPluginAgentRegistryAndPaneMethods(t *testing.T) {
 	if AgentDisplayName("claude") != "Claude Code" {
 		t.Fatalf("built-in display name = %q", AgentDisplayName("claude"))
 	}
-	if !StartsTimeline("claude") || StartsTimeline("aider") {
+	if !StartsTimeline("claude") || !StartsTimeline("agy") || !StartsTimeline("antigravity") || StartsTimeline("aider") {
 		t.Fatal("unexpected built-in StartsTimeline behavior")
 	}
 

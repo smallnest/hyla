@@ -54,7 +54,6 @@ import (
 	"hyla/internal/ui/sidebarview"
 	"hyla/internal/ui/subagentsview"
 	"hyla/internal/ui/theme"
-	"hyla/internal/ui/timelineview"
 	"hyla/internal/ui/webpane"
 	"hyla/internal/ui/worktree"
 
@@ -267,9 +266,6 @@ type App struct {
 	// magpie is what Magpie shows of itself (magpie.go), nil until the
 	// Info view shows.
 	Magpie *magpieInfo
-	// Timelines is what the Info view shows of the panes' timelines, by
-	// pane (timeline_adapters.go).
-	Timelines map[string]*timelineview.Info
 	// Subagents is what the side panel's Subagents view shows, of the
 	// session it shows (subagents.go), and what a subagents pane shows of
 	// its session (subagents_pane.go).

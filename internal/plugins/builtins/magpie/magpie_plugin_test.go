@@ -44,6 +44,9 @@ func (noopBridge) ReportStatus(context.Context, string, rpc.PaneReportStatusPara
 func (noopBridge) FocusPane(context.Context, string, rpc.PaneFocusParams) error       { return nil }
 func (noopBridge) InvalidateUI(context.Context, string, rpc.UIInvalidateParams) error { return nil }
 func (noopBridge) OpenPane(context.Context, string, rpc.UIOpenPaneParams) error       { return nil }
+func (noopBridge) GetTimeline(context.Context, string, rpc.PaneGetTimelineParams) (*rpc.PaneGetTimelineResult, error) {
+	return &rpc.PaneGetTimelineResult{}, nil
+}
 func (noopBridge) NotifyUI(context.Context, string, rpc.UINotifyParams) error         { return nil }
 func (noopBridge) WebViewEmit(context.Context, string, rpc.WebViewEmitParams) error   { return nil }
 

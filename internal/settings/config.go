@@ -469,6 +469,9 @@ var keys = append([]key{
 					}
 					continue
 				}
+				if id == "timeline.open" {
+					id = "hyla.timeline.open"
+				}
 				if _, ok := actions.Find(id); !ok && !actions.IsPluginActionID(id) {
 					bad = append(bad, fmt.Sprintf("no action %q", id))
 					continue

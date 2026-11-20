@@ -1,0 +1,57 @@
+api_version = 1
+id = "hyla.timeline"
+name = "Timeline"
+version = "1.0.0"
+description = "Interactive WebView timeline pane showing coding agent turns, tool spans, reasoning, and subagents."
+author = "Hyla"
+
+[engines]
+hyla = ">=3.18.0"
+
+[permissions]
+scopes = ["ui.webview", "ui.slot", "session.read", "timeline.read"]
+
+[app]
+command = ["./bin/hyla-timeline"]
+transport = "stdio"
+auto_start = true
+
+[[actions]]
+id = "open"
+title = "Open Timeline Pane"
+menu = "Pane"
+shortcut = "CmdOrCtrl+Alt+T"
+palette = true
+remote = true
+target = "app"
+view = "timeline"
+
+[[ui.slots]]
+id = "timeline"
+mount = "pane"
+title = "Timeline"
+mode = "webview"
+host = "app"
+web_root = "web"
+entry = "index.html"
+order = 10
+
+[i18n.zh-Hans]
+name = "时间线"
+description = "交互式 WebView 时间线窗格，展示编程 Agent 的对话轮次、工具耗时、思考与子代理。"
+
+[i18n.zh-Hans.actions]
+open = "打开时间线窗格"
+
+[i18n.zh-Hans.slots]
+timeline = "时间线"
+
+[i18n.ja]
+name = "タイムライン"
+description = "コーディングエージェントのターン、ツール実行、思考、サブエージェントを表示する WebView タイムラインペイン。"
+
+[i18n.ja.actions]
+open = "タイムラインペインを開く"
+
+[i18n.ja.slots]
+timeline = "タイムライン"

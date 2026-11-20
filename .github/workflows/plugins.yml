@@ -1,0 +1,47 @@
+name: Plugins build
+
+# Tests and builds first-party plugins under plugins/ and the Go plugin SDK,
+# cross-compiling compiled plugins for every release platform and packing them
+# into .hylapkg archives alongside their SHA-256 checksums.
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: Test Go plugin SDK
+        run: (cd sdk/go/hylaplugin && go vet ./... && go test -race ./...)
+      - name: Test plugin builder
+        run: go vet ./scripts/build-plugins && go test -race ./scripts/build-plugins
+      - name: Test plugins
+        run: |
+          set -eu
+          found=0
+          for mod in plugins/*/go.mod; do
+            [ -f "$mod" ] || continue
+            found=1
+            dir="$(dirname "$mod")"
+            echo "Testing $dir"
+            (cd "$dir" && go vet ./... && go test -race ./...)
+          done
+          test "$found" -eq 1
+      - name: Build and pack plugins
+        run: sh scripts/build-plugins.sh
+      - name: Verify checksums
+        run: (cd build/plugins && sha256sum -c *.sha256)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plugins
+          path: |
+            build/plugins/*.hylapkg
+            build/plugins/*.hylapkg.sha256

@@ -29,9 +29,17 @@ func (a *App) Language() string { return uisettings.LocaleTag(a.settingsIn.Langu
 func (a *App) LanguageChanged() {
 	a.UpdateNow(func() {
 		a.refreshPluginLocaleAndTheme()
+		if a.Plugins != nil {
+			a.Plugins.ApplyLocale(a.pluginLocaleValue())
+			a.invalidatePluginStatusCache()
+		}
 		mygo.App.SetMenu(a.menu())
+		if a.Win != nil {
+			a.Win.Invalidate()
+		}
 		if a.SetWin != nil {
 			a.SetWin.SetTitle(locales.SettingsTitle())
+			a.SetWin.Invalidate()
 		}
 		if a.Pet.Win != nil {
 			a.Pet.Win.SetTitle(locales.PetName())
