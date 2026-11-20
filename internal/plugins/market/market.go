@@ -296,6 +296,11 @@ func isValidSHA256Hex(s string) bool {
 	return err == nil
 }
 
+// marketTimeout bounds a request of the market that a caller leaves without
+// a deadline: an install waits for a package to come over a network Hyla
+// does not own.
+const marketTimeout = 30 * time.Minute
+
 // Client fetches the marketplace catalog and downloads verified plugin packages.
 type Client struct {
 	HTTP *http.Client
@@ -306,7 +311,10 @@ func (c *Client) httpClient() *http.Client {
 	if c != nil && c.HTTP != nil {
 		return c.HTTP
 	}
-	return &http.Client{Timeout: 60 * time.Second}
+	// A package may be large and the network slow: the client waits as long
+	// as an install is given, and the caller's context ends a wait that is
+	// over. Sixty seconds ended installs of a package on a slow line.
+	return &http.Client{Timeout: marketTimeout}
 }
 
 func (c *Client) url() string {

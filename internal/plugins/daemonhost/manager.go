@@ -34,6 +34,17 @@ const (
 	StateError    = "error"
 )
 
+// How long a plugin's process gets to come up and answer initialize: one
+// that is slow to start on a loaded machine, as a TypeScript plugin under
+// bun may be, took longer than the ten seconds these had.
+const (
+	pluginStartTimeout = 60 * time.Second
+	pluginInitTimeout  = 60 * time.Second
+	// pluginBootTimeout is how long an auto-start, or a restart after a
+	// crash, waits for a plugin to come up: its start and its initialize.
+	pluginBootTimeout = 3 * time.Minute
+)
+
 // HostBridge handles Plugin -> Host RPC callbacks on behalf of plugins.
 type HostBridge interface {
 	GetState(ctx context.Context, pluginID string, p rpc.HostGetStateParams) (*rpc.HostGetStateResult, error)
@@ -274,7 +285,7 @@ func (m *Manager) ReloadWithPlugins(list []manifest.InstalledPlugin) error {
 	}
 	for _, id := range toAutoStart {
 		go func(pid string) {
-			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), pluginBootTimeout)
 			defer cancel()
 			_ = m.EnsureStarted(ctx, pid)
 		}(id)
@@ -639,7 +650,7 @@ func (m *Manager) startProcess(ctx context.Context, id string, p manifest.Instal
 	}
 
 	if acceptConn != nil {
-		waitCtx, waitCancel := context.WithTimeout(ctx, 10*time.Second)
+		waitCtx, waitCancel := context.WithTimeout(ctx, pluginStartTimeout)
 		err := acceptConn(waitCtx)
 		waitCancel()
 		if err != nil {
@@ -653,7 +664,7 @@ func (m *Manager) startProcess(ctx context.Context, id string, p manifest.Instal
 
 	cfgMap, _ := m.opts.Store.LoadConfig(id)
 	appName, dark := m.opts.ThemeFunc()
-	initCtx, initCancel := context.WithTimeout(ctx, 10*time.Second)
+	initCtx, initCancel := context.WithTimeout(ctx, pluginInitTimeout)
 	defer initCancel()
 
 	var initRes rpc.InitializeResult
@@ -836,7 +847,7 @@ func (m *Manager) watchProcess(id string, mp *managedPlugin, cmd *exec.Cmd, peer
 	shouldRestart := mp.spec != nil && mp.installed.Entry.Enabled
 	if shouldRestart {
 		mp.backoffTimer = time.AfterFunc(backoff, func() {
-			ctx, c := context.WithTimeout(context.Background(), 15*time.Second)
+			ctx, c := context.WithTimeout(context.Background(), pluginBootTimeout)
 			defer c()
 			_ = m.EnsureStarted(ctx, id)
 		})

@@ -719,6 +719,16 @@ type pluginMarketState struct {
 	client     *market.Client
 }
 
+// How long the market may take: a catalog is small, and an install is a
+// package the user waits for, so it waits as long as a slow line needs.
+const (
+	marketCatalogTimeout = 2 * time.Minute
+	marketInstallTimeout = 30 * time.Minute
+	// Restarting a plugin starts its process and asks it to initialize,
+	// which a slow one takes its time over.
+	pluginRestartTimeout = 3 * time.Minute
+)
+
 func (m *pluginMarketState) httpClient() *market.Client {
 	if m.client != nil {
 		return m.client
@@ -850,7 +860,7 @@ func (p *appPluginsSettings) Restart(id string) {
 	p.a.invalidatePluginUICache()
 	if hasApp && p.a.Plugins != nil && p.a.Plugins.AppMgr != nil {
 		go func() {
-			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), pluginRestartTimeout)
 			defer cancel()
 			_ = p.a.Plugins.AppMgr.Restart(ctx, id)
 			p.a.invalidatePluginUICache()
@@ -1456,7 +1466,7 @@ func (p *appPluginsSettings) RefreshMarket() {
 	p.a.InvalidatePluginUI()
 
 	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), marketCatalogTimeout)
 		defer cancel()
 		cat, _, err := client.FetchWithFallback(ctx)
 
@@ -1492,7 +1502,9 @@ func (p *appPluginsSettings) InstallMarketPlugin(mp market.Plugin) {
 
 	st := p.store()
 	go func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+		// A package comes over a network Hyla does not own: the three
+		// minutes this had ended installs of a large one on a slow line.
+		ctx, cancel := context.WithTimeout(context.Background(), marketInstallTimeout)
 		defer cancel()
 		inst, err := client.DownloadAndInstall(ctx, st, mp, runtime.GOOS, runtime.GOARCH, build.Version())
 		if err == nil {
