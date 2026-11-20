@@ -24,12 +24,19 @@ import (
 	"hyla/internal/cli"
 	"hyla/internal/clilink"
 	"hyla/internal/daemon"
+	"hyla/internal/netproxy"
 	_ "hyla/internal/pocket"
 	"hyla/internal/profiling"
 	"hyla/internal/proto"
+	"hyla/internal/settings"
 )
 
 func main() {
+	// The proxy the settings name, or else the environment's, or else the
+	// system's: a download started from the window, which has no environment
+	// of its own, went direct on a machine behind a system proxy.
+	netproxy.SetOverride(func() string { return settings.Load().HTTPProxy })
+	netproxy.Install()
 	if len(os.Args) > 1 {
 		arg := os.Args[1]
 		switch {

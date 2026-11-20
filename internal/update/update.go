@@ -27,6 +27,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"hyla/internal/netproxy"
 )
 
 // PublicKey checks Hyla's releases: mygo.json's updates.publicKey, whose
@@ -90,7 +92,7 @@ func script(version, name string) string {
 	return URL(version, name)
 }
 
-var httpClient = &http.Client{Timeout: 5 * time.Minute}
+var httpClient = netproxy.Client(5 * time.Minute)
 
 func get(ctx context.Context, url string, max int64) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)

@@ -109,6 +109,10 @@ type Settings struct {
 	Shell      string   `json:"shell"` // "" the account's login shell
 	Env        []string `json:"env"`   // "KEY=value", added to every pane's
 	Scrollback int      `json:"scrollback"`
+	// HTTPProxy is a proxy every download goes through, as
+	// http://127.0.0.1:7890: empty follows the environment's, and then the
+	// system's own.
+	HTTPProxy string `json:"httpProxy,omitempty"`
 
 	// Feishu's cards
 	FeishuCards      bool `json:"feishuCards"`      // a turn's card updates as the agent works

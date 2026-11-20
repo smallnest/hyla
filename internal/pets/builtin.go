@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"hyla/internal/netproxy"
 	"hyla/internal/settings"
 )
 
@@ -123,7 +124,7 @@ func InstallBuiltin(name string) (string, error) {
 	return Install(tmp)
 }
 
-var httpClient = &http.Client{Timeout: 30 * time.Second}
+var httpClient = netproxy.Client(30 * time.Second)
 
 // fetch gets a URL.
 func fetch(url string) ([]byte, error) {

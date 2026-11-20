@@ -9294,6 +9294,36 @@ func (msgs Messages) SetPluginsPermissions() string {
 	return Catalog.Format(msgs.locale, "setPluginsPermissions", nil)
 }
 
+// SetProxy says "Proxy"
+// in the language the app shows.
+func SetProxy() string { return In(i18n.Locale()).SetProxy() }
+
+// SetProxy says "Proxy"
+// in the language of msgs.
+func (msgs Messages) SetProxy() string {
+	return Catalog.Format(msgs.locale, "setProxy", nil)
+}
+
+// SetProxyDetail says "Every download Hyla makes goes through this proxy: plugins, updates, pets, filter lists. Empty follows the system's, …"
+// in the language the app shows.
+func SetProxyDetail() string { return In(i18n.Locale()).SetProxyDetail() }
+
+// SetProxyDetail says "Every download Hyla makes goes through this proxy: plugins, updates, pets, filter lists. Empty follows the system's, …"
+// in the language of msgs.
+func (msgs Messages) SetProxyDetail() string {
+	return Catalog.Format(msgs.locale, "setProxyDetail", nil)
+}
+
+// SetProxyTitle says "Downloads through"
+// in the language the app shows.
+func SetProxyTitle() string { return In(i18n.Locale()).SetProxyTitle() }
+
+// SetProxyTitle says "Downloads through"
+// in the language of msgs.
+func (msgs Messages) SetProxyTitle() string {
+	return Catalog.Format(msgs.locale, "setProxyTitle", nil)
+}
+
 // SetPluginsSettings says "Settings"
 // in the language the app shows.
 func SetPluginsSettings() string { return In(i18n.Locale()).SetPluginsSettings() }

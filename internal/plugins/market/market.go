@@ -20,6 +20,7 @@ import (
 	"strings"
 	"time"
 
+	"hyla/internal/netproxy"
 	"hyla/internal/plugins/manifest"
 	"hyla/internal/update"
 )
@@ -313,8 +314,9 @@ func (c *Client) httpClient() *http.Client {
 	}
 	// A package may be large and the network slow: the client waits as long
 	// as an install is given, and the caller's context ends a wait that is
-	// over. Sixty seconds ended installs of a package on a slow line.
-	return &http.Client{Timeout: marketTimeout}
+	// over. Sixty seconds ended installs of a package on a slow line. It
+	// goes through the system's proxy, as a browser does.
+	return &http.Client{Timeout: marketTimeout, Transport: netproxy.Transport()}
 }
 
 func (c *Client) url() string {

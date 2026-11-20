@@ -423,3 +423,22 @@ func TestFallbackFamilies(t *testing.T) {
 		t.Errorf("an empty fallback gave %q", got)
 	}
 }
+
+// http-proxy is a setting of the file, which an empty value leaves alone.
+func TestHTTPProxyKey(t *testing.T) {
+	s, probs := parse("http-proxy = http://127.0.0.1:7890\n")
+	if len(probs) != 0 {
+		t.Fatalf("problems %q", probs)
+	}
+	if s.HTTPProxy != "http://127.0.0.1:7890" {
+		t.Errorf("the proxy is %q", s.HTTPProxy)
+	}
+	if out := format(s, "http-proxy = http://127.0.0.1:7890\n"); !strings.Contains(out, "http-proxy = http://127.0.0.1:7890") {
+		t.Errorf("the file lacks the proxy:\n%s", out)
+	}
+	s.HTTPProxy = ""
+	back, probs := parse(format(s, "http-proxy = http://127.0.0.1:7890\n"))
+	if len(probs) != 0 || back.HTTPProxy != "" {
+		t.Errorf("a proxy cleared reads %q (%q)", back.HTTPProxy, probs)
+	}
+}

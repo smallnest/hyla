@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"hyla/internal/netproxy"
 )
 
 // Source is a filter list hyla downloads: one of Catalog, by its ID, or
@@ -108,7 +110,7 @@ func download(ctx context.Context, rawURL, path string, since time.Time) error {
 	if !since.IsZero() {
 		req.Header.Set("If-Modified-Since", since.UTC().Format(http.TimeFormat))
 	}
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := netproxy.Client(0).Do(req)
 	if err != nil {
 		return err
 	}

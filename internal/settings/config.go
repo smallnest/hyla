@@ -364,6 +364,7 @@ var keys = append([]key{
 			return nil
 		}},
 	boolKey("tailcat", "this machine as a host over a relay, with a pair code, as hyla tailcat turns it on: off, hyla tailcat makes no listener; the tcp:// listener is hyla p2p's, and this does not turn it off", func(s *Settings) *bool { return &s.Tailcat }),
+	stringKey("http-proxy", "the proxy Hyla's downloads go through, as http://127.0.0.1:7890: empty uses the environment's, and then the system's own", func(s *Settings) *string { return &s.HTTPProxy }),
 	{name: "listen-token", doc: "the password of a tcp:// listener: its clients carry it, and hylad refuses every request without it (hyla pocket token prints it)",
 		get: func(s *Settings) []string { return []string{s.ListenToken} },
 		set: func(s *Settings, v []string) error {

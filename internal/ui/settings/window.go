@@ -89,17 +89,20 @@ type State struct {
 	FeaturesDraft   string
 	FeaturesEditing bool
 	ShellEditing    bool
-	LoginOpen       bool // open at login, as the system says
-	PetKnob         bool // the pet's size slider was held, last frame
-	Updates         updatePrefs
-	CLIPath         string
-	Service         string // hylad, as last asked
-	Notice          string // a line under the keyboard page, as of a conflict
-	Toast           string
-	Menus           map[string]*controls.SearchMenu // the search menus', by key
-	Problems        []string                        // what the configuration file got wrong
-	Scrolls         map[string]*ui.ScrollState      // each page's, for its scroll edge
-	Confirm         *confirm.Ask                    // a question, asked in this window
+	// ProxyDraft is http-proxy as the field has it, while ProxyEditing.
+	ProxyDraft   string
+	ProxyEditing bool
+	LoginOpen    bool // open at login, as the system says
+	PetKnob      bool // the pet's size slider was held, last frame
+	Updates      updatePrefs
+	CLIPath      string
+	Service      string // hylad, as last asked
+	Notice       string // a line under the keyboard page, as of a conflict
+	Toast        string
+	Menus        map[string]*controls.SearchMenu // the search menus', by key
+	Problems     []string                        // what the configuration file got wrong
+	Scrolls      map[string]*ui.ScrollState      // each page's, for its scroll edge
+	Confirm      *confirm.Ask                    // a question, asked in this window
 
 	// The forms the root keeps keep their drafts here.
 	Tailcat draft.TailcatDraft // the Tailcat form
@@ -1453,7 +1456,7 @@ func codeBlock(c *ui.Context, pal *theme.Palette, code string) {
 }
 
 func advancedPage(x App, c *ui.Context, pal *theme.Palette) {
-	ss := x.SettingsState()
+	ss, s := x.SettingsState(), x.Settings()
 	kit.Group(c, pal, locales.SetConfiguration(), locales.SetConfigurationDetail(), func() {
 		kit.Row(c, pal, locales.SetConfigFile(), proto.ShortDir(settings.Path()), func() {
 			if style.Button(c, "reveal-config", locales.CommonShowIn(platform.FileManager()), "", false, pal) {
@@ -1470,6 +1473,20 @@ func advancedPage(x App, c *ui.Context, pal *theme.Palette) {
 				ui.Text(c, p).FontSize(12.5).TextColor(pal.Attention).Grow(1).MinWidth(0)
 			})
 		}
+	})
+	kit.Group(c, pal, locales.SetProxy(), locales.SetProxyDetail(), func() {
+		kit.Row(c, pal, locales.SetProxyTitle(), "", func() {
+			if !ss.ProxyEditing {
+				ss.ProxyDraft = s.HTTPProxy
+			}
+			in := controls.TextField(c, "proxy", &ss.ProxyDraft, "http://127.0.0.1:7890", 260, pal).Font("monospace")
+			ss.ProxyEditing = in.Focused()
+			// Kept as it is submitted, or as the field loses the focus.
+			in.OnSubmit(func() { s.HTTPProxy = strings.TrimSpace(ss.ProxyDraft) })
+			if !ss.ProxyEditing && strings.TrimSpace(ss.ProxyDraft) != s.HTTPProxy {
+				s.HTTPProxy = strings.TrimSpace(ss.ProxyDraft)
+			}
+		})
 	})
 	kit.Group(c, pal, locales.SetBackgroundService(), locales.SetBackgroundServiceDetail(), func() {
 		kit.Row(c, pal, "hylad", ss.Service, func() {
@@ -1558,7 +1575,7 @@ func keyboardPage(x App, c *ui.Context, pal *theme.Palette) {
 		} else {
 			title = map[string]func() string{"Hyla": locales.MenuApp, "Session": locales.MenuSession, "Edit": locales.MenuEdit, "Pane": locales.MenuPane, "View": locales.MenuView}[menu]()
 		}
-		ui.Column(c.Key("kb-grp-"+menu)).Gap(8).Children(func() {
+		ui.Column(c.Key("kb-grp-" + menu)).Gap(8).Children(func() {
 			kit.Group(c, pal, title, "", func() {
 				for _, act := range acts {
 					shortcutRow(x, c, pal, act)
