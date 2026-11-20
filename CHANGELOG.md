@@ -4,6 +4,29 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.19.0
+
+- **Plugin Marketplace** in **Settings › Plugins**: browse curated plugins
+  from Hyla's catalog (`plugin_market.json`, fetched live from GitHub with
+  an offline built-in fallback), open project pages, review declared
+  permissions in a confirmation dialog, and install or update plugins with
+  SHA-256 verification and automatic hot reload.
+- **Standalone Timeline WebView plugin (`hyla.timeline`)**: extracted the
+  built-in timeline pane into a standalone sandboxed WebView plugin
+  packaged for macOS, Linux and Windows on every release, with full
+  localization (English, 简体中文 and 日本語), a cleaner header without a
+  duplicate agent label, and automatic migration for saved timeline panes
+  and **Pane › Open Timeline Pane** (`⌥⌘T` on macOS, `Ctrl+Alt+T` on
+  Windows and Linux). External plugins now support localized manifests
+  (`[i18n.<locale>]`), runtime locale updates and Windows `.exe` command
+  resolution.
+- **Antigravity CLI (`agy` / `antigravity`) timeline support**: Timeline,
+  Chat and Subagents views now read Antigravity CLI conversations
+  (`transcript.jsonl`, `conversation_summaries.db` and `history.jsonl`),
+  including thinking spans, parallel tools, background tasks, subagents,
+  errors and waiting questions (hosts get the daemon-side parser with
+  their next update).
+
 ## 3.18.0
 
 - **Pane › Open Hongguo Drama Pane** (`⌥⌘V` on macOS, `Ctrl+Alt+V` on
