@@ -4,6 +4,20 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.19.1
+
+- Installing a plugin from the marketplace no longer gives up on a slow
+  line: the download waits thirty minutes where it had a minute, and the
+  catalog and a restart wait two and three. A plugin's process gets a
+  minute to start and a minute to answer, where it had ten seconds each.
+- Hyla's own downloads go through the proxy the system's network settings
+  name, as a browser does — a marketplace, an update, a pet pack, a filter
+  list. An install started from the window used to go direct, because a
+  program the Finder started has no environment to read a proxy from. An
+  `http-proxy` setting, in **Settings › Advanced** or the configuration
+  file, forces one over the environment and the system. This machine's own
+  services, and the networks it is on, are still reached directly.
+
 ## 3.19.0
 
 - **Plugin Marketplace** in **Settings › Plugins**: browse curated plugins
