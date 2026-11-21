@@ -55,6 +55,33 @@
       },
       "download_url": "https://github.com/smallnest/hyla/releases/latest/download/hyla.podcast-{version}-{os}-{arch}.hylapkg",
       "sha256_url": "https://github.com/smallnest/hyla/releases/latest/download/hyla.podcast-{version}-{os}-{arch}.hylapkg.sha256"
+    },
+    {
+      "id": "hyla.iptv",
+      "name": "IPTV",
+      "author": "Hyla",
+      "description": "Minimalist Apple TV-inspired IPTV live TV pane with XMLTV program guide, single or batch M3U import, HTML source auto-discovery, channel logos, multi-line failover, and HLS proxying.",
+      "homepage": "https://github.com/smallnest/hyla/tree/master/plugins/iptv",
+      "version": "1.0.0",
+      "min_hyla_version": "3.20.0",
+      "permissions": [
+        "ui.webview",
+        "ui.slot",
+        "session.read",
+        "network"
+      ],
+      "i18n": {
+        "zh-Hans": {
+          "name": "IPTV 直播",
+          "description": "简约大气的 Apple TV 风格 IPTV 电视直播窗格，支持单个或批量导入 M3U 源、网页地址自动提取 M3U、台标墙、多线路切换与 HLS 本地代理播放。"
+        },
+        "ja": {
+          "name": "IPTV",
+          "description": "Apple TV 風のミニマルな IPTV ライブ視聴ペイン。M3U の単体・一括登録、HTML からの M3U 自動検出、チャンネルロゴ表示、マルチ回線フォールバックに対応。"
+        }
+      },
+      "download_url": "https://github.com/smallnest/hyla/releases/latest/download/hyla.iptv-{version}-{os}-{arch}.hylapkg",
+      "sha256_url": "https://github.com/smallnest/hyla/releases/latest/download/hyla.iptv-{version}-{os}-{arch}.hylapkg.sha256"
     }
   ]
 }

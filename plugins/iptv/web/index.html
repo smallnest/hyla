@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>IPTV</title>
+  <link rel="stylesheet" href="/_hyla/theme.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app" id="app-root">
+    <header class="topbar" id="topbar">
+      <div class="topbar-left">
+        <div class="brand-pill" id="brand-pill">
+          <span class="brand-dot"></span>
+          <span id="brand-title">IPTV</span>
+        </div>
+        <nav class="nav-seg" id="nav-tabs" aria-label="IPTV views"></nav>
+      </div>
+      <div class="topbar-right">
+        <div class="search-pill-wrap">
+          <input class="search-pill" id="search-input" type="search" />
+        </div>
+        <span class="job-pill" id="job-pill" hidden></span>
+        <button class="glass-btn primary" id="add-btn" type="button"></button>
+        <button class="glass-btn" id="refresh-btn" type="button"></button>
+        <button class="glass-btn" id="settings-btn" type="button"></button>
+      </div>
+    </header>
+
+    <div class="banner" id="banner" hidden></div>
+
+    <div class="workspace" id="workspace">
+      <section class="theater-section" id="theater-section" hidden></section>
+      <main class="content-scroll" id="main"></main>
+    </div>
+  </div>
+  <div class="modal-backdrop" id="modal-backdrop" hidden></div>
+  <script src="/_hyla/bridge.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

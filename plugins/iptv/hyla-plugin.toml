@@ -1,0 +1,139 @@
+api_version = 1
+id = "hyla.iptv"
+name = "IPTV"
+version = "1.0.0"
+description = "Minimalist Apple TV-inspired IPTV live TV pane with XMLTV program guide, single or batch M3U import, HTML source auto-discovery, channel logos, multi-line failover, and HLS proxying."
+author = "Hyla"
+
+[engines]
+hyla = ">=3.20.0"
+
+[permissions]
+scopes = ["ui.webview", "ui.slot", "session.read", "network"]
+
+[app]
+command = ["./bin/hyla-iptv"]
+transport = "stdio"
+auto_start = true
+
+[[actions]]
+id = "open"
+title = "Open IPTV Pane"
+menu = "Pane"
+shortcut = "CmdOrCtrl+Alt+L"
+palette = true
+remote = true
+target = "app"
+view = "iptv"
+
+[[ui.slots]]
+id = "iptv"
+mount = "pane"
+title = "IPTV"
+mode = "webview"
+host = "app"
+web_root = "web"
+entry = "index.html"
+order = 30
+
+[[settings]]
+key = "proxy_mode"
+title = "Proxy Mode"
+description = "Network routing mode for playlists, logos, and live streams"
+type = "select"
+default = "auto"
+options = ["auto", "direct", "system", "custom"]
+
+[[settings]]
+key = "http_proxy"
+title = "Custom HTTP Proxy"
+description = "HTTP proxy URL used when Proxy Mode is set to custom"
+type = "string"
+default = ""
+placeholder = "http://127.0.0.1:7890"
+
+[[settings]]
+key = "auto_failover"
+title = "Auto-failover stream lines"
+description = "Automatically try backup stream lines when the current stream fails"
+type = "boolean"
+default = true
+
+[[settings]]
+key = "auto_mute_on_agent"
+title = "Auto-mute when agent finishes"
+description = "Mute live TV playback when a coding agent in Hyla finishes working"
+type = "boolean"
+default = false
+
+[[settings]]
+key = "user_agent"
+title = "Custom User-Agent"
+description = "Optional default User-Agent header sent for IPTV playlists and streams"
+type = "string"
+default = ""
+placeholder = "Mozilla/5.0"
+
+[i18n.zh-Hans]
+name = "IPTV 直播"
+description = "简约大气的 Apple TV 风格 IPTV 电视直播窗格，支持单个或批量导入 M3U 源、网页地址自动提取 M3U、台标墙、多线路切换与 HLS 本地代理播放。"
+
+[i18n.zh-Hans.actions]
+open = "打开 IPTV 窗格"
+
+[i18n.zh-Hans.slots]
+iptv = "IPTV 直播"
+
+[i18n.zh-Hans.settings.proxy_mode]
+title = "网络代理模式"
+description = "播放列表、台标和直播流的联网策略（推荐 auto：直播流优先直连、源拉取自动回退系统代理）"
+
+[i18n.zh-Hans.settings.http_proxy]
+title = "自定义 HTTP 代理"
+description = "当网络代理模式设为 custom 时使用的代理地址"
+placeholder = "http://127.0.0.1:7890"
+
+[i18n.zh-Hans.settings.auto_failover]
+title = "断流自动切换备用线路"
+description = "当同一频道的当前播放源不可用时自动尝试备用线路"
+
+[i18n.zh-Hans.settings.auto_mute_on_agent]
+title = "Agent 完成后自动静音"
+description = "当 Hyla 中的编程 Agent 完成工作时自动静音直播画面"
+
+[i18n.zh-Hans.settings.user_agent]
+title = "自定义 User-Agent"
+description = "请求直播源和视频流时默认携带的 User-Agent 请求头（留空使用内置默认值）"
+placeholder = "Mozilla/5.0"
+
+[i18n.ja]
+name = "IPTV"
+description = "Apple TV 風のミニマルな IPTV ライブ視聴ペイン。M3U の単体・一括登録、HTML からの M3U 自動検出、チャンネルロゴ表示、マルチ回線フォールバックに対応。"
+
+[i18n.ja.actions]
+open = "IPTV ペインを開く"
+
+[i18n.ja.slots]
+iptv = "IPTV"
+
+[i18n.ja.settings.proxy_mode]
+title = "プロキシモード"
+description = "プレイリスト・ロゴ・ライブ配信の通信方式"
+
+[i18n.ja.settings.http_proxy]
+title = "カスタム HTTP プロキシ"
+description = "プロキシモードが custom のときに使うプロキシ URL"
+placeholder = "http://127.0.0.1:7890"
+
+[i18n.ja.settings.auto_failover]
+title = "別回線へ自動切替"
+description = "再生中のストリームが失敗したとき自動的にバックアップ回線を試します"
+
+[i18n.ja.settings.auto_mute_on_agent]
+title = "エージェント完了時に自動ミュート"
+description = "Hyla のコーディングエージェント完了時にライブ再生をミュートします"
+
+[i18n.ja.settings.user_agent]
+title = "カスタム User-Agent"
+description = "IPTV プレイリストやストリーム取得時に送る User-Agent（任意）"
+placeholder = "Mozilla/5.0"

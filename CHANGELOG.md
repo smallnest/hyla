@@ -4,6 +4,17 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## Unreleased
+
+- **IPTV pane with a program guide (`hyla.iptv`)**: a live TV pane in the
+  style of Apple TV, with a guide that the playlist names: an "On Now"
+  rail, the programme on every channel tile, a Guide tab with the day's
+  line-up for each channel, and the current and next programme in the
+  player. The plugin reads XMLTV guides (`x-tvg-url`) in UTF-8 or GBK,
+  pairs them with the channels however the guide writes a number
+  (`CCTV1`, `CCTV-1`, `CCTV1综合`, `CCTV5+`, `CCTV5PLUS`), keeps only
+  the channels of the pane, and reads a guide again after six hours.
+
 ## 3.20.0
 
 - The UI framework Hyla is built on, MyGo, is 0.10.0 now: a popup attached
