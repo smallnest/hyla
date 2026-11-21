@@ -78,14 +78,14 @@ type PresetSource struct {
 func CuratedPresets() []PresetSource {
 	return []PresetSource{
 		{
-			ID:      "hacks-ipv4",
-			Name:    "IPv4 Domestic Live TV (hacks.tools)",
-			NameZh:  "IPv4 国内直播源 (hacks.tools)",
-			NameJa:  "IPv4 中国テレビライブ (hacks.tools)",
-			Desc:    "CCTV, satellite channels, movies, documentaries & local stations with logos",
-			DescZh:  "包含央视、卫视、电影、纪录片与地方频道，带高清台标",
-			DescJa:  "CCTV・衛星放送・映画・ドキュメンタリー・地方局（ロゴ付き）",
-			URL:     "https://iptv.hacks.tools/domestic/IPv4%20%E7%9B%B4%E6%92%AD%E6%BA%90/all/m3u",
+			ID:      "guovin-ipv4",
+			Name:    "IPv4 Domestic Live TV (Guovin/iptv-api)",
+			NameZh:  "IPv4 国内直播源 (Guovin/iptv-api)",
+			NameJa:  "IPv4 中国テレビライブ (Guovin/iptv-api)",
+			Desc:    "CCTV, satellite channels and local stations, checked daily, with logos and an EPG",
+			DescZh:  "央视、卫视与地方频道，每日自动检测更新，带台标与节目单",
+			DescJa:  "CCTV・衛星放送・地方局。毎日自動チェック更新、ロゴとEPG付き",
+			URL:     "https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/ipv4/result.m3u",
 			Country: "CN",
 		},
 		{
@@ -133,6 +133,8 @@ var (
 	vlcUARe    = regexp.MustCompile(`(?i)^#EXTVLCOPT:http-user-agent\s*=\s*(.+)$`)
 	vlcRefRe   = regexp.MustCompile(`(?i)^#EXTVLCOPT:http-referrer\s*=\s*(.+)$`)
 	extGrpRe   = regexp.MustCompile(`(?i)^#EXTGRP:\s*(.+)$`)
+	// playlistNoticeRe finds a title that holds only a date and a time.
+	playlistNoticeRe = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}`)
 )
 
 func parseEXTINFAttributes(line string) (attrs map[string]string, title string) {
@@ -308,6 +310,13 @@ func ParseM3U(raw []byte) (channels []RawChannel, epgURL string, err error) {
 		}
 		if cur.Name == "" {
 			cur.Name = channelNameFromURL(streamURL)
+		}
+		// Some generated playlists start with a notice whose title is
+		// the time of the last check, in the tvg-id of a channel. That
+		// entry is not a channel.
+		if playlistNoticeRe.MatchString(cur.Name) {
+			resetPending()
+			continue
 		}
 		cur.StreamURL = streamURL
 		cur.Label = label
@@ -541,7 +550,7 @@ func ResolveAndFetchSource(ctx context.Context, nc *netClients, cfg NetConfig, i
 		}, chs, nil
 	}
 
-	// If HTML page, discover embedded/linked M3U playlists (e.g. iptv.hacks.tools).
+	// If HTML page, discover embedded/linked M3U playlists.
 	if looksLikeHTML(strings.TrimSpace(string(data))) {
 		cands := discoverM3UURLsFromHTML(data, finalURL)
 		limit := len(cands)

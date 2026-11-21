@@ -1,6 +1,7 @@
 package main
 
 import (
+	"compress/gzip"
 	"context"
 	"encoding/json"
 	"encoding/xml"
@@ -589,7 +590,16 @@ func (s *epgService) fetchOne(rawURL string, channelFn func() []Channel) {
 		log.Printf("iptv epg %s: HTTP %s", rawURL, resp.Status)
 		return
 	}
-	raw, err := readXMLTV(io.LimitReader(resp.Body, maxEPGBytes), time.Now(), nil)
+	// The playlist may name a gzip file. Go unzips only when the server
+	// gives Content-Encoding.
+	body := io.Reader(io.LimitReader(resp.Body, maxEPGBytes))
+	if strings.HasSuffix(strings.ToLower(strings.TrimSpace(rawURL)), ".gz") {
+		if zr, zerr := gzip.NewReader(body); zerr == nil {
+			defer zr.Close()
+			body = io.LimitReader(zr, maxEPGBytes)
+		}
+	}
+	raw, err := readXMLTV(body, time.Now(), nil)
 	if err != nil {
 		log.Printf("iptv epg %s: %v", rawURL, err)
 		return

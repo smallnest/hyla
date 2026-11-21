@@ -4,7 +4,7 @@ Minimalist Apple TV–style live IPTV pane for Hyla as an out-of-process externa
 
 ## Features
 
-- **Single & Batch Source Import**: Paste one M3U URL, multiple URLs (one per line), raw M3U/M3U8 text, TVBox `#genre#` TXT lists, or web pages hosting `.m3u` links (e.g., `https://iptv.hacks.tools/domestic/IPv4%20%E7%9B%B4%E6%92%AD%E6%BA%90/all/m3u` automatically resolves its underlying `.m3u` playlist).
+- **Single & Batch Source Import**: Paste one M3U URL, multiple URLs (one per line), raw M3U/M3U8 text, TVBox `#genre#` TXT lists, or a web page that holds `.m3u` links (the pane finds its playlist). The preset for live TV in China is `https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/ipv4/result.m3u`.
 - **Apple TV–Inspired UI**:
   - Cinema 16:9 stage with auto-hiding translucent HUD (`LIVE` indicator, resolution badge, stream line switcher, Picture-in-Picture, full-pane theater mode).
   - Clean channel poster tiles highlighting **channel logo + channel name** (with monogram fallback and disk-cached logos).

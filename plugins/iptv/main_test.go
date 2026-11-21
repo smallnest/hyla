@@ -26,6 +26,8 @@ https://cdn.example.com/cctv1/index.m3u8$HD高清
 rtp://239.0.0.1:5000
 #EXTINF:-1 tvg-name="BBC" tvg-logo="https://img.example.com/bbc.png" group-title="News", BBC World News
 https://cdn.example.com/bbc/playlist.m3u8
+#EXTINF:-1 tvg-id="CCTV-1" tvg-name="CCTV-1" group-title="更新时间",2026-08-27 14:06:22
+https://cdn.example.com/notice/index.m3u8
 `
 	raws, epg, err := ParseM3U([]byte(m3u))
 	if err != nil {
