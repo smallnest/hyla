@@ -6,11 +6,13 @@ number; the notes of the upstream releases it includes follow its own.
 
 ## 3.21.2
 
-- **IPTV pane (`hyla.iptv` 1.1.2)**: a channel from a source that you
+- **IPTV pane (`hyla.iptv` 1.2.0)**: a channel from a source that you
   add shows its programme at once. Before this release, the pane kept
   the programmes that the guide had matched before the source was
-  added. The preset for live TV in China is now the best-fan/iptv-sources
-  playlist, which lists the response time of each channel.
+  added. The presets are now the sources in `iptv.md` of the repository,
+  which the pane reads at start: the preset for live TV in China is the
+  best-fan/iptv-sources playlist, which lists the response time of each
+  channel.
 
 ## 3.21.1
 

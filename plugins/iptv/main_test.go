@@ -552,14 +552,21 @@ func TestPluginHarnessEPG(t *testing.T) {
 		}
 		time.Sleep(25 * time.Millisecond)
 	}
-	mu.Lock()
-	gotEmit := false
-	for _, ev := range emitted {
-		if ev.Event == "iptv.epg" {
-			gotEmit = true
+	// The emit comes from the fetch, after the programmes are in place.
+	var gotEmit bool
+	emitDeadline := time.Now().Add(5 * time.Second)
+	for !gotEmit && time.Now().Before(emitDeadline) {
+		mu.Lock()
+		for _, ev := range emitted {
+			if ev.Event == "iptv.epg" {
+				gotEmit = true
+			}
+		}
+		mu.Unlock()
+		if !gotEmit {
+			time.Sleep(25 * time.Millisecond)
 		}
 	}
-	mu.Unlock()
 	if !gotEmit {
 		t.Fatalf("expected an iptv.epg emit after the fetch, got %+v", emitted)
 	}

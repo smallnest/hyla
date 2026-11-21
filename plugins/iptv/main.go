@@ -34,6 +34,7 @@ type iptvService struct {
 	netc         *netClients
 	media        *MediaServer
 	epg          *epgService
+	presets      *presetList
 	locale       string
 	cfg          NetConfig
 	workingPanes map[string]bool
@@ -99,8 +100,15 @@ func (s *iptvService) initRuntime(ctx context.Context, host *hylaplugin.Host, da
 		return s.getConfig()
 	})
 
+	presets := newPresetList(dataDir, s.netc, func() NetConfig {
+		return s.getConfig()
+	})
+	// A test reads the file it gives: no network, no wait for it.
+	presets.offline = isTestBinary()
+
 	s.mu.Lock()
 	oldMedia, oldEPG := s.media, s.epg
+	s.presets = presets
 	s.host = host
 	s.store = store
 	s.media = ms
@@ -114,6 +122,7 @@ func (s *iptvService) initRuntime(ctx context.Context, host *hylaplugin.Host, da
 		oldMedia.Close()
 	}
 
+	presets.start()
 	go func() {
 		rctx, cancel := context.WithTimeout(s.bgCtx, 5*time.Second)
 		defer cancel()
@@ -138,6 +147,18 @@ func (s *iptvService) startGuide(st *Store) {
 	if es := s.epgFor(); es != nil {
 		es.start(func() []Channel { return channels }, epgURLsOf(sources))
 	}
+}
+
+// presetSources returns the presets of iptv.md. The first call waits a
+// little for the file, so that an open pane shows the current sources.
+func (s *iptvService) presetSources(ctx context.Context) []PresetSource {
+	s.mu.RLock()
+	pl := s.presets
+	s.mu.RUnlock()
+	if pl == nil {
+		return fallbackPresets()
+	}
+	return pl.waitForFirst(ctx, presetsWaitOnOpen)
 }
 
 func (s *iptvService) ensureStore() (*Store, *MediaServer, error) {
@@ -259,12 +280,17 @@ func (s *iptvService) enrichChannel(ms *MediaServer, ch Channel) Channel {
 	return ch
 }
 
-func (s *iptvService) rpcBootstrap(st *Store, ms *MediaServer, loc string) map[string]any {
+func (s *iptvService) rpcBootstrap(ctx context.Context, st *Store, ms *MediaServer, loc string) map[string]any {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	sources, channels, groups, favorites, recent, lastCh := st.Snapshot()
 	outCh := make([]Channel, len(channels))
 	for i, ch := range channels {
 		outCh[i] = s.enrichChannel(ms, ch)
 	}
+	// The presets come from iptv.md; the first call may wait for it.
+	presets := s.presetSources(ctx)
 	out := map[string]any{
 		"locale":        loc,
 		"sources":       sources,
@@ -273,10 +299,21 @@ func (s *iptvService) rpcBootstrap(st *Store, ms *MediaServer, loc string) map[s
 		"favorites":     favorites,
 		"recent":        recent,
 		"lastChannelId": lastCh,
-		"presets":       CuratedPresets(),
+		"presets":       presets,
 		"settings":      s.getConfig(),
 		"storage":       st.StorageUsage(),
 		"activeJobs":    s.activeJobsList(),
+	}
+	// A pane that waits for the guide calls bootstrap again after a
+	// fetch, and it hears of a fetch that ends later. Set this before
+	// the work that follows: a fetch can end while it runs.
+	if es := s.epgFor(); es != nil {
+		es.setOnReady(func() {
+			go func() {
+				progs, _ := es.programGuide()
+				s.emitEvent("iptv.epg", map[string]any{"programs": progs, "epg": es.status()})
+			}()
+		})
 	}
 	if es := s.epgFor(); es != nil {
 		// The guide keeps the programmes of the channels that it last
@@ -285,16 +322,7 @@ func (s *iptvService) rpcBootstrap(st *Store, ms *MediaServer, loc string) map[s
 		es.rematchIfStale(channels)
 		programs, _ := es.programGuide()
 		out["programs"] = programs
-		status := es.status() // holds the time of the last read
-		// A pane that waits for the guide calls bootstrap again after a
-		// fetch, and it hears of a fetch that ends later.
-		es.setOnReady(func() {
-			go func() {
-				progs, _ := es.programGuide()
-				s.emitEvent("iptv.epg", map[string]any{"programs": progs, "epg": es.status()})
-			}()
-		})
-		out["epg"] = status
+		out["epg"] = es.status() // holds the time of the last read
 	}
 	return out
 }
@@ -344,7 +372,7 @@ func (s *iptvService) handleWebRPC(ctx context.Context, host *hylaplugin.Host, p
 	var data any
 	switch p.Method {
 	case "iptv.bootstrap":
-		data = s.rpcBootstrap(st, ms, loc)
+		data = s.rpcBootstrap(ctx, st, ms, loc)
 
 	case "iptv.addSources":
 		var req struct {
@@ -403,7 +431,7 @@ func (s *iptvService) handleWebRPC(ctx context.Context, host *hylaplugin.Host, p
 		data = map[string]any{
 			"added":     len(addedSources),
 			"warnings":  warnings,
-			"bootstrap": s.rpcBootstrap(st, ms, loc),
+			"bootstrap": s.rpcBootstrap(ctx, st, ms, loc),
 		}
 
 	case "iptv.toggleSource":
@@ -416,7 +444,7 @@ func (s *iptvService) handleWebRPC(ctx context.Context, host *hylaplugin.Host, p
 			return hylaplugin.WebViewRPCResult{}, terr
 		}
 		s.startGuide(st)
-		data = map[string]any{"bootstrap": s.rpcBootstrap(st, ms, loc)}
+		data = map[string]any{"bootstrap": s.rpcBootstrap(ctx, st, ms, loc)}
 
 	case "iptv.removeSource":
 		var req struct {
@@ -427,7 +455,7 @@ func (s *iptvService) handleWebRPC(ctx context.Context, host *hylaplugin.Host, p
 			return hylaplugin.WebViewRPCResult{}, rerr
 		}
 		s.startGuide(st)
-		data = map[string]any{"bootstrap": s.rpcBootstrap(st, ms, loc)}
+		data = map[string]any{"bootstrap": s.rpcBootstrap(ctx, st, ms, loc)}
 
 	case "iptv.refreshSources":
 		job := s.startJob("refresh", "Refreshing sources…")

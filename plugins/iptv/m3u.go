@@ -75,44 +75,6 @@ type PresetSource struct {
 	Country string `json:"country"`
 }
 
-func CuratedPresets() []PresetSource {
-	return []PresetSource{
-		{
-			ID:      "best-fan-cn",
-			Name:    "Domestic Live TV (best-fan/iptv-sources)",
-			NameZh:  "国内直播源 (best-fan/iptv-sources)",
-			NameJa:  "中国テレビライブ (best-fan/iptv-sources)",
-			Desc:    "CCTV, satellite channels and local stations, with logos and a measured response time",
-			DescZh:  "央视、卫视与地方频道，带台标与实测响应时间",
-			DescJa:  "CCTV・衛星放送・地方局。ロゴと実測応答時間付き",
-			URL:     "https://raw.githubusercontent.com/best-fan/iptv-sources/master/cn_all_status.m3u8",
-			Country: "CN",
-		},
-		{
-			ID:      "iptv-org-zho",
-			Name:    "IPTV-org Chinese Channels",
-			NameZh:  "IPTV-org 中文频道",
-			NameJa:  "IPTV-org 中国語チャンネル",
-			Desc:    "Open-source global Chinese-language public live TV streams",
-			DescZh:  "开源社区维护的全球华语公开直播频道集合",
-			DescJa:  "オープンソースの中国語公開ライブTVプレイリスト",
-			URL:     "https://iptv-org.github.io/iptv/languages/zho.m3u",
-			Country: "ZH",
-		},
-		{
-			ID:      "iptv-org-eng",
-			Name:    "IPTV-org English & International",
-			NameZh:  "IPTV-org 英语与国际频道",
-			NameJa:  "IPTV-org 英語・国際チャンネル",
-			Desc:    "Open-source English news, tech, music, and documentary streams",
-			DescZh:  "开源英文新闻、科技、音乐与纪录片直播流",
-			DescJa:  "英語ニュース・科学・音楽・ドキュメンタリーの公開ストリーム",
-			URL:     "https://iptv-org.github.io/iptv/languages/eng.m3u",
-			Country: "INTL",
-		},
-	}
-}
-
 func shortHash(s string) string {
 	h := sha256.Sum256([]byte(s))
 	return hex.EncodeToString(h[:8])
