@@ -4,7 +4,7 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
-## Unreleased
+## 3.21.0
 
 - **IPTV pane with a program guide (`hyla.iptv`)**: a live TV pane in the
   style of Apple TV, with a guide that the playlist names: an "On Now"
