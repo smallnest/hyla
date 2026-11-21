@@ -78,14 +78,14 @@ type PresetSource struct {
 func CuratedPresets() []PresetSource {
 	return []PresetSource{
 		{
-			ID:      "guovin-ipv4",
-			Name:    "IPv4 Domestic Live TV (Guovin/iptv-api)",
-			NameZh:  "IPv4 国内直播源 (Guovin/iptv-api)",
-			NameJa:  "IPv4 中国テレビライブ (Guovin/iptv-api)",
-			Desc:    "CCTV, satellite channels and local stations, checked daily, with logos and an EPG",
-			DescZh:  "央视、卫视与地方频道，每日自动检测更新，带台标与节目单",
-			DescJa:  "CCTV・衛星放送・地方局。毎日自動チェック更新、ロゴとEPG付き",
-			URL:     "https://raw.githubusercontent.com/Guovin/iptv-api/gd/output/ipv4/result.m3u",
+			ID:      "best-fan-cn",
+			Name:    "Domestic Live TV (best-fan/iptv-sources)",
+			NameZh:  "国内直播源 (best-fan/iptv-sources)",
+			NameJa:  "中国テレビライブ (best-fan/iptv-sources)",
+			Desc:    "CCTV, satellite channels and local stations, with logos and a measured response time",
+			DescZh:  "央视、卫视与地方频道，带台标与实测响应时间",
+			DescJa:  "CCTV・衛星放送・地方局。ロゴと実測応答時間付き",
+			URL:     "https://raw.githubusercontent.com/best-fan/iptv-sources/master/cn_all_status.m3u8",
 			Country: "CN",
 		},
 		{

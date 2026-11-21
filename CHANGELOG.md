@@ -12,6 +12,12 @@ number; the notes of the upstream releases it includes follow its own.
   added, and showed the new channel's programme only after the next
   start.
 
+## Unreleased
+
+- **IPTV pane (`hyla.iptv` 1.1.2)**: the preset for live TV in China is
+  now the best-fan/iptv-sources playlist, which lists the response time
+  of each channel.
+
 ## 3.21.1
 
 - **IPTV pane (`hyla.iptv` 1.1.0)**: the preset for live TV in China is
