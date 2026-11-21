@@ -27,6 +27,34 @@
       },
       "download_url": "https://github.com/smallnest/hyla/releases/latest/download/hyla.timeline-{version}-{os}-{arch}.hylapkg",
       "sha256_url": "https://github.com/smallnest/hyla/releases/latest/download/hyla.timeline-{version}-{os}-{arch}.hylapkg.sha256"
+    },
+    {
+      "id": "hyla.podcast",
+      "name": "Podcast",
+      "author": "Hyla",
+      "description": "Podcast player pane with RSS/Apple/Xiaoyuzhou subscriptions, curated discovery, bilingual transcripts, AI guide & Q&A, vocabulary notebook, offline cache, and coding-agent auto-pause.",
+      "homepage": "https://github.com/smallnest/hyla/tree/master/plugins/podcast",
+      "version": "1.0.0",
+      "min_hyla_version": "3.20.0",
+      "permissions": [
+        "ui.webview",
+        "ui.slot",
+        "session.read",
+        "network",
+        "secrets"
+      ],
+      "i18n": {
+        "zh-Hans": {
+          "name": "播客",
+          "description": "播客窗格插件：支持 RSS / Apple Podcasts / 小宇宙订阅、精选发现、双语字幕、AI 导读与问答、生词本、离线缓存及编程 Agent 完成时自动暂停。"
+        },
+        "ja": {
+          "name": "ポッドキャスト",
+          "description": "RSS / Apple Podcasts / 小宇宙の購読、厳選ディスカバリー、バイリンガル字幕、AI ガイド・Q&A、単語帳、オフライン保存、コーディングエージェント連携の自動一時停止を備えたポッドキャストペイン。"
+        }
+      },
+      "download_url": "https://github.com/smallnest/hyla/releases/latest/download/hyla.podcast-{version}-{os}-{arch}.hylapkg",
+      "sha256_url": "https://github.com/smallnest/hyla/releases/latest/download/hyla.podcast-{version}-{os}-{arch}.hylapkg.sha256"
     }
   ]
 }

@@ -1,0 +1,228 @@
+api_version = 1
+id = "hyla.podcast"
+name = "Podcast"
+version = "1.0.0"
+description = "Podcast player pane with RSS/Apple/Xiaoyuzhou subscriptions, curated discovery, bilingual transcripts, AI guide & Q&A, vocabulary notebook, offline cache, and coding-agent auto-pause."
+author = "Hyla"
+
+[engines]
+hyla = ">=3.20.0"
+
+[permissions]
+scopes = ["ui.webview", "ui.slot", "session.read", "network", "secrets"]
+
+[app]
+command = ["./bin/hyla-podcast"]
+transport = "stdio"
+auto_start = true
+
+[[actions]]
+id = "open"
+title = "Open Podcast Pane"
+menu = "Pane"
+shortcut = "CmdOrCtrl+Alt+P"
+palette = true
+remote = true
+target = "app"
+view = "podcast"
+
+[[ui.slots]]
+id = "podcast"
+mount = "pane"
+title = "Podcast"
+mode = "webview"
+host = "app"
+web_root = "web"
+entry = "index.html"
+order = 20
+
+[[settings]]
+key = "auto_pause_on_agent"
+title = "Auto-pause when agent finishes"
+description = "Pause podcast playback when a coding agent in Hyla finishes working"
+type = "boolean"
+default = true
+
+[[settings]]
+key = "ai_provider"
+title = "AI Provider"
+description = "Model provider preset for AI guide, Q&A, and optional translation"
+type = "select"
+default = "deepseek"
+options = ["deepseek", "openai", "openrouter", "siliconflow", "kimi", "ollama", "custom"]
+
+[[settings]]
+key = "ai_base_url"
+title = "AI Base URL"
+description = "Optional custom OpenAI-compatible API endpoint (overrides provider default)"
+type = "string"
+default = ""
+placeholder = "https://api.deepseek.com/v1"
+
+[[settings]]
+key = "ai_model"
+title = "AI Model"
+description = "Optional custom model name (overrides provider default)"
+type = "string"
+default = ""
+placeholder = "deepseek-chat"
+
+[[settings]]
+key = "ai_api_key"
+title = "AI API Key"
+description = "Stored securely in the system keychain"
+type = "secret"
+placeholder = "sk-..."
+
+[[settings]]
+key = "translate_engine"
+title = "Translation Engine"
+description = "Engine used to translate podcast transcripts"
+type = "select"
+default = "google"
+options = ["google", "ai"]
+
+[[settings]]
+key = "asr_base_url"
+title = "Cloud ASR Base URL"
+description = "OpenAI-compatible transcription API endpoint (e.g. Groq or SiliconFlow)"
+type = "string"
+default = ""
+placeholder = "https://api.groq.com/openai/v1"
+
+[[settings]]
+key = "asr_model"
+title = "Cloud ASR Model"
+description = "Model name for cloud audio transcription"
+type = "string"
+default = "whisper-large-v3-turbo"
+placeholder = "whisper-large-v3-turbo"
+
+[[settings]]
+key = "asr_api_key"
+title = "Cloud ASR API Key"
+description = "API key for cloud transcription (falls back to AI API Key if empty)"
+type = "secret"
+placeholder = "gsk_..."
+
+[[settings]]
+key = "http_proxy"
+title = "HTTP Proxy"
+description = "Optional proxy URL for feeds, audio streams, and AI requests"
+type = "string"
+default = ""
+placeholder = "http://127.0.0.1:7890"
+
+[i18n.zh-Hans]
+name = "播客"
+description = "播客窗格插件：支持 RSS / Apple Podcasts / 小宇宙订阅、精选发现、双语字幕、AI 导读与问答、生词本、离线缓存及编程 Agent 完成时自动暂停。"
+
+[i18n.zh-Hans.actions]
+open = "打开播客窗格"
+
+[i18n.zh-Hans.slots]
+podcast = "播客"
+
+[i18n.zh-Hans.settings.auto_pause_on_agent]
+title = "Agent 完成后自动暂停"
+description = "当 Hyla 中的编程 Agent 完成工作时自动暂停播客播放"
+
+[i18n.zh-Hans.settings.ai_provider]
+title = "AI 服务商"
+description = "用于 AI 导读、问答和可选翻译的模型服务商预设"
+
+[i18n.zh-Hans.settings.ai_base_url]
+title = "AI 接口地址"
+description = "可选的自定义 OpenAI 兼容接口地址（覆盖服务商默认值）"
+placeholder = "https://api.deepseek.com/v1"
+
+[i18n.zh-Hans.settings.ai_model]
+title = "AI 模型"
+description = "可选的自定义模型名称（覆盖服务商默认值）"
+placeholder = "deepseek-chat"
+
+[i18n.zh-Hans.settings.ai_api_key]
+title = "AI API Key"
+description = "安全保存在系统钥匙串中"
+placeholder = "sk-..."
+
+[i18n.zh-Hans.settings.translate_engine]
+title = "字幕翻译引擎"
+description = "用于翻译播客字幕的引擎"
+
+[i18n.zh-Hans.settings.asr_base_url]
+title = "云端语音识别地址"
+description = "OpenAI 兼容的音频转写接口地址（如 Groq 或硅基流动）"
+placeholder = "https://api.groq.com/openai/v1"
+
+[i18n.zh-Hans.settings.asr_model]
+title = "云端语音识别模型"
+description = "用于云端音频转写的模型名称"
+placeholder = "whisper-large-v3-turbo"
+
+[i18n.zh-Hans.settings.asr_api_key]
+title = "云端语音识别 Key"
+description = "云端转写 API Key（留空时回退使用 AI API Key）"
+placeholder = "gsk_..."
+
+[i18n.zh-Hans.settings.http_proxy]
+title = "HTTP 代理"
+description = "用于拉取订阅源、音频流和 AI 请求的可选代理地址"
+placeholder = "http://127.0.0.1:7890"
+
+[i18n.ja]
+name = "ポッドキャスト"
+description = "RSS / Apple Podcasts / 小宇宙の購読、厳選ディスカバリー、バイリンガル字幕、AI ガイド・Q&A、単語帳、オフライン保存、コーディングエージェント連携の自動一時停止を備えたポッドキャストペイン。"
+
+[i18n.ja.actions]
+open = "ポッドキャストペインを開く"
+
+[i18n.ja.slots]
+podcast = "ポッドキャスト"
+
+[i18n.ja.settings.auto_pause_on_agent]
+title = "エージェント完了時に自動一時停止"
+description = "Hyla 内のコーディングエージェントが作業を完了したとき再生を一時停止します"
+
+[i18n.ja.settings.ai_provider]
+title = "AI プロバイダー"
+description = "AI ガイド・Q&A・翻訳に使うプロバイダー設定"
+
+[i18n.ja.settings.ai_base_url]
+title = "AI ベース URL"
+description = "任意の OpenAI 互換 API エンドポイント（プロバイダー既定値を上書き）"
+placeholder = "https://api.deepseek.com/v1"
+
+[i18n.ja.settings.ai_model]
+title = "AI モデル"
+description = "任意のモデル名（プロバイダー既定値を上書き）"
+placeholder = "deepseek-chat"
+
+[i18n.ja.settings.ai_api_key]
+title = "AI API Key"
+description = "システムのキーチェーンに安全に保存されます"
+placeholder = "sk-..."
+
+[i18n.ja.settings.translate_engine]
+title = "翻訳エンジン"
+description = "字幕の翻訳に使用するエンジン"
+
+[i18n.ja.settings.asr_base_url]
+title = "クラウド ASR ベース URL"
+description = "OpenAI 互換の文字起こし API エンドポイント（例: Groq / SiliconFlow）"
+placeholder = "https://api.groq.com/openai/v1"
+
+[i18n.ja.settings.asr_model]
+title = "クラウド ASR モデル"
+description = "クラウド音声文字起こしに使用するモデル名"
+placeholder = "whisper-large-v3-turbo"
+
+[i18n.ja.settings.asr_api_key]
+title = "クラウド ASR API Key"
+description = "クラウド文字起こし用 API Key（空の場合は AI API Key を使用）"
+placeholder = "gsk_..."
+
+[i18n.ja.settings.http_proxy]
+title = "HTTP プロキシ"
+description = "フィード・音声ストリーム・AI リクエストに使用するプロキシ URL"
+placeholder = "http://127.0.0.1:7890"

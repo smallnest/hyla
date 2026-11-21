@@ -187,6 +187,11 @@ func (b *WebBridge) EnsurePaneWebView(win *mygo.Window, sessionID string, p *pro
 		return entry
 	}
 
+	b.mu.RLock()
+	store := b.store
+	b.mu.RUnlock()
+	inst, _ := b.lookupPlugin(store, p.Plugin)
+
 	sess := b.sessionFor(p.Plugin)
 	// Leave OnWillDownload and SetPermissionHandler unset so Untrusted defaults
 	// deny downloads and browser permissions cleanly.
@@ -195,6 +200,7 @@ func (b *WebBridge) EnsurePaneWebView(win *mygo.Window, sessionID string, p *pro
 			Untrusted: true,
 			Session:   sess,
 			DevTools:  mygo.DevToolsEnabled,
+			Autoplay:  webViewAutoplay(inst),
 		},
 	})
 	if err != nil {
@@ -514,7 +520,7 @@ func (b *WebBridge) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Cache-Control", "no-store")
-	w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-src 'none'; object-src 'none'")
+	w.Header().Set("Content-Security-Policy", webViewCSP(inst))
 
 	cleanPath := path.Clean("/" + r.URL.Path)
 	switch cleanPath {
@@ -645,6 +651,20 @@ func (b *WebBridge) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", ct)
 	_, _ = w.Write(data)
+}
+
+func webViewCSP(inst *manifest.InstalledPlugin) string {
+	if inst != nil && inst.Entry.HasPermission(manifest.PermNetwork) {
+		return "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' http://127.0.0.1:* http://localhost:* https: data: blob:; media-src 'self' http://127.0.0.1:* http://localhost:* https: data: blob:; font-src 'self' data:; connect-src 'self'; frame-src 'none'; object-src 'none'"
+	}
+	return "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; frame-src 'none'; object-src 'none'"
+}
+
+func webViewAutoplay(inst *manifest.InstalledPlugin) mygo.Autoplay {
+	if inst != nil && inst.Entry.HasPermission(manifest.PermNetwork) {
+		return mygo.AutoplayAllow
+	}
+	return mygo.AutoplayUserGesture
 }
 
 func findWebViewSlot(m *manifest.Manifest, slotID string) (manifest.SlotSpec, bool) {

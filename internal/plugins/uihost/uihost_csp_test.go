@@ -93,3 +93,85 @@ entry = "index.html"
 		t.Fatal("expected other plugin binding preserved")
 	}
 }
+
+func TestWebViewCSPWithNetworkPermission(t *testing.T) {
+	base := t.TempDir()
+	st := &manifest.Store{BaseDir: base, UseKeychain: boolPtr(false)}
+
+	writeWebPlugin := func(id, perms string) {
+		t.Helper()
+		pDir := filepath.Join(base, id)
+		if err := os.MkdirAll(filepath.Join(pDir, "web"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		_ = os.WriteFile(filepath.Join(pDir, manifest.ManifestFileName), []byte(`
+api_version = 1
+id = "`+id+`"
+name = "Test"
+version = "1.0.0"
+
+[permissions]
+scopes = [`+perms+`]
+
+[[ui.slots]]
+id = "main"
+mount = "pane"
+title = "Main"
+mode = "webview"
+web_root = "web"
+entry = "index.html"
+`), 0o644)
+		_ = os.WriteFile(filepath.Join(pDir, "web", "index.html"), []byte("<html>ok</html>"), 0o644)
+		if _, err := st.Link(pDir, true); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	writeWebPlugin("com.example.nonet", `"ui.webview"`)
+	writeWebPlugin("com.example.withnet", `"ui.webview", "network"`)
+
+	bridge := NewWebBridge(st, func() *theme.Palette { return &theme.Light }, nil)
+
+	noNetReq := httptest.NewRequest(http.MethodGet, "hylaplugin://com.example.nonet/index.html", nil)
+	noNetRec := httptest.NewRecorder()
+	bridge.ServeHTTP(noNetRec, noNetReq)
+	if noNetRec.Code != http.StatusOK {
+		t.Fatalf("nonet status=%d", noNetRec.Code)
+	}
+	noNetCSP := noNetRec.Header().Get("Content-Security-Policy")
+	if strings.Contains(noNetCSP, "media-src") {
+		t.Fatalf("plugin without network permission must not receive media-src: %q", noNetCSP)
+	}
+	if !strings.Contains(noNetCSP, "img-src 'self' data: blob:") {
+		t.Fatalf("unexpected nonet img-src: %q", noNetCSP)
+	}
+
+	netReq := httptest.NewRequest(http.MethodGet, "hylaplugin://com.example.withnet/index.html", nil)
+	netRec := httptest.NewRecorder()
+	bridge.ServeHTTP(netRec, netReq)
+	if netRec.Code != http.StatusOK {
+		t.Fatalf("withnet status=%d", netRec.Code)
+	}
+	netCSP := netRec.Header().Get("Content-Security-Policy")
+	for _, want := range []string{
+		"default-src 'self'",
+		"media-src 'self' http://127.0.0.1:* http://localhost:* https: data: blob:",
+		"img-src 'self' http://127.0.0.1:* http://localhost:* https: data: blob:",
+		"connect-src 'self'",
+		"frame-src 'none'",
+		"object-src 'none'",
+	} {
+		if !strings.Contains(netCSP, want) {
+			t.Fatalf("withnet CSP missing %q: %q", want, netCSP)
+		}
+	}
+
+	noNetInst, _ := bridge.lookupPlugin(st, "com.example.nonet")
+	if got := webViewAutoplay(noNetInst); got != mygo.AutoplayUserGesture {
+		t.Fatalf("nonet webViewAutoplay = %v, want AutoplayUserGesture", got)
+	}
+	netInst, _ := bridge.lookupPlugin(st, "com.example.withnet")
+	if got := webViewAutoplay(netInst); got != mygo.AutoplayAllow {
+		t.Fatalf("withnet webViewAutoplay = %v, want AutoplayAllow", got)
+	}
+}

@@ -30,42 +30,50 @@ func TestEmbeddedCatalogValid(t *testing.T) {
 		t.Fatalf("unexpected embedded catalog: %+v", cat)
 	}
 
-	var tl *Plugin
-	for i := range cat.Plugins {
-		if cat.Plugins[i].ID == "hyla.timeline" {
-			tl = &cat.Plugins[i]
-			break
+	for _, spec := range []struct {
+		id     string
+		subdir string
+	}{
+		{"hyla.timeline", "timeline"},
+		{"hyla.podcast", "podcast"},
+	} {
+		var entry *Plugin
+		for i := range cat.Plugins {
+			if cat.Plugins[i].ID == spec.id {
+				entry = &cat.Plugins[i]
+				break
+			}
 		}
-	}
-	if tl == nil {
-		t.Fatal("embedded catalog missing hyla.timeline")
-	}
+		if entry == nil {
+			t.Fatalf("embedded catalog missing %s", spec.id)
+		}
 
-	for _, plat := range []string{"linux/amd64", "linux/arm64", "darwin/amd64", "darwin/arm64", "windows/amd64", "windows/arm64"} {
-		goos, goarch, _ := strings.Cut(plat, "/")
-		dl, err := tl.ResolveDownload(goos, goarch)
+		for _, plat := range []string{"linux/amd64", "linux/arm64", "darwin/amd64", "darwin/arm64", "windows/amd64", "windows/arm64"} {
+			goos, goarch, _ := strings.Cut(plat, "/")
+			dl, err := entry.ResolveDownload(goos, goarch)
+			if err != nil {
+				t.Fatalf("ResolveDownload(%s, %s): %v", spec.id, plat, err)
+			}
+			wantSuffix := "/" + spec.id + "-" + entry.Version + "-" + goos + "-" + goarch + ".hylapkg"
+			if !strings.HasSuffix(dl.URL, wantSuffix) {
+				t.Errorf("%s URL(%s) = %q, want suffix %q", spec.id, plat, dl.URL, wantSuffix)
+			}
+			if !strings.HasSuffix(dl.SHA256URL, wantSuffix+".sha256") {
+				t.Errorf("%s SHA256URL(%s) = %q, want suffix %q", spec.id, plat, dl.SHA256URL, wantSuffix+".sha256")
+			}
+		}
+
+		// Cross-check root plugins/<subdir>/hyla-plugin.toml against plugin_market.json.
+		mf, err := manifest.LoadFile(filepath.Join("..", "..", "..", "plugins", spec.subdir))
 		if err != nil {
-			t.Fatalf("ResolveDownload(%s): %v", plat, err)
+			t.Fatalf("load %s plugin manifest: %v", spec.subdir, err)
 		}
-		wantSuffix := "/hyla.timeline-" + tl.Version + "-" + goos + "-" + goarch + ".hylapkg"
-		if !strings.HasSuffix(dl.URL, wantSuffix) {
-			t.Errorf("URL(%s) = %q, want suffix %q", plat, dl.URL, wantSuffix)
+		if mf.ID != entry.ID || mf.Version != entry.Version {
+			t.Errorf("%s manifest mismatch: toml=(%s %s) market=(%s %s)", spec.subdir, mf.ID, mf.Version, entry.ID, entry.Version)
 		}
-		if !strings.HasSuffix(dl.SHA256URL, wantSuffix+".sha256") {
-			t.Errorf("SHA256URL(%s) = %q, want suffix %q", plat, dl.SHA256URL, wantSuffix+".sha256")
+		if !slices.Equal(mf.Permissions.Scopes, entry.Permissions) {
+			t.Errorf("%s permissions mismatch: toml=%v market=%v", spec.subdir, mf.Permissions.Scopes, entry.Permissions)
 		}
-	}
-
-	// Cross-check root plugins/timeline/hyla-plugin.toml against plugin_market.json.
-	tmManifest, err := manifest.LoadFile(filepath.Join("..", "..", "..", "plugins", "timeline"))
-	if err != nil {
-		t.Fatalf("load timeline plugin manifest: %v", err)
-	}
-	if tmManifest.ID != tl.ID || tmManifest.Version != tl.Version {
-		t.Errorf("timeline manifest mismatch: toml=(%s %s) market=(%s %s)", tmManifest.ID, tmManifest.Version, tl.ID, tl.Version)
-	}
-	if !slices.Equal(tmManifest.Permissions.Scopes, tl.Permissions) {
-		t.Errorf("timeline permissions mismatch: toml=%v market=%v", tmManifest.Permissions.Scopes, tl.Permissions)
 	}
 }
 
