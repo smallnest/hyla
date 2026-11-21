@@ -42,6 +42,14 @@ security create-keychain -p "$pw" "$keychain"
 security unlock-keychain -p "$pw" "$keychain"
 security import "$keychain.p12" -k "$keychain" -P "$pw" -T /usr/bin/codesign -A >/dev/null
 rm -f "$keychain.p12"
+# The partition list lets codesign use the key without asking. It names
+# codesign, so other programs still cannot use the key after a sleep.
+security unlock-keychain -p "$pw" "$keychain"
+security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$pw" "$keychain" >/dev/null
+# The keychain locks after 5 idle minutes and when the Mac sleeps, as the
+# login keychain does. codesign signs many files and keeps the keychain
+# unlocked while it runs, so a build needs no password.
+security set-keychain-settings -l -u -t 300 "$keychain"
 # The keychain belongs to the user's keychain search, with the login
 # keychain after it: what codesign finds there, it finds by the name in
 # mygo.json, and the login keychain's secrets stay where they are.

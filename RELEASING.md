@@ -42,6 +42,9 @@ The Mac that builds locally runs `scripts/sign-macos.sh` once with the
 same secrets, from `scripts/signing.p12` and `scripts/signing.pw`. Then a
 local `go tool mygo build` signs the app as the Release workflow does.
 
+The keychain lets codesign use the key without asking. It locks after
+5 idle minutes and when the Mac sleeps.
+
 1. Pick the version: a patch (2.1.4 → 2.1.5) for fixes and small
    changes, a minor for features.
 2. Set it in `mygo.json` (`"version"`).
