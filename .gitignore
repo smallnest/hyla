@@ -22,3 +22,7 @@ scripts/signing.pw
 .signing/
 /plugins/*/bin/
 /plugins/*/*.hylapkg
+
+# Local release notes and signing setup, kept out of the repository.
+/RELEASING.md
+/scripts/sign-macos.sh
