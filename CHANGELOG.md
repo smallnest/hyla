@@ -4,7 +4,7 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
-## Unreleased
+## 3.21.1
 
 - **IPTV pane (`hyla.iptv` 1.1.0)**: the preset for live TV in China is
   now the Guovin/iptv-api playlist, which the project checks every day.
