@@ -82,7 +82,7 @@ func TestParseXMLTVWindowAndFields(t *testing.T) {
 	if len(raw.programs) != 3 {
 		t.Fatalf("expected 3 programmes in the window, got %d: %+v", len(raw.programs), raw.programs)
 	}
-	guide := raw.match([]Channel{{Name: "CCTV-1 综合"}}, loc)
+	guide, _ := raw.match([]Channel{{Name: "CCTV-1 综合"}}, loc)
 	list := guide.ByChannel["cctv-1 综合"]
 	if len(list) != 2 {
 		t.Fatalf("expected 2 matched programmes, got %+v", guide.ByChannel)
@@ -115,7 +115,7 @@ func TestParseXMLTVGBK(t *testing.T) {
 	if err != nil {
 		t.Fatalf("readXMLTV GBK: %v", err)
 	}
-	guide := raw.match([]Channel{{Name: "CCTV1"}}, loc)
+	guide, _ := raw.match([]Channel{{Name: "CCTV1"}}, loc)
 	list := guide.ByChannel["cctv1"]
 	if len(list) != 1 || list[0].Title != "新闻" {
 		t.Fatalf("GBK title not decoded: %+v", guide.ByChannel)
@@ -173,6 +173,62 @@ func TestEPGServiceRefreshAndMatch(t *testing.T) {
 	defer svc2.Close()
 	if g, _ := svc2.programGuide(); len(g["cctv-1 综合"]) != 1 {
 		t.Fatalf("guide cache not read back: %+v", g)
+	}
+}
+
+func TestEPGRematchAfterChannelChange(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/epg.xml", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = io.WriteString(w, `<?xml version="1.0" encoding="UTF-8"?><tv>`+
+			`<programme channel="CCTV1" start="`+epgTime(time.Now())+`" stop="`+epgTime(time.Now().Add(time.Hour))+`"><title>News</title></programme>`+
+			`<programme channel="CCTV2" start="`+epgTime(time.Now())+`" stop="`+epgTime(time.Now().Add(time.Hour))+`"><title>Money</title></programme>`+
+			`</tv>`)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+
+	store, err := NewStore(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc := newEPGService(context.Background(), store, newNetClients(), defaultNetConfig)
+	defer svc.Close()
+
+	chs := []Channel{{ID: "a", Name: "CCTV-1 综合"}}
+	svc.rematchIfStale(chs)
+	svc.refresh(func() []Channel { return chs }, []string{srv.URL + "/epg.xml"})
+	deadline := time.Now().Add(5 * time.Second)
+	for svc.status()["state"] != "ready" && time.Now().Before(deadline) {
+		time.Sleep(20 * time.Millisecond)
+	}
+
+	// A new source adds CCTV-2. The pane matches the guide again without
+	// a second fetch of it.
+	chs = append(chs, Channel{ID: "b", Name: "CCTV-2", NormName: "cctv-2"})
+	svc.rematchIfStale(chs)
+	guide, _ := svc.programGuide()
+	if len(guide["cctv-1 综合"]) != 1 || len(guide["cctv-2"]) != 1 || guide["cctv-2"][0].Title != "Money" {
+		t.Fatalf("new channel has no programme: %+v", guide)
+	}
+
+	// The channel list unchanged keeps the match it has.
+	before := svc.status()["programs"]
+	svc.rematchIfStale(chs)
+	if after := svc.status()["programs"]; after != before {
+		t.Fatalf("a second match with the same channels changed the guide: %v -> %v", before, after)
+	}
+
+	// A guide from the cache file, with no programmes as read, still
+	// keeps the programmes of a channel that stays.
+	store2, err := NewStore(store.dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc2 := newEPGService(context.Background(), store2, newNetClients(), defaultNetConfig)
+	defer svc2.Close()
+	svc2.rematchIfStale(chs[:1])
+	if g, _ := svc2.programGuide(); len(g["cctv-1 综合"]) != 1 {
+		t.Fatalf("cached channel lost its programmes: %+v", g)
 	}
 }
 

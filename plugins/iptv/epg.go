@@ -3,6 +3,8 @@ package main
 import (
 	"compress/gzip"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
@@ -40,6 +42,8 @@ type epgMatcher struct {
 	heads map[string][]string // first two words, as "cctv 1", to the channels that hold them
 	plain map[string]string   // first two words to the channel that ends there, as "cctv 1"
 	plus  map[string]bool     // first two words of a channel with a plus, as "cctv 5"
+	// rev names the channels of the match, as channelsRevOf does.
+	rev string
 }
 
 // epgWords splits a name into its words and numbers: "CCTV-1 综合" becomes
@@ -292,7 +296,7 @@ func readXMLTV(r io.Reader, now time.Time, loc *time.Location) (*epgRawGuide, er
 }
 
 // match pairs the programmes with the channels that the playlist holds now.
-func (raw *epgRawGuide) match(channels []Channel, loc *time.Location) *EPGGuide {
+func (raw *epgRawGuide) match(channels []Channel, loc *time.Location) (*EPGGuide, *epgMatcher) {
 	if loc == nil {
 		loc = time.Local
 	}
@@ -337,7 +341,8 @@ func (raw *epgRawGuide) match(channels []Channel, loc *time.Location) *EPGGuide 
 		sort.SliceStable(list, func(i, j int) bool { return list[i].Start < list[j].Start })
 		guide.ByChannel[name] = list
 	}
-	return guide
+	m.rev = channelsRevOf(channels)
+	return guide, m
 }
 
 type xmlIcon struct {
@@ -392,11 +397,15 @@ type epgService struct {
 	mu        sync.Mutex
 	guide     *EPGGuide
 	raw       *epgRawGuide // the programmes as read, for a new match
+	matcher   *epgMatcher  // the match that made guide
 	urls      []string
 	updatedAt int64
 	fetching  map[string]bool
-	cancel    context.CancelFunc
-	bgCtx     context.Context
+	// rev names the channels that the guide was matched with, so that a
+	// changed channel list gets a new match without a fetch.
+	rev    string
+	cancel context.CancelFunc
+	bgCtx  context.Context
 }
 
 func newEPGService(ctx context.Context, store *Store, netc *netClients, cfgFn func() NetConfig) *epgService {
@@ -518,6 +527,29 @@ func (s *epgService) status() map[string]any {
 	}
 }
 
+// rematchIfStale matches the guide it has with these channels when the
+// channels changed since the last match. Without it, a channel from a
+// source that the user just added shows no programme until the next
+// fetch of the guide.
+func (s *epgService) rematchIfStale(channels []Channel) {
+	s.mu.Lock()
+	m := s.matcher
+	stale := m != nil && m.rev != channelsRevOf(channels)
+	s.mu.Unlock()
+	if stale {
+		s.rematch(channels)
+	}
+}
+
+// channelsRevOf names the channels by their ids and names.
+func channelsRevOf(channels []Channel) string {
+	h := sha256.New()
+	for _, ch := range channels {
+		fmt.Fprintf(h, "%s\x00%s\x00%s\n", ch.ID, ch.Name, ch.NormName)
+	}
+	return hex.EncodeToString(h.Sum(nil)[:8])
+}
+
 func (s *epgService) idle() bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -604,12 +636,13 @@ func (s *epgService) fetchOne(rawURL string, channelFn func() []Channel) {
 		log.Printf("iptv epg %s: %v", rawURL, err)
 		return
 	}
-	guide := raw.match(channelFn(), nil)
+	guide, matcher := raw.match(channelFn(), nil)
 	guide.URL = rawURL
 
 	s.mu.Lock()
 	s.guide = guide
 	s.raw = raw
+	s.matcher = matcher
 	s.updatedAt = guide.FetchedAt
 	data, _ := json.Marshal(epgCacheFile{URLs: s.urls, UpdatedAt: s.updatedAt, Guide: *guide})
 	s.mu.Unlock()
@@ -623,15 +656,18 @@ func (s *epgService) rematch(channels []Channel) {
 	s.mu.Lock()
 	raw := s.raw
 	s.mu.Unlock()
+	// A guide from the cache has no programmes as read: only its next
+	// fetch matches it again.
 	if raw == nil {
 		return
 	}
-	guide := raw.match(channels, nil)
+	guide, matcher := raw.match(channels, nil)
 	s.mu.Lock()
 	if s.guide != nil {
 		guide.URL = s.guide.URL
 	}
 	s.guide = guide
+	s.matcher = matcher
 	data, _ := json.Marshal(epgCacheFile{URLs: s.urls, UpdatedAt: s.updatedAt, Guide: *guide})
 	s.mu.Unlock()
 	_ = os.WriteFile(s.store.epgPath(), data, 0o644)

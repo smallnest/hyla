@@ -26,3 +26,4 @@ scripts/signing.pw
 # Local release notes and signing setup, kept out of the repository.
 /RELEASING.md
 /scripts/sign-macos.sh
+/plugins/*/iptv

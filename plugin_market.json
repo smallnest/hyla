@@ -62,7 +62,7 @@
       "author": "Hyla",
       "description": "Minimalist Apple TV-inspired IPTV live TV pane with XMLTV program guide, single or batch M3U import, HTML source auto-discovery, channel logos, multi-line failover, and HLS proxying.",
       "homepage": "https://github.com/smallnest/hyla/tree/master/plugins/iptv",
-      "version": "1.1.0",
+      "version": "1.1.1",
       "min_hyla_version": "3.20.0",
       "permissions": [
         "ui.webview",

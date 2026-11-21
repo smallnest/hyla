@@ -279,6 +279,10 @@ func (s *iptvService) rpcBootstrap(st *Store, ms *MediaServer, loc string) map[s
 		"activeJobs":    s.activeJobsList(),
 	}
 	if es := s.epgFor(); es != nil {
+		// The guide keeps the programmes of the channels that it last
+		// matched. A source that the user adds or removes changes the
+		// channels, so match the guide again with the new ones.
+		es.rematchIfStale(channels)
 		programs, _ := es.programGuide()
 		out["programs"] = programs
 		status := es.status() // holds the time of the last read
