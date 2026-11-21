@@ -589,3 +589,24 @@ timeline = "タイムライン"
 		t.Fatalf("unexpected BroadcastLocaleChange payloads: %+v", gotEvs)
 	}
 }
+
+func TestPictureInPictureTogglesPluginPages(t *testing.T) {
+	bridge := NewWebBridge(manifest.DefaultStore(), func() *theme.Palette { return &theme.Dark }, nil)
+	page := new(mygo.Page)
+	bridge.bindings[page] = pageBinding{PluginID: "hyla.iptv", SlotID: "web", Page: page}
+
+	// A page the plugin does not show fails: the window has no video to move.
+	if err := bridge.PictureInPicture("com.other.evil"); err == nil {
+		t.Fatalf("a plugin with no open page gave no error")
+	}
+	var ran bool
+	var toggled []*mygo.Page
+	bridge.mainFn = func(fn func()) { ran = true; fn() }
+	bridge.togglePIPFn = func(pg *mygo.Page) { toggled = append(toggled, pg) }
+	if err := bridge.PictureInPicture("hyla.iptv"); err != nil {
+		t.Fatalf("picture in picture of an open page: %v", err)
+	}
+	if !ran || len(toggled) != 1 || toggled[0] != page {
+		t.Fatalf("picture in picture did not toggle the page on the main thread: ran=%v toggled=%d", ran, len(toggled))
+	}
+}

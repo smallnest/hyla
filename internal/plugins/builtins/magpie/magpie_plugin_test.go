@@ -47,8 +47,11 @@ func (noopBridge) OpenPane(context.Context, string, rpc.UIOpenPaneParams) error 
 func (noopBridge) GetTimeline(context.Context, string, rpc.PaneGetTimelineParams) (*rpc.PaneGetTimelineResult, error) {
 	return &rpc.PaneGetTimelineResult{}, nil
 }
-func (noopBridge) NotifyUI(context.Context, string, rpc.UINotifyParams) error         { return nil }
-func (noopBridge) WebViewEmit(context.Context, string, rpc.WebViewEmitParams) error   { return nil }
+func (noopBridge) NotifyUI(context.Context, string, rpc.UINotifyParams) error       { return nil }
+func (noopBridge) WebViewEmit(context.Context, string, rpc.WebViewEmitParams) error { return nil }
+func (noopBridge) WebViewPictureInPicture(context.Context, string, rpc.WebViewPIPParams) error {
+	return nil
+}
 
 func TestMagpieBuiltinPluginRenderAndSettings(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

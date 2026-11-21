@@ -526,6 +526,17 @@ func (s *iptvService) handleWebRPC(ctx context.Context, host *hylaplugin.Host, p
 		}
 		data = map[string]any{"storage": info}
 
+	case "iptv.pictureInPicture":
+		// The window moves the video: on macOS, WKWebView moves only the
+		// video it lets itself move, not one a page asks for.
+		if host == nil {
+			return hylaplugin.WebViewRPCResult{}, fmt.Errorf("picture in picture needs the window")
+		}
+		if err := host.WebViewPictureInPicture(ctx, p.SlotID); err != nil {
+			return hylaplugin.WebViewRPCResult{}, err
+		}
+		data = map[string]any{"ok": true}
+
 	case "iptv.refreshEPG":
 		es := s.epgFor()
 		if es == nil {

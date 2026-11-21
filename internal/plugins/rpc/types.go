@@ -342,6 +342,12 @@ type UIInvalidateParams struct {
 	SlotIDs []string `json:"slotIds,omitempty"` // empty invalidates all slots owned by plugin
 }
 
+// WebViewPIPParams asks for a plugin's pane video in picture in picture,
+// or back from it.
+type WebViewPIPParams struct {
+	SlotID string `json:"slotId,omitempty"` // empty takes the plugin's open panes
+}
+
 type UIOpenPaneParams struct {
 	Session       string            `json:"session,omitempty"`
 	Split         string            `json:"split,omitempty"`

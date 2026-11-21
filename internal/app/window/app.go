@@ -458,6 +458,10 @@ func (a *App) EventOf(h *host.Host, cl *client.Client, m proto.Message) {
 		if a.Plugins != nil && a.Plugins.Web != nil && !h.Remote() && m.Plugin != "" {
 			a.Plugins.Web.Emit(m.Plugin, m.PluginArgs["slotId"], m.Topic, m.PluginData)
 		}
+	case "plugin.webview.pictureInPicture":
+		if a.Plugins != nil && a.Plugins.Web != nil && !h.Remote() && m.Plugin != "" {
+			_ = a.Plugins.Web.PictureInPicture(m.Plugin)
+		}
 	case "plugin.reload":
 		if h == a.Local() && a.Plugins != nil {
 			if !a.consumeLocalDaemonReload() {

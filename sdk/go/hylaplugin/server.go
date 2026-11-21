@@ -141,6 +141,19 @@ func (h *Host) WebViewEmit(ctx context.Context, slotID, event string, data any) 
 	return h.p.Call(ctx, "webview.emit", WebViewEmitParams{SlotID: slotID, Event: event, Data: data}, nil)
 }
 
+// WebViewPictureInPictureParams names the slot whose video goes into
+// picture in picture, a small window over every app's, or back from it.
+type WebViewPictureInPictureParams struct {
+	SlotID string `json:"slotId,omitempty"`
+}
+
+// WebViewPictureInPicture moves a video of the plugin's pane into picture
+// in picture, or back when one is out. It fails when no window shows the
+// pane.
+func (h *Host) WebViewPictureInPicture(ctx context.Context, slotID string) error {
+	return h.p.Call(ctx, "webview.pictureInPicture", WebViewPictureInPictureParams{SlotID: slotID}, nil)
+}
+
 func (h *Host) GetSettings(ctx context.Context, includeSecrets bool, keys ...string) (*PluginGetSettingsResult, error) {
 	var out PluginGetSettingsResult
 	if err := h.p.Call(ctx, "plugin.getSettings", PluginGetSettingsParams{

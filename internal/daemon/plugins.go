@@ -559,6 +559,19 @@ func (b *daemonPluginBridge) NotifyUI(ctx context.Context, pluginID string, p rp
 	return nil
 }
 
+func (b *daemonPluginBridge) WebViewPictureInPicture(ctx context.Context, pluginID string, p rpc.WebViewPIPParams) error {
+	// The window puts the video in picture in picture: it holds the web
+	// views.
+	b.d.mu.Lock()
+	b.d.broadcastLocked(proto.Message{
+		Event:      "plugin.webview.pictureInPicture",
+		Plugin:     pluginID,
+		PluginArgs: map[string]string{"slotId": p.SlotID},
+	})
+	b.d.mu.Unlock()
+	return nil
+}
+
 func (b *daemonPluginBridge) WebViewEmit(ctx context.Context, pluginID string, p rpc.WebViewEmitParams) error {
 	raw, _ := json.Marshal(p.Data)
 	b.d.mu.Lock()

@@ -888,6 +888,13 @@ func (b *appPluginBridge) NotifyUI(ctx context.Context, pluginID string, p rpc.U
 	})
 }
 
+func (b *appPluginBridge) WebViewPictureInPicture(ctx context.Context, pluginID string, p rpc.WebViewPIPParams) error {
+	if b.a.Plugins == nil || b.a.Plugins.Web == nil {
+		return fmt.Errorf("plugin web views are not open")
+	}
+	return b.a.Plugins.Web.PictureInPicture(pluginID)
+}
+
 func (b *appPluginBridge) WebViewEmit(ctx context.Context, pluginID string, p rpc.WebViewEmitParams) error {
 	if b.a.Plugins == nil || b.a.Plugins.Web == nil {
 		return nil

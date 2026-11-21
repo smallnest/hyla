@@ -64,18 +64,19 @@ type pageBinding struct {
 
 // WebBridge serves hylaplugin://<plugin-id>/... and manages isolated plugin WebViews.
 type WebBridge struct {
-	mu           sync.RWMutex
-	store        *manifest.Store
-	themeFn      func() *theme.Palette
-	localeFn     func() string
-	rpcFn        WebRPCHandler
-	openExtFn    func(string)
-	mainFn       func(func())
-	sessions     map[string]*mygo.Session
-	bindings     map[*mygo.Page]pageBinding
+	mu            sync.RWMutex
+	store         *manifest.Store
+	themeFn       func() *theme.Palette
+	localeFn      func() string
+	rpcFn         WebRPCHandler
+	openExtFn     func(string)
+	mainFn        func(func())
+	sessions      map[string]*mygo.Session
+	bindings      map[*mygo.Page]pageBinding
 	paneEntries   map[string]*WebEntry // keyed by paneID
 	callerPageFn  func(context.Context) *mygo.Page
 	emitPageFn    func(*mygo.Page, WebEventPayload) error
+	togglePIPFn   func(*mygo.Page) // the tests name it; a page calls TogglePictureInPicture
 	pluginCache   map[string]manifest.InstalledPlugin
 	pluginsCached bool
 	regExists     bool
@@ -201,6 +202,10 @@ func (b *WebBridge) EnsurePaneWebView(win *mygo.Window, sessionID string, p *pro
 			Session:   sess,
 			DevTools:  mygo.DevToolsEnabled,
 			Autoplay:  webViewAutoplay(inst),
+			// WKWebView keeps picture in picture to Safari, and a live TV
+			// pane wants it: a small window over other apps. Allow it for a
+			// plugin that the user granted network access.
+			PictureInPicture: webViewAllowsPictureInPicture(inst),
 		},
 	})
 	if err != nil {
@@ -378,6 +383,39 @@ func (b *WebBridge) BroadcastThemeChange(dark bool, themeName string) {
 }
 
 // BroadcastLocaleChange notifies all open plugin WebViews that the app language changed.
+// PictureInPicture moves a video of a plugin's open pane into picture in
+// picture, a small window over every app's, or back when one is out.
+func (b *WebBridge) PictureInPicture(pluginID string) error {
+	b.mu.RLock()
+	var targets []*mygo.Page
+	for _, bind := range b.bindings {
+		if bind.PluginID == pluginID && bind.Page != nil {
+			targets = append(targets, bind.Page)
+		}
+	}
+	mainFn := b.mainFn
+	toggleFn := b.togglePIPFn
+	b.mu.RUnlock()
+	if len(targets) == 0 {
+		return fmt.Errorf("plugin %q has no open pane", pluginID)
+	}
+	toggle := func() {
+		for _, pg := range targets {
+			if toggleFn != nil {
+				toggleFn(pg)
+				continue
+			}
+			pg.TogglePictureInPicture()
+		}
+	}
+	if mainFn != nil {
+		mainFn(toggle)
+	} else {
+		toggle()
+	}
+	return nil
+}
+
 func (b *WebBridge) BroadcastLocaleChange(locale string) {
 	b.broadcastAll("locale.changed", map[string]any{"locale": locale})
 }
@@ -665,6 +703,13 @@ func webViewAutoplay(inst *manifest.InstalledPlugin) mygo.Autoplay {
 		return mygo.AutoplayAllow
 	}
 	return mygo.AutoplayUserGesture
+}
+
+// webViewAllowsPictureInPicture allows picture in picture for a plugin
+// with network access, which plays media. A plugin without it has no
+// media to move.
+func webViewAllowsPictureInPicture(inst *manifest.InstalledPlugin) bool {
+	return inst != nil && inst.Entry.HasPermission(manifest.PermNetwork)
 }
 
 func findWebViewSlot(m *manifest.Manifest, slotID string) (manifest.SlotSpec, bool) {

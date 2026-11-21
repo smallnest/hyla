@@ -4,6 +4,12 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## Unreleased
+
+- **IPTV pane (`hyla.iptv` 1.2.1)**: PiP works. On a Mac, the button did
+  nothing, because a web view does not let a page start picture in
+  picture. The pane asks the window now, which moves the video.
+
 ## 3.21.2
 
 - **IPTV pane (`hyla.iptv` 1.2.0)**: a channel from a source that you

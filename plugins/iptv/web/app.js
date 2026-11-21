@@ -916,8 +916,16 @@
     renderTheater();
   }
 
-  function togglePictureInPicture() {
+  async function togglePictureInPicture() {
     if (!videoEl) return;
+    // The window moves the video: WKWebView moves only the video that
+    // its own button moves, not one that the page asks for.
+    try {
+      const res = await window.hyla.rpc("iptv.pictureInPicture", {});
+      if (res && res.ok) return;
+    } catch (err) {
+      // No window path here: use the page's own.
+    }
     if (document.pictureInPictureElement) {
       document.exitPictureInPicture().catch(() => {});
       return;

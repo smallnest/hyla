@@ -179,6 +179,10 @@ func (b *fakeBridge) GetTimeline(ctx context.Context, id string, p rpc.PaneGetTi
 func (b *fakeBridge) NotifyUI(ctx context.Context, id string, p rpc.UINotifyParams) error {
 	return nil
 }
+func (b *fakeBridge) WebViewPictureInPicture(context.Context, string, rpc.WebViewPIPParams) error {
+	return nil
+}
+
 func (b *fakeBridge) WebViewEmit(ctx context.Context, id string, p rpc.WebViewEmitParams) error {
 	return nil
 }

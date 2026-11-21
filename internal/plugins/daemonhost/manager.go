@@ -60,6 +60,7 @@ type HostBridge interface {
 	GetTimeline(ctx context.Context, pluginID string, p rpc.PaneGetTimelineParams) (*rpc.PaneGetTimelineResult, error)
 	NotifyUI(ctx context.Context, pluginID string, p rpc.UINotifyParams) error
 	WebViewEmit(ctx context.Context, pluginID string, p rpc.WebViewEmitParams) error
+	WebViewPictureInPicture(ctx context.Context, pluginID string, p rpc.WebViewPIPParams) error
 }
 
 // BuiltinRunnerFunc runs an in-process built-in plugin speaking JSON-RPC over peer.
@@ -1222,7 +1223,7 @@ func requiredPluginToHostPerm(method string) string {
 		return manifest.PermUISlot
 	case "ui.notify":
 		return manifest.PermNotifications
-	case "webview.emit":
+	case "webview.emit", "webview.pictureInPicture":
 		return manifest.PermUIWebView
 	default:
 		return ""
@@ -1320,6 +1321,9 @@ func (m *Manager) registerBridgeHandlers(id string, peer *rpc.Peer) {
 	})
 	handleBridgeExec(m, id, peer, "ui.notify", true, false, func(ctx context.Context, id string, p rpc.UINotifyParams) error {
 		return m.opts.Bridge.NotifyUI(ctx, id, p)
+	})
+	handleBridgeExec(m, id, peer, "webview.pictureInPicture", false, true, func(ctx context.Context, id string, p rpc.WebViewPIPParams) error {
+		return m.opts.Bridge.WebViewPictureInPicture(ctx, id, p)
 	})
 	handleBridgeExec(m, id, peer, "webview.emit", false, false, func(ctx context.Context, id string, p rpc.WebViewEmitParams) error {
 		return m.opts.Bridge.WebViewEmit(ctx, id, p)
