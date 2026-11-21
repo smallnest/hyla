@@ -4,21 +4,22 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
-## Unreleased
+## 3.22.0
 
-- **IPTV pane (`hyla.iptv` 1.2.1)**: PiP works. On a Mac, the button did
-  nothing, because a web view does not let a page start picture in
-  picture. The pane asks the window now, which moves the video.
-
-## 3.21.2
-
-- **IPTV pane (`hyla.iptv` 1.2.0)**: a channel from a source that you
-  add shows its programme at once. Before this release, the pane kept
-  the programmes that the guide had matched before the source was
-  added. The presets are now the sources in `iptv.md` of the repository,
-  which the pane reads at start: the preset for live TV in China is the
-  best-fan/iptv-sources playlist, which lists the response time of each
-  channel.
+- **IPTV pane (`hyla.iptv` 1.2.1)**: the PiP button shows the channel in
+  a small window over other apps. Before this release, it did nothing on
+  a Mac.
+- **IPTV sources in `iptv.md`**: the presets of the IPTV pane are now the
+  sources of `iptv.md` at the root of the repository, which the pane
+  reads at start. Add a row to the table, and every pane shows the
+  source. The preset for live TV in China is the best-fan/iptv-sources
+  playlist, which lists the response time of each channel.
+- **IPTV pane, a new source shows at once (`hyla.iptv` 1.1.1)**: a
+  channel from a source that you add shows its programme at once, not
+  after the next start.
+- **Plugins can use picture in picture**: a plugin with network access
+  asks the window with `webview.pictureInPicture` (permission
+  `ui.webview`), and its pages may start picture in picture.
 
 ## 3.21.1
 

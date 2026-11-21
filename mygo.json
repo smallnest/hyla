@@ -1,7 +1,7 @@
 {
   "name": "Hyla",
   "identifier": "sh.hyla",
-  "version": "3.21.2",
+  "version": "3.22.0",
   "out": "build",
   "i18n": {
     "dir": "locales",
