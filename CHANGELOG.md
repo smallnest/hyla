@@ -4,19 +4,13 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
-## Unreleased
+## 3.21.2
 
-- **IPTV pane (`hyla.iptv` 1.1.1)**: a channel from a source that you
-  add shows its programme at once. Until this release, the pane kept
+- **IPTV pane (`hyla.iptv` 1.1.2)**: a channel from a source that you
+  add shows its programme at once. Before this release, the pane kept
   the programmes that the guide had matched before the source was
-  added, and showed the new channel's programme only after the next
-  start.
-
-## Unreleased
-
-- **IPTV pane (`hyla.iptv` 1.1.2)**: the preset for live TV in China is
-  now the best-fan/iptv-sources playlist, which lists the response time
-  of each channel.
+  added. The preset for live TV in China is now the best-fan/iptv-sources
+  playlist, which lists the response time of each channel.
 
 ## 3.21.1
 
