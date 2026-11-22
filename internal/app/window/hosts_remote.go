@@ -55,6 +55,10 @@ func (a *App) TailcatDraft() *draft.TailcatDraft { return &a.Ss.Tailcat }
 
 func (a *App) P2PDraft() *draft.P2PDraft { return &a.Ss.P2P }
 
+func (a *App) BeaconTowerDraft() *draft.BeaconTowerDraft { return &a.Ss.BeaconTower }
+
+func (a *App) BTHostDraft() *draft.BTHostDraft { return &a.Ss.BTHost }
+
 func (a *App) TCPListen(c *ui.Context, pal *theme.Palette, d *draft.P2PDraft) {
 	a.tcpListen(c, pal, d)
 }

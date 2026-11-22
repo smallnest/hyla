@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/xingkaixin/mygo-native-ui/ui/qrcode"
+
 	"hyla/internal/build"
 	"hyla/internal/client"
 	"hyla/internal/daemon"
@@ -146,6 +148,195 @@ func tailcatCmd(args []string) error {
 		return nil
 	}
 	return usageErr("hyla tailcat status|enable [port]|disable|port <port>|rotate|code")
+}
+
+// beaconTowerCmd implements `hyla beacontower` (`hyla beacon`): manage this
+// machine's BeaconTower encrypted relay listener, relay address, optional
+// access token, and pair code.
+func beaconTowerCmd(args []string) error {
+	set := settings.Load()
+	_, on := set.BeaconTowerListen()
+	sub := "status"
+	if len(args) > 0 {
+		sub = args[0]
+	}
+
+	parseRelayFlags := func(rest []string) (relayArg string, tokenArg string, hasToken, clearToken bool, qr bool, err error) {
+		for i := 0; i < len(rest); i++ {
+			a := rest[i]
+			switch {
+			case a == "--token":
+				if i+1 >= len(rest) {
+					return "", "", false, false, false, usageErr("--token needs a value")
+				}
+				i++
+				tokenArg = rest[i]
+				hasToken = true
+			case strings.HasPrefix(a, "--token="):
+				tokenArg = strings.TrimPrefix(a, "--token=")
+				hasToken = true
+			case a == "--clear-token":
+				clearToken = true
+			case a == "--qr":
+				qr = true
+			case strings.HasPrefix(a, "-"):
+				return "", "", false, false, false, usageErr("unknown flag %q", a)
+			default:
+				if relayArg != "" {
+					return "", "", false, false, false, usageErr("unexpected argument %q", a)
+				}
+				relayArg = a
+			}
+		}
+		return relayArg, tokenArg, hasToken, clearToken, qr, nil
+	}
+
+	switch sub {
+	case "status", "show":
+		if !on {
+			fmt.Println("beacontower: not listening")
+			fmt.Printf("  relay: %s\n", orDash(set.BeaconTowerRelay))
+			fmt.Println("  hyla beacontower enable <relay-url> [--token <secret>]")
+			fmt.Println("  hyla beacontower relay <relay-url> [--token <secret>]")
+			return nil
+		}
+		fmt.Println("beacontower: listening on beacontower://")
+		fmt.Printf("  relay: %s\n", orDash(set.BeaconTowerRelay))
+		fmt.Printf("  relay token: %s\n", onOffWord(set.BeaconTowerToken != ""))
+		if set.BeaconTowerRelay == "" {
+			fmt.Println("  pair code: unset (run `hyla beacontower relay <relay-url>`)")
+			return nil
+		}
+		if code, err := remote.LocalBeaconTowerAddress(set.BeaconTowerRelay, set.BeaconTowerToken); err == nil {
+			fmt.Printf("  pair code: beacontower://%s\n", code)
+		} else {
+			fmt.Printf("  pair code: %v\n", err)
+		}
+		fmt.Fprintln(os.Stderr, "  the pair code is the secret: anyone with it can connect; hyla beacontower rotate makes a new one")
+		return nil
+
+	case "enable":
+		relayArg, tokenArg, hasToken, clearToken, _, err := parseRelayFlags(args[1:])
+		if err != nil {
+			return err
+		}
+		if relayArg != "" {
+			if !settings.ValidBeaconRelay(relayArg) {
+				return usageErr("%q is not a BeaconTower relay (use host:port, tls://, ws://, or wss://)", relayArg)
+			}
+			set.BeaconTowerRelay = strings.TrimSpace(relayArg)
+		}
+		if clearToken {
+			set.BeaconTowerToken = ""
+		} else if hasToken {
+			set.BeaconTowerToken = strings.TrimSpace(tokenArg)
+		}
+		set.SetBeaconTowerListen(true)
+		if err := settings.Save(set); err != nil {
+			return err
+		}
+		if set.BeaconTowerRelay == "" {
+			fmt.Println("hylad will listen over beacontower once relay is set: hyla beacontower relay <relay-url>")
+			return nil
+		}
+		code, err := remote.LocalBeaconTowerAddress(set.BeaconTowerRelay, set.BeaconTowerToken)
+		if err != nil {
+			return err
+		}
+		fmt.Println("beacontower://" + code)
+		fmt.Fprintln(os.Stderr, "the pair code is the secret: anyone with it can connect; hyla beacontower rotate makes a new one")
+		return nil
+
+	case "disable":
+		set.SetBeaconTowerListen(false)
+		return settings.Save(set)
+
+	case "relay":
+		relayArg, tokenArg, hasToken, clearToken, _, err := parseRelayFlags(args[1:])
+		if err != nil {
+			return err
+		}
+		if relayArg == "" && !hasToken && !clearToken {
+			return usageErr("hyla beacontower relay <relay-url> [--token <secret>|--clear-token]")
+		}
+		if relayArg != "" {
+			if !settings.ValidBeaconRelay(relayArg) {
+				return usageErr("%q is not a BeaconTower relay (use host:port, tls://, ws://, or wss://)", relayArg)
+			}
+			set.BeaconTowerRelay = strings.TrimSpace(relayArg)
+		}
+		if clearToken {
+			set.BeaconTowerToken = ""
+		} else if hasToken {
+			set.BeaconTowerToken = strings.TrimSpace(tokenArg)
+		}
+		if err := settings.Save(set); err != nil {
+			return err
+		}
+		fmt.Printf("beacontower relay: %s\n", orDash(set.BeaconTowerRelay))
+		return nil
+
+	case "code":
+		_, _, _, _, drawQR, err := parseRelayFlags(args[1:])
+		if err != nil {
+			return err
+		}
+		if set.BeaconTowerRelay == "" {
+			return errors.New("beacontower-relay is not configured: hyla beacontower relay <relay-url>")
+		}
+		code, err := remote.LocalBeaconTowerAddress(set.BeaconTowerRelay, set.BeaconTowerToken)
+		if err != nil {
+			return err
+		}
+		text := "beacontower://" + code
+		if drawQR {
+			printTerminalQR(text)
+		}
+		fmt.Println(text)
+		fmt.Fprintln(os.Stderr, "the pair code is the secret: anyone with it can connect; hyla beacontower rotate makes a new one")
+		if !on {
+			fmt.Fprintln(os.Stderr, "hylad does not listen over beacontower here: hyla beacontower enable")
+		}
+		return nil
+
+	case "rotate":
+		code, err := remote.RotateBeaconTowerCode(remote.BeaconTowerKeyPath(), set.BeaconTowerRelay, set.BeaconTowerToken)
+		if err != nil {
+			return err
+		}
+		set.BeaconTowerRotate = !set.BeaconTowerRotate
+		if err := settings.Save(set); err != nil {
+			return err
+		}
+		if code != "" {
+			fmt.Println("beacontower://" + code)
+			fmt.Fprintln(os.Stderr, "the old pair code no longer connects: other machines need this one")
+		} else {
+			fmt.Println("beacontower keys rotated (set a relay with `hyla beacontower relay <url>` to generate a pair code)")
+		}
+		return nil
+	}
+	return usageErr("hyla beacontower status|enable [relay-url] [--token <secret>]|disable|relay <url>|code [--qr]|rotate")
+}
+
+func printTerminalQR(text string) {
+	q, err := qrcode.Encode(text, qrcode.L)
+	if err != nil {
+		return
+	}
+	n := q.Size + 8
+	for y := 0; y < n; y++ {
+		var b strings.Builder
+		for x := 0; x < n; x++ {
+			dark := x >= 4 && y >= 4 && x < q.Size+4 && y < q.Size+4 && q.Dark(x-4, y-4)
+			if dark {
+				b.WriteString("██")
+			} else {
+				b.WriteString("  ")
+			}
+		}
+		fmt.Println(b.String())
+	}
 }
 
 // localPairCode is this machine's pair code, as hylad's key makes it.

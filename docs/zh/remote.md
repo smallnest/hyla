@@ -19,7 +19,7 @@ description: 在 SSH 主机、WSL 发行版、Kubernetes Pod 或另一台 Hyla �
 | ----------- | ----------------------------------------------- |
 | SSH         | `me@devbox`，或 `ssh://me@devbox:2222`          |
 | WSL         | `wsl://Ubuntu`                                  |
-| 另一台 Hyla | `tailcat://` 加上它的[配对码](./remote.md#tailcat) |
+| 另一台 Hyla | `beacontower://` 配对码（自建高速加密中继）或 `tailcat://` 加上它的[配对码](./remote.md#tailcat) |
 | K8s Pod     | Pod 的命名空间与名字                            |
 
 那台机器上需要装 Hyla；如果没装，或者版本比你的旧，应用会通过连接替你安装或更新。主机由应用自己保存，[配置文件](./configuration.md#hosts)里没有 `host` 这一项；`hyla p2p` 与 `hyla pocket` 讲的是别人连到这台机器，而不是连到别的机器。
@@ -39,3 +39,15 @@ description: 在 SSH 主机、WSL 发行版、Kubernetes Pod 或另一台 Hyla �
 [Tailcat](https://github.com/smallnest/tailcat) 不需要账号、也不用装 Tailscale 就能连起两台机器：监听方给出一个**配对码**，你在另一台机器上贴上，两者通过中继找到彼此。找到之后，网络允许时数据直接在两者之间走，不允许时才经过中继。
 
 Hyla 只在你要求时监听：在配置文件里写 `listen = tailcat://:7473`，或者在**设置 › 远程**里打开监听。默认关闭。
+
+## BeaconTower（烽火台）
+
+BeaconTower（`cmd/beacontower`）是针对公网 Tailcat/DERP 中继延迟高问题的自建零信任端到端加密（E2EE）中继方案。客户端与每台远端主机只建立一条 X25519 + PSK + ChaCha20-Poly1305 加密隧道并在隧道内多路复用，控制连接与各个终端窗格共享同一条隧道，无需反复握手。
+
+在任意 VPS 上启动单文件中继服务：
+
+```sh
+beacontower -listen :7474 -token your-relay-secret
+```
+
+随后在 **设置 › 远程连接 › BeaconTower** 中填入中继地址（支持 `your-vps:7474`、`tls://relay.example.com:7474` 或 `wss://relay.example.com/ws`）及可选令牌，开启服务后复制生成的 `beacontower://bt1_…` 配对码给其他设备即可（或执行 `hyla beacontower enable your-vps:7474 --token your-relay-secret`）。完整架构与协议细节见 [BeaconTower 设计文档](../beacontower-design.md)。

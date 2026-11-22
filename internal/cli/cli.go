@@ -210,6 +210,8 @@ func run(args []string) error {
 		return p2pCmd(args)
 	case "tailcat":
 		return tailcatCmd(args)
+	case "beacontower", "beacon":
+		return beaconTowerCmd(args)
 	case "pocket":
 		return pocketCmd(args)
 	case "pets":
@@ -888,6 +890,19 @@ func daemonCmd(args []string) error {
 				fmt.Println("tailcat:", err)
 			} else {
 				fmt.Println("tailcat: tailcat://" + code)
+			}
+		}
+		if slices.ContainsFunc(settings.Load().Listen, func(l string) bool {
+			spec, err := remote.ParseListen(l)
+			return err == nil && spec.Kind == "beacontower"
+		}) {
+			s := settings.Load()
+			if s.BeaconTowerRelay == "" {
+				fmt.Println("beacontower: listening, but beacontower-relay is not configured")
+			} else if code, err := remote.LocalBeaconTowerAddress(s.BeaconTowerRelay, s.BeaconTowerToken); err != nil {
+				fmt.Println("beacontower:", err)
+			} else {
+				fmt.Println("beacontower: beacontower://" + code)
 			}
 		}
 		return nil

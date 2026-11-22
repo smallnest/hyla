@@ -94,10 +94,11 @@ type App interface {
 	// UIFeatures converts features as terminal.Font takes them to those
 	// that ui.Span.Features takes.
 	UIFeatures(fs []string) string
-	// Sync, Feishu, Tailcat and P2P are the pages' and the hosts' forms,
+	// Sync, Feishu, BeaconTower, Tailcat and P2P are the pages' and the hosts' forms,
 	// which stay in the root.
 	Sync(c *ui.Context, pal *theme.Palette)
 	Feishu(c *ui.Context, pal *theme.Palette)
+	BeaconTower(c *ui.Context, pal *theme.Palette)
 	Tailcat(c *ui.Context, pal *theme.Palette)
 	P2P(c *ui.Context, pal *theme.Palette)
 	// Local is this machine, and CallOn asks it something, on the main

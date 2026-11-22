@@ -64,3 +64,45 @@ func TestTailcatSetListen(t *testing.T) {
 		t.Fatalf("listeners %q", s.Listen)
 	}
 }
+
+func TestBeaconTowerConfigAndListen(t *testing.T) {
+	file := "beacontower-relay = wss://relay.example.com/ws\nbeacontower-token = secret-relay\nlisten = beacontower://\n"
+	s, probs := parse(file)
+	if len(probs) > 0 {
+		t.Fatalf("problems %q", probs)
+	}
+	if s.BeaconTowerRelay != "wss://relay.example.com/ws" || s.BeaconTowerToken != "secret-relay" {
+		t.Fatalf("settings %+v", s)
+	}
+	if l, ok := s.BeaconTowerListen(); !ok || l != "beacontower://" {
+		t.Fatalf("listen %q, %v", l, ok)
+	}
+	out := format(s, file)
+	for _, want := range []string{"beacontower-relay = wss://relay.example.com/ws", "beacontower-token = secret-relay", "listen = beacontower://"} {
+		if !strings.Contains(out, want+"\n") {
+			t.Errorf("formatted missing %q:\n%s", want, out)
+		}
+	}
+	for _, bad := range []string{"beacontower-relay = http://example.com\n", "listen = beacontower://host:7474\n"} {
+		if _, probs := parse(bad); len(probs) == 0 {
+			t.Errorf("%q unexpectedly parsed cleanly", bad)
+		}
+	}
+
+	s.SetTailcatListen("7401")
+	s.SetTCPListen("", "7402")
+	s.SetBeaconTowerListen(true)
+	if _, ok := s.BeaconTowerListen(); !ok {
+		t.Fatal("BeaconTowerListen false after enabling")
+	}
+	s.SetBeaconTowerListen(false)
+	if _, ok := s.BeaconTowerListen(); ok {
+		t.Fatal("BeaconTowerListen still true after disabling")
+	}
+	if _, _, ok := s.TailcatListen(); !ok {
+		t.Fatal("disabling BeaconTower removed Tailcat listener")
+	}
+	if _, _, ok := s.TCPListen(); !ok {
+		t.Fatal("disabling BeaconTower removed TCP listener")
+	}
+}

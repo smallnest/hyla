@@ -102,9 +102,12 @@ func Index() []Entry {
 		{"agents", locales.SetProgramStatus(), "osc 7501 report progress"},
 		{"plugins", locales.PagePlugins(), "plugins extensions packs permissions hylapkg reload install market marketplace store"},
 
-		{"hosts", locales.SetHosts(), "host hosts remote connection p2p server ssh tailcat wsl machine linux devbox phone qr password token"},
-		{"hosts", locales.SetHostAdd(), "add host address ssh wsl tailcat"},
+		{"hosts", locales.SetHosts(), "host hosts remote connection p2p server ssh tailcat beacontower beacon relay wsl machine linux devbox phone qr password token 烽火台"},
+		{"hosts", locales.SetHostAdd(), "add host address ssh wsl tailcat beacontower beacon"},
 		{"hosts", locales.SetHostRemoteControl(), "remote-control host hyla do focus"},
+		{"hosts", locales.SetBeaconTowerTitle(), "beacontower beacon relay pair code token e2ee wss tls 烽火台 中继"},
+		{"hosts", locales.SetBeaconTowerListen(), "beacontower listener provide service relay token port beacontower:// hyla beacontower enable"},
+		{"hosts", locales.SetBeaconTowerCode(), "beacontower pair code paircode copy secret share other machines"},
 		// The group's title, above its switch.
 		{"hosts", locales.SetTailcatTitle(), "tailcat pair code relay derp paircode tailcat-relay tailcat-port"},
 		{"hosts", locales.SetTailcatListen(), "tailcat listener provide service host relay port tailcat:// hyla hosts tailcat enable"},

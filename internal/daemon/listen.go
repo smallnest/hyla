@@ -39,13 +39,14 @@ type listeners struct {
 // listener is one of the listeners, which stops, and drops the
 // connections it took, as its context ends.
 type listener struct {
-	spec    remote.Listen
-	ctx     context.Context
-	cancel  context.CancelFunc
-	servers []*http.Server // listeners.mu's
-	socket  string
-	tailcat *remote.TailcatRelay // tailcat's
-	tcp     net.Listener         // a tcp::// listener's
+	spec        remote.Listen
+	ctx         context.Context
+	cancel      context.CancelFunc
+	servers     []*http.Server // listeners.mu's
+	socket      string
+	tailcat     *remote.TailcatRelay     // tailcat's
+	beacontower *remote.BeaconTowerRelay // beacontower's
+	tcp         net.Listener             // a tcp::// listener's
 }
 
 // listen starts the network listeners.
@@ -80,14 +81,20 @@ func (l *listeners) follow(last settings.Settings) {
 		case <-t.C:
 		}
 		set := settings.Load()
-		if slices.Equal(set.Listen, last.Listen) && set.TailcatRelay == last.TailcatRelay && set.TailcatRotate == last.TailcatRotate {
+		tailcatChanged := set.TailcatRelay != last.TailcatRelay || set.TailcatRotate != last.TailcatRotate
+		beaconChanged := set.BeaconTowerRelay != last.BeaconTowerRelay || set.BeaconTowerToken != last.BeaconTowerToken || set.BeaconTowerRotate != last.BeaconTowerRotate
+		if slices.Equal(set.Listen, last.Listen) && !tailcatChanged && !beaconChanged {
 			continue
 		}
 		remote.SetRelay(set.TailcatRelay)
 		last = set
-		// A new key's listener, for its new pair code.
+		// Reload listeners whose relay configuration or rotated keys changed.
 		for _, s := range set.Listen {
-			if spec, err := remote.ParseListen(s); err == nil && spec.Kind == "tailcat" {
+			spec, err := remote.ParseListen(s)
+			if err != nil {
+				continue
+			}
+			if (spec.Kind == "tailcat" && tailcatChanged) || (spec.Kind == "beacontower" && beaconChanged) {
 				l.drop(spec.String())
 			}
 		}
@@ -127,6 +134,10 @@ func (l *listeners) set(specs []string) {
 		l.on[name] = ln
 		if spec.Kind == "tcp" {
 			go l.tcpListener(ln)
+			continue
+		}
+		if spec.Kind == "beacontower" {
+			go l.beaconTowerListener(ln)
 			continue
 		}
 		go l.tailcatListener(ln)
@@ -177,6 +188,9 @@ func (ln *listener) stop() {
 
 	if ln.tailcat != nil {
 		ln.tailcat.Close()
+	}
+	if ln.beacontower != nil {
+		ln.beacontower.Close()
 	}
 	if ln.socket != "" {
 		os.Remove(ln.socket)
@@ -251,6 +265,66 @@ func (l *listeners) serveTailcat(r *remote.TailcatRelay) {
 			return
 		}
 		go l.d.serve(c, identity{peer: "the pair code", via: "tailcat"})
+	}
+}
+
+// beaconTowerListener registers with the user's configured BeaconTower relay
+// and retries with exponential backoff until stopped.
+func (l *listeners) beaconTowerListener(lis *listener) {
+	wait := time.Second
+	for {
+		err := l.joinBeaconTower(lis)
+		if err == nil || lis.ctx.Err() != nil {
+			return
+		}
+		l.d.log.Printf("listen %s: %v: trying again in %s", lis.spec, err, wait)
+		select {
+		case <-lis.ctx.Done():
+			return
+		case <-time.After(wait):
+		}
+		if wait < time.Minute {
+			wait *= 2
+		}
+	}
+}
+
+func (l *listeners) joinBeaconTower(lis *listener) error {
+	set := settings.Load()
+	relayAddr := strings.TrimSpace(set.BeaconTowerRelay)
+	if relayAddr == "" {
+		l.d.log.Printf("listen %s: beacontower-relay is not configured", lis.spec)
+		return nil
+	}
+	if l.pocket != nil {
+		mux := http.NewServeMux()
+		mux.Handle(l.pocket.PocketPath(), l.pocket)
+		remote.ServePocket(lis.spec.PocketPort, mux)
+	}
+	r, err := remote.ListenBeaconTower(lis.ctx, remote.BeaconTowerKeyPath(), relayAddr, set.BeaconTowerToken)
+	if err != nil {
+		return err
+	}
+	l.mu.Lock()
+	if lis.ctx.Err() != nil {
+		l.mu.Unlock()
+		r.Close()
+		return nil
+	}
+	lis.beacontower = r
+	l.mu.Unlock()
+	l.d.log.Printf("listening on %s (beacontower)", r.PairCode)
+	go l.serveBeaconTower(r)
+	return nil
+}
+
+func (l *listeners) serveBeaconTower(r *remote.BeaconTowerRelay) {
+	for {
+		c, err := r.Accept()
+		if err != nil {
+			return
+		}
+		go l.d.serve(c, identity{peer: "beacontower", via: "beacontower"})
 	}
 }
 

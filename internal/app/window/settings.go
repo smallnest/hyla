@@ -104,11 +104,12 @@ func (a *App) PluginsView() uisettings.PluginsApp { return &appPluginsSettings{a
 func (a *App) AddFallback(font string) { a.addFallback(font, -1) }
 func (a *App) RemoveFallback(at int)   { a.removeFallback(at) }
 
-// Sync, Feishu, Tailcat and P2P are the pages and the forms the root keeps.
-func (a *App) Sync(c *ui.Context, pal *theme.Palette)    { a.syncPage(c, pal) }
-func (a *App) Feishu(c *ui.Context, pal *theme.Palette)  { uisettings.Feishu(a, c, pal) }
-func (a *App) Tailcat(c *ui.Context, pal *theme.Palette) { a.tailcatGroup(c, pal) }
-func (a *App) P2P(c *ui.Context, pal *theme.Palette)     { a.p2pGroup(c, pal) }
+// Sync, Feishu, BeaconTower, Tailcat and P2P are the pages and the forms the root keeps.
+func (a *App) Sync(c *ui.Context, pal *theme.Palette)        { a.syncPage(c, pal) }
+func (a *App) Feishu(c *ui.Context, pal *theme.Palette)      { uisettings.Feishu(a, c, pal) }
+func (a *App) BeaconTower(c *ui.Context, pal *theme.Palette) { a.beaconTowerGroup(c, pal) }
+func (a *App) Tailcat(c *ui.Context, pal *theme.Palette)     { a.tailcatGroup(c, pal) }
+func (a *App) P2P(c *ui.Context, pal *theme.Palette)         { a.p2pGroup(c, pal) }
 
 // The rest of what the root kept of the window.
 func (a *App) checkUpdates()                        { uisettings.CheckUpdates() }

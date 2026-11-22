@@ -105,11 +105,13 @@ type State struct {
 	Confirm      *confirm.Ask                    // a question, asked in this window
 
 	// The forms the root keeps keep their drafts here.
-	Tailcat draft.TailcatDraft // the Tailcat form
-	P2P     draft.P2PDraft     // the P2P form
-	TCHost  draft.TCHostDraft  // the machines reached by a pair code
-	Remote  draft.HostDraft    // the other machines' form
-	Feishu  draft.FeishuDraft  // the Feishu page's form
+	BeaconTower draft.BeaconTowerDraft // the BeaconTower form
+	BTHost      draft.BTHostDraft      // the machines reached by a BeaconTower pair code
+	Tailcat     draft.TailcatDraft     // the Tailcat form
+	P2P         draft.P2PDraft         // the P2P form
+	TCHost      draft.TCHostDraft      // the machines reached by a pair code
+	Remote      draft.HostDraft        // the other machines' form
+	Feishu      draft.FeishuDraft      // the Feishu page's form
 
 	PluginDetail   string
 	PluginLogsID   string
@@ -416,6 +418,10 @@ func view(x App, c *ui.Context) {
 									}
 									page(x, c, pal)
 								case "hosts":
+									bt := BeaconTowerPage
+									if bt == nil {
+										bt = func(x App, c *ui.Context, pal *theme.Palette) { x.BeaconTower(c, pal) }
+									}
 									tailcat := TailcatPage
 									if tailcat == nil {
 										tailcat = func(x App, c *ui.Context, pal *theme.Palette) { x.Tailcat(c, pal) }
@@ -424,6 +430,7 @@ func view(x App, c *ui.Context) {
 									if p2p == nil {
 										p2p = func(x App, c *ui.Context, pal *theme.Palette) { x.P2P(c, pal) }
 									}
+									bt(x, c, pal)
 									tailcat(x, c, pal)
 									p2p(x, c, pal)
 								case "advanced":
@@ -1793,9 +1800,10 @@ type pageFunc func(x App, c *ui.Context, pal *theme.Palette)
 
 // OnPages are the pages the app draws in place of the window's own.
 var (
-	SyncPage    pageFunc
-	TailcatPage pageFunc
-	P2PPage     pageFunc
+	SyncPage        pageFunc
+	BeaconTowerPage pageFunc
+	TailcatPage     pageFunc
+	P2PPage         pageFunc
 )
 
 func feishuPage(x App, c *ui.Context, pal *theme.Palette) { Feishu(x, c, pal) }

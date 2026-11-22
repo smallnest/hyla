@@ -19,7 +19,7 @@ In the sidebar's **+** menu choose **Add SSH Host…** for an SSH host, a WSL di
 | ----------- | ---------------------------------------------- |
 | SSH         | `me@devbox`, or `ssh://me@devbox:2222`         |
 | WSL         | `wsl://Ubuntu`                                 |
-| Another Hyla | `tailcat://` and its [pair code](./remote.md#tailcat) |
+| Another Hyla | `beacontower://` pair code (self-hosted fast E2EE relay) or `tailcat://` + [pair code](./remote.md#tailcat) |
 | K8s pod     | the pod's namespace and name                   |
 
 Hyla needs to be installed on the machine; if it is missing, or older than yours, the app offers to install or update it over the connection. The app keeps the hosts itself: there is no `host` key in the [configuration file](./configuration.md#hosts), and `hyla p2p` and `hyla pocket` are about other machines reaching this one, not about reaching them.
@@ -39,3 +39,15 @@ A host's programs can drive this app only when it is allowed: **Settings › Rem
 [Tailcat](https://github.com/smallnest/tailcat) connects two machines without an account and without installing Tailscale: the listener shows a **pair code**, you paste it into the other machine, and the two find each other through a relay. Once they do, the data goes directly between them when the network allows it, and through the relay when it does not.
 
 Hyla listens only when you ask it to: `listen = tailcat://:7473` in the configuration file, or the listener in **Settings › Remote**. It is off by default.
+
+## BeaconTower
+
+BeaconTower (`cmd/beacontower`) is Hyla's fast, zero-trust end-to-end encrypted relay alternative to public DERP/Tailcat relays. Each client keeps a single X25519 + PSK + ChaCha20-Poly1305 encrypted tunnel with built-in stream multiplexing so control RPCs and terminal panes open over the same session without repeating full handshakes.
+
+Run the standalone relay on any VPS:
+
+```sh
+beacontower -listen :7474 -token your-relay-secret
+```
+
+Then configure your relay endpoint (for example `your-vps:7474`, `tls://relay.example.com:7474`, or `wss://relay.example.com/ws`) under **Settings › Remote › BeaconTower** or via `hyla beacontower enable your-vps:7474 --token your-relay-secret`. See [BeaconTower Design](./beacontower-design.md) for the full protocol specification.

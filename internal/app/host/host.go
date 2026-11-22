@@ -46,8 +46,10 @@ type Host struct {
 	Name        string // "" for this machine
 	Addr, Token string // a remote machine's tcp:// address and password
 	// TC is a machine reached by a tailcat pair code instead: Code is the
-	// code, and Port the listener's.
+	// code, and Port the listener's. BT is a machine reached through a
+	// BeaconTower encrypted relay: Code holds the bt1_... pair code.
 	TC   bool
+	BT   bool
 	Code string
 	Port string
 
@@ -126,6 +128,8 @@ func (h *Host) Dialer() client.Dialer {
 	switch {
 	case !h.Remote():
 		return client.Local{NoStart: true}
+	case h.BT:
+		return beaconTowerDialer{code: h.Code}
 	case h.TC:
 		return tailcatDialer{code: h.Code, port: h.Port}
 	}
@@ -202,6 +206,16 @@ func (d tailcatDialer) Dial() (net.Conn, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	return remote.OpenTailcat(ctx, d.code, d.port)
+}
+
+// beaconTowerDialer reaches a machine through its BeaconTower encrypted relay
+// pool using the self-contained bt1_... pair code.
+type beaconTowerDialer struct{ code string }
+
+func (d beaconTowerDialer) Dial() (net.Conn, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	return remote.OpenBeaconTower(ctx, d.code)
 }
 
 func (d tcpDialer) Dial() (net.Conn, error) {

@@ -4,6 +4,7 @@ import "testing"
 
 func TestParseListen(t *testing.T) {
 	for in, want := range map[string]Listen{
+		"beacontower://":       {Kind: "beacontower", PocketPort: PocketPort},
 		"tailcat://":           {Kind: "tailcat", Port: ListenPort(), PocketPort: PocketPort},
 		"tailcat://:7400":      {Kind: "tailcat", Port: "7400", PocketPort: PocketPort},
 		"tcp://":               {Kind: "tcp", Port: ListenPort()},
@@ -19,7 +20,7 @@ func TestParseListen(t *testing.T) {
 			t.Errorf("%q reads back as %q: %+v, %v", in, got.String(), again, err)
 		}
 	}
-	for _, bad := range []string{"", "udp://:1", "tcp://host/x", "tcp://:0", "tcp://:99999", "tailcat://host:7473", "tailnet://:7473"} {
+	for _, bad := range []string{"", "udp://:1", "tcp://host/x", "tcp://:0", "tcp://:99999", "tailcat://host:7473", "tailnet://:7473", "beacontower://host:7474", "beacontower://:7474", "beacontower:///foo"} {
 		if l, err := ParseListen(bad); err == nil {
 			t.Errorf("%q read as %+v", bad, l)
 		}

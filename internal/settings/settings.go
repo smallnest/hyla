@@ -167,6 +167,14 @@ type Settings struct {
 	// again, whose pair code changed: this machine's, as `hyla tailcat
 	// rotate` sets it.
 	TailcatRotate bool `json:"tailcatRotate,omitempty"`
+
+	// BeaconTower configures the self-hosted encrypted relay transport:
+	// BeaconTowerRelay names the relay endpoint (host:port, tls://, ws://,
+	// or wss://), BeaconTowerToken carries its optional access token, and
+	// BeaconTowerRotate triggers hylad to reload after key rotation.
+	BeaconTowerRelay  string `json:"beaconTowerRelay,omitempty"`
+	BeaconTowerToken  string `json:"beaconTowerToken,omitempty"`
+	BeaconTowerRotate bool   `json:"beaconTowerRotate,omitempty"`
 }
 
 // DefaultWindowOpacity is how much of the window's background the wash
@@ -647,6 +655,9 @@ func (s *Settings) normalize() {
 	normalizeFeishu(s.Feishu)
 	if s.TailcatRelay != "" && !ValidDERPMapURL(s.TailcatRelay) {
 		s.TailcatRelay = d.TailcatRelay
+	}
+	if s.BeaconTowerRelay != "" && !ValidBeaconRelay(s.BeaconTowerRelay) {
+		s.BeaconTowerRelay = d.BeaconTowerRelay
 	}
 	if s.LightTheme == "" {
 		s.LightTheme = d.LightTheme

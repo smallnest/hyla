@@ -39,6 +39,25 @@ type TCHostDraft struct {
 	Err              string
 }
 
+// BeaconTowerDraft is the BeaconTower form: relay URL, optional access token,
+// and this machine's self-contained pair code + QR code.
+type BeaconTowerDraft struct {
+	Relay   string
+	Token   string
+	Err     TailcatField
+	Code    string
+	CodeErr string
+	QR      *qrcode.Code
+	Copied  time.Time
+	Loaded  bool
+}
+
+// BTHostDraft is the form that adds a machine by its BeaconTower pair code.
+type BTHostDraft struct {
+	Name, Code string
+	Err        string
+}
+
 // HostDraft is the form that adds another machine: its name, its
 // listener's address and its password, and what went wrong.
 type HostDraft struct {

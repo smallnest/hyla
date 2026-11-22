@@ -329,7 +329,7 @@ var keys = append([]key{
 	boolKey("dock-bounce", "once, when a session comes to need you", func(s *Settings) *bool { return &s.BounceDock }),
 
 	boolKey("remote-control", "hyla do, hyla focus and hyla browser drive the app", func(s *Settings) *bool { return &s.RemoteControl }),
-	{name: "listen", doc: "let Hyla and HylaPocket on other machines reach this one: tailcat://:7473 through a relay with a pair code, or tcp://:7473 on this machine's network, with listen-token as the password; repeat it", list: true,
+	{name: "listen", doc: "let Hyla and HylaPocket on other machines reach this one: beacontower:// through your encrypted BeaconTower relay, tailcat://:7473 through a relay with a pair code, or tcp://:7473 on this machine's network, with listen-token as the password; repeat it", list: true,
 		get: func(s *Settings) []string { return slices.Clone(s.Listen) },
 		set: func(s *Settings, v []string) error {
 			s.Listen = nil
@@ -385,6 +385,18 @@ var keys = append([]key{
 			return nil
 		}},
 	boolKey("tailcat-rotate", "start hylad's tailcat listener with the key again, whose pair code changed: hyla tailcat rotate sets it", func(s *Settings) *bool { return &s.TailcatRotate }),
+	{name: "beacontower-relay", doc: "where BeaconTower connects to relay encrypted tunnels, as relay.example.com:7474, tls://…, or wss://relay.example.com/ws",
+		get: func(s *Settings) []string { return []string{s.BeaconTowerRelay} },
+		set: func(s *Settings, v []string) error {
+			u := strings.TrimSpace(v[len(v)-1])
+			if u != "" && !ValidBeaconRelay(u) {
+				return fmt.Errorf("%q is not a BeaconTower relay (use host:port, tls://, ws://, or wss://)", u)
+			}
+			s.BeaconTowerRelay = u
+			return nil
+		}},
+	stringKey("beacontower-token", "optional shared access token required by your BeaconTower relay server", func(s *Settings) *string { return &s.BeaconTowerToken }),
+	boolKey("beacontower-rotate", "start hylad's BeaconTower listener with the key again, whose pair code changed: hyla beacontower rotate sets it", func(s *Settings) *bool { return &s.BeaconTowerRotate }),
 
 	boolKey("git-status", "show the git branch and changes of each session", func(s *Settings) *bool { return &s.GitStatus }),
 	choiceKey("worktree-base", "what a session's own git worktree branches from: the repository's default branch, or the branch of the session you're in", func(s *Settings) *string { return &s.WorktreeBase }, "default", "current"),

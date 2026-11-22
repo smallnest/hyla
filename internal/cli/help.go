@@ -219,6 +219,20 @@ var commands = []command{
 	},
 
 	{
+		name: "beacontower", aliases: []string{"beacon"}, group: "machine",
+		summary: "encrypted self-hosted relay access, by pair code",
+		usage: `hyla beacontower status|enable [relay-url] [--token <secret>]|disable|relay <url>|code [--qr]|rotate
+    status                      whether hylad listens, which relay it uses,
+                                and this machine's pair code
+    enable [relay-url]          listen over beacontower:// using the configured
+                                (or supplied) relay URL
+    disable                     stop listening
+    relay <url> [--token <tok>] set the relay URL (host:port, tls://, ws://, wss://)
+                                and optional access token (--clear-token to remove)
+    code [--qr]                 print the pair code (secret; --qr draws QR code)
+    rotate                      make a new key and pair code`,
+	},
+	{
 		name: "tailcat", group: "machine",
 		summary: "peer-to-peer access, by pair code",
 		usage: `hyla tailcat status|enable [port]|disable|port <port>|rotate|code
@@ -339,7 +353,7 @@ ciphertext alone, and no passphrase opens it.`,
 		summary: "the daemon that keeps the sessions",
 		usage: `hyla daemon status|stop|restart|update [version]
     stop --force                kill a hylad that does not stop
-    serve [--listen tailcat://:7473]…
+    serve [--listen tailcat://:7473] [--listen beacontower://]…
                                 run hylad in the foreground, never idle, as
                                 a service does
     install-service|uninstall-service
@@ -556,6 +570,8 @@ var subcommands = map[string][]string{
 	"daemon":      {"status", "stop", "restart", "update", "serve", "install-service", "uninstall-service"},
 	"config":      {"path", "show", "edit", "check"},
 	"pocket":      {"enable", "disable", "code", "qr", "tcp", "addr", "token"},
+	"beacontower": {"status", "enable", "disable", "relay", "code", "rotate"},
+	"beacon":      {"status", "enable", "disable", "relay", "code", "rotate"},
 	"tailcat":     {"status", "enable", "disable", "port", "rotate", "code"},
 	"p2p":         {"status", "enable", "disable", "port", "password"},
 	"pets":        {"ls", "install", "use", "rm"},

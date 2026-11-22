@@ -37,6 +37,10 @@ type Remote struct {
 // Tailcat reports whether the machine is reached by a pair code.
 func (r Remote) Tailcat() bool { return strings.HasPrefix(r.Addr, "tailcat://") }
 
+// BeaconTower reports whether the machine is reached through a BeaconTower
+// encrypted relay pair code.
+func (r Remote) BeaconTower() bool { return strings.HasPrefix(r.Addr, "beacontower://") }
+
 // RowInset is how far a row starts from the sidebar's edge.
 const RowInset = 12
 
@@ -49,19 +53,26 @@ func Sync(a App) {
 		if addr == "" || r.Name == "" {
 			continue
 		}
+		bt := r.BeaconTower()
 		tc := r.Tailcat()
 		port := r.Port
 		if tc && port == "" {
 			port = remote.DefaultPort
 		}
-		code := remote.TailcatCode(addr)
+		code := ""
+		switch {
+		case bt:
+			code = remote.BeaconCode(addr)
+		case tc:
+			code = remote.TailcatCode(addr)
+		}
 		h := a.HostNamed(r.Name)
-		if h != nil && (h.Addr != addr || h.Token != r.Token || h.TC != tc || h.Port != port) {
+		if h != nil && (h.Addr != addr || h.Token != r.Token || h.TC != tc || h.BT != bt || h.Port != port) {
 			Close(a, h)
 			h = nil
 		}
 		if h == nil {
-			h = &host.Host{Name: r.Name, Addr: addr, Token: r.Token, TC: tc, Code: code, Port: port, Conn: host.StateConnecting}
+			h = &host.Host{Name: r.Name, Addr: addr, Token: r.Token, TC: tc, BT: bt, Code: code, Port: port, Conn: host.StateConnecting}
 		}
 		keep = append(keep, h)
 	}
@@ -90,6 +101,9 @@ func Sync(a App) {
 func Close(a App, h *host.Host) {
 	h.Gen++
 	a.DropHostTerms(h)
+	if h.BT {
+		remote.CloseBeaconTower(h.Code)
+	}
 	if h.Client != nil {
 		go h.Client.Close()
 		h.Client = nil
@@ -107,6 +121,7 @@ func Add(a App, name, addr, token, port string) error {
 	token = strings.TrimSpace(token)
 	port = strings.TrimSpace(port)
 	tc := false
+	bt := false
 	// A code a phone scans, pasted here: hyla://pair?code=tc…&name=…
 	if code, label, ok := pairOf(addr); ok {
 		if name == "" {
@@ -114,11 +129,36 @@ func Add(a App, name, addr, token, port string) error {
 		}
 		addr = code
 		tc = true
+	} else if code, label, ok := beaconPairOf(addr); ok {
+		if name == "" {
+			name = label
+		}
+		addr = code
+		bt = true
+	} else if strings.HasPrefix(addr, "beacontower://") || remote.ValidBeaconCode(addr) {
+		addr = remote.BeaconCode(addr)
+		bt = true
 	} else if strings.HasPrefix(addr, "tailcat://") || remote.ValidPairCode(addr) {
 		addr = remote.TailcatCode(addr)
 		tc = true
 	}
-	if tc {
+	if bt {
+		if !remote.ValidBeaconCode(addr) {
+			return errNoBeaconCode
+		}
+		if name == "" {
+			name = remote.BeaconRelayDisplay(addr)
+			if i := strings.IndexByte(name, ':'); i > 0 {
+				name = name[:i]
+			}
+			if name == "" {
+				name = "beacontower"
+			}
+		}
+		addr = "beacontower://" + addr
+		token = ""
+		port = ""
+	} else if tc {
 		if !remote.ValidPairCode(addr) {
 			return errNoHostCode
 		}
@@ -179,6 +219,21 @@ func pairOf(s string) (code, name string, ok bool) {
 	return code, strings.TrimSpace(q.Get("name")), true
 }
 
+func beaconPairOf(s string) (code, name string, ok bool) {
+	if !strings.HasPrefix(s, "hyla://beacon?") {
+		return "", "", false
+	}
+	q, err := url.ParseQuery(strings.TrimPrefix(s, "hyla://beacon?"))
+	if err != nil {
+		return "", "", false
+	}
+	code = remote.BeaconCode(q.Get("code"))
+	if !remote.ValidBeaconCode(code) {
+		return "", "", false
+	}
+	return code, strings.TrimSpace(q.Get("name")), true
+}
+
 // Remove forgets a machine, and its sessions.
 func Remove(a App, name string) {
 	a.SetRemoteHosts(slices.DeleteFunc(slices.Clone(a.RemoteHosts()), func(r Remote) bool {
@@ -194,6 +249,7 @@ var (
 	errNoHostAddress = errString(locales.SetHostBadAddress())
 	errHostNamed     = func(name string) error { return errString(locales.SetHostNameTaken(name)) }
 	errNoHostCode    = errString(locales.SetHostNeedsCode())
+	errNoBeaconCode  = errString(locales.SetHostNeedsBeaconCode())
 )
 
 type errString string
@@ -289,11 +345,11 @@ func Remotes(a App, c *ui.Context, pal *theme.Palette) {
 				ui.Text(c, d).FontSize(12).TextColor(pal.TextMuted).LineHeight(1.35)
 			}
 		})
-		if len(a.RemoteHosts()) == 0 {
+		if !slices.ContainsFunc(a.RemoteHosts(), func(r Remote) bool { return !r.Tailcat() && !r.BeaconTower() }) {
 			ui.Text(c, locales.SetRemoteHostsNone()).FontSize(12.5).TextColor(pal.TextFaint).Padding(2, 4)
 		}
 		for _, r := range a.RemoteHosts() {
-			if r.Tailcat() {
+			if r.Tailcat() || r.BeaconTower() {
 				continue
 			}
 			r := r
@@ -394,6 +450,9 @@ func HostHeader(a App, c *ui.Context, pal *theme.Palette, h *host.Host, top floa
 // Reconnect connects to a remote host again, now.
 func Reconnect(a App, h *host.Host) {
 	a.DropHostTerms(h)
+	if h.BT {
+		remote.CloseBeaconTower(h.Code)
+	}
 	if h.Client != nil {
 		go h.Client.Close()
 		h.Client = nil

@@ -59,5 +59,7 @@ type App interface {
 	PairCodeDraft() *draft.TCHostDraft
 	TailcatDraft() *draft.TailcatDraft
 	P2PDraft() *draft.P2PDraft
+	BeaconTowerDraft() *draft.BeaconTowerDraft
+	BTHostDraft() *draft.BTHostDraft
 	TCPListen(c *ui.Context, pal *theme.Palette, d *draft.P2PDraft)
 }

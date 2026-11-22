@@ -13,6 +13,9 @@ import (
 // Listen is hylad's listener, as the configuration's listen key and
 // `hyla daemon serve --listen` name it:
 //
+//   - beacontower://: a self-hosted zero-trust encrypted relay (beacontower.go):
+//     E2EE X25519 + PSK + ChaCha20-Poly1305 end to end, multiplexed over a
+//     single persistent relay tunnel per client.
 //   - tailcat://:7473, or tailcat:// for ListenPort: a relay for Hyla
 //     anywhere, over the tailcat library (tailcat.go): WireGuard end to
 //     end, with a public DERP relay only to reach the peer. The pair code
@@ -21,7 +24,7 @@ import (
 //     network, which the password of the configuration admits (the
 //     listener's token). Hyla and HylaPocket reach it by its address.
 type Listen struct {
-	Kind string // "tailcat" or "tcp"
+	Kind string // "beacontower", "tailcat" or "tcp"
 	Host string // tcp's bind address, "" for every address
 	Port string
 	// Tailcat is the pair code of a tailcat listener, as hylad makes
@@ -52,8 +55,14 @@ func ParseListen(s string) (Listen, error) {
 		}
 		return l, nil
 	}
+	if u.Scheme == "beacontower" {
+		if u.Hostname() != "" || u.Port() != "" || (u.Path != "" && u.Path != "/") {
+			return Listen{}, fmt.Errorf("%q: a beacontower listener takes no host or port: write beacontower://", s)
+		}
+		return Listen{Kind: "beacontower", PocketPort: PocketPort}, nil
+	}
 	if u.Scheme != "tailcat" {
-		return Listen{}, fmt.Errorf("%q: hylad listens on tailcat://:port or tcp://:port", s)
+		return Listen{}, fmt.Errorf("%q: hylad listens on beacontower://, tailcat://:port or tcp://:port", s)
 	}
 	if u.Hostname() != "" {
 		return Listen{}, fmt.Errorf("%q: a tailcat listener takes any port: write tailcat://:port", s)
@@ -89,7 +98,10 @@ func ListenPort() string {
 const PocketPort = "7297"
 
 func (l Listen) String() string {
-	if l.Kind == "tcp" {
+	switch l.Kind {
+	case "beacontower":
+		return "beacontower://"
+	case "tcp":
 		return "tcp://" + net.JoinHostPort(l.Host, l.Port)
 	}
 	return l.Kind + "://:" + l.Port

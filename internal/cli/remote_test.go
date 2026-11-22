@@ -113,3 +113,50 @@ func TestHostsP2P(t *testing.T) {
 		t.Errorf("listen %q", set.Listen)
 	}
 }
+
+func TestHostsBeaconTower(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HYLA_HOME", home)
+	t.Setenv("HYLA_CONFIG", filepath.Join(home, "config"))
+	settings.Reload()
+
+	if err := beaconTowerCmd([]string{"relay", "ftp://bad"}); err == nil {
+		t.Fatal("bad relay scheme accepted")
+	}
+	if err := beaconTowerCmd([]string{"enable", "wss://relay.example.com/ws", "--token", "secret-tok"}); err != nil {
+		t.Fatal(err)
+	}
+	set := settings.Load()
+	if set.BeaconTowerRelay != "wss://relay.example.com/ws" || set.BeaconTowerToken != "secret-tok" {
+		t.Fatalf("settings = %+v", set)
+	}
+	if _, ok := set.BeaconTowerListen(); !ok {
+		t.Fatalf("beacontower listener not enabled: %q", set.Listen)
+	}
+	code1, err := remote.LocalBeaconTowerAddress(set.BeaconTowerRelay, set.BeaconTowerToken)
+	if err != nil || !remote.ValidBeaconCode(code1) {
+		t.Fatalf("LocalBeaconTowerAddress = %q, %v", code1, err)
+	}
+	rot := set.BeaconTowerRotate
+	if err := beaconTowerCmd([]string{"rotate"}); err != nil {
+		t.Fatal(err)
+	}
+	set = settings.Load()
+	if set.BeaconTowerRotate == rot {
+		t.Fatal("BeaconTowerRotate flag not flipped")
+	}
+	code2, err := remote.LocalBeaconTowerAddress(set.BeaconTowerRelay, set.BeaconTowerToken)
+	if err != nil || code2 == code1 {
+		t.Fatalf("code did not rotate: %q -> %q, %v", code1, code2, err)
+	}
+	if st, err := os.Stat(remote.BeaconTowerKeyPath()); err != nil || st.Mode().Perm() != 0o600 {
+		t.Fatalf("key file %v, %v", st, err)
+	}
+	if err := beaconTowerCmd([]string{"disable"}); err != nil {
+		t.Fatal(err)
+	}
+	set = settings.Load()
+	if _, ok := set.BeaconTowerListen(); ok {
+		t.Fatal("listener remained enabled after disable")
+	}
+}

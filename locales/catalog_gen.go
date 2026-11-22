@@ -7930,6 +7930,170 @@ func (msgs Messages) SetPetGroup() string {
 	return Catalog.Format(msgs.locale, "setPetGroup", nil)
 }
 
+// SetBeaconTowerTitle says "BeaconTower"
+// in the language the app shows.
+func SetBeaconTowerTitle() string { return In(i18n.Locale()).SetBeaconTowerTitle() }
+
+// SetBeaconTowerTitle says "BeaconTower"
+// in the language of msgs.
+func (msgs Messages) SetBeaconTowerTitle() string {
+	return Catalog.Format(msgs.locale, "setBeaconTowerTitle", nil)
+}
+
+// SetHostNeedsBeaconCode says "A BeaconTower machine takes its pair code."
+// in the language the app shows.
+func SetHostNeedsBeaconCode() string { return In(i18n.Locale()).SetHostNeedsBeaconCode() }
+
+// SetHostNeedsBeaconCode says "A BeaconTower machine takes its pair code."
+// in the language of msgs.
+func (msgs Messages) SetHostNeedsBeaconCode() string {
+	return Catalog.Format(msgs.locale, "setHostNeedsBeaconCode", nil)
+}
+
+// SetBeaconTowerRelay says "Relay Server"
+// in the language the app shows.
+func SetBeaconTowerRelay() string { return In(i18n.Locale()).SetBeaconTowerRelay() }
+
+// SetBeaconTowerRelay says "Relay Server"
+// in the language of msgs.
+func (msgs Messages) SetBeaconTowerRelay() string {
+	return Catalog.Format(msgs.locale, "setBeaconTowerRelay", nil)
+}
+
+// SetBeaconTowerRelayDetail says "Self-hosted encrypted relay: host:port, tls://host:port, or wss://host/ws."
+// in the language the app shows.
+func SetBeaconTowerRelayDetail() string { return In(i18n.Locale()).SetBeaconTowerRelayDetail() }
+
+// SetBeaconTowerRelayDetail says "Self-hosted encrypted relay: host:port, tls://host:port, or wss://host/ws."
+// in the language of msgs.
+func (msgs Messages) SetBeaconTowerRelayDetail() string {
+	return Catalog.Format(msgs.locale, "setBeaconTowerRelayDetail", nil)
+}
+
+// SetBeaconTowerRelayPlaceholder says "relay.example.com:7474 or wss://…"
+// in the language the app shows.
+func SetBeaconTowerRelayPlaceholder() string {
+	return In(i18n.Locale()).SetBeaconTowerRelayPlaceholder()
+}
+
+// SetBeaconTowerRelayPlaceholder says "relay.example.com:7474 or wss://…"
+// in the language of msgs.
+func (msgs Messages) SetBeaconTowerRelayPlaceholder() string {
+	return Catalog.Format(msgs.locale, "setBeaconTowerRelayPlaceholder", nil)
+}
+
+// SetBeaconTowerToken says "Relay Access Token"
+// in the language the app shows.
+func SetBeaconTowerToken() string { return In(i18n.Locale()).SetBeaconTowerToken() }
+
+// SetBeaconTowerToken says "Relay Access Token"
+// in the language of msgs.
+func (msgs Messages) SetBeaconTowerToken() string {
+	return Catalog.Format(msgs.locale, "setBeaconTowerToken", nil)
+}
+
+// SetBeaconTowerTokenPlaceholder says "optional"
+// in the language the app shows.
+func SetBeaconTowerTokenPlaceholder() string {
+	return In(i18n.Locale()).SetBeaconTowerTokenPlaceholder()
+}
+
+// SetBeaconTowerTokenPlaceholder says "optional"
+// in the language of msgs.
+func (msgs Messages) SetBeaconTowerTokenPlaceholder() string {
+	return Catalog.Format(msgs.locale, "setBeaconTowerTokenPlaceholder", nil)
+}
+
+// SetBeaconTowerHostsTitle says "BeaconTower machines"
+// in the language the app shows.
+func SetBeaconTowerHostsTitle() string { return In(i18n.Locale()).SetBeaconTowerHostsTitle() }
+
+// SetBeaconTowerHostsTitle says "BeaconTower machines"
+// in the language of msgs.
+func (msgs Messages) SetBeaconTowerHostsTitle() string {
+	return Catalog.Format(msgs.locale, "setBeaconTowerHostsTitle", nil)
+}
+
+// SetBeaconTowerHostCode says "bt1_… or beacontower://bt1_…"
+// in the language the app shows.
+func SetBeaconTowerHostCode() string { return In(i18n.Locale()).SetBeaconTowerHostCode() }
+
+// SetBeaconTowerHostCode says "bt1_… or beacontower://bt1_…"
+// in the language of msgs.
+func (msgs Messages) SetBeaconTowerHostCode() string {
+	return Catalog.Format(msgs.locale, "setBeaconTowerHostCode", nil)
+}
+
+// SetBeaconTowerListen says "Provide BeaconTower Service"
+// in the language the app shows.
+func SetBeaconTowerListen() string { return In(i18n.Locale()).SetBeaconTowerListen() }
+
+// SetBeaconTowerListen says "Provide BeaconTower Service"
+// in the language of msgs.
+func (msgs Messages) SetBeaconTowerListen() string {
+	return Catalog.Format(msgs.locale, "setBeaconTowerListen", nil)
+}
+
+// SetBeaconTowerListenDetail says "Fast end-to-end encrypted relay tunnel over one multiplexed connection."
+// in the language the app shows.
+func SetBeaconTowerListenDetail() string { return In(i18n.Locale()).SetBeaconTowerListenDetail() }
+
+// SetBeaconTowerListenDetail says "Fast end-to-end encrypted relay tunnel over one multiplexed connection."
+// in the language of msgs.
+func (msgs Messages) SetBeaconTowerListenDetail() string {
+	return Catalog.Format(msgs.locale, "setBeaconTowerListenDetail", nil)
+}
+
+// SetBeaconTowerNeedsRelay says "Enter your BeaconTower relay server above to generate a pair code."
+// in the language the app shows.
+func SetBeaconTowerNeedsRelay() string { return In(i18n.Locale()).SetBeaconTowerNeedsRelay() }
+
+// SetBeaconTowerNeedsRelay says "Enter your BeaconTower relay server above to generate a pair code."
+// in the language of msgs.
+func (msgs Messages) SetBeaconTowerNeedsRelay() string {
+	return Catalog.Format(msgs.locale, "setBeaconTowerNeedsRelay", nil)
+}
+
+// SetBeaconTowerCode says "This computer's pair code"
+// in the language the app shows.
+func SetBeaconTowerCode() string { return In(i18n.Locale()).SetBeaconTowerCode() }
+
+// SetBeaconTowerCode says "This computer's pair code"
+// in the language of msgs.
+func (msgs Messages) SetBeaconTowerCode() string {
+	return Catalog.Format(msgs.locale, "setBeaconTowerCode", nil)
+}
+
+// SetBeaconTowerCodeDetail says "Includes the relay address, encryption key, and optional relay token — keep it secret."
+// in the language the app shows.
+func SetBeaconTowerCodeDetail() string { return In(i18n.Locale()).SetBeaconTowerCodeDetail() }
+
+// SetBeaconTowerCodeDetail says "Includes the relay address, encryption key, and optional relay token — keep it secret."
+// in the language of msgs.
+func (msgs Messages) SetBeaconTowerCodeDetail() string {
+	return Catalog.Format(msgs.locale, "setBeaconTowerCodeDetail", nil)
+}
+
+// SetBeaconTowerChange says "Change the pair code"
+// in the language the app shows.
+func SetBeaconTowerChange() string { return In(i18n.Locale()).SetBeaconTowerChange() }
+
+// SetBeaconTowerChange says "Change the pair code"
+// in the language of msgs.
+func (msgs Messages) SetBeaconTowerChange() string {
+	return Catalog.Format(msgs.locale, "setBeaconTowerChange", nil)
+}
+
+// SetBeaconTowerChanged says "New BeaconTower pair code. Add this computer again on your other machines."
+// in the language the app shows.
+func SetBeaconTowerChanged() string { return In(i18n.Locale()).SetBeaconTowerChanged() }
+
+// SetBeaconTowerChanged says "New BeaconTower pair code. Add this computer again on your other machines."
+// in the language of msgs.
+func (msgs Messages) SetBeaconTowerChanged() string {
+	return Catalog.Format(msgs.locale, "setBeaconTowerChanged", nil)
+}
+
 // SetTailcatTitle says "Tailcat"
 // in the language the app shows.
 func SetTailcatTitle() string { return In(i18n.Locale()).SetTailcatTitle() }

@@ -18,7 +18,13 @@ func (a *App) SetSettingsNow(s settings.Settings) { a.settingsIn = s }
 
 func (a *App) tailcatGroup(c *ui.Context, pal *theme.Palette) { hosts.TailcatGroup(a, c, pal) }
 
+func (a *App) beaconTowerGroup(c *ui.Context, pal *theme.Palette) {
+	hosts.BeaconTowerGroup(a, c, pal)
+}
+
 func (a *App) resetTailcat() { hosts.ResetTailcat(a) }
+
+func (a *App) resetBeaconTower() { hosts.ResetBeaconTower(a) }
 
 func (a *App) resetP2P() { hosts.ResetP2P(a) }
 

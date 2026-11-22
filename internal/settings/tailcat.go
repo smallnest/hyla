@@ -74,3 +74,29 @@ func (s *Settings) SetTCPListen(address, port string) {
 		s.Listen = append(s.Listen, "tcp://"+net.JoinHostPort(address, port))
 	}
 }
+
+// ValidBeaconRelay reports whether s is a valid BeaconTower relay endpoint.
+func ValidBeaconRelay(s string) bool { return remote.ValidBeaconRelay(s) }
+
+// BeaconTowerListen reports whether s includes a beacontower:// listener.
+func (s *Settings) BeaconTowerListen() (listen string, ok bool) {
+	for _, l := range s.Listen {
+		spec, err := remote.ParseListen(l)
+		if err == nil && spec.Kind == "beacontower" {
+			return l, true
+		}
+	}
+	return "", false
+}
+
+// SetBeaconTowerListen enables or disables the beacontower:// listener on s
+// while leaving tailcat:// and tcp:// listeners undisturbed.
+func (s *Settings) SetBeaconTowerListen(on bool) {
+	s.Listen = slices.DeleteFunc(s.Listen, func(l string) bool {
+		spec, err := remote.ParseListen(l)
+		return err == nil && spec.Kind == "beacontower"
+	})
+	if on {
+		s.Listen = append(s.Listen, "beacontower://")
+	}
+}

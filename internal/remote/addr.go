@@ -65,7 +65,7 @@ func ParseAddr(s string) (Addr, error) {
 	case "wsl":
 		a.Port, a.User = "", ""
 	default:
-		return Addr{}, fmt.Errorf("%q: Hyla reaches hosts over ssh://, wsl:// or tailcat://", raw)
+		return Addr{}, fmt.Errorf("%q: Hyla reaches hosts over ssh://, wsl://, tailcat:// or beacontower://", raw)
 	}
 	if u.Path != "" && u.Path != "/" {
 		return Addr{}, fmt.Errorf("%q: an address has no path", raw)

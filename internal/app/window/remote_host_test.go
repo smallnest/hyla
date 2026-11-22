@@ -16,6 +16,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/app/link"
+	"hyla/internal/beacontower"
 	"hyla/internal/client"
 	"hyla/internal/proto"
 	"hyla/internal/remote"
@@ -402,5 +403,156 @@ func TestTailcatCodeChangeAskedInSettings(t *testing.T) {
 	hosts.RotateTailcatCode(a)
 	if a.Ss.Toast == "" {
 		t.Error("the news of a new pair code went to the main window")
+	}
+}
+
+func serveRemoteE2EEHylad(c net.Conn, st proto.State) {
+	defer c.Close()
+	r := bufio.NewReaderSize(c, 64<<10)
+	hello, err := proto.ReadLine(r, 64<<10)
+	if err != nil {
+		return
+	}
+	var h proto.Hello
+	if json.Unmarshal(hello, &h) != nil {
+		return
+	}
+	_ = json.NewEncoder(c).Encode(proto.Welcome{Version: proto.Version, PID: 1, Started: time.Now().UnixMilli(), App: "test"})
+	if h.Kind == "attach" {
+		io.Copy(io.Discard, r)
+		return
+	}
+	for {
+		line, err := proto.ReadLine(r, proto.MaxLine)
+		if err != nil {
+			return
+		}
+		var req proto.Request
+		if json.Unmarshal(line, &req) != nil {
+			return
+		}
+		var res any = map[string]any{}
+		if req.Method == "state" {
+			res = st
+		}
+		_ = json.NewEncoder(c).Encode(map[string]any{"id": req.ID, "result": res})
+	}
+}
+
+func TestBeaconTowerRemoteHostEndToEnd(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HYLA_HOME", home)
+	t.Setenv("HYLA_CONFIG", filepath.Join(home, "config"))
+	settings.Reload()
+	t.Cleanup(func() { beacontower.DefaultPool.CloseAll() })
+
+	srv := beacontower.NewServer(beacontower.ServerConfig{
+		ListenAddr: "127.0.0.1:0",
+		Token:      "relay-e2e-token",
+	})
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	go func() { _ = srv.Serve(ln) }()
+	defer srv.Close()
+
+	relayAddr := ln.Addr().String()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	btRelay, err := remote.ListenBeaconTower(ctx, filepath.Join(home, "beacontower.json"), relayAddr, "relay-e2e-token")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer btRelay.Close()
+
+	go func() {
+		for {
+			c, err := btRelay.Accept()
+			if err != nil {
+				return
+			}
+			go serveRemoteE2EEHylad(c, remoteState())
+		}
+	}()
+
+	a := testApp(t)
+	if err := hosts.Add(a, "beacon-box", btRelay.PairCode, "", ""); err != nil {
+		t.Fatal(err)
+	}
+	h := a.hostNamed("beacon-box")
+	if h == nil || !h.BT || h.TC || h.Code == "" {
+		t.Fatalf("unexpected host %+v", h)
+	}
+
+	cl, err := client.ConnectVia(h.Dialer())
+	if err != nil {
+		t.Fatalf("ConnectVia BeaconTower: %v", err)
+	}
+	t.Cleanup(func() { cl.Close() })
+	link.Connected(a, h, h.Gen, cl, nil)
+	var st proto.State
+	if err := cl.Call("state", nil, &st); err != nil {
+		t.Fatal(err)
+	}
+	h.Loaded = true
+	a.mergeState(h, st)
+	if got := a.SessionsOf(h); len(got) != 1 || got[0].ID != "rs" {
+		t.Fatalf("remote sessions = %+v", got)
+	}
+
+	stream, err := client.AttachVia(h.Dialer(), "rpp")
+	if err != nil {
+		t.Fatalf("AttachVia BeaconTower: %v", err)
+	}
+	defer stream.Close()
+
+	// Both ConnectVia and AttachVia must reuse the single pooled E2EE relay session.
+	if registered, sessions := srv.Stats(); registered != 1 || sessions != 1 {
+		t.Fatalf("relay stats = (hosts=%d, sessions=%d); want (1, 1)", registered, sessions)
+	}
+
+	// Verify Settings › Remote Connection renders BeaconTower -> Tailcat -> P2P and independent listeners.
+	set := settings.Load()
+	set.BeaconTowerRelay = relayAddr
+	set.BeaconTowerToken = "relay-e2e-token"
+	set.SetBeaconTowerListen(true)
+	set.SetTailcatListen("7402")
+	set.SetTCPListen("", "7401")
+	set.ListenToken = "s3cret-pass"
+	if err := settings.Save(set); err != nil {
+		t.Fatal(err)
+	}
+	a.applySettings(settings.Load())
+	a.Ss.Page = "hosts"
+	hosts.ResetBeaconTower(a)
+	hosts.ResetTailcat(a)
+	hosts.ResetP2P(a)
+
+	kit.Reset()
+	tt := ui.NewTester(uisettings.View(a), 820, 3000)
+	tt.Frame()
+	texts := tt.Texts()
+	joined := strings.Join(texts, "\n")
+	btIdx := strings.Index(joined, locales.SetBeaconTowerTitle())
+	tcIdx := strings.Index(joined, locales.SetTailcatTitle())
+	p2pIdx := strings.Index(joined, locales.SetTCPTitle())
+	if btIdx < 0 || tcIdx < 0 || p2pIdx < 0 || !(btIdx < tcIdx && tcIdx < p2pIdx) {
+		t.Fatalf("unexpected group order: bt=%d tc=%d p2p=%d\n%s", btIdx, tcIdx, p2pIdx, joined)
+	}
+	if !strings.Contains(joined, "beacontower://bt1_") {
+		t.Fatalf("Settings missing rendered beacontower pair code:\n%s", joined)
+	}
+
+	// Rotating BeaconTower code triggers toast in Settings and updates saved rotate flag.
+	hosts.RotateBeaconTowerCode(a)
+	if a.Ss.Toast == "" {
+		t.Error("RotateBeaconTowerCode did not set Settings Toast")
+	}
+
+	hosts.Remove(a, "beacon-box")
+	if a.hostNamed("beacon-box") != nil {
+		t.Fatal("beacon-box was not removed")
 	}
 }
