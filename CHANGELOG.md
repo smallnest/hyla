@@ -4,6 +4,27 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.23.1
+
+- **HylaPocket pairing over BeaconTower**: **Settings › Remote Connection ›
+  BeaconTower** now encodes `hyla://pair?code=bt1_…&name=…` in its QR code so
+  HylaPocket fills in the host name automatically when scanned, and
+  `hyla pocket beacon [--qr]`, `hyla pocket code`, and `hyla pocket qr` print
+  the BeaconTower pairing code (listing both codes when Tailcat and
+  BeaconTower listen together).
+- **BeaconTower reliability & settings fixes**: fixed WebSocket relay
+  transport for large encrypted frames (disabling permessage-deflate on
+  already-encrypted AEAD traffic, raising the read limit to 128 KiB, and
+  omitting default `:443`/`:80` ports in `WSURL`), hardened the stream
+  multiplexer and relay server, saved relay/token changes on blur as well as
+  Enter in **Settings › Remote Connection › BeaconTower**, and accepted
+  `hyla://pair?code=bt1_…` wherever a BeaconTower code is pasted. Hosts get
+  the daemon and relay fixes with their next update.
+- **Prebuilt `beacontower` relay binaries & installer**: releases now attach
+  standalone `beacontower` binaries for macOS, Linux, and Windows (`amd64`
+  and `arm64`) alongside a one-line VPS install script
+  (`scripts/install-beacontower.sh`).
+
 ## 3.23.0
 
 - **BeaconTower remote connections**: a fast, self-hosted zero-trust
