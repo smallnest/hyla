@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/tailscale/tailcat"
@@ -40,19 +41,41 @@ func ServePocket(port string, pocket http.Handler) {
 	if err != nil || n == 0 {
 		n = 7297
 	}
+	pocketMu.Lock()
 	pocketPort, pocketHandler = uint16(n), pocket
+	pocketMu.Unlock()
 }
 
 var (
+	pocketMu      sync.RWMutex
 	pocketPort    uint16
 	pocketHandler http.Handler
 )
 
+func getPocketHandler() http.Handler {
+	pocketMu.RLock()
+	h := pocketHandler
+	pocketMu.RUnlock()
+	return h
+}
+
+func getPocketPortAndHandler() (uint16, http.Handler) {
+	pocketMu.RLock()
+	p, h := pocketPort, pocketHandler
+	pocketMu.RUnlock()
+	return p, h
+}
+
 // servePocket answers a connection of the server's other port: one HTTP
 // connection of HylaPocket's, which ends as it does.
 func servePocket(conn net.Conn) {
+	h := getPocketHandler()
+	if h == nil {
+		_ = conn.Close()
+		return
+	}
 	srv := &http.Server{
-		Handler:           pocketHandler,
+		Handler:           h,
 		ReadHeaderTimeout: 10 * time.Second,
 		ErrorLog:          log.New(io.Discard, "", 0),
 		ConnState: func(_ net.Conn, st http.ConnState) {
@@ -132,7 +155,8 @@ func ListenTailcat(ctx context.Context, path, port string) (*TailcatRelay, error
 		// Every other port is HylaPocket's, which a phone opens beside
 		// the mux: hylad says so with ServePocketPort (pocket.go).
 		OnTCP: func(port uint16) func(net.Conn) {
-			if port == pocketPort && pocketHandler != nil {
+			pp, ph := getPocketPortAndHandler()
+			if port == pp && ph != nil {
 				return servePocket
 			}
 			return func(c net.Conn) { c.Close() }

@@ -72,7 +72,8 @@ func (h *registeredHost) close() {
 }
 
 type pendingSession struct {
-	readyCh chan net.Conn
+	readyCh  chan net.Conn // unbuffered: ownership passes synchronously on pair
+	cancelCh chan struct{}
 }
 
 // Server is a zero-trust encrypted-traffic relay for BeaconTower.
@@ -87,12 +88,15 @@ type Server struct {
 	maxHosts      int
 	maxSessions   int
 	log           *log.Logger
+	httpHandler   http.Handler
 
-	mu      sync.Mutex
-	ln      net.Listener
-	hosts   map[[16]byte]*registeredHost
-	pending map[[16]byte]*pendingSession
-	closed  bool
+	mu               sync.Mutex
+	ln               net.Listener
+	hosts            map[[16]byte]*registeredHost
+	pending          map[[16]byte]*pendingSession
+	conns            map[net.Conn]struct{}
+	reservedSessions int
+	closed           bool
 
 	activeSessions atomic.Int64
 	copyBufPool    sync.Pool
@@ -125,7 +129,7 @@ func NewServer(cfg ServerConfig) *Server {
 		logger = log.New(io.Discard, "", 0)
 	}
 	tok := strings.TrimSpace(cfg.Token)
-	return &Server{
+	s := &Server{
 		cfg:           cfg,
 		tokenRequired: tok != "",
 		tokenDigest:   TokenDigest(tok),
@@ -135,6 +139,7 @@ func NewServer(cfg ServerConfig) *Server {
 		log:           logger,
 		hosts:         make(map[[16]byte]*registeredHost),
 		pending:       make(map[[16]byte]*pendingSession),
+		conns:         make(map[net.Conn]struct{}),
 		doneCh:        make(chan struct{}),
 		copyBufPool: sync.Pool{
 			New: func() any {
@@ -143,6 +148,30 @@ func NewServer(cfg ServerConfig) *Server {
 			},
 		},
 	}
+	mux := http.NewServeMux()
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		hosts, sessions := s.Stats()
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"ok":       true,
+			"hosts":    hosts,
+			"sessions": sessions,
+		})
+	})
+	mux.HandleFunc(s.wsPath, func(w http.ResponseWriter, r *http.Request) {
+		ws, err := websocket.Accept(w, r, &websocket.AcceptOptions{
+			InsecureSkipVerify: true,
+			CompressionMode:    websocket.CompressionDisabled,
+		})
+		if err != nil {
+			return
+		}
+		ws.SetReadLimit(128 << 10)
+		netConn := websocket.NetConn(context.Background(), ws, websocket.MessageBinary)
+		s.handlePeer(netConn)
+	})
+	s.httpHandler = mux
+	return s
 }
 
 // ListenAndServe binds cfg.ListenAddr (with optional TLS) and serves until Close or ctx cancels.
@@ -215,7 +244,7 @@ func (s *Server) Serve(ln net.Listener) error {
 	}
 }
 
-// Close shuts down the relay server and closes all registered host control links.
+// Close shuts down the relay server, registered host control links, and active sessions.
 func (s *Server) Close() error {
 	var err error
 	s.closeOnce.Do(func() {
@@ -228,15 +257,39 @@ func (s *Server) Close() error {
 			hosts = append(hosts, h)
 			delete(s.hosts, id)
 		}
+		conns := make([]net.Conn, 0, len(s.conns))
+		for c := range s.conns {
+			conns = append(conns, c)
+			delete(s.conns, c)
+		}
 		s.mu.Unlock()
 		for _, h := range hosts {
 			h.close()
+		}
+		for _, c := range conns {
+			_ = c.Close()
 		}
 		if ln != nil {
 			err = ln.Close()
 		}
 	})
 	return err
+}
+
+func (s *Server) trackConn(c net.Conn) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.closed {
+		return false
+	}
+	s.conns[c] = struct{}{}
+	return true
+}
+
+func (s *Server) untrackConn(c net.Conn) {
+	s.mu.Lock()
+	delete(s.conns, c)
+	s.mu.Unlock()
 }
 
 // Stats returns the current number of registered hosts and active bridged sessions.
@@ -279,29 +332,19 @@ func looksLikeHTTPMethod(head [4]byte) bool {
 }
 
 func (s *Server) serveHTTPConn(c net.Conn) {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
-		hosts, sessions := s.Stats()
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]any{
-			"ok":       true,
-			"hosts":    hosts,
-			"sessions": sessions,
-		})
-	})
-	mux.HandleFunc(s.wsPath, func(w http.ResponseWriter, r *http.Request) {
-		ws, err := websocket.Accept(w, r, nil)
-		if err != nil {
-			return
-		}
-		netConn := websocket.NetConn(context.Background(), ws, websocket.MessageBinary)
-		s.handlePeer(netConn)
-	})
-
+	if !s.trackConn(c) {
+		_ = c.Close()
+		return
+	}
 	srv := &http.Server{
-		Handler:           mux,
+		Handler:           s.httpHandler,
 		ReadHeaderTimeout: relayHelloTimeout,
 		ErrorLog:          log.New(io.Discard, "", 0),
+		ConnState: func(conn net.Conn, st http.ConnState) {
+			if st == http.StateClosed || st == http.StateHijacked {
+				s.untrackConn(conn)
+			}
+		},
 	}
 	srv.SetKeepAlivesEnabled(false)
 	_ = srv.Serve(&singleConnListener{conn: c, addr: c.LocalAddr()})
@@ -428,6 +471,8 @@ func (s *Server) runHostControl(entry *registeredHost) {
 	stopKeepalive := make(chan struct{})
 	defer close(stopKeepalive)
 
+	// Separate idle watchdog from ping writes so a wedged send buffer cannot
+	// prevent idle disconnection.
 	go func() {
 		t := time.NewTicker(relayPingInterval)
 		defer t.Stop()
@@ -444,6 +489,20 @@ func (s *Server) runHostControl(entry *registeredHost) {
 					entry.close()
 					return
 				}
+			}
+		}
+	}()
+
+	go func() {
+		t := time.NewTicker(relayPingInterval)
+		defer t.Stop()
+		for {
+			select {
+			case <-stopKeepalive:
+				return
+			case <-s.doneCh:
+				return
+			case <-t.C:
 				var p [8]byte
 				binary.BigEndian.PutUint64(p[:], uint64(time.Now().UnixNano()))
 				if err := entry.send(msgPing, p[:]); err != nil {
@@ -492,11 +551,11 @@ func (s *Server) handleConnect(clientConn net.Conn, nonce [32]byte, payload []by
 		}
 	}
 
-	if s.activeSessions.Load() >= int64(s.maxSessions) {
-		_ = writeCtrlMsg(clientConn, msgErr, []byte("relay session capacity reached"))
+	if !s.trackConn(clientConn) {
 		_ = clientConn.Close()
 		return
 	}
+	defer s.untrackConn(clientConn)
 
 	s.mu.Lock()
 	if s.closed {
@@ -504,14 +563,27 @@ func (s *Server) handleConnect(clientConn net.Conn, nonce [32]byte, payload []by
 		_ = clientConn.Close()
 		return
 	}
+	if s.reservedSessions >= s.maxSessions {
+		s.mu.Unlock()
+		_ = writeCtrlMsg(clientConn, msgErr, []byte("relay session capacity reached"))
+		_ = clientConn.Close()
+		return
+	}
 	hostEntry := s.hosts[hostID]
-	s.mu.Unlock()
-
 	if hostEntry == nil || hostEntry.closed.Load() {
+		s.mu.Unlock()
 		_ = writeCtrlMsg(clientConn, msgErr, []byte("target host offline"))
 		_ = clientConn.Close()
 		return
 	}
+	s.reservedSessions++
+	s.mu.Unlock()
+	defer func() {
+		s.mu.Lock()
+		s.reservedSessions--
+		s.mu.Unlock()
+	}()
+
 	if hostEntry.pendingCount.Add(1) > defaultMaxPendingInvite {
 		hostEntry.pendingCount.Add(-1)
 		_ = writeCtrlMsg(clientConn, msgErr, []byte("too many pending invites for host"))
@@ -526,7 +598,10 @@ func (s *Server) handleConnect(clientConn net.Conn, nonce [32]byte, payload []by
 		return
 	}
 
-	pend := &pendingSession{readyCh: make(chan net.Conn, 1)}
+	pend := &pendingSession{
+		readyCh:  make(chan net.Conn),
+		cancelCh: make(chan struct{}),
+	}
 	s.mu.Lock()
 	if s.closed {
 		s.mu.Unlock()
@@ -544,6 +619,7 @@ func (s *Server) handleConnect(clientConn net.Conn, nonce [32]byte, payload []by
 
 	if err := hostEntry.send(msgInvite, sessionID[:]); err != nil {
 		cleanupPending()
+		close(pend.cancelCh)
 		_ = writeCtrlMsg(clientConn, msgErr, []byte("host unreachable"))
 		_ = clientConn.Close()
 		return
@@ -554,17 +630,27 @@ func (s *Server) handleConnect(clientConn net.Conn, nonce [32]byte, payload []by
 	select {
 	case hostConn = <-pend.readyCh:
 		timer.Stop()
+		cleanupPending()
 	case <-timer.C:
 		cleanupPending()
+		close(pend.cancelCh)
 		_ = writeCtrlMsg(clientConn, msgErr, []byte("timed out waiting for host"))
 		_ = clientConn.Close()
 		return
 	case <-s.doneCh:
 		timer.Stop()
 		cleanupPending()
+		close(pend.cancelCh)
 		_ = clientConn.Close()
 		return
 	}
+
+	if !s.trackConn(hostConn) {
+		_ = hostConn.Close()
+		_ = clientConn.Close()
+		return
+	}
+	defer s.untrackConn(hostConn)
 
 	if err := writeCtrlMsg(hostConn, msgOK, nil); err != nil {
 		_ = hostConn.Close()
@@ -618,8 +704,11 @@ func (s *Server) handleJoin(hostConn net.Conn, nonce [32]byte, payload []byte) {
 
 	select {
 	case pend.readyCh <- hostConn:
-		// Ownership of hostConn passes to the waiting handleConnect goroutine.
-	default:
+		// Ownership of hostConn passed synchronously to handleConnect.
+	case <-pend.cancelCh:
+		_ = writeCtrlMsg(hostConn, msgErr, []byte("session expired"))
+		_ = hostConn.Close()
+	case <-s.doneCh:
 		_ = hostConn.Close()
 	}
 }

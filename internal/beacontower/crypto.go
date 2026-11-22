@@ -151,11 +151,18 @@ func JoinTokenProof(tokenDigest, nonce [32]byte, sessionID [16]byte) [32]byte {
 	return out
 }
 
+type replayEntry struct {
+	key [32]byte
+	at  time.Time
+}
+
 // ReplayCache tracks recently seen ephemeral client handshake keys to thwart
 // E2EE handshake replay attacks within the allowed clock-skew window.
 type ReplayCache struct {
-	mu   sync.Mutex
-	seen map[[32]byte]time.Time
+	mu    sync.Mutex
+	seen  map[[32]byte]time.Time
+	order []replayEntry
+	head  int
 }
 
 // NewReplayCache creates a bounded replay cache for host E2EE handshakes.
@@ -171,32 +178,32 @@ func (rc *ReplayCache) CheckAndAdd(key [32]byte, now time.Time) bool {
 	rc.mu.Lock()
 	defer rc.mu.Unlock()
 	cutoff := now.Add(-replayWindow)
-	if len(rc.seen) >= maxReplaySize {
-		for k, t := range rc.seen {
-			if t.Before(cutoff) {
-				delete(rc.seen, k)
-			}
+	for rc.head < len(rc.order) {
+		e := rc.order[rc.head]
+		if !e.at.Before(cutoff) {
+			break
 		}
-		if len(rc.seen) >= maxReplaySize {
-			// Evict oldest arbitrary entry to stay strictly bounded under flood.
-			for k := range rc.seen {
-				delete(rc.seen, k)
-				if len(rc.seen) < maxReplaySize {
-					break
-				}
-			}
+		if cur, ok := rc.seen[e.key]; ok && cur.Equal(e.at) {
+			delete(rc.seen, e.key)
 		}
-	} else if len(rc.seen) > 128 && len(rc.seen)%64 == 0 {
-		for k, t := range rc.seen {
-			if t.Before(cutoff) {
-				delete(rc.seen, k)
-			}
-		}
+		rc.head++
 	}
 	if prev, ok := rc.seen[key]; ok && !prev.Before(cutoff) {
 		return false
 	}
+	for len(rc.seen) >= maxReplaySize && rc.head < len(rc.order) {
+		e := rc.order[rc.head]
+		if cur, ok := rc.seen[e.key]; ok && cur.Equal(e.at) {
+			delete(rc.seen, e.key)
+		}
+		rc.head++
+	}
+	if rc.head > 1024 && rc.head*2 >= len(rc.order) {
+		rc.order = append([]replayEntry(nil), rc.order[rc.head:]...)
+		rc.head = 0
+	}
 	rc.seen[key] = now
+	rc.order = append(rc.order, replayEntry{key: key, at: now})
 	return true
 }
 
@@ -354,11 +361,9 @@ func ServerE2EHandshake(ctx context.Context, raw net.Conn, kp KeyPair, replay *R
 
 	now := time.Now()
 	ts := int64(binary.BigEndian.Uint64(initPlain[0:8]))
-	skew := now.Unix() - ts
-	if skew < 0 {
-		skew = -skew
-	}
-	if time.Duration(skew)*time.Second > maxClockSkew {
+	nowSec := now.Unix()
+	maxSkewSec := int64(maxClockSkew / time.Second)
+	if ts < nowSec-maxSkewSec || ts > nowSec+maxSkewSec {
 		return nil, errors.New("beacontower e2e: handshake timestamp outside allowed skew")
 	}
 	if !replay.CheckAndAdd(cePub, now) {
@@ -464,12 +469,14 @@ type aeadConn struct {
 	rdir   byte
 	rbuf   []byte
 	rawBuf []byte
+	rerr   error
 
 	wmu   sync.Mutex
 	waead cipher.AEAD
 	wseq  uint64
 	wdir  byte
 	wbuf  []byte
+	werr  error
 }
 
 func newAEADConn(raw net.Conn, writeKey, readKey []byte, writeDir, readDir byte) (*aeadConn, error) {
@@ -508,26 +515,34 @@ func (c *aeadConn) Read(p []byte) (int, error) {
 	c.rmu.Lock()
 	defer c.rmu.Unlock()
 	for len(c.rbuf) == 0 {
+		if c.rerr != nil {
+			return 0, c.rerr
+		}
 		var lenBuf [4]byte
 		if _, err := io.ReadFull(c.Conn, lenBuf[:]); err != nil {
+			c.rerr = err
 			return 0, err
 		}
 		ctLen := int(binary.BigEndian.Uint32(lenBuf[:]))
 		if ctLen < chacha20poly1305.Overhead || ctLen > maxRecordPlain+chacha20poly1305.Overhead {
-			return 0, fmt.Errorf("beacontower: invalid encrypted record size %d", ctLen)
+			c.rerr = fmt.Errorf("beacontower: invalid encrypted record size %d", ctLen)
+			return 0, c.rerr
 		}
 		if _, err := io.ReadFull(c.Conn, c.rawBuf[:ctLen]); err != nil {
+			c.rerr = err
 			return 0, err
 		}
 		if c.rseq == 0 {
-			return 0, errors.New("beacontower: read sequence exhausted")
+			c.rerr = errors.New("beacontower: read sequence exhausted")
+			return 0, c.rerr
 		}
 		var nonce [12]byte
 		var aad [9]byte
 		makeRecordNonceAndAAD(c.rdir, c.rseq, &nonce, &aad)
 		plain, err := c.raead.Open(c.rbuf[:0], nonce[:], c.rawBuf[:ctLen], aad[:])
 		if err != nil {
-			return 0, errors.New("beacontower: ciphertext authentication failed")
+			c.rerr = errors.New("beacontower: ciphertext authentication failed")
+			return 0, c.rerr
 		}
 		c.rseq++
 		c.rbuf = plain
@@ -545,6 +560,9 @@ func (c *aeadConn) Read(p []byte) (int, error) {
 func (c *aeadConn) Write(p []byte) (int, error) {
 	c.wmu.Lock()
 	defer c.wmu.Unlock()
+	if c.werr != nil {
+		return 0, c.werr
+	}
 	if len(p) == 0 {
 		return 0, nil
 	}
@@ -555,17 +573,19 @@ func (c *aeadConn) Write(p []byte) (int, error) {
 			chunk = chunk[:maxRecordPlain]
 		}
 		if c.wseq == 0 {
-			return written, errors.New("beacontower: write sequence exhausted")
+			c.werr = errors.New("beacontower: write sequence exhausted")
+			return written, c.werr
 		}
 		var nonce [12]byte
 		var aad [9]byte
 		makeRecordNonceAndAAD(c.wdir, c.wseq, &nonce, &aad)
+		c.wseq++
 		ct := c.waead.Seal(c.wbuf[4:4], nonce[:], chunk, aad[:])
 		binary.BigEndian.PutUint32(c.wbuf[:4], uint32(len(ct)))
 		if _, err := c.Conn.Write(c.wbuf[:4+len(ct)]); err != nil {
+			c.werr = err
 			return written, err
 		}
-		c.wseq++
 		written += len(chunk)
 		p = p[len(chunk):]
 	}

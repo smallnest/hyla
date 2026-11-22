@@ -7,6 +7,7 @@ import (
 	"github.com/egoist/mygo/ui"
 	"github.com/xingkaixin/mygo-native-ui/ui/qrcode"
 
+	"hyla/internal/pocket"
 	"hyla/internal/remote"
 	"hyla/internal/settings"
 	"hyla/internal/ui/confirm"
@@ -26,7 +27,13 @@ import (
 func BeaconTowerGroup(a App, c *ui.Context, pal *theme.Palette) {
 	kit.Group(c, pal, locales.SetBeaconTowerTitle(), "", func() {
 		d := a.BeaconTowerDraft()
-		if !d.Loaded {
+		s := a.SettingsNow()
+		listen := hasBeaconTowerListener(s)
+		if !d.Loaded || (!d.RelayFocused && !d.TokenFocused &&
+			(s.BeaconTowerRelay != d.SyncedRelay ||
+				s.BeaconTowerToken != d.SyncedToken ||
+				s.BeaconTowerRotate != d.SyncedRotate ||
+				listen != d.SyncedListen)) {
 			ResetBeaconTower(a)
 		}
 		if kit.Rows++; kit.Rows > 1 {
@@ -37,15 +44,21 @@ func BeaconTowerGroup(a App, c *ui.Context, pal *theme.Palette) {
 			if detail := locales.SetBeaconTowerRelayDetail(); detail != "" {
 				ui.Text(c, detail).FontSize(12).TextColor(pal.TextMuted).LineHeight(1.35)
 			}
-			if in := controls.TextField(c, "bt-relay", &d.Relay, locales.SetBeaconTowerRelayPlaceholder(), 0, pal).Font("monospace"); in.Submitted() {
-				saveBeaconTower(a, d, "bt-relay")
+			inRelay := controls.TextField(c, "bt-relay", &d.Relay, locales.SetBeaconTowerRelayPlaceholder(), 0, pal).Font("monospace")
+			relayFocused := inRelay.Focused()
+			if inRelay.Submitted() || (d.RelayFocused && !relayFocused && strings.TrimSpace(d.Relay) != a.SettingsNow().BeaconTowerRelay) {
+				saveBeaconTower(a, d)
 			}
+			d.RelayFocused = relayFocused
 			tailcatFieldErr(c, pal, d.Err, "bt-relay")
 
 			ui.Text(c, locales.SetBeaconTowerToken()).FontSize(13.5).TextColor(pal.Text).Padding(6, 0, 0, 0)
-			if in := controls.TextField(c, "bt-token", &d.Token, locales.SetBeaconTowerTokenPlaceholder(), 0, pal).Font("monospace"); in.Submitted() {
-				saveBeaconTower(a, d, "bt-token")
+			inToken := controls.TextField(c, "bt-token", &d.Token, locales.SetBeaconTowerTokenPlaceholder(), 0, pal).Font("monospace")
+			tokenFocused := inToken.Focused()
+			if inToken.Submitted() || (d.TokenFocused && !tokenFocused && strings.TrimSpace(d.Token) != a.SettingsNow().BeaconTowerToken) {
+				saveBeaconTower(a, d)
 			}
+			d.TokenFocused = tokenFocused
 		})
 		if kit.Rows++; kit.Rows > 1 {
 			ui.Box(c).Height(1).Shrink(0).Background(pal.Text.Alpha(0.07))
@@ -123,7 +136,9 @@ func BeaconTowerListen(a App, c *ui.Context, pal *theme.Palette, d *draft.Beacon
 				style.Toggle(c.Key("bt-listen"), &on, pal).OnClick(func() {
 					s := a.SettingsNow().Clone()
 					if on {
-						saveDraftRelayAndToken(&s, d)
+						if !saveDraftRelayAndToken(&s, d) {
+							return
+						}
 					}
 					s.SetBeaconTowerListen(on)
 					a.SetSettingsNow(s)
@@ -156,7 +171,7 @@ func BeaconTowerListen(a App, c *ui.Context, pal *theme.Palette, d *draft.Beacon
 			}
 			ui.Text(c, code).Font("monospace").FontSize(12.5).TextColor(col).LineHeight(1.35).Selectable().MinWidth(0)
 			ui.Row(c).Grow(1)
-			if code == "" || d.CodeErr != "" {
+			if d.Code == "" || d.CodeErr != "" {
 				return
 			}
 			icon, label := glyph.Copy, locales.HostCopyAddress()
@@ -164,7 +179,7 @@ func BeaconTowerListen(a App, c *ui.Context, pal *theme.Palette, d *draft.Beacon
 				icon, label = glyph.Of("lucide-check"), locales.ToastCopied()
 			}
 			paints.IconButton(c, "copy-beacontower", icon, label, pal, func() {
-				c.WriteClipboard(code)
+				c.WriteClipboard(d.Code)
 				d.Copied = time.Now()
 				go func() {
 					time.Sleep(1500 * time.Millisecond)
@@ -189,9 +204,13 @@ func ResetBeaconTower(a App) {
 	s := *a.SettingsNow()
 	d := a.BeaconTowerDraft()
 	*d = draft.BeaconTowerDraft{
-		Relay:  s.BeaconTowerRelay,
-		Token:  s.BeaconTowerToken,
-		Loaded: true,
+		Relay:        s.BeaconTowerRelay,
+		Token:        s.BeaconTowerToken,
+		Loaded:       true,
+		SyncedRelay:  s.BeaconTowerRelay,
+		SyncedToken:  s.BeaconTowerToken,
+		SyncedListen: hasBeaconTowerListener(&s),
+		SyncedRotate: s.BeaconTowerRotate,
 	}
 	RefreshBeaconTowerCode(a)
 }
@@ -209,10 +228,11 @@ func RefreshBeaconTowerCode(a App) {
 		d.Code, d.CodeErr, d.QR = "", err.Error(), nil
 		return
 	}
-	full := "beacontower://" + rawCode
-	d.Code = full
+	d.Code = "beacontower://" + rawCode
 	d.CodeErr = ""
-	d.QR, _ = qrcode.Encode(full, qrcode.L)
+	// HylaPocket scans hyla://pair?code=bt1_...&name=... to add the host and auto-fill its name.
+	pairURL := pocket.Code{Pair: rawCode, Name: remote.LocalName()}.CodeURL()
+	d.QR, _ = qrcode.Encode(pairURL, qrcode.L)
 }
 
 // RotateBeaconTowerCode generates a new keypair & PSK and prompts hylad to reload.
@@ -223,39 +243,41 @@ func RotateBeaconTowerCode(a App) {
 		return
 	}
 	s.BeaconTowerRotate = !s.BeaconTowerRotate
+	d := a.BeaconTowerDraft()
+	d.SyncedRotate = s.BeaconTowerRotate
 	a.SetSettingsNow(s)
 	RefreshBeaconTowerCode(a)
 	a.SettingsToast(locales.SetBeaconTowerChanged())
 }
 
-func saveBeaconTower(a App, d *draft.BeaconTowerDraft, key string) {
-	s := a.SettingsNow().Clone()
-	switch key {
-	case "bt-relay":
-		v := strings.TrimSpace(d.Relay)
-		if v != "" && !settings.ValidBeaconRelay(v) {
-			d.Err = draft.TailcatField{Key: key, Err: v + ": use host:port, tls://, ws://, or wss://"}
-			return
-		}
-		s.BeaconTowerRelay = v
-		s.BeaconTowerToken = strings.TrimSpace(d.Token)
-	case "bt-token":
-		s.BeaconTowerToken = strings.TrimSpace(d.Token)
+func saveBeaconTower(a App, d *draft.BeaconTowerDraft) {
+	v := strings.TrimSpace(d.Relay)
+	if v != "" && !settings.ValidBeaconRelay(v) {
+		d.Err = draft.TailcatField{Key: "bt-relay", Err: v + ": use host:port, tls://, ws://, or wss://"}
+		return
 	}
+	s := a.SettingsNow().Clone()
+	s.BeaconTowerRelay = v
+	s.BeaconTowerToken = strings.TrimSpace(d.Token)
+	d.SyncedRelay = s.BeaconTowerRelay
+	d.SyncedToken = s.BeaconTowerToken
+	d.SyncedListen = hasBeaconTowerListener(&s)
+	d.SyncedRotate = s.BeaconTowerRotate
 	d.Err = draft.TailcatField{}
 	a.SetSettingsNow(s)
 	RefreshBeaconTowerCode(a)
 }
 
-func saveDraftRelayAndToken(s *settings.Settings, d *draft.BeaconTowerDraft) {
+func saveDraftRelayAndToken(s *settings.Settings, d *draft.BeaconTowerDraft) bool {
 	v := strings.TrimSpace(d.Relay)
-	if v == "" || settings.ValidBeaconRelay(v) {
-		s.BeaconTowerRelay = v
-		d.Err = draft.TailcatField{}
-	} else {
+	if v != "" && !settings.ValidBeaconRelay(v) {
 		d.Err = draft.TailcatField{Key: "bt-relay", Err: v + ": use host:port, tls://, ws://, or wss://"}
+		return false
 	}
+	s.BeaconTowerRelay = v
 	s.BeaconTowerToken = strings.TrimSpace(d.Token)
+	d.Err = draft.TailcatField{}
+	return true
 }
 
 func hasBeaconTowerListener(s *settings.Settings) bool {

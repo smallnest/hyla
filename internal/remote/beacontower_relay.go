@@ -25,7 +25,7 @@ func ListenBeaconTower(ctx context.Context, path, relayAddr, relayToken string) 
 		return nil, err
 	}
 	var onPocket func(net.Conn)
-	if ph := pocketHandler; ph != nil {
+	if ph := getPocketHandler(); ph != nil {
 		onPocket = func(c net.Conn) { servePocket(c) }
 	}
 	hl, err := beacontower.ListenHost(ctx, beacontower.HostConfig{

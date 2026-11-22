@@ -91,13 +91,13 @@ func dialNativeTLS(ctx context.Context, addr RelayAddr, tlsCfg *tls.Config) (net
 }
 
 func dialWebSocket(ctx context.Context, addr RelayAddr, tlsCfg *tls.Config) (net.Conn, error) {
-	var opts *websocket.DialOptions
+	opts := &websocket.DialOptions{
+		CompressionMode: websocket.CompressionDisabled,
+	}
 	if tlsCfg != nil {
 		tr := http.DefaultTransport.(*http.Transport).Clone()
 		tr.TLSClientConfig = tlsCfg.Clone()
-		opts = &websocket.DialOptions{
-			HTTPClient: &http.Client{Transport: tr},
-		}
+		opts.HTTPClient = &http.Client{Transport: tr}
 	}
 	ws, resp, err := websocket.Dial(ctx, addr.WSURL(), opts)
 	if resp != nil && resp.Body != nil {
@@ -106,6 +106,8 @@ func dialWebSocket(ctx context.Context, addr RelayAddr, tlsCfg *tls.Config) (net
 	if err != nil {
 		return nil, err
 	}
+	// AEAD records reach 4 + 32 KiB + 16 = 32,788 bytes, exceeding coder/websocket's 32 KiB default.
+	ws.SetReadLimit(128 << 10)
 	// Pass context.Background() because websocket.NetConn binds the lifetime
 	// of the connection to the supplied context, whereas dial ctx ends soon.
 	return websocket.NetConn(context.Background(), ws, websocket.MessageBinary), nil

@@ -41,6 +41,15 @@ type acceptedStream struct {
 	target string
 }
 
+type muxCtrlOp struct {
+	typ          byte
+	streamID     uint32
+	val          uint32
+	payload      []byte
+	acceptStream *MuxStream
+	acceptTarget string
+}
+
 // Mux multiplexes independent bidirectional streams over a single net.Conn
 // using per-stream credit-based flow control and automatic keepalives.
 type Mux struct {
@@ -55,9 +64,9 @@ type Mux struct {
 	streams map[uint32]*MuxStream
 	closed  bool
 
-	acceptCh chan acceptedStream
-	pongCh   chan uint32
-	doneCh   chan struct{}
+	acceptCh  chan acceptedStream
+	ctrlCh    chan muxCtrlOp
+	doneCh    chan struct{}
 	closeOnce sync.Once
 
 	lastRecv atomic.Int64
@@ -78,13 +87,19 @@ func NewMux(conn net.Conn, isClient bool) *Mux {
 		nextID:   next,
 		streams:  make(map[uint32]*MuxStream),
 		acceptCh: make(chan acceptedStream, muxMaxAcceptQueue),
-		pongCh:   make(chan uint32, 8),
+		ctrlCh:   make(chan muxCtrlOp, 256),
 		doneCh:   make(chan struct{}),
 	}
 	m.lastRecv.Store(time.Now().UnixNano())
 	go m.readLoop()
+	go m.ctrlWriteLoop()
 	go m.keepaliveLoop()
 	return m
+}
+
+// LastRecv returns the time of the most recent received frame or creation.
+func (m *Mux) LastRecv() time.Time {
+	return time.Unix(0, m.lastRecv.Load())
 }
 
 // Closed returns a channel that is closed when the multiplexer shuts down.
@@ -163,7 +178,7 @@ func (m *Mux) OpenStream(ctx context.Context, target string) (net.Conn, error) {
 	case <-ctx.Done():
 		m.removeStream(id)
 		s.forceReset(ctx.Err())
-		_ = m.writeFrame(muxRst, id, 0, nil)
+		m.enqueueCtrl(muxCtrlOp{typ: muxRst, streamID: id})
 		return nil, ctx.Err()
 	}
 }
@@ -212,6 +227,67 @@ func (m *Mux) writeFrame(typ byte, streamID, val uint32, payload []byte) error {
 	return err
 }
 
+func (m *Mux) enqueueCtrl(op muxCtrlOp) {
+	select {
+	case <-m.doneCh:
+		return
+	default:
+	}
+	select {
+	case m.ctrlCh <- op:
+	case <-m.doneCh:
+	default:
+		// Control queue saturated (peer or socket wedged); close rather than
+		// blocking readLoop or keepaliveLoop.
+		_ = m.Close()
+	}
+}
+
+func (m *Mux) ctrlWriteLoop() {
+	for {
+		select {
+		case <-m.doneCh:
+			return
+		case op := <-m.ctrlCh:
+			if op.acceptStream != nil {
+				s := op.acceptStream
+				s.mu.Lock()
+				gone := s.closed || s.reset
+				s.mu.Unlock()
+				if gone {
+					continue
+				}
+				if len(m.acceptCh) >= cap(m.acceptCh) {
+					m.removeStream(s.id)
+					s.forceReset(net.ErrClosed)
+					errMsg := []byte("accept queue full")
+					if err := m.writeFrame(muxOpenErr, s.id, uint32(len(errMsg)), errMsg); err != nil {
+						_ = m.Close()
+						return
+					}
+					continue
+				}
+				if err := m.writeFrame(muxOpenOK, s.id, 0, nil); err != nil {
+					m.removeStream(s.id)
+					s.forceReset(err)
+					_ = m.Close()
+					return
+				}
+				select {
+				case m.acceptCh <- acceptedStream{stream: s, target: op.acceptTarget}:
+				case <-m.doneCh:
+					return
+				}
+				continue
+			}
+			if err := m.writeFrame(op.typ, op.streamID, op.val, op.payload); err != nil {
+				_ = m.Close()
+				return
+			}
+		}
+	}
+}
+
 func (m *Mux) readLoop() {
 	defer m.Close()
 	var hdr [muxHeaderLen]byte
@@ -250,10 +326,7 @@ func (m *Mux) readLoop() {
 
 		switch typ {
 		case muxPing:
-			select {
-			case m.pongCh <- val:
-			default:
-			}
+			m.enqueueCtrl(muxCtrlOp{typ: muxPong, val: val})
 		case muxPong:
 			// lastRecv updated above.
 		case muxOpen:
@@ -273,12 +346,15 @@ func (m *Mux) readLoop() {
 		case muxData:
 			s := m.getStream(streamID)
 			if s == nil {
+				if len(payload) > 0 {
+					m.enqueueCtrl(muxCtrlOp{typ: muxRst, streamID: streamID})
+				}
 				continue
 			}
 			if !s.pushData(payload) {
 				m.removeStream(streamID)
 				s.forceReset(net.ErrClosed)
-				_ = m.writeFrame(muxRst, streamID, 0, nil)
+				m.enqueueCtrl(muxCtrlOp{typ: muxRst, streamID: streamID})
 			}
 		case muxWindow:
 			if val > 0 {
@@ -306,7 +382,8 @@ func (m *Mux) readLoop() {
 
 func (m *Mux) handleOpen(streamID uint32, target string) {
 	if streamID == 0 || (streamID%2 == 0) != m.client {
-		_ = m.writeFrame(muxOpenErr, streamID, 14, []byte("bad stream id"))
+		msg := []byte("bad stream id")
+		m.enqueueCtrl(muxCtrlOp{typ: muxOpenErr, streamID: streamID, val: uint32(len(msg)), payload: msg})
 		return
 	}
 	s := newMuxStream(m, streamID)
@@ -317,27 +394,14 @@ func (m *Mux) handleOpen(streamID uint32, target string) {
 	}
 	if _, exists := m.streams[streamID]; exists {
 		m.mu.Unlock()
-		_ = m.writeFrame(muxOpenErr, streamID, 15, []byte("duplicate id"))
+		msg := []byte("duplicate id")
+		m.enqueueCtrl(muxCtrlOp{typ: muxOpenErr, streamID: streamID, val: uint32(len(msg)), payload: msg})
 		return
 	}
 	m.streams[streamID] = s
 	m.mu.Unlock()
 
-	select {
-	case m.acceptCh <- acceptedStream{stream: s, target: target}:
-		if err := m.writeFrame(muxOpenOK, streamID, 0, nil); err != nil {
-			m.removeStream(streamID)
-			s.forceReset(err)
-		}
-	case <-m.doneCh:
-		m.removeStream(streamID)
-		s.forceReset(net.ErrClosed)
-	default:
-		m.removeStream(streamID)
-		s.forceReset(net.ErrClosed)
-		errMsg := []byte("accept queue full")
-		_ = m.writeFrame(muxOpenErr, streamID, uint32(len(errMsg)), errMsg)
-	}
+	m.enqueueCtrl(muxCtrlOp{acceptStream: s, acceptTarget: target})
 }
 
 func (m *Mux) keepaliveLoop() {
@@ -347,11 +411,6 @@ func (m *Mux) keepaliveLoop() {
 		select {
 		case <-m.doneCh:
 			return
-		case seq := <-m.pongCh:
-			if err := m.writeFrame(muxPong, 0, seq, nil); err != nil {
-				_ = m.Close()
-				return
-			}
 		case <-t.C:
 			last := time.Unix(0, m.lastRecv.Load())
 			if time.Since(last) > muxIdleTimeout {
@@ -359,10 +418,7 @@ func (m *Mux) keepaliveLoop() {
 				return
 			}
 			seq := m.pingSeq.Add(1)
-			if err := m.writeFrame(muxPing, 0, seq, nil); err != nil {
-				_ = m.Close()
-				return
-			}
+			m.enqueueCtrl(muxCtrlOp{typ: muxPing, val: seq})
 		}
 	}
 }
@@ -375,21 +431,22 @@ type MuxStream struct {
 	openOnce sync.Once
 	openCh   chan error
 
-	recvSig chan struct{}
-	sendSig chan struct{}
-	doneCh  chan struct{}
+	recvSig  chan struct{}
+	sendSig  chan struct{}
+	doneCh   chan struct{}
 	doneOnce sync.Once
 
 	mu        sync.Mutex
 	recvBuf   []byte
 	consumed  uint32
+	localFin  bool
 	remoteFin bool
 	reset     bool
 	resetErr  error
 	closed    bool
 	sendWin   int64
-	readDL    deadlinePipe
-	writeDL   deadlinePipe
+	readDL    time.Time
+	writeDL   time.Time
 }
 
 func newMuxStream(m *Mux, id uint32) *MuxStream {
@@ -459,7 +516,7 @@ func (s *MuxStream) addSendWindow(delta uint32) {
 func (s *MuxStream) handleRemoteFin() bool {
 	s.mu.Lock()
 	s.remoteFin = true
-	both := s.closed
+	both := s.localFin || s.closed
 	s.mu.Unlock()
 	s.signalRecv()
 	return both
@@ -470,7 +527,7 @@ func (s *MuxStream) handleRemoteRst() {
 	s.reset = true
 	s.remoteFin = true
 	if s.resetErr == nil {
-		s.resetErr = io.EOF
+		s.resetErr = net.ErrClosed
 	}
 	s.mu.Unlock()
 	s.deliverOpen(net.ErrClosed)
@@ -484,12 +541,11 @@ func (s *MuxStream) forceReset(err error) {
 	}
 	s.mu.Lock()
 	s.closed = true
+	s.localFin = true
 	s.reset = true
 	if s.resetErr == nil {
 		s.resetErr = err
 	}
-	s.readDL.clearLocked()
-	s.writeDL.clearLocked()
 	s.mu.Unlock()
 	s.deliverOpen(err)
 	s.closeDone()
@@ -537,23 +593,42 @@ func (s *MuxStream) Read(p []byte) (int, error) {
 		}
 		if s.reset {
 			err := s.resetErr
+			if err == nil {
+				err = net.ErrClosed
+			}
 			s.mu.Unlock()
 			return 0, err
 		}
-		dlCh := s.readDL.waitLocked()
+		dl := s.readDL
 		s.mu.Unlock()
 
-		if isClosedChan(dlCh) {
-			return 0, os.ErrDeadlineExceeded
+		var dlCh <-chan time.Time
+		var timer *time.Timer
+		if !dl.IsZero() {
+			d := time.Until(dl)
+			if d <= 0 {
+				return 0, os.ErrDeadlineExceeded
+			}
+			timer = time.NewTimer(d)
+			dlCh = timer.C
 		}
 		select {
 		case <-s.recvSig:
+			if timer != nil {
+				timer.Stop()
+			}
 		case <-dlCh:
 			return 0, os.ErrDeadlineExceeded
 		case <-s.doneCh:
+			if timer != nil {
+				timer.Stop()
+			}
 			return 0, net.ErrClosed
 		case <-s.mux.doneCh:
-			return 0, io.EOF
+			if timer != nil {
+				timer.Stop()
+			}
+			return 0, net.ErrClosed
 		}
 	}
 }
@@ -562,7 +637,7 @@ func (s *MuxStream) Write(p []byte) (int, error) {
 	written := 0
 	for len(p) > 0 {
 		s.mu.Lock()
-		if s.closed || s.reset {
+		if s.closed || s.localFin || s.reset {
 			err := s.resetErr
 			if err == nil {
 				err = net.ErrClosed
@@ -570,21 +645,37 @@ func (s *MuxStream) Write(p []byte) (int, error) {
 			s.mu.Unlock()
 			return written, err
 		}
-		dlCh := s.writeDL.waitLocked()
+		dl := s.writeDL
+		if !dl.IsZero() && time.Until(dl) <= 0 {
+			s.mu.Unlock()
+			return written, os.ErrDeadlineExceeded
+		}
 		avail := s.sendWin
 		if avail <= 0 {
 			s.mu.Unlock()
-			if isClosedChan(dlCh) {
-				return written, os.ErrDeadlineExceeded
+			var dlCh <-chan time.Time
+			var timer *time.Timer
+			if !dl.IsZero() {
+				timer = time.NewTimer(time.Until(dl))
+				dlCh = timer.C
 			}
 			select {
 			case <-s.sendSig:
+				if timer != nil {
+					timer.Stop()
+				}
 				continue
 			case <-dlCh:
 				return written, os.ErrDeadlineExceeded
 			case <-s.doneCh:
+				if timer != nil {
+					timer.Stop()
+				}
 				return written, net.ErrClosed
 			case <-s.mux.doneCh:
+				if timer != nil {
+					timer.Stop()
+				}
 				return written, net.ErrClosed
 			}
 		}
@@ -607,7 +698,29 @@ func (s *MuxStream) Write(p []byte) (int, error) {
 	return written, nil
 }
 
-// Close terminates the stream, sending a graceful FIN or reset to the peer.
+// CloseWrite signals EOF on the write half of the stream while allowing reads to continue.
+func (s *MuxStream) CloseWrite() error {
+	s.mu.Lock()
+	if s.closed || s.localFin {
+		s.mu.Unlock()
+		return nil
+	}
+	s.localFin = true
+	if s.resetErr == nil {
+		s.resetErr = net.ErrClosed
+	}
+	both := s.remoteFin
+	s.mu.Unlock()
+
+	s.signalSend()
+	err := s.mux.writeFrame(muxFin, s.id, 0, nil)
+	if both {
+		s.mux.removeStream(s.id)
+	}
+	return err
+}
+
+// Close terminates the stream gracefully, sending FIN if not already sent.
 func (s *MuxStream) Close() error {
 	s.mu.Lock()
 	if s.closed {
@@ -615,22 +728,19 @@ func (s *MuxStream) Close() error {
 		return nil
 	}
 	s.closed = true
+	needFin := !s.localFin
+	s.localFin = true
 	if s.resetErr == nil {
 		s.resetErr = net.ErrClosed
 	}
-	remoteFin := s.remoteFin
-	s.readDL.clearLocked()
-	s.writeDL.clearLocked()
 	s.mu.Unlock()
 
 	s.closeDone()
 	s.signalRecv()
 	s.signalSend()
 
-	if remoteFin {
+	if needFin {
 		_ = s.mux.writeFrame(muxFin, s.id, 0, nil)
-	} else {
-		_ = s.mux.writeFrame(muxRst, s.id, 0, nil)
 	}
 	s.mux.removeStream(s.id)
 	return nil
@@ -641,69 +751,26 @@ func (s *MuxStream) RemoteAddr() net.Addr { return s.mux.conn.RemoteAddr() }
 
 func (s *MuxStream) SetDeadline(t time.Time) error {
 	s.mu.Lock()
-	s.readDL.setLocked(t)
-	s.writeDL.setLocked(t)
+	s.readDL = t
+	s.writeDL = t
 	s.mu.Unlock()
+	s.signalRecv()
+	s.signalSend()
 	return nil
 }
 
 func (s *MuxStream) SetReadDeadline(t time.Time) error {
 	s.mu.Lock()
-	s.readDL.setLocked(t)
+	s.readDL = t
 	s.mu.Unlock()
+	s.signalRecv()
 	return nil
 }
 
 func (s *MuxStream) SetWriteDeadline(t time.Time) error {
 	s.mu.Lock()
-	s.writeDL.setLocked(t)
+	s.writeDL = t
 	s.mu.Unlock()
+	s.signalSend()
 	return nil
-}
-
-type deadlinePipe struct {
-	ch    chan struct{}
-	timer *time.Timer
-}
-
-func (d *deadlinePipe) setLocked(t time.Time) {
-	if d.timer != nil {
-		d.timer.Stop()
-		d.timer = nil
-	}
-	d.ch = nil
-	if t.IsZero() {
-		return
-	}
-	ch := make(chan struct{})
-	d.ch = ch
-	wait := time.Until(t)
-	if wait <= 0 {
-		close(ch)
-		return
-	}
-	d.timer = time.AfterFunc(wait, func() {
-		close(ch)
-	})
-}
-
-func (d *deadlinePipe) waitLocked() <-chan struct{} { return d.ch }
-
-func (d *deadlinePipe) clearLocked() {
-	if d.timer != nil {
-		d.timer.Stop()
-		d.timer = nil
-	}
-}
-
-func isClosedChan(ch <-chan struct{}) bool {
-	if ch == nil {
-		return false
-	}
-	select {
-	case <-ch:
-		return true
-	default:
-		return false
-	}
 }

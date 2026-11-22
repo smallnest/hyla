@@ -11,14 +11,16 @@ import (
 	"net"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
 const (
-	hostHandshakeTimeout = 15 * time.Second
-	hostPingInterval     = 20 * time.Second
-	hostIdleTimeout      = 60 * time.Second
-	hostAcceptQueueSize  = 64
+	hostHandshakeTimeout    = 15 * time.Second
+	hostPingInterval        = 20 * time.Second
+	hostIdleTimeout         = 60 * time.Second
+	hostAcceptQueueSize     = 64
+	hostMaxConcurrentInvite = 64
 )
 
 // HostConfig configures the host-side BeaconTower listener registered on a relay.
@@ -44,9 +46,10 @@ type HostListener struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	acceptCh chan net.Conn
-	doneCh   chan struct{}
-	once     sync.Once
+	acceptCh  chan net.Conn
+	doneCh    chan struct{}
+	once      sync.Once
+	inviteSem chan struct{}
 
 	mu       sync.Mutex
 	ctrlConn net.Conn
@@ -91,6 +94,7 @@ func ListenHost(ctx context.Context, cfg HostConfig) (*HostListener, error) {
 		cancel:      hCancel,
 		acceptCh:    make(chan net.Conn, hostAcceptQueueSize),
 		doneCh:      make(chan struct{}),
+		inviteSem:   make(chan struct{}, hostMaxConcurrentInvite),
 		muxes:       make(map[*Mux]struct{}),
 	}
 
@@ -139,6 +143,16 @@ func (h *HostListener) Close() error {
 		}
 		for _, m := range muxes {
 			_ = m.Close()
+		}
+		for {
+			select {
+			case c := <-h.acceptCh:
+				if c != nil {
+					_ = c.Close()
+				}
+			default:
+				return
+			}
 		}
 	})
 	return nil
@@ -205,12 +219,20 @@ func (h *HostListener) connectAndRegister(ctx context.Context) (net.Conn, error)
 	stop := context.AfterFunc(dialCtx, func() { _ = raw.Close() })
 	defer func() { _ = stop() }()
 
-	relayPub, nonce, _, err := readServerHello(raw)
+	relayPub, nonce, flags, err := readServerHello(raw)
 	if err != nil {
 		_ = raw.Close()
 		return nil, err
 	}
-	proof, err := RegisterProof(h.cfg.Keys.Priv, relayPub, nonce, h.tokenDigest)
+	var digest [32]byte
+	if flags&flagTokenRequired != 0 {
+		if strings.TrimSpace(h.cfg.RelayToken) == "" {
+			_ = raw.Close()
+			return nil, errors.New("beacontower: relay requires an access token missing from configuration")
+		}
+		digest = h.tokenDigest
+	}
+	proof, err := RegisterProof(h.cfg.Keys.Priv, relayPub, nonce, digest)
 	if err != nil {
 		_ = raw.Close()
 		return nil, err
@@ -278,20 +300,10 @@ func (h *HostListener) serveControlConn(ctrl net.Conn) {
 	stopPing := make(chan struct{})
 	defer close(stopPing)
 
-	lastRecv := time.Now().UnixNano()
-	var lastMu sync.Mutex
-	touch := func() {
-		lastMu.Lock()
-		lastRecv = time.Now().UnixNano()
-		lastMu.Unlock()
-	}
-	lastSeen := func() time.Time {
-		lastMu.Lock()
-		t := time.Unix(0, lastRecv)
-		lastMu.Unlock()
-		return t
-	}
+	var lastRecv atomic.Int64
+	lastRecv.Store(time.Now().UnixNano())
 
+	// Separate idle watchdog from ping sends so a stalled write cannot prevent idle closure.
 	go func() {
 		t := time.NewTicker(hostPingInterval)
 		defer t.Stop()
@@ -303,10 +315,25 @@ func (h *HostListener) serveControlConn(ctrl net.Conn) {
 				_ = ctrl.Close()
 				return
 			case <-t.C:
-				if time.Since(lastSeen()) > hostIdleTimeout {
+				last := time.Unix(0, lastRecv.Load())
+				if time.Since(last) > hostIdleTimeout {
 					_ = ctrl.Close()
 					return
 				}
+			}
+		}
+	}()
+
+	go func() {
+		t := time.NewTicker(hostPingInterval)
+		defer t.Stop()
+		for {
+			select {
+			case <-stopPing:
+				return
+			case <-h.doneCh:
+				return
+			case <-t.C:
 				var p [8]byte
 				binary.BigEndian.PutUint64(p[:], uint64(time.Now().UnixNano()))
 				if err := sendCtrl(msgPing, p[:]); err != nil {
@@ -322,7 +349,7 @@ func (h *HostListener) serveControlConn(ctrl net.Conn) {
 		if err != nil {
 			return
 		}
-		touch()
+		lastRecv.Store(time.Now().UnixNano())
 		switch typ {
 		case msgInvite:
 			if len(payload) != 16 {
@@ -330,7 +357,15 @@ func (h *HostListener) serveControlConn(ctrl net.Conn) {
 			}
 			var sessionID [16]byte
 			copy(sessionID[:], payload)
-			go h.handleInvite(sessionID)
+			select {
+			case h.inviteSem <- struct{}{}:
+				go func(id [16]byte) {
+					defer func() { <-h.inviteSem }()
+					h.handleInvite(id)
+				}(sessionID)
+			default:
+				h.log.Printf("beacontower: dropping invite because concurrent invite limit (%d) reached", hostMaxConcurrentInvite)
+			}
 		case msgPing:
 			if err := sendCtrl(msgPong, payload); err != nil {
 				return
@@ -356,13 +391,17 @@ func (h *HostListener) handleInvite(sessionID [16]byte) {
 	}
 	rawGuard := context.AfterFunc(ctx, func() { _ = raw.Close() })
 
-	_, nonce, _, err := readServerHello(raw)
+	_, nonce, flags, err := readServerHello(raw)
 	if err != nil {
 		rawGuard()
 		_ = raw.Close()
 		return
 	}
-	proof := JoinTokenProof(h.tokenDigest, nonce, sessionID)
+	var digest [32]byte
+	if flags&flagTokenRequired != 0 {
+		digest = h.tokenDigest
+	}
+	proof := JoinTokenProof(digest, nonce, sessionID)
 	var joinMsg [48]byte
 	copy(joinMsg[:16], sessionID[:])
 	copy(joinMsg[16:48], proof[:])

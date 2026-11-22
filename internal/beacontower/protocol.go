@@ -204,6 +204,9 @@ func (a RelayAddr) WSURL() string {
 	if p == "" {
 		p = DefaultWSPath
 	}
+	if (a.Scheme == "wss" && a.Port == "443") || (a.Scheme == "ws" && a.Port == "80") || a.Port == "" {
+		return a.Scheme + "://" + formatURLHost(a.Host) + p
+	}
 	return a.Scheme + "://" + net.JoinHostPort(a.Host, a.Port) + p
 }
 
@@ -305,16 +308,20 @@ func ParsePairCode(s string) (PairCode, error) {
 }
 
 // StripScheme returns the bare bt1_... token, stripping whitespace,
-// beacontower://, or hyla://beacon?code=... wrappers.
+// beacontower://, hyla://beacon?code=..., or hyla://pair?code=... wrappers.
 func StripScheme(s string) string {
 	s = strings.TrimSpace(s)
-	if strings.HasPrefix(s, Scheme) {
-		return strings.TrimPrefix(s, Scheme)
+	if len(s) >= len(Scheme) && strings.EqualFold(s[:len(Scheme)], Scheme) {
+		s = strings.TrimSpace(s[len(Scheme):])
 	}
-	if strings.HasPrefix(s, "hyla://beacon?") {
-		if q, err := url.ParseQuery(strings.TrimPrefix(s, "hyla://beacon?")); err == nil {
-			if c := strings.TrimSpace(q.Get("code")); c != "" {
-				return strings.TrimPrefix(c, Scheme)
+	if strings.Contains(s, "://") {
+		if u, err := url.Parse(s); err == nil && strings.EqualFold(u.Scheme, "hyla") &&
+			(strings.EqualFold(u.Host, "beacon") || strings.EqualFold(u.Host, "pair")) {
+			if c := strings.TrimSpace(u.Query().Get("code")); c != "" {
+				if len(c) >= len(Scheme) && strings.EqualFold(c[:len(Scheme)], Scheme) {
+					c = strings.TrimSpace(c[len(Scheme):])
+				}
+				return c
 			}
 		}
 	}

@@ -1,6 +1,10 @@
 package remote
 
-import "testing"
+import (
+	"net/http"
+	"sync"
+	"testing"
+)
 
 func TestParseListen(t *testing.T) {
 	for in, want := range map[string]Listen{
@@ -25,4 +29,25 @@ func TestParseListen(t *testing.T) {
 			t.Errorf("%q read as %+v", bad, l)
 		}
 	}
+}
+
+func TestServePocketConcurrentAccess(t *testing.T) {
+	t.Cleanup(func() { ServePocket("7297", nil) })
+	h := http.NotFoundHandler()
+	var wg sync.WaitGroup
+	for i := range 8 {
+		wg.Add(1)
+		go func(id int) {
+			defer wg.Done()
+			for range 100 {
+				if id%2 == 0 {
+					ServePocket("7297", h)
+				} else {
+					_, _ = getPocketPortAndHandler()
+					_ = getPocketHandler()
+				}
+			}
+		}(i)
+	}
+	wg.Wait()
 }

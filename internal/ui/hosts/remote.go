@@ -220,18 +220,19 @@ func pairOf(s string) (code, name string, ok bool) {
 }
 
 func beaconPairOf(s string) (code, name string, ok bool) {
-	if !strings.HasPrefix(s, "hyla://beacon?") {
+	if !strings.Contains(s, "://") {
 		return "", "", false
 	}
-	q, err := url.ParseQuery(strings.TrimPrefix(s, "hyla://beacon?"))
-	if err != nil {
+	u, err := url.Parse(s)
+	if err != nil || !strings.EqualFold(u.Scheme, "hyla") ||
+		(!strings.EqualFold(u.Host, "beacon") && !strings.EqualFold(u.Host, "pair")) {
 		return "", "", false
 	}
-	code = remote.BeaconCode(q.Get("code"))
+	code = remote.BeaconCode(u.Query().Get("code"))
 	if !remote.ValidBeaconCode(code) {
 		return "", "", false
 	}
-	return code, strings.TrimSpace(q.Get("name")), true
+	return code, strings.TrimSpace(u.Query().Get("name")), true
 }
 
 // Remove forgets a machine, and its sessions.

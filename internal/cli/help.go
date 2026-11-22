@@ -270,7 +270,7 @@ var commands = []command{
                                 BeaconTower's if tailcat has no listener, or
                                 both, each on its own line
     qr                          the same, and the QR code drawn
-    beacon                      the BeaconTower code alone (secret), as qr shows
+    beacon [--qr]               the BeaconTower code alone (secret), as qr shows
                                 it, even before hylad listens over BeaconTower
     hyla pocket tcp enable|disable [address:port]
                                 listen on this machine's network instead, with

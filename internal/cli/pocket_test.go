@@ -98,9 +98,9 @@ func TestPocketBeacon(t *testing.T) {
 	}
 
 	// QR, as hyla pocket qr draws it: the same line, with the code drawn.
-	out, err = stdout(t, func() error { return pocketBeacon(true) })
+	out, err = stdout(t, func() error { return pocketCmd([]string{"beacon", "--qr"}) })
 	if err != nil || !strings.Contains(out, "█") || !strings.Contains(out, beaconText(t, k)) {
-		t.Fatalf("pocket beacon with a QR code = %q, %v", out, err)
+		t.Fatalf("pocket beacon --qr = %q, %v", out, err)
 	}
 
 	// A listener of its own: the same line.

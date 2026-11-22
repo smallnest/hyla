@@ -13,9 +13,11 @@ import (
 const clientConnectTimeout = 20 * time.Second
 
 type dialCall struct {
-	done chan struct{}
-	mux  *Mux
-	err  error
+	done     chan struct{}
+	cancel   context.CancelFunc
+	canceled bool
+	mux      *Mux
+	err      error
 }
 
 // ClientPool maintains persistent E2EE multiplexed tunnels keyed by BeaconTower
@@ -62,13 +64,15 @@ func (p *ClientPool) Open(ctx context.Context, pairCode, target string) (net.Con
 		if err == nil {
 			return st, nil
 		}
-		// Only drop the pooled tunnel if the session itself died; caller ctx
-		// cancellation should not tear down streams used by other panes.
-		if mux.IsClosed() {
+		// Drop the pooled tunnel if it died or appears wedged (e.g. half-open TCP).
+		if mux.IsClosed() || (errors.Is(ctx.Err(), context.DeadlineExceeded) && time.Since(mux.LastRecv()) >= 5*time.Second) {
 			p.dropMux(key, mux)
 			_ = mux.Close()
-		} else if ctx.Err() != nil {
-			return nil, ctx.Err()
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+		} else {
+			return nil, err
 		}
 	}
 
@@ -87,19 +91,27 @@ func (p *ClientPool) Open(ctx context.Context, pairCode, target string) (net.Con
 	return st, nil
 }
 
-// CloseCode closes and removes any pooled tunnel associated with pairCode.
+// CloseCode closes and removes any pooled tunnel associated with pairCode and cancels inflight dials.
 func (p *ClientPool) CloseCode(pairCode string) {
 	key := canonicalCode(pairCode)
 	p.mu.Lock()
 	mux := p.conns[key]
 	delete(p.conns, key)
+	call := p.inflight[key]
+	if call != nil {
+		call.canceled = true
+		delete(p.inflight, key)
+	}
 	p.mu.Unlock()
+	if call != nil && call.cancel != nil {
+		call.cancel()
+	}
 	if mux != nil {
 		_ = mux.Close()
 	}
 }
 
-// CloseAll closes every cached tunnel in the pool.
+// CloseAll closes every cached tunnel in the pool and cancels any inflight dials.
 func (p *ClientPool) CloseAll() {
 	p.mu.Lock()
 	muxes := make([]*Mux, 0, len(p.conns))
@@ -107,7 +119,18 @@ func (p *ClientPool) CloseAll() {
 		muxes = append(muxes, m)
 		delete(p.conns, k)
 	}
+	cancels := make([]context.CancelFunc, 0, len(p.inflight))
+	for k, call := range p.inflight {
+		call.canceled = true
+		if call.cancel != nil {
+			cancels = append(cancels, call.cancel)
+		}
+		delete(p.inflight, k)
+	}
 	p.mu.Unlock()
+	for _, cancel := range cancels {
+		cancel()
+	}
 	for _, m := range muxes {
 		_ = m.Close()
 	}
@@ -150,18 +173,29 @@ func (p *ClientPool) dialShared(ctx context.Context, key string, pc PairCode) (*
 		}
 	}
 
-	call := &dialCall{done: make(chan struct{})}
+	dialCtx, cancel := context.WithTimeout(context.Background(), clientConnectTimeout)
+	call := &dialCall{done: make(chan struct{}), cancel: cancel}
 	p.inflight[key] = call
 	p.mu.Unlock()
 
 	go func() {
-		dialCtx, cancel := context.WithTimeout(context.Background(), clientConnectTimeout)
 		mux, err := p.dialTunnel(dialCtx, pc)
 		cancel()
 
+		var staleMux *Mux
 		p.mu.Lock()
-		delete(p.inflight, key)
-		if err == nil && mux != nil {
+		if p.inflight[key] == call {
+			delete(p.inflight, key)
+		}
+		if call.canceled {
+			if mux != nil {
+				staleMux = mux
+				mux = nil
+			}
+			if err == nil {
+				err = net.ErrClosed
+			}
+		} else if err == nil && mux != nil {
 			// Ensure stale closed tunnels are evicted asynchronously.
 			p.conns[key] = mux
 			go func(k string, m *Mux) {
@@ -171,6 +205,9 @@ func (p *ClientPool) dialShared(ctx context.Context, key string, pc PairCode) (*
 		}
 		call.mux, call.err = mux, err
 		p.mu.Unlock()
+		if staleMux != nil {
+			_ = staleMux.Close()
+		}
 		close(call.done)
 	}()
 

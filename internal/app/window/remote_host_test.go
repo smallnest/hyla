@@ -18,6 +18,7 @@ import (
 	"hyla/internal/app/link"
 	"hyla/internal/beacontower"
 	"hyla/internal/client"
+	"hyla/internal/pocket"
 	"hyla/internal/proto"
 	"hyla/internal/remote"
 	"hyla/internal/settings"
@@ -544,6 +545,24 @@ func TestBeaconTowerRemoteHostEndToEnd(t *testing.T) {
 	if !strings.Contains(joined, "beacontower://bt1_") {
 		t.Fatalf("Settings missing rendered beacontower pair code:\n%s", joined)
 	}
+	if a.Ss.BeaconTower.QR == nil {
+		t.Fatal("Settings missing rendered beacontower QR code")
+	}
+
+	// HylaPocket's hyla://pair?code=bt1_...&name=... QR format must also be
+	// accepted when pasted into Desktop Hyla and preserve the encoded name.
+	rawBT := strings.TrimPrefix(btRelay.PairCode, "beacontower://")
+	pocketURL := pocket.Code{Pair: rawBT, Name: "phone-box"}.CodeURL()
+	if _, err := pocket.ParseCodeURL(pocketURL); err != nil {
+		t.Fatalf("pocket.ParseCodeURL(%q): %v", pocketURL, err)
+	}
+	if err := hosts.Add(a, "", pocketURL, "", ""); err != nil {
+		t.Fatalf("hosts.Add(%q): %v", pocketURL, err)
+	}
+	if ph := a.hostNamed("phone-box"); ph == nil || !ph.BT || ph.Code != rawBT {
+		t.Fatalf("phone-box host = %+v; want BT=true code=%q", ph, rawBT)
+	}
+	hosts.Remove(a, "phone-box")
 
 	// Rotating BeaconTower code triggers toast in Settings and updates saved rotate flag.
 	hosts.RotateBeaconTowerCode(a)
@@ -554,5 +573,36 @@ func TestBeaconTowerRemoteHostEndToEnd(t *testing.T) {
 	hosts.Remove(a, "beacon-box")
 	if a.hostNamed("beacon-box") != nil {
 		t.Fatal("beacon-box was not removed")
+	}
+}
+
+func TestBeaconTowerToggleWithInvalidRelayPreservesError(t *testing.T) {
+	a := testApp(t)
+	s := a.SettingsNow().Clone()
+	s.BeaconTowerRelay = ""
+	s.SetBeaconTowerListen(false)
+	a.SetSettingsNow(s)
+	a.Ss.Page = "hosts"
+	hosts.ResetBeaconTower(a)
+	a.Ss.BeaconTower.Relay = "http://invalid-relay"
+
+	kit.Reset()
+	tt := ui.NewTester(uisettings.View(a), 820, 3000)
+	tt.Frame()
+	r, ok := tt.Find(locales.SetBeaconTowerListen())
+	if !ok {
+		t.Fatalf("missing %q row in Settings", locales.SetBeaconTowerListen())
+	}
+	tt.ClickAt(752, r.Y+r.H/2)
+	tt.Frame()
+	tt.Frame()
+	if a.Ss.BeaconTower.Relay != "http://invalid-relay" {
+		t.Fatalf("draft relay was wiped: got %q", a.Ss.BeaconTower.Relay)
+	}
+	if a.Ss.BeaconTower.Err.Err == "" {
+		t.Fatal("expected validation error on invalid relay draft after toggle")
+	}
+	if _, on := a.SettingsNow().BeaconTowerListen(); on {
+		t.Fatal("listener unexpectedly enabled with invalid relay draft")
 	}
 }

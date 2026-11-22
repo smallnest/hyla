@@ -37,7 +37,15 @@ func pocketCmd(args []string) error {
 	case "code", "qr":
 		return pocketCode(sub == "qr")
 	case "beacon":
-		return pocketBeacon(false)
+		draw := false
+		if len(args) > 1 {
+			if len(args) == 2 && args[1] == "--qr" {
+				draw = true
+			} else {
+				return usageErr("hyla pocket beacon [--qr]")
+			}
+		}
+		return pocketBeacon(draw)
 	case "tcp":
 		return pocketTCP(args[1:])
 	case "addr":
@@ -45,7 +53,7 @@ func pocketCmd(args []string) error {
 	case "token":
 		return pocketToken()
 	}
-	return usageErr("hyla pocket enable|disable|code|qr|beacon|tcp|addr|token")
+	return usageErr("hyla pocket enable|disable|code|qr|beacon [--qr]|tcp|addr|token")
 }
 
 // pocketBeacon prints the code HylaPocket scans to reach this machine over

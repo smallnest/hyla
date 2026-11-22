@@ -42,14 +42,20 @@ type TCHostDraft struct {
 // BeaconTowerDraft is the BeaconTower form: relay URL, optional access token,
 // and this machine's self-contained pair code + QR code.
 type BeaconTowerDraft struct {
-	Relay   string
-	Token   string
-	Err     TailcatField
-	Code    string
-	CodeErr string
-	QR      *qrcode.Code
-	Copied  time.Time
-	Loaded  bool
+	Relay        string
+	Token        string
+	Err          TailcatField
+	Code         string
+	CodeErr      string
+	QR           *qrcode.Code
+	Copied       time.Time
+	Loaded       bool
+	RelayFocused bool
+	TokenFocused bool
+	SyncedRelay  string
+	SyncedToken  string
+	SyncedListen bool
+	SyncedRotate bool
 }
 
 // BTHostDraft is the form that adds a machine by its BeaconTower pair code.

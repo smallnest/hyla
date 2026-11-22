@@ -112,8 +112,8 @@ description: 高性能、零信任端到端加密（E2EE）自建中继服务器
    - 派生双向独立会话密钥：
      - `prk = HKDF-Extract(sha256, ikm = dh_es || dh_ee, salt = PSK)`
      - `tr = SHA256("bt-e2e-tr-v1" || HostPub || Ce_pub || He_pub)`
-     - `key_c2h = HKDF-Expand(prk, "c2h" || tr, 32)`
-     - `key_h2c = HKDF-Expand(prk, "h2c" || tr, 32)`
+     - `key_c2h = HKDF-Expand(prk, "bt-c2h" || tr, 32)`
+     - `key_h2c = HKDF-Expand(prk, "bt-h2c" || tr, 32)`
    - 用 `key_h2c`（`seq=0`，`AAD="bt-e2e-resp-v1" || tr`）加密回显 `[16B client_nonce]`，返回 `[1B ver=1][32B He_pub][2B ctLen][ct]`。
 3. **AEAD 加密数据记录层**：
    - 自 `seq=1` 起传输多路复用流数据，每条记录格式为 `[4B big-endian ctLen][ChaCha20-Poly1305 ciphertext]`，明文上限 32 KiB。
@@ -132,7 +132,8 @@ description: 高性能、零信任端到端加密（E2EE）自建中继服务器
 
 配对码使用紧凑 TLV 二进制序列化后以无填充 Base64URL 编码，加上版本前缀 `bt1_`：
 - **裸配对码**：`bt1_<base64url>`
-- **完整地址 / 二维码内容**：`beacontower://bt1_<base64url>`
+- **完整地址**：`beacontower://bt1_<base64url>`
+- **扫码连接 URI（HylaPocket 与桌面端互通）**：`hyla://pair?code=bt1_<base64url>&name=<hostname>`
 - **内部布局**：
   `[1B version=1][32B HostPub][32B PSK][2B relayLen][relayBytes][2B tokenLen][tokenBytes]`
 
