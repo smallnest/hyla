@@ -4,6 +4,23 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.23.0
+
+- **BeaconTower remote connections**: a fast, self-hosted zero-trust
+  end-to-end encrypted relay alternative to Tailcat. Configure your
+  relay server (`host:port`, `tls://`, `ws://`, or `wss://`) and optional
+  access token in **Settings › Remote Connection › BeaconTower** (or via
+  `hyla beacontower enable`), then paste the self-contained
+  `beacontower://bt1_…` pair code (or scan its QR code) on another
+  machine. Control traffic and every terminal pane share one X25519 + PSK
+  + ChaCha20-Poly1305 encrypted multiplexed tunnel without repeating
+  handshakes, and hosts get BeaconTower support with their next update.
+- **Standalone `beacontower` relay server (`cmd/beacontower`)**: a
+  lightweight single-binary encrypted relay you can deploy on any VPS,
+  supporting native TCP/TLS and WebSocket (`/ws`) on one port,
+  `/healthz` health checks, optional shared access token (`-token`), and
+  zero visibility into decrypted terminal traffic.
+
 ## 3.22.0
 
 - **IPTV pane (`hyla.iptv` 1.2.1)**: the PiP button shows the channel in
