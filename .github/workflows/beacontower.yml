@@ -1,0 +1,48 @@
+name: BeaconTower build
+
+# Tests and cross-compiles the standalone encrypted BeaconTower relay binary
+# (cmd/beacontower) for every release platform, packs .tar.gz / .zip archives
+# with SHA-256 checksums, and smoke-tests install-beacontower.sh.
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - name: Vet and test BeaconTower
+        run: go vet ./internal/beacontower ./cmd/beacontower && go test -race -v ./internal/beacontower
+      - name: Build and pack release archives
+        run: sh scripts/build-beacontower.sh
+      - name: Verify checksums
+        run: (cd build/beacontower && sha256sum -c *.sha256)
+      - name: Smoke-test install-beacontower.sh
+        run: |
+          set -eu
+          version="$(jq -r .version mygo.json)"
+          name="beacontower-$version-linux-amd64.tar.gz"
+          rel="$RUNNER_TEMP/bt-releases/v$version"
+          mkdir -p "$rel"
+          cp "build/beacontower/$name" "build/beacontower/$name.sha256" "$rel/"
+          HYLA_RELEASES="file://$RUNNER_TEMP/bt-releases" sh build/beacontower/install-beacontower.sh --bin-dir "$RUNNER_TEMP/bt-bin"
+          "$RUNNER_TEMP/bt-bin/beacontower" -version
+          sh build/beacontower/install-beacontower.sh --uninstall --bin-dir "$RUNNER_TEMP/bt-bin"
+          test ! -e "$RUNNER_TEMP/bt-bin/beacontower"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: beacontower
+          path: |
+            build/beacontower/*.tar.gz
+            build/beacontower/*.tar.gz.sha256
+            build/beacontower/*.zip
+            build/beacontower/*.zip.sha256
+            build/beacontower/install-beacontower.sh

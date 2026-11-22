@@ -143,6 +143,12 @@ jobs:
     name: Plugins
     uses: ./.github/workflows/plugins.yml
 
+  # Standalone BeaconTower encrypted relay server binaries and installer.
+  beacontower:
+    needs: draft-release
+    name: BeaconTower
+    uses: ./.github/workflows/beacontower.yml
+
   # Signed apart from the jobs that run what was built, with the key the
   # app's updates are signed with, which the server build checks.
   server-sign:
@@ -191,11 +197,31 @@ jobs:
           gh release upload "$tag" --repo "$GITHUB_REPOSITORY" --clobber \
             build/plugins/*.hylapkg build/plugins/*.hylapkg.sha256
 
+  beacontower-upload:
+    needs: [beacontower, test]
+    name: Upload BeaconTower
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v4
+        with:
+          name: beacontower
+          path: build/beacontower
+      - name: Upload
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v$(jq -r .version mygo.json)"
+          gh release upload "$tag" --repo "$GITHUB_REPOSITORY" --clobber \
+            build/beacontower/*.tar.gz build/beacontower/*.tar.gz.sha256 \
+            build/beacontower/*.zip build/beacontower/*.zip.sha256 \
+            build/beacontower/install-beacontower.sh
+
   # A release without the server build would break the install scripts'
   # latest links, and the app's Install and Update of hosts: say so before
   # it is published.
   assets:
-    needs: [build, server-sign, plugins-upload]
+    needs: [build, server-sign, plugins-upload, beacontower-upload]
     name: Check the release
     runs-on: ubuntu-latest
     steps:
@@ -209,12 +235,13 @@ jobs:
           set -eu
           version="$(jq -r .version mygo.json)"
           names="$(gh release view "v$version" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')"
-          want="install-server.sh install-server.ps1 install.sh"
+          want="install-server.sh install-server.ps1 install-beacontower.sh install.sh"
           for p in linux-amd64 linux-arm64 darwin-amd64 darwin-arm64 windows-amd64 windows-arm64; do
             ext=tar.gz
             case "$p" in windows-*) ext=zip ;; esac
             a="hyla-server-$version-$p.$ext"
-            want="$want $a $a.sig $a.sha256"
+            b="beacontower-$version-$p.$ext"
+            want="$want $a $a.sig $a.sha256 $b $b.sha256"
           done
           plugin_assets="$(go run ./scripts/build-plugins -list-assets)"
           test -n "$plugin_assets"

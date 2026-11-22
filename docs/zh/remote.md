@@ -44,9 +44,10 @@ Hyla 只在你要求时监听：在配置文件里写 `listen = tailcat://:7473`
 
 BeaconTower（`cmd/beacontower`）是针对公网 Tailcat/DERP 中继延迟高问题的自建零信任端到端加密（E2EE）中继方案。客户端与每台远端主机只建立一条 X25519 + PSK + ChaCha20-Poly1305 加密隧道并在隧道内多路复用，控制连接与各个终端窗格共享同一条隧道，无需反复握手。
 
-在任意 VPS 上启动单文件中继服务：
+在任意 VPS 上一键安装并启动单文件中继服务：
 
 ```sh
+curl -fsSL https://github.com/smallnest/hyla/releases/latest/download/install-beacontower.sh | sh
 beacontower -listen :7474 -token your-relay-secret
 ```
 

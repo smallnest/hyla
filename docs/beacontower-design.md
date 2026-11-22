@@ -144,7 +144,13 @@ description: 高性能、零信任端到端加密（E2EE）自建中继服务器
 
 ## 4. BeaconTower 独立中继服务端 (`cmd/beacontower`)
 
-独立编译，不依赖 GUI、`mygo`、`tailscale` 或 `sqlite`：
+一键从 GitHub Releases 下载并校验安装（Linux / macOS，包含 `linux/amd64`、`linux/arm64`、`darwin/amd64`、`darwin/arm64`，Windows 提供 `.zip`）：
+
+```sh
+curl -fsSL https://github.com/smallnest/hyla/releases/latest/download/install-beacontower.sh | sh
+```
+
+也可零依赖从源码独立编译，不依赖 GUI、`mygo`、`tailscale` 或 `sqlite`：
 
 ```sh
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o beacontower ./cmd/beacontower

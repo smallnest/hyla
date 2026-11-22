@@ -44,9 +44,10 @@ Hyla listens only when you ask it to: `listen = tailcat://:7473` in the configur
 
 BeaconTower (`cmd/beacontower`) is Hyla's fast, zero-trust end-to-end encrypted relay alternative to public DERP/Tailcat relays. Each client keeps a single X25519 + PSK + ChaCha20-Poly1305 encrypted tunnel with built-in stream multiplexing so control RPCs and terminal panes open over the same session without repeating full handshakes.
 
-Run the standalone relay on any VPS:
+Install or run the standalone relay on any VPS:
 
 ```sh
+curl -fsSL https://github.com/smallnest/hyla/releases/latest/download/install-beacontower.sh | sh
 beacontower -listen :7474 -token your-relay-secret
 ```
 
