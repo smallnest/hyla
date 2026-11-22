@@ -263,11 +263,15 @@ var commands = []command{
 		name: "pocket", group: "machine",
 		summary: "this machine as a host for HylaPocket on a phone",
 		usage: `hyla pocket enable|disable|code|qr
-    the phone reaches this machine over the tailcat listener (hyla tailcat), and the
-    code it scans is that listener's pair code: one secret, address and
-    admission both
-    code                        print the pair code (secret)
-    qr                          the QR code a phone scans
+    the phone reaches this machine over the tailcat listener (hyla tailcat), or over
+    the BeaconTower one (hyla beacontower), and the code it scans is that
+    listener's pair code: one secret, address and admission both
+    code                        print the pair code (secret): tailcat's, or
+                                BeaconTower's if tailcat has no listener, or
+                                both, each on its own line
+    qr                          the same, and the QR code drawn
+    beacon                      the BeaconTower code alone (secret), as qr shows
+                                it, even before hylad listens over BeaconTower
     hyla pocket tcp enable|disable [address:port]
                                 listen on this machine's network instead, with
                                 a password: Hyla or HylaPocket connects by the
@@ -569,7 +573,7 @@ func printReference() error {
 var subcommands = map[string][]string{
 	"daemon":      {"status", "stop", "restart", "update", "serve", "install-service", "uninstall-service"},
 	"config":      {"path", "show", "edit", "check"},
-	"pocket":      {"enable", "disable", "code", "qr", "tcp", "addr", "token"},
+	"pocket":      {"enable", "disable", "code", "qr", "beacon", "tcp", "addr", "token"},
 	"beacontower": {"status", "enable", "disable", "relay", "code", "rotate"},
 	"beacon":      {"status", "enable", "disable", "relay", "code", "rotate"},
 	"tailcat":     {"status", "enable", "disable", "port", "rotate", "code"},

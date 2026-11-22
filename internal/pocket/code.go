@@ -17,10 +17,12 @@ type Code struct {
 }
 
 // CodeURL is the code as HylaPocket reads it, and as hyla prints it:
-// hyla://pair?code=tc…&name=….
+// hyla://pair?code=tc…&name=…, or code=bt1_… for a BeaconTower code.
 func (c Code) CodeURL() string {
 	q := url.Values{}
-	q.Set("code", strings.TrimPrefix(strings.TrimSpace(c.Pair), "tailcat://"))
+	// A code carries no scheme, tailcat's or BeaconTower's: the code says
+	// which relay it is, and a scheme in it would reach the phone as text.
+	q.Set("code", strings.TrimPrefix(strings.TrimPrefix(strings.TrimSpace(c.Pair), "tailcat://"), "beacontower://"))
 	if name := strings.TrimSpace(c.Name); name != "" {
 		q.Set("name", name)
 	}
@@ -35,7 +37,7 @@ func ParseCodeURL(s string) (Code, error) {
 		return Code{}, fmt.Errorf("%q is not a host code", s)
 	}
 	q := u.Query()
-	c := Code{Pair: strings.TrimPrefix(q.Get("code"), "tailcat://"), Name: q.Get("name")}
+	c := Code{Pair: strings.TrimPrefix(strings.TrimPrefix(q.Get("code"), "tailcat://"), "beacontower://"), Name: q.Get("name")}
 	if !ValidPairCode(c.Pair) {
 		return Code{}, fmt.Errorf("%q is not a host code", s)
 	}

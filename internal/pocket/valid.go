@@ -1,8 +1,16 @@
 package pocket
 
-import "hyla/internal/remote"
+import (
+	"hyla/internal/beacontower"
+	"hyla/internal/remote"
+)
 
 // ValidPairCode reports whether s, a code URL's pair code without its
-// scheme, is shaped as a tailcat pair code makes it: "tc", and base64url
-// alone.
-func ValidPairCode(s string) bool { return remote.LooksLikePairCode(s) }
+// scheme, is a complete one: tailcat's "tc" and base64url alone, or
+// BeaconTower's "bt1_" code, which decodes to a whole one.
+func ValidPairCode(s string) bool {
+	if remote.LooksLikePairCode(s) {
+		return true
+	}
+	return beacontower.ValidPairCode(s)
+}

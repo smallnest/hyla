@@ -11,6 +11,7 @@ import (
 
 	"github.com/xingkaixin/mygo-native-ui/ui/qrcode"
 
+	"hyla/internal/beacontower"
 	"hyla/internal/build"
 	"hyla/internal/client"
 	"hyla/internal/daemon"
@@ -208,7 +209,7 @@ func beaconTowerCmd(args []string) error {
 			return nil
 		}
 		if code, err := remote.LocalBeaconTowerAddress(set.BeaconTowerRelay, set.BeaconTowerToken); err == nil {
-			fmt.Printf("  pair code: beacontower://%s\n", code)
+			fmt.Printf("  pair code: %s\n", beacontower.Scheme+code)
 		} else {
 			fmt.Printf("  pair code: %v\n", err)
 		}
@@ -243,7 +244,7 @@ func beaconTowerCmd(args []string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Println("beacontower://" + code)
+		fmt.Println(beacontower.Scheme + code)
 		fmt.Fprintln(os.Stderr, "the pair code is the secret: anyone with it can connect; hyla beacontower rotate makes a new one")
 		return nil
 
@@ -288,7 +289,7 @@ func beaconTowerCmd(args []string) error {
 		if err != nil {
 			return err
 		}
-		text := "beacontower://" + code
+		text := beacontower.Scheme + code
 		if drawQR {
 			printTerminalQR(text)
 		}
@@ -309,7 +310,7 @@ func beaconTowerCmd(args []string) error {
 			return err
 		}
 		if code != "" {
-			fmt.Println("beacontower://" + code)
+			fmt.Println(beacontower.Scheme + code)
 			fmt.Fprintln(os.Stderr, "the old pair code no longer connects: other machines need this one")
 		} else {
 			fmt.Println("beacontower keys rotated (set a relay with `hyla beacontower relay <url>` to generate a pair code)")
