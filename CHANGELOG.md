@@ -4,6 +4,17 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.23.2
+
+- **Remote host status and Connect/Disconnect controls**: **Settings › Remote
+  Connection** (BeaconTower, Tailcat, and P2P) and the sidebar host headers
+  now display live connection status (`Connected`, `Connecting…`, `Failed`,
+  `Version mismatch`, and `Disconnected`) along with connection error
+  details. You can explicitly **Connect** or **Disconnect** any remote host
+  from Settings, the sidebar hover button, or the sidebar right-click menu;
+  manually disconnected hosts stay disconnected across restarts until you
+  connect them again.
+
 ## 3.23.1
 
 - **HylaPocket pairing over BeaconTower**: **Settings › Remote Connection ›
