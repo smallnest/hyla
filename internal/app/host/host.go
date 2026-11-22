@@ -37,6 +37,9 @@ const (
 	StateVersion
 	// StateFailed is a connection that failed.
 	StateFailed
+	// StateDisconnected is a remote host the user disconnected, which the app
+	// keeps in the list without connecting until asked.
+	StateDisconnected
 )
 
 // Host is hylad, as the app has it: its connection, and what it holds.

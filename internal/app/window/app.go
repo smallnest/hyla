@@ -364,6 +364,10 @@ func (a *App) savePrefs() {
 func (a *App) Update(fn func()) {
 	if a.Win != nil {
 		a.Win.Update(fn)
+		return
+	}
+	if a.SetWin != nil {
+		a.SetWin.Update(fn)
 	}
 }
 
@@ -554,6 +558,9 @@ func (a *App) TakeStateOf(h *host.Host, st proto.State) {
 	a.checkHongguoAutoPause(first)
 	a.notify(first)
 	a.UpdateTitle()
+	if h.Remote() && a.SetWin != nil {
+		a.SetWin.Invalidate()
+	}
 }
 
 // openDefaultProject shows the default project's latest session, and starts

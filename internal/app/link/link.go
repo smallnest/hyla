@@ -35,6 +35,7 @@ type App interface {
 	// the statuses of its sessions.
 	DropHostTerms(h *host.Host)
 	StatusesForget(h *host.Host)
+	InvalidateHosts()
 	// Event takes a message from a host's hylad.
 	EventOf(h *host.Host, cl *client.Client, m proto.Message)
 }
@@ -51,6 +52,7 @@ func ConnectHost(a App, h *host.Host) {
 		h.Conn = host.StateConnecting
 	}
 	h.Dialing = true
+	a.InvalidateHosts()
 	go func() {
 		var cl *client.Client
 		var err error
@@ -84,7 +86,7 @@ func connectLocal() (*client.Client, error) {
 
 // connected takes the result of ConnectHost.
 func Connected(a App, h *host.Host, gen int, cl *client.Client, err error) {
-	if h.Gen != gen || !slices.Contains(a.MachinesNow(), h) {
+	if h.Gen != gen || h.Conn == host.StateDisconnected || !slices.Contains(a.MachinesNow(), h) {
 		if cl != nil {
 			go cl.Close()
 		}
@@ -95,6 +97,7 @@ func Connected(a App, h *host.Host, gen int, cl *client.Client, err error) {
 		h.Client = nil
 		if errors.Is(err, client.ErrVersion) {
 			h.Conn, h.Err = host.StateVersion, ""
+			a.InvalidateHosts()
 			return
 		}
 		h.Conn, h.Err = host.StateFailed, err.Error()
@@ -104,6 +107,7 @@ func Connected(a App, h *host.Host, gen int, cl *client.Client, err error) {
 		if !h.Loaded {
 			a.ReselectNow()
 		}
+		a.InvalidateHosts()
 		return
 	}
 	h.Client, h.Conn, h.Err, h.Retries = cl, host.StateReady, "", 0
@@ -116,6 +120,7 @@ func Connected(a App, h *host.Host, gen int, cl *client.Client, err error) {
 	cl.Go("subscribe", nil, nil)
 	h.ViewSent = nil
 	a.ReportViewNow()
+	a.InvalidateHosts()
 	go func() {
 		<-cl.Done()
 		a.UpdateNow(func() { disconnected(a, h, cl) })
@@ -145,17 +150,20 @@ func disconnected(a App, h *host.Host, cl *client.Client) {
 	if h.Client != cl {
 		return
 	}
+	h.Gen++
+	gen := h.Gen
 	h.Client = nil
 	h.Conn = host.StateConnecting
 	a.DropHostTerms(h)
 	// What changed while the app was away tells nothing new.
 	a.StatusesForget(h)
-	time.AfterFunc(300*time.Millisecond, func() { a.UpdateNow(func() { reconnect(a, h) }) })
+	a.InvalidateHosts()
+	time.AfterFunc(300*time.Millisecond, func() { a.UpdateNow(func() { reconnect(a, h, gen) }) })
 }
 
 // reconnect connects again, unless it is.
-func reconnect(a App, h *host.Host) {
-	if slices.Contains(a.MachinesNow(), h) && h.Client == nil && !h.Dialing {
+func reconnect(a App, h *host.Host, gen int) {
+	if h.Gen == gen && h.Conn != host.StateDisconnected && slices.Contains(a.MachinesNow(), h) && h.Client == nil && !h.Dialing {
 		ConnectHost(a, h)
 	}
 }

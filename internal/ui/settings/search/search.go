@@ -102,7 +102,7 @@ func Index() []Entry {
 		{"agents", locales.SetProgramStatus(), "osc 7501 report progress"},
 		{"plugins", locales.PagePlugins(), "plugins extensions packs permissions hylapkg reload install market marketplace store"},
 
-		{"hosts", locales.SetHosts(), "host hosts remote connection p2p server ssh tailcat beacontower beacon relay wsl machine linux devbox phone qr password token 烽火台"},
+		{"hosts", locales.SetHosts(), "host hosts remote connection p2p server ssh tailcat beacontower beacon relay wsl machine linux devbox phone qr password token connect disconnect status 连接 断开 状态 烽火台"},
 		{"hosts", locales.SetHostAdd(), "add host address ssh wsl tailcat beacontower beacon"},
 		{"hosts", locales.SetHostRemoteControl(), "remote-control host hyla do focus"},
 		{"hosts", locales.SetBeaconTowerTitle(), "beacontower beacon relay pair code token e2ee wss tls 烽火台 中继"},

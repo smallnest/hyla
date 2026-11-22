@@ -79,6 +79,10 @@ func Try(name string) (*ui.SVG, bool) {
 		return Plugins, true
 	case "drama":
 		return Drama, true
+	case "connect":
+		return Connect, true
+	case "disconnect":
+		return Disconnect, true
 	}
 	b, err := files.ReadFile("icons/" + name + ".svg")
 	if err != nil {
@@ -126,6 +130,8 @@ var (
 	Copy        = Of("f7-doc-on-doc")
 	Info        = Of("lucide-info")
 	Link        = Of("f7-arrow-up-right")
+	Connect     = Drawn(`<path d="M6 2.5v3M10 2.5v3M4.2 5.5h7.6v2.2a3.8 3.8 0 0 1-7.6 0zM8 11.5v2"/>`)
+	Disconnect  = Drawn(`<path d="M8 2.2v5.3"/><path d="M4.6 4.5a5.2 5.2 0 1 0 6.8 0"/>`)
 	Chat        = Drawn(`<path d="M2.5 3.5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H6.5L3 13.5v-3a2 2 0 0 1-.5-1.3z"/><path d="M5.5 5.5h5M5.5 8h3"/>`)
 	Zed         = Of("si-zed")
 	Edit        = Of("f7-pencil")

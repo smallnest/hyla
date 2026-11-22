@@ -81,21 +81,11 @@ func BeaconTowerHosts(a App, c *ui.Context, pal *theme.Palette) {
 			if !r.BeaconTower() {
 				continue
 			}
-			r := r
 			summary := shortBeaconCode(r.Addr)
 			if hostLabel := remote.BeaconRelayDisplay(r.Addr); hostLabel != "" {
 				summary = hostLabel + " · " + summary
 			}
-			ui.Row(c).Padding(2, 0).Gap(10).AlignItems(ui.Center).Children(func() {
-				ui.Icon(c, glyph.Host).Size(14, 14).TextColor(pal.TextMuted).Shrink(0)
-				ui.Column(c).Grow(1).MinWidth(0).Gap(2).Children(func() {
-					ui.Text(c, r.Name).FontSize(13).TextColor(pal.Text).SingleLine().Ellipsis("…")
-					ui.Text(c, summary).Font("monospace").FontSize(12).TextColor(pal.TextFaint).SingleLine().Ellipsis("…")
-				})
-				paints.IconButton(c, "rm-bt-"+r.Name, glyph.Close, locales.HostRemove(), pal, func() {
-					Remove(a, r.Name)
-				})
-			})
+			remoteHostRow(a, c, pal, "bt-", r, summary)
 		}
 		add := func() {
 			if err := Add(a, d.Name, d.Code, "", ""); err != nil {

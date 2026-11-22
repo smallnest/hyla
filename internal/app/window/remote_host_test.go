@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/egoist/mygo/ui"
 
+	"hyla/internal/app/host"
 	"hyla/internal/app/link"
 	"hyla/internal/beacontower"
 	"hyla/internal/client"
@@ -604,5 +606,356 @@ func TestBeaconTowerToggleWithInvalidRelayPreservesError(t *testing.T) {
 	}
 	if _, on := a.SettingsNow().BeaconTowerListen(); on {
 		t.Fatal("listener unexpectedly enabled with invalid relay draft")
+	}
+}
+
+func closedTCPAddr(t *testing.T) string {
+	t.Helper()
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	addr := ln.Addr().String()
+	ln.Close()
+	return addr
+}
+
+// Settings › Remote Connection shows each host's connection status across
+// BeaconTower, Tailcat, and P2P, and Disconnect / Connect buttons update
+// both live host state and persisted preferences.
+func TestRemoteHostStatusAndActionsInSettings(t *testing.T) {
+	a := testApp(t)
+	a.Ss.Page = "hosts"
+
+	// Make sample valid codes for BeaconTower and Tailcat so all three
+	// transport groups render in Settings.
+	kp, err := beacontower.GenerateKeyPair()
+	if err != nil {
+		t.Fatal(err)
+	}
+	btCode, err := beacontower.EncodePairCode(beacontower.PairCode{
+		Relay:   "relay.example.com:7474",
+		HostPub: kp.Pub,
+		PSK:     kp.PSK,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	k, err := remote.NewTailcatKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+	k.Region = "1"
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	tcCode, err := remote.TailcatAddress(ctx, k)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	deadAddr := closedTCPAddr(t)
+	a.Prefs.RemoteHosts = []hosts.Remote{
+		{Name: "bt-ready", Addr: "beacontower://" + btCode},
+		{Name: "bt-disc", Addr: "beacontower://" + btCode, Disconnected: true},
+		{Name: "tc-conn", Addr: "tailcat://" + tcCode, Port: "7473"},
+		{Name: "tc-ver", Addr: "tailcat://" + tcCode, Port: "7473"},
+		{Name: "p2p-fail", Addr: deadAddr, Token: "pass"},
+	}
+	a.Machines = append(a.Machines,
+		&host.Host{Name: "bt-ready", Addr: "beacontower://" + btCode, BT: true, Code: btCode, Conn: host.StateReady, Loaded: true},
+		&host.Host{Name: "bt-disc", Addr: "beacontower://" + btCode, BT: true, Code: btCode, Conn: host.StateDisconnected},
+		&host.Host{Name: "tc-conn", Addr: "tailcat://" + tcCode, TC: true, Code: tcCode, Port: "7473", Conn: host.StateConnecting},
+		&host.Host{Name: "tc-ver", Addr: "tailcat://" + tcCode, TC: true, Code: tcCode, Port: "7473", Conn: host.StateVersion},
+		&host.Host{Name: "p2p-fail", Addr: deadAddr, Token: "pass", Conn: host.StateFailed, Err: "dial tcp: refused"},
+	)
+
+	kit.Reset()
+	tt := ui.NewTester(uisettings.View(a), 820, 3200)
+	tt.Frame()
+	for _, want := range []string{
+		"bt-ready", locales.HostStatusConnected(),
+		"bt-disc", locales.StatusDisconnected(),
+		"tc-conn", locales.StatusConnecting(),
+		"tc-ver", locales.HostStatusVersion(), locales.HostVersionMismatchDetail(),
+		"p2p-fail", locales.StatusFailed(), "dial tcp: refused",
+		locales.HostDisconnect(), locales.CommonConnect(),
+	} {
+		if !tt.HasText(want) {
+			t.Errorf("Settings missing %q; texts %q", want, tt.Texts())
+		}
+	}
+
+	// Single-host Settings interaction: Disconnect -> Disconnected -> Connect -> Connecting…
+	a2 := testApp(t)
+	a2.Ss.Page = "hosts"
+	addr := aRemoteHylad(t, "s3cret-pass", remoteState())
+	if err := hosts.Add(a2, "studio", "tcp://"+addr, "s3cret-pass", ""); err != nil {
+		t.Fatal(err)
+	}
+	h := a2.hostNamed("studio")
+	cl, err := client.ConnectVia(h.Dialer())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { cl.Close() })
+	link.Connected(a2, h, h.Gen, cl, nil)
+	h.Loaded = true
+	a2.mergeState(h, remoteState())
+
+	kit.Reset()
+	tt2 := ui.NewTester(uisettings.View(a2), 820, 2600)
+	tt2.Frame()
+	if !tt2.HasText(locales.HostStatusConnected()) {
+		t.Fatalf("expected Connected status in Settings; texts %q", tt2.Texts())
+	}
+	if err := tt2.Click(locales.HostDisconnect()); err != nil {
+		t.Fatalf("click Disconnect: %v", err)
+	}
+	tt2.Frame()
+	tt2.Frame()
+	if h.Conn != host.StateDisconnected || h.Client != nil {
+		t.Fatalf("host after Disconnect = (conn=%v, client=%v); want StateDisconnected, nil", h.Conn, h.Client)
+	}
+	if got := a2.SessionsOf(h); len(got) != 0 {
+		t.Fatalf("expected remote sessions cleared after Disconnect, got %+v", got)
+	}
+	if !a2.Prefs.RemoteHosts[0].Disconnected {
+		t.Fatal("expected Disconnected=true persisted in RemoteHosts")
+	}
+	if !tt2.HasText(locales.StatusDisconnected()) || !tt2.HasText(locales.CommonConnect()) {
+		t.Fatalf("Settings did not switch to Disconnected/Connect; texts %q", tt2.Texts())
+	}
+
+	if err := tt2.Click(locales.CommonConnect()); err != nil {
+		t.Fatalf("click Connect: %v", err)
+	}
+	tt2.Frame()
+	tt2.Frame()
+	if h.Conn != host.StateConnecting {
+		t.Fatalf("host.Conn after Connect = %v; want StateConnecting", h.Conn)
+	}
+	if a2.Prefs.RemoteHosts[0].Disconnected {
+		t.Fatal("expected Disconnected=false persisted after Connect")
+	}
+	if !tt2.HasText(locales.StatusConnecting()) || !tt2.HasText(locales.HostDisconnect()) {
+		t.Fatalf("Settings did not switch to Connecting/Disconnect; texts %q", tt2.Texts())
+	}
+
+	// ConnectName on a RemoteHost configured before Sync runs creates and connects the host.
+	a3 := testApp(t)
+	a3.Prefs.RemoteHosts = []hosts.Remote{{Name: "pre", Addr: closedTCPAddr(t), Token: "p", Disconnected: true}}
+	hosts.ConnectName(a3, "pre")
+	if h3 := a3.hostNamed("pre"); h3 == nil || h3.Conn != host.StateConnecting {
+		t.Fatalf("ConnectName before Sync = %+v; want StateConnecting", h3)
+	}
+	if a3.Prefs.RemoteHosts[0].Disconnected {
+		t.Fatal("ConnectName did not clear Disconnected flag")
+	}
+}
+
+// Disconnecting a host cancels/ignores in-flight dials, persists across Sync
+// (e.g. app restarts), and allows reconnecting cleanly afterwards.
+func TestRemoteHostDisconnectPersistenceAndStaleConnect(t *testing.T) {
+	a := testApp(t)
+	addr := aRemoteHylad(t, "s3cret-pass", remoteState())
+	if err := hosts.Add(a, "studio", "tcp://"+addr, "s3cret-pass", ""); err != nil {
+		t.Fatal(err)
+	}
+	h := a.hostNamed("studio")
+	oldGen := h.Gen
+
+	// Dial a client that simulates an in-flight connection attempt from before Disconnect.
+	staleCl, err := client.ConnectVia(h.Dialer())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer staleCl.Close()
+
+	// Connect normally first so sessions and statuses exist.
+	cl, err := client.ConnectVia(h.Dialer())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cl.Close()
+	link.Connected(a, h, h.Gen, cl, nil)
+	h.Loaded = true
+	a.mergeState(h, remoteState())
+	a.Statuses["rs"] = proto.Working
+
+	// Disconnect clears sessions, statuses, and client, and persists Disconnected=true.
+	hosts.Disconnect(a, h)
+	if h.Conn != host.StateDisconnected || h.Client != nil || h.Loaded {
+		t.Fatalf("after Disconnect: conn=%v client=%v loaded=%v", h.Conn, h.Client, h.Loaded)
+	}
+	if len(a.SessionsOf(h)) != 0 {
+		t.Fatalf("sessions not cleared: %+v", a.SessionsOf(h))
+	}
+	if _, ok := a.Statuses["rs"]; ok {
+		t.Fatal("stale session status not forgotten on Disconnect")
+	}
+	if !a.Prefs.RemoteHosts[0].Disconnected {
+		t.Fatal("Disconnected flag not saved in Prefs")
+	}
+
+	// An earlier in-flight dial finishing after Disconnect must be rejected and closed.
+	link.Connected(a, h, oldGen, staleCl, nil)
+	if h.Conn != host.StateDisconnected || h.Client != nil {
+		t.Fatalf("stale Connected overwrote disconnected state: conn=%v client=%v", h.Conn, h.Client)
+	}
+	select {
+	case <-staleCl.Done():
+	case <-time.After(time.Second):
+		t.Fatal("stale client was not closed after Disconnect")
+	}
+
+	// Simulated app restart: Sync recreates studio in StateDisconnected without dialing.
+	a.Machines = []*host.Host{a.Local()}
+	hosts.Sync(a)
+	h = a.hostNamed("studio")
+	if h == nil || h.Conn != host.StateDisconnected || h.Dialing {
+		t.Fatalf("after Sync restart: host = %+v; want StateDisconnected and Dialing=false", h)
+	}
+
+	// Connecting again clears Disconnected and succeeds against the remote hylad.
+	hosts.Connect(a, h)
+	if h.Conn != host.StateConnecting || a.Prefs.RemoteHosts[0].Disconnected {
+		t.Fatalf("after Connect: conn=%v prefsDisconnected=%v", h.Conn, a.Prefs.RemoteHosts[0].Disconnected)
+	}
+	cl2, err := client.ConnectVia(h.Dialer())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cl2.Close()
+	link.Connected(a, h, h.Gen, cl2, nil)
+	if h.Conn != host.StateReady || h.Client != cl2 {
+		t.Fatalf("reconnected host = (conn=%v, client=%v); want StateReady", h.Conn, h.Client)
+	}
+}
+
+// Sidebar host headers render status badges/tooltips and expose Connect,
+// Reconnect, Disconnect, and Remove actions via context menu and hover buttons.
+func TestRemoteHostSidebarStatusAndMenu(t *testing.T) {
+	a := testApp(t)
+	addr := aRemoteHylad(t, "s3cret-pass", remoteState())
+	if err := hosts.Add(a, "studio", "tcp://"+addr, "s3cret-pass", ""); err != nil {
+		t.Fatal(err)
+	}
+	h := a.hostNamed("studio")
+	cl, err := client.ConnectVia(h.Dialer())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { cl.Close() })
+	link.Connected(a, h, h.Gen, cl, nil)
+	h.Loaded = true
+	a.mergeState(h, remoteState())
+
+	tt := ui.NewTester(a.view, 1100, 700)
+	tt.Frame()
+	if !tt.HasText("studio") || !tt.HasText("remote shell") {
+		t.Fatalf("sidebar missing connected remote host; texts %q", tt.Texts())
+	}
+
+	// Hovering the connected host header reveals the Disconnect icon button.
+	r, ok := tt.Find("studio")
+	if !ok {
+		t.Fatal("missing studio header")
+	}
+	tt.Move(r.X+r.W/2, r.Y+r.H/2)
+	tt.Frame()
+	if _, ok := tt.Find(locales.HostDisconnect()); !ok {
+		t.Fatalf("hovering connected host did not show Disconnect button; texts %q", tt.Texts())
+	}
+
+	// Move away to restore clean non-hover state, then open context menu and Disconnect.
+	tt.Move(0, 0)
+	tt.Frame()
+	if err := tt.RightClick("studio"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	wantReadyMenu := []string{locales.HostReconnect(), locales.HostDisconnect(), "-", locales.HostRemove()}
+	if got := tt.Menu(); !reflect.DeepEqual(got, wantReadyMenu) {
+		t.Fatalf("connected host menu = %q, want %q", got, wantReadyMenu)
+	}
+	if err := tt.ChooseMenuItem(locales.HostDisconnect()); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	tt.Frame()
+	if h.Conn != host.StateDisconnected || tt.HasText("remote shell") || !tt.HasText(locales.StatusDisconnected()) {
+		t.Fatalf("sidebar after Disconnect: conn=%v texts=%q", h.Conn, tt.Texts())
+	}
+
+	// Hovering the disconnected host header reveals the Connect icon button; clicking it connects.
+	r, ok = tt.Find("studio")
+	if !ok {
+		t.Fatal("missing disconnected studio header")
+	}
+	tt.Move(r.X+r.W/2, r.Y+r.H/2)
+	tt.Frame()
+	if err := tt.Click(locales.CommonConnect()); err != nil {
+		t.Fatalf("click hover Connect button: %v", err)
+	}
+	tt.Frame()
+	tt.Frame()
+	if h.Conn != host.StateConnecting || a.Prefs.RemoteHosts[0].Disconnected {
+		t.Fatalf("hover Connect did not reconnect: conn=%v prefsDisconnected=%v", h.Conn, a.Prefs.RemoteHosts[0].Disconnected)
+	}
+
+	// Disconnected host context menu has Connect and Remove.
+	hosts.Disconnect(a, h)
+	tt.Move(0, 0)
+	tt.Frame()
+	if err := tt.RightClick("studio"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	wantDiscMenu := []string{locales.CommonConnect(), "-", locales.HostRemove()}
+	if got := tt.Menu(); !reflect.DeepEqual(got, wantDiscMenu) {
+		t.Fatalf("disconnected host menu = %q, want %q", got, wantDiscMenu)
+	}
+	if err := tt.ChooseMenuItem(locales.CommonConnect()); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if h.Conn != host.StateConnecting {
+		t.Fatalf("menu Connect did not start connecting: conn=%v", h.Conn)
+	}
+
+	// Failed host shows status & error when not hovered, Connect when hovered,
+	// and offers Connect + Disconnect in menu.
+	h.Conn = host.StateFailed
+	h.Err = "connection timed out"
+	tt.Move(0, 0)
+	tt.Frame()
+	if !tt.HasText(locales.StatusFailed()) || !tt.HasText("connection timed out") {
+		t.Fatalf("failed host missing status/error; texts %q", tt.Texts())
+	}
+	r, ok = tt.Find("studio")
+	if !ok {
+		t.Fatal("missing failed studio header")
+	}
+	tt.Move(r.X+r.W/2, r.Y+r.H/2)
+	tt.Frame()
+	if _, ok := tt.Find(locales.CommonConnect()); !ok {
+		t.Fatalf("hovering failed host did not show Connect button; texts %q", tt.Texts())
+	}
+	tt.Move(0, 0)
+	tt.Frame()
+	if err := tt.RightClick("studio"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	wantFailMenu := []string{locales.CommonConnect(), locales.HostDisconnect(), "-", locales.HostRemove()}
+	if got := tt.Menu(); !reflect.DeepEqual(got, wantFailMenu) {
+		t.Fatalf("failed host menu = %q, want %q", got, wantFailMenu)
+	}
+	if err := tt.ChooseMenuItem(locales.HostDisconnect()); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if h.Conn != host.StateDisconnected || tt.HasText("connection timed out") {
+		t.Fatalf("failed host after Disconnect: conn=%v texts=%q", h.Conn, tt.Texts())
 	}
 }

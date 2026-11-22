@@ -6398,6 +6398,46 @@ func (msgs Messages) HostReconnect() string {
 	return Catalog.Format(msgs.locale, "hostReconnect", nil)
 }
 
+// HostDisconnect says "Disconnect"
+// in the language the app shows.
+func HostDisconnect() string { return In(i18n.Locale()).HostDisconnect() }
+
+// HostDisconnect says "Disconnect"
+// in the language of msgs.
+func (msgs Messages) HostDisconnect() string {
+	return Catalog.Format(msgs.locale, "hostDisconnect", nil)
+}
+
+// HostStatusConnected says "Connected"
+// in the language the app shows.
+func HostStatusConnected() string { return In(i18n.Locale()).HostStatusConnected() }
+
+// HostStatusConnected says "Connected"
+// in the language of msgs.
+func (msgs Messages) HostStatusConnected() string {
+	return Catalog.Format(msgs.locale, "hostStatusConnected", nil)
+}
+
+// HostStatusVersion says "Version mismatch"
+// in the language the app shows.
+func HostStatusVersion() string { return In(i18n.Locale()).HostStatusVersion() }
+
+// HostStatusVersion says "Version mismatch"
+// in the language of msgs.
+func (msgs Messages) HostStatusVersion() string {
+	return Catalog.Format(msgs.locale, "hostStatusVersion", nil)
+}
+
+// HostVersionMismatchDetail says "This host runs an incompatible version of Hyla."
+// in the language the app shows.
+func HostVersionMismatchDetail() string { return In(i18n.Locale()).HostVersionMismatchDetail() }
+
+// HostVersionMismatchDetail says "This host runs an incompatible version of Hyla."
+// in the language of msgs.
+func (msgs Messages) HostVersionMismatchDetail() string {
+	return Catalog.Format(msgs.locale, "hostVersionMismatchDetail", nil)
+}
+
 // HostReconnectTo says "Reconnect to {host}"
 // in the language the app shows.
 func HostReconnectTo(host string) string { return In(i18n.Locale()).HostReconnectTo(host) }

@@ -40,6 +40,15 @@ func (a *App) ProjectsOf(h *host.Host) []proto.Project { return a.projectsOn(h) 
 
 func (a *App) Connect(h *host.Host) { link.ConnectHost(a, h) }
 
+func (a *App) InvalidateHosts() {
+	if a.Win != nil {
+		a.Win.Invalidate()
+	}
+	if a.SetWin != nil {
+		a.SetWin.Invalidate()
+	}
+}
+
 func (a *App) MergeState(h *host.Host, st proto.State) {
 	a.St.Projects, a.St.Sessions, a.Owner = hostlink.Merge(a, h, st)
 }

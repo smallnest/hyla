@@ -46,6 +46,7 @@ type Palette struct {
 	AttnSoft  ui.Color
 	Done      ui.Color // the filled check
 	OnDone    ui.Color
+	Online    ui.Color
 	Danger    ui.Color
 	Accent    ui.Color
 	// group is a sidebar group's name, a project's or a day's: lighter than
@@ -102,6 +103,7 @@ var Light = Palette{
 	AttnSoft:  ui.RGBA(232, 154, 40, 0.13),
 	Done:      ui.Hex("#1d1d1f"),
 	OnDone:    ui.Hex("#ffffff"),
+	Online:    ui.Hex("#248a3d"),
 	Danger:    ui.Hex("#d93a35"),
 	Accent:    ui.Hex("#3b6cf6"),
 
@@ -149,6 +151,7 @@ var Dark = Palette{
 	AttnSoft:  ui.RGBA(240, 163, 58, 0.15),
 	Done:      ui.Hex("#ececf0"),
 	OnDone:    ui.Hex("#161618"),
+	Online:    ui.Hex("#30d158"),
 	Danger:    ui.Hex("#ff6961"),
 	Accent:    ui.Hex("#6b93ff"),
 

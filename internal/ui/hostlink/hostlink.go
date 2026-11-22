@@ -74,12 +74,22 @@ func Own(a App, h *host.Host, s proto.Session) {
 func State(a App, c *ui.Context, pal *theme.Palette, h *host.Host) {
 	if h.Remote() {
 		// Another machine's hylad is not this app's to restart: it says
-		// where it stands, and the user reconnects to it.
-		switch {
-		case h.Conn == host.StateConnecting:
-			dot(c, pal, pal.TextFaint, locales.StatusConnecting())
-		case h.Conn == host.StateFailed:
-			dot(c, pal, pal.Danger, h.Err)
+		// where it stands, and the user connects or disconnects it.
+		switch h.Conn {
+		case host.StateReady:
+			dot(c, pal, pal.Online, locales.HostStatusConnected())
+		case host.StateConnecting:
+			dot(c, pal, pal.Attention, locales.StatusConnecting())
+		case host.StateFailed:
+			label := h.Err
+			if label == "" {
+				label = locales.HostCantConnect(h.Name)
+			}
+			dot(c, pal, pal.Danger, label)
+		case host.StateVersion:
+			dot(c, pal, pal.Attention, locales.HostStatusVersion())
+		case host.StateDisconnected:
+			dot(c, pal, pal.TextFaint, locales.StatusDisconnected())
 		}
 		return
 	}

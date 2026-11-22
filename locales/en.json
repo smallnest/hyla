@@ -815,6 +815,10 @@
     }
   },
   "hostReconnect": "Reconnect",
+  "hostDisconnect": "Disconnect",
+  "hostStatusConnected": "Connected",
+  "hostStatusVersion": "Version mismatch",
+  "hostVersionMismatchDetail": "This host runs an incompatible version of Hyla.",
   "hostReconnectTo": "Reconnect to {host}",
   "@hostReconnectTo": {
     "placeholders": {

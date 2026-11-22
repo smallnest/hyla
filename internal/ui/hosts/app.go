@@ -29,13 +29,15 @@ type App interface {
 	HostNamed(name string) *host.Host
 	SessionsOf(h *host.Host) []proto.Session
 	ProjectsOf(h *host.Host) []proto.Project
-	// Connect, DropTerms, MergeState, Reselect and UpdateTitle keep the
-	// hosts, as they come and go.
+	// Connect, DropTerms, StatusesForget, MergeState, Reselect, UpdateTitle and
+	// InvalidateHosts keep the hosts, as they come and go.
 	Connect(h *host.Host)
 	DropHostTerms(h *host.Host)
+	StatusesForget(h *host.Host)
 	MergeState(h *host.Host, st proto.State)
 	Reselect()
 	UpdateTitle()
+	InvalidateHosts()
 	// SelectSession and NewSessionOn act on one, and HostState draws how
 	// the app stands with it.
 	PaletteSelectSession(id string)
