@@ -1,3 +1,5 @@
+<!-- reviewed-through: 9adfc0e (2026-11-22) -->
+
 # Hyla 开发经验与教训（Lessons Learned）
 
 本文记录在开发与演进 Hyla（桌面端、守护进程 `hylad`、插件系统、时间线解析与 CI/Release 流水线）过程中沉淀的工程经验与踩坑教训，供后续迭代与维护参考。

@@ -39,7 +39,7 @@ Hyla のウィンドウは、デスクトップの上に置かれるために描
 
 ## 下地
 
-`background` はウィンドウに敷く色です: `petal`、`mist`、`meadow`、`plain`、または `dock`（Dock のガラスに薄い膜をかけたもの）。`window-theme` はシステムの明暗に従うか、どちらかに固定します。
+`background` はウィンドウに敷く色です: `petal`、`mist`、`meadow`、`indigo`、`plain`、または `dock`（Dock のガラスに薄い膜をかけたもの）。`window-theme` はシステムの明暗に従うか、どちらかに固定します。
 
 ## フォント
 

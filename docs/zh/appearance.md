@@ -39,7 +39,7 @@ Hyla 的窗口是为了坐在你的桌面上，而不是挡在它前面。这些
 
 ## 底色
 
-`background` 是窗口铺的底色：`petal`、`mist`、`meadow`、`plain`，或者 `dock`——程序坞那种玻璃，上面盖一层薄纱。`window-theme` 跟随系统的浅色或深色，也可以固定其中一种。
+`background` 是窗口铺的底色：`petal`、`mist`、`meadow`、`indigo`、`plain`，或者 `dock`——程序坞那种玻璃，上面盖一层薄纱。`window-theme` 跟随系统的浅色或深色，也可以固定其中一种。
 
 ## 字体
 

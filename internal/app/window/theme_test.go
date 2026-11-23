@@ -66,7 +66,7 @@ func TestBackgroundTiles(t *testing.T) {
 
 // Each background, light and dark, for a look ($HYLA_SHOTS).
 func TestWashShots(t *testing.T) {
-	for _, id := range []string{"ember", "tidal", "umbra", "static"} {
+	for _, id := range []string{"ember", "tidal", "umbra", "static", "indigo"} {
 		for _, dark := range []bool{false, true} {
 			a := testApp(t)
 			a.settingsIn.Background = id

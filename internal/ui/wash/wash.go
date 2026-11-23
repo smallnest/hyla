@@ -507,6 +507,12 @@ var Table = map[string]Wash{
 		Dark: []string{"#0c1413", "#101a18", "#141f1c", "#17251f"}, DarkGlow: ui.RGBA(80, 200, 170, 0.14), DarkAngle: 160,
 		Scene: staticScene,
 	},
+	// Indigo's: the royal blue of the screenshot that asked for it, as a
+	// wash of the dusk: violet at the top, its own blue at the foot.
+	"indigo": {
+		Light: []string{"#dcdff7", "#c9cdf5", "#a8b0ea", "#7e8cdc"}, LightGlow: ui.RGBA(86, 103, 243, 0.4),
+		Dark: []string{"#10142c", "#141a3a", "#1a2150", "#232d6b"}, DarkGlow: ui.RGBA(86, 103, 243, 0.22),
+	},
 	// The Dock's: the desktop behind the window, frosted, under a thin
 	// neutral veil that grounds what sits on it, in the Dock's gray.
 	"dock": {

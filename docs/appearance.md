@@ -39,7 +39,7 @@ Two pictures can sit behind the work: one behind the sidebar's sessions, one in 
 
 ## The wash
 
-`background` is the colour the window is washed with: `petal`, `mist`, `meadow`, `plain`, or `dock`, the Dock's own glass under a thin veil. `window-theme` follows the system's light or dark appearance, or holds one of them.
+`background` is the colour the window is washed with: `petal`, `mist`, `meadow`, `indigo`, `plain`, or `dock`, the Dock's own glass under a thin veil. `window-theme` follows the system's light or dark appearance, or holds one of them.
 
 ## Fonts
 

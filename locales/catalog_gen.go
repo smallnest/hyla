@@ -3472,6 +3472,16 @@ func (msgs Messages) BgStatic() string {
 	return Catalog.Format(msgs.locale, "bgStatic", nil)
 }
 
+// BgIndigo says "Indigo"
+// in the language the app shows.
+func BgIndigo() string { return In(i18n.Locale()).BgIndigo() }
+
+// BgIndigo says "Indigo"
+// in the language of msgs.
+func (msgs Messages) BgIndigo() string {
+	return Catalog.Format(msgs.locale, "bgIndigo", nil)
+}
+
 // BgPetal says "Petal"
 // in the language the app shows.
 func BgPetal() string { return In(i18n.Locale()).BgPetal() }

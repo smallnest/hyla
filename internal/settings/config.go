@@ -171,10 +171,10 @@ var keys = append([]key{
 	stringKey("pet-set", `the pet on the window's edge: hyla, codex (the Codex app's active pet), or a Codex pet's directory name in ~/.codex/pets, or in hyla's own`, func(s *Settings) *string { return &s.PetSet }),
 	choiceKey("window-theme", "the app's appearance", func(s *Settings) *string { return &s.Appearance }, "system", "light", "dark"),
 	choiceKey("language", "the app's language; system follows the system's", func(s *Settings) *string { return &s.Language }, append([]string{"system"}, Languages...)...),
-	{name: "background", doc: "the window's wash (petal, mist, meadow, plain, dock)",
+	{name: "background", doc: "the window's wash (petal, mist, meadow, indigo, plain, dock)",
 		get: func(s *Settings) []string {
-			file := []string{"petal", "mist", "meadow", "plain", "dock"}
-			ours := []string{"rex", "mist", "meadow", "plain", "dock"}
+			file := []string{"petal", "mist", "meadow", "indigo", "plain", "dock"}
+			ours := []string{"rex", "mist", "meadow", "indigo", "plain", "dock"}
 			if i := slices.Index(ours, s.Background); i >= 0 {
 				return []string{file[i]}
 			}
@@ -184,8 +184,8 @@ var keys = append([]key{
 			return []string{"petal"}
 		},
 		set: func(s *Settings, v []string) error {
-			file := []string{"petal", "mist", "meadow", "plain", "dock"}
-			ours := []string{"rex", "mist", "meadow", "plain", "dock"}
+			file := []string{"petal", "mist", "meadow", "indigo", "plain", "dock"}
+			ours := []string{"rex", "mist", "meadow", "indigo", "plain", "dock"}
 			val := v[len(v)-1]
 			if i := slices.Index(file, val); i >= 0 {
 				s.Background = ours[i]

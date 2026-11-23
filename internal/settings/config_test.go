@@ -233,6 +233,20 @@ func TestDuskBackgroundMigrates(t *testing.T) {
 	}
 }
 
+// Indigo is a wash of its own, and the file names it as it is.
+func TestIndigoBackground(t *testing.T) {
+	s, probs := parse("background = indigo\n")
+	if len(probs) != 0 || s.Background != "indigo" {
+		t.Errorf("background indigo: %q, %v", s.Background, probs)
+	}
+	if s, _ := parse("background = indigo\n"); s.Background != "indigo" {
+		t.Errorf("a file of it keeps indigo, not %q", s.Background)
+	}
+	if !slices.ContainsFunc(Backgrounds, func(b struct{ ID, Name string }) bool { return b.ID == "indigo" }) {
+		t.Error("Indigo's background is not one Settings offers")
+	}
+}
+
 // feishu-card-body is gone: a card is patched as the card it is. A
 // configuration that still names the switch works, with nothing to report.
 func TestFeishuCardBodyIsGone(t *testing.T) {

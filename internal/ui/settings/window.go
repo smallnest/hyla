@@ -923,7 +923,7 @@ func localeTag(language string) string {
 // backgroundName is a wash's name in the language the app shows.
 func backgroundName(id, name string) string {
 	if t, ok := map[string]func() string{"rex": locales.BgPetal, "mist": locales.BgMist, "meadow": locales.BgMeadow, "plain": locales.BgPlain, "dock": locales.BgDock,
-		"ember": locales.BgEmber, "tidal": locales.BgTidal, "umbra": locales.BgUmbra, "static": locales.BgStatic}[id]; ok {
+		"ember": locales.BgEmber, "tidal": locales.BgTidal, "umbra": locales.BgUmbra, "static": locales.BgStatic, "indigo": locales.BgIndigo}[id]; ok {
 		return t()
 	}
 	return name
