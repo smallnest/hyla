@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en" data-phase="pomodoro">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pomodoro</title>
+  <link rel="stylesheet" href="/_hyla/theme.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="ambient-canvas" aria-hidden="true">
+    <div class="aura aura-primary"></div>
+    <div class="aura aura-secondary"></div>
+  </div>
+
+  <div class="app" id="app-root">
+    <header class="topbar" id="topbar">
+      <div class="topbar-left">
+        <div class="brand-pill" id="brand-pill">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none">
+              <circle cx="12" cy="13" r="8.5" stroke="currentColor" stroke-width="2" />
+              <path d="M12 8.5V13l3 1.8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M9.5 3.8C10.8 4.4 12 4.4 12 4.4s1.2 0 2.5-.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+            </svg>
+          </span>
+          <span id="brand-title">Pomodoro</span>
+        </div>
+
+        <nav class="nav-seg" id="nav-tabs" aria-label="Pomodoro views">
+          <button class="nav-btn active" type="button" data-view="timer" id="nav-timer"></button>
+          <button class="nav-btn" type="button" data-view="report" id="nav-report"></button>
+        </nav>
+      </div>
+
+      <div class="topbar-right">
+        <button class="glass-btn ambient-pill" id="ambient-btn" type="button" title="Toggle ambient focus sound">
+          <span class="eq-bars" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </span>
+          <span id="ambient-label"></span>
+        </button>
+        <button class="glass-btn icon-only" id="settings-btn" type="button" aria-label="Settings">
+          <svg viewBox="0 0 20 20" width="15" height="15" fill="none">
+            <path d="M10 12.6a2.6 2.6 0 1 0 0-5.2 2.6 2.6 0 0 0 0 5.2Z" stroke="currentColor" stroke-width="1.6"/>
+            <path d="M16.2 12.2a1.3 1.3 0 0 0 .26 1.43l.05.05a1.58 1.58 0 1 1-2.23 2.23l-.05-.05a1.3 1.3 0 0 0-1.43-.26 1.3 1.3 0 0 0-.79 1.19v.14a1.58 1.58 0 1 1-3.16 0v-.07a1.3 1.3 0 0 0-.85-1.19 1.3 1.3 0 0 0-1.43.26l-.05.05a1.58 1.58 0 1 1-2.23-2.23l.05-.05a1.3 1.3 0 0 0 .26-1.43 1.3 1.3 0 0 0-1.19-.79H3.4a1.58 1.58 0 1 1 0-3.16h.07a1.3 1.3 0 0 0 1.19-.85 1.3 1.3 0 0 0-.26-1.43l-.05-.05a1.58 1.58 0 1 1 2.23-2.23l.05.05a1.3 1.3 0 0 0 1.43.26h.06a1.3 1.3 0 0 0 .79-1.19V3.4a1.58 1.58 0 1 1 3.16 0v.07a1.3 1.3 0 0 0 .79 1.19 1.3 1.3 0 0 0 1.43-.26l.05-.05a1.58 1.58 0 1 1 2.23 2.23l-.05.05a1.3 1.3 0 0 0-.26 1.43v.06a1.3 1.3 0 0 0 1.19.79h.14a1.58 1.58 0 1 1 0 3.16h-.07a1.3 1.3 0 0 0-1.19.79Z" stroke="currentColor" stroke-width="1.45" stroke-linejoin="round"/>
+          </svg>
+          <span class="btn-label" id="settings-label"></span>
+        </button>
+      </div>
+    </header>
+
+    <div class="toast-banner" id="toast-banner" hidden></div>
+
+    <main class="workspace" id="workspace">
+      <!-- Timer + Tasks Studio View -->
+      <section class="studio-view" id="timer-view">
+        <div class="dial-column">
+          <div class="glass-card dial-card" id="dial-card">
+            <div class="phase-seg" id="phase-seg" role="tablist" aria-label="Timer phases">
+              <button class="phase-btn active" type="button" data-phase="pomodoro" id="phase-pomodoro"></button>
+              <button class="phase-btn" type="button" data-phase="short_break" id="phase-short"></button>
+              <button class="phase-btn" type="button" data-phase="long_break" id="phase-long"></button>
+            </div>
+
+            <div class="dial-stage" id="dial-stage">
+              <svg class="dial-svg" viewBox="0 0 280 280" aria-hidden="true">
+                <defs>
+                  <linearGradient id="dial-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="var(--mode-accent)" />
+                    <stop offset="100%" stop-color="var(--mode-accent-2)" />
+                  </linearGradient>
+                  <filter id="dial-glow" x="-30%" y="-30%" width="160%" height="160%">
+                    <feGaussianBlur stdDeviation="3.5" result="blur" />
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                </defs>
+                <g class="dial-ticks" id="dial-ticks"></g>
+                <circle class="dial-track" cx="140" cy="140" r="106" />
+                <circle class="dial-progress" id="dial-progress" cx="140" cy="140" r="106"
+                  stroke="url(#dial-grad)"
+                  stroke-dasharray="666.02"
+                  stroke-dashoffset="0"
+                  transform="rotate(-90 140 140)" />
+                <g class="dial-tip-wrap" id="dial-tip-wrap" transform="rotate(0 140 140)">
+                  <circle class="dial-tip-halo" cx="140" cy="34" r="8" />
+                  <circle class="dial-tip" cx="140" cy="34" r="4.2" filter="url(#dial-glow)" />
+                </g>
+              </svg>
+
+              <div class="dial-readout">
+                <div class="dial-phase-tag" id="dial-phase-tag">FOCUS · #1</div>
+                <div class="dial-time" id="dial-time">25:00</div>
+                <div class="cycle-dots" id="cycle-dots" aria-label="Cycle progress"></div>
+              </div>
+            </div>
+
+            <div class="dial-controls">
+              <button class="ctrl-circle" id="reset-btn" type="button" title="Reset (R)">
+                <svg viewBox="0 0 20 20" width="16" height="16" fill="none">
+                  <path d="M4.5 8.5A6 6 0 1 1 6 14.3" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+                  <path d="M4 4.8v3.9h3.9" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+
+              <button class="ctrl-primary" id="start-btn" type="button">
+                <span class="ctrl-primary-icon" id="start-icon" aria-hidden="true"></span>
+                <span id="start-label">Start</span>
+              </button>
+
+              <button class="ctrl-circle" id="skip-btn" type="button" title="Skip (N)">
+                <svg viewBox="0 0 20 20" width="16" height="16" fill="none">
+                  <path d="M5 5.2v9.6l7.4-4.8L5 5.2Z" fill="currentColor" />
+                  <path d="M14.5 5.2v9.6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="focus-strip" id="focus-strip">
+            <span class="focus-strip-badge" id="focus-strip-badge">#1</span>
+            <span class="focus-strip-text" id="focus-strip-text"></span>
+          </div>
+        </div>
+
+        <div class="tasks-column">
+          <div class="glass-card tasks-card">
+            <div class="tasks-header">
+              <div class="tasks-title-wrap">
+                <h2 class="section-title" id="tasks-title">Tasks</h2>
+                <span class="count-pill" id="tasks-count">0</span>
+              </div>
+              <div class="tasks-menu-wrap">
+                <button class="glass-btn small icon-btn" id="tasks-menu-btn" type="button" aria-label="Task actions">
+                  <svg viewBox="0 0 20 20" width="14" height="14" fill="currentColor">
+                    <circle cx="4.5" cy="10" r="1.5"/>
+                    <circle cx="10" cy="10" r="1.5"/>
+                    <circle cx="15.5" cy="10" r="1.5"/>
+                  </svg>
+                </button>
+                <div class="dropdown-menu" id="tasks-menu" hidden>
+                  <button class="dropdown-item" type="button" id="act-clear-finished"></button>
+                  <button class="dropdown-item" type="button" id="act-clear-act"></button>
+                  <div class="dropdown-sep"></div>
+                  <button class="dropdown-item danger" type="button" id="act-clear-all"></button>
+                </div>
+              </div>
+            </div>
+
+            <div class="task-list" id="task-list"></div>
+
+            <div class="composer-card" id="task-composer" hidden>
+              <input class="composer-title" id="comp-title" type="text" maxlength="140" />
+              <div class="composer-est-row">
+                <span class="composer-label" id="comp-est-label"></span>
+                <div class="stepper">
+                  <button class="step-btn" type="button" id="comp-est-dec">−</button>
+                  <input class="step-val" id="comp-est-val" type="number" min="1" max="99" value="1" />
+                  <button class="step-btn" type="button" id="comp-est-inc">+</button>
+                </div>
+                <div class="quick-chips">
+                  <button class="chip-btn" type="button" data-est="1">1</button>
+                  <button class="chip-btn" type="button" data-est="2">2</button>
+                  <button class="chip-btn" type="button" data-est="3">3</button>
+                  <button class="chip-btn" type="button" data-est="4">4</button>
+                </div>
+              </div>
+              <div class="composer-note-wrap">
+                <button class="link-btn" type="button" id="comp-note-toggle"></button>
+                <textarea class="composer-note" id="comp-note" rows="2" maxlength="500" hidden></textarea>
+              </div>
+              <div class="composer-actions">
+                <button class="glass-btn danger-ghost" type="button" id="comp-delete" hidden></button>
+                <div class="spacer"></div>
+                <button class="glass-btn" type="button" id="comp-cancel"></button>
+                <button class="glass-btn accent" type="button" id="comp-save"></button>
+              </div>
+            </div>
+
+            <button class="add-task-btn" id="add-task-btn" type="button">
+              <svg viewBox="0 0 20 20" width="15" height="15" fill="none">
+                <path d="M10 4.5v11M4.5 10h11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+              <span id="add-task-label"></span>
+            </button>
+
+            <div class="estimator-bar" id="estimator-bar" hidden>
+              <div class="est-metric">
+                <span class="est-label" id="est-pomos-label"></span>
+                <strong class="est-val" id="est-pomos-val">0 / 0</strong>
+              </div>
+              <div class="est-divider"></div>
+              <div class="est-metric">
+                <span class="est-label" id="est-finish-label"></span>
+                <strong class="est-val" id="est-finish-val">—</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Report View -->
+      <section class="report-view" id="report-view" hidden>
+        <div class="kpi-grid">
+          <div class="glass-card kpi-card">
+            <span class="kpi-label" id="kpi-focus-label"></span>
+            <strong class="kpi-value" id="kpi-focus-val">0m</strong>
+            <span class="kpi-sub" id="kpi-focus-sub"></span>
+          </div>
+          <div class="glass-card kpi-card">
+            <span class="kpi-label" id="kpi-pomos-label"></span>
+            <strong class="kpi-value" id="kpi-pomos-val">0</strong>
+            <div class="goal-bar-wrap">
+              <div class="goal-bar"><div class="goal-fill" id="kpi-goal-fill"></div></div>
+              <span class="kpi-sub" id="kpi-goal-sub"></span>
+            </div>
+          </div>
+          <div class="glass-card kpi-card">
+            <span class="kpi-label" id="kpi-streak-label"></span>
+            <strong class="kpi-value" id="kpi-streak-val">0d</strong>
+            <span class="kpi-sub" id="kpi-total-sub"></span>
+          </div>
+        </div>
+
+        <div class="glass-card chart-card">
+          <div class="chart-header">
+            <h3 class="section-title" id="chart-title"></h3>
+            <span class="chart-legend" id="chart-goal-legend"></span>
+          </div>
+          <div class="chart-wrap" id="chart-wrap"></div>
+        </div>
+
+        <div class="glass-card history-card">
+          <div class="chart-header">
+            <h3 class="section-title" id="history-title"></h3>
+            <button class="glass-btn small" type="button" id="clear-history-btn"></button>
+          </div>
+          <div class="history-list" id="history-list"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-backdrop" id="modal-backdrop" hidden>
+    <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-title">Settings</h3>
+        <button class="glass-btn icon-only small" id="modal-close-btn" type="button" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-footer">
+        <button class="glass-btn" id="modal-cancel-btn" type="button"></button>
+        <button class="glass-btn accent" id="modal-save-btn" type="button"></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/_hyla/bridge.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

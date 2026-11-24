@@ -1,0 +1,255 @@
+api_version = 1
+id = "hyla.pomodoro"
+name = "Pomodoro"
+version = "1.0.0"
+description = "Refined Pomodoro focus timer pane with radial watch dial, task queue estimator, 7-day focus analytics, Web Audio chimes & ambient soundscapes, and desktop notifications."
+author = "Hyla"
+homepage = "https://github.com/smallnest/hyla/tree/master/plugins/pomodoro"
+
+[engines]
+hyla = ">=3.20.0"
+
+[permissions]
+scopes = ["ui.webview", "ui.slot", "session.read", "notifications"]
+
+[app]
+command = ["./bin/hyla-pomodoro"]
+transport = "stdio"
+auto_start = true
+
+[[actions]]
+id = "open"
+title = "Open Pomodoro Pane"
+menu = "Pane"
+shortcut = "CmdOrCtrl+Alt+O"
+palette = true
+remote = true
+target = "app"
+view = "pomodoro"
+
+[[ui.slots]]
+id = "pomodoro"
+mount = "pane"
+title = "Pomodoro"
+mode = "webview"
+host = "app"
+web_root = "web"
+entry = "index.html"
+order = 40
+
+[[settings]]
+key = "pomodoro_minutes"
+title = "Pomodoro (minutes)"
+description = "Duration of a single focus session in minutes"
+type = "integer"
+default = 25
+
+[[settings]]
+key = "short_break_minutes"
+title = "Short Break (minutes)"
+description = "Duration of a short break in minutes"
+type = "integer"
+default = 5
+
+[[settings]]
+key = "long_break_minutes"
+title = "Long Break (minutes)"
+description = "Duration of a long break in minutes"
+type = "integer"
+default = 15
+
+[[settings]]
+key = "long_break_interval"
+title = "Long Break Interval"
+description = "Number of completed focus sessions before a long break"
+type = "integer"
+default = 4
+
+[[settings]]
+key = "auto_start_breaks"
+title = "Auto-start Breaks"
+description = "Automatically begin the break timer when a focus session completes"
+type = "boolean"
+default = false
+
+[[settings]]
+key = "auto_start_pomodoros"
+title = "Auto-start Pomodoros"
+description = "Automatically begin the next focus session when a break ends"
+type = "boolean"
+default = false
+
+[[settings]]
+key = "alarm_sound"
+title = "Alarm Sound"
+description = "Chime synthesized locally when a timer completes"
+type = "select"
+default = "bell"
+options = ["bell", "bowl", "marimba", "digital", "none"]
+
+[[settings]]
+key = "alarm_volume"
+title = "Alarm Volume (%)"
+description = "Volume for completion chimes (0–100)"
+type = "integer"
+default = 70
+
+[[settings]]
+key = "alarm_repeat"
+title = "Alarm Repeat"
+description = "Number of times to play the completion chime (1–5)"
+type = "integer"
+default = 2
+
+[[settings]]
+key = "ambient_sound"
+title = "Ambient Focus Sound"
+description = "Subtle background soundscape played during focus sessions"
+type = "select"
+default = "none"
+options = ["none", "tick", "rain", "brown"]
+
+[[settings]]
+key = "ambient_volume"
+title = "Ambient Volume (%)"
+description = "Volume for ambient focus soundscape (0–100)"
+type = "integer"
+default = 35
+
+[[settings]]
+key = "desktop_notifications"
+title = "Desktop Notifications"
+description = "Send a Hyla notification when a focus session or break finishes"
+type = "boolean"
+default = true
+
+[[settings]]
+key = "daily_goal_pomos"
+title = "Daily Goal (Pomodoros)"
+description = "Target number of focus sessions per day shown in the Report view"
+type = "integer"
+default = 8
+
+[i18n.zh-Hans]
+name = "番茄钟"
+description = "精致优雅的番茄钟专注窗格，提供精密表盘计时、任务队列与完成时间估算、7 天专注统计、本地白噪音与提示音以及桌面通知。"
+
+[i18n.zh-Hans.actions]
+open = "打开番茄钟窗格"
+
+[i18n.zh-Hans.slots]
+pomodoro = "番茄钟"
+
+[i18n.zh-Hans.settings.pomodoro_minutes]
+title = "专注时长（分钟）"
+description = "单个番茄钟专注阶段的时长（分钟）"
+
+[i18n.zh-Hans.settings.short_break_minutes]
+title = "短休息时长（分钟）"
+description = "短休息阶段的时长（分钟）"
+
+[i18n.zh-Hans.settings.long_break_minutes]
+title = "长休息时长（分钟）"
+description = "长休息阶段的时长（分钟）"
+
+[i18n.zh-Hans.settings.long_break_interval]
+title = "长休息间隔"
+description = "连续完成多少个专注阶段后进入长休息"
+
+[i18n.zh-Hans.settings.auto_start_breaks]
+title = "自动开始休息"
+description = "专注结束后自动开始休息倒计时"
+
+[i18n.zh-Hans.settings.auto_start_pomodoros]
+title = "自动开始下一轮专注"
+description = "休息结束后自动开始下一个番茄钟"
+
+[i18n.zh-Hans.settings.alarm_sound]
+title = "完成提示音"
+description = "计时结束时在本地合成播放的提示音类型"
+
+[i18n.zh-Hans.settings.alarm_volume]
+title = "提示音音量（%）"
+description = "计时完成提示音的音量（0–100）"
+
+[i18n.zh-Hans.settings.alarm_repeat]
+title = "提示音重复次数"
+description = "计时完成提示音的播放次数（1–5）"
+
+[i18n.zh-Hans.settings.ambient_sound]
+title = "专注环境音"
+description = "专注期间在本地合成播放的轻柔背景音"
+
+[i18n.zh-Hans.settings.ambient_volume]
+title = "环境音音量（%）"
+description = "专注环境音的音量（0–100）"
+
+[i18n.zh-Hans.settings.desktop_notifications]
+title = "桌面通知"
+description = "专注或休息结束时发送 Hyla 桌面通知"
+
+[i18n.zh-Hans.settings.daily_goal_pomos]
+title = "每日目标（番茄数）"
+description = "在统计报表页中显示的每日专注目标个数"
+
+[i18n.ja]
+name = "ポモドーロ"
+description = "精巧なダイヤルタイマー、タスクキューと完了予測、7日間の集中レポート、ローカル合成チャイム＆環境音、デスクトップ通知を備えたポモドーロペイン。"
+
+[i18n.ja.actions]
+open = "ポモドーロペインを開く"
+
+[i18n.ja.slots]
+pomodoro = "ポモドーロ"
+
+[i18n.ja.settings.pomodoro_minutes]
+title = "集中時間（分）"
+description = "1回の集中セッションの長さ（分）"
+
+[i18n.ja.settings.short_break_minutes]
+title = "短い休憩（分）"
+description = "短い休憩の長さ（分）"
+
+[i18n.ja.settings.long_break_minutes]
+title = "長い休憩（分）"
+description = "長い休憩の長さ（分）"
+
+[i18n.ja.settings.long_break_interval]
+title = "長い休憩の間隔"
+description = "長い休憩に入るまでに完了する集中セッション数"
+
+[i18n.ja.settings.auto_start_breaks]
+title = "休憩を自動開始"
+description = "集中セッション終了後に自動で休憩タイマーを開始します"
+
+[i18n.ja.settings.auto_start_pomodoros]
+title = "集中を自動開始"
+description = "休憩終了後に自動で次の集中セッションを開始します"
+
+[i18n.ja.settings.alarm_sound]
+title = "アラーム音"
+description = "タイマー終了時にローカルで再生するチャイム音"
+
+[i18n.ja.settings.alarm_volume]
+title = "アラーム音量（%）"
+description = "終了アラームの音量（0〜100）"
+
+[i18n.ja.settings.alarm_repeat]
+title = "アラーム繰り返し"
+description = "終了アラームを鳴らす回数（1〜5）"
+
+[i18n.ja.settings.ambient_sound]
+title = "集中環境音"
+description = "集中セッション中に再生する穏やかな背景音"
+
+[i18n.ja.settings.ambient_volume]
+title = "環境音音量（%）"
+description = "環境音の音量（0〜100）"
+
+[i18n.ja.settings.desktop_notifications]
+title = "デスクトップ通知"
+description = "集中または休憩の終了時に Hyla 通知を送信します"
+
+[i18n.ja.settings.daily_goal_pomos]
+title = "1日の目標（ポモドーロ数）"
+description = "レポート画面に表示する1日の目標セッション数"

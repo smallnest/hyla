@@ -82,6 +82,33 @@
       },
       "download_url": "https://github.com/smallnest/hyla/releases/latest/download/hyla.iptv-{version}-{os}-{arch}.hylapkg",
       "sha256_url": "https://github.com/smallnest/hyla/releases/latest/download/hyla.iptv-{version}-{os}-{arch}.hylapkg.sha256"
+    },
+    {
+      "id": "hyla.pomodoro",
+      "name": "Pomodoro",
+      "author": "Hyla",
+      "description": "Refined Pomodoro focus timer pane with radial watch dial, task queue estimator, 7-day focus analytics, Web Audio chimes & ambient soundscapes, and desktop notifications.",
+      "homepage": "https://github.com/smallnest/hyla/tree/master/plugins/pomodoro",
+      "version": "1.0.0",
+      "min_hyla_version": "3.20.0",
+      "permissions": [
+        "ui.webview",
+        "ui.slot",
+        "session.read",
+        "notifications"
+      ],
+      "i18n": {
+        "zh-Hans": {
+          "name": "番茄钟",
+          "description": "精致优雅的番茄钟专注窗格，提供精密表盘计时、任务队列与完成时间估算、7 天专注统计、本地白噪音与提示音以及桌面通知。"
+        },
+        "ja": {
+          "name": "ポモドーロ",
+          "description": "精巧なダイヤルタイマー、タスクキューと完了予測、7日間の集中レポート、ローカル合成チャイム＆環境音、デスクトップ通知を備えたポモドーロペイン。"
+        }
+      },
+      "download_url": "https://github.com/smallnest/hyla/releases/latest/download/hyla.pomodoro-{version}-{os}-{arch}.hylapkg",
+      "sha256_url": "https://github.com/smallnest/hyla/releases/latest/download/hyla.pomodoro-{version}-{os}-{arch}.hylapkg.sha256"
     }
   ]
 }

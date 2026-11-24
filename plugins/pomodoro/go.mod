@@ -1,0 +1,7 @@
+module github.com/smallnest/hyla/plugins/pomodoro
+
+go 1.24.0
+
+require github.com/smallnest/hyla/sdk/go/hylaplugin v0.0.0
+
+replace github.com/smallnest/hyla/sdk/go/hylaplugin => ../../sdk/go/hylaplugin
