@@ -4,6 +4,20 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.24.0
+
+- **Pomodoro focus pane (`hyla.pomodoro` 1.0.0)**: new external Pomodoro
+  focus studio pane available in **Settings › Plugins** (installable from
+  the Plugin Marketplace), featuring a radial watch dial that adapts to
+  Light/Dark themes and focus/break phases, task queue with estimated
+  pomodoros and finish-time calculation, 7-day focus report and streak
+  tracking, locally synthesized Web Audio completion chimes and ambient
+  focus soundscapes, desktop notifications, and full English/简体中文/日本語
+  localization (**Pane › Open Pomodoro Pane**, `CmdOrCtrl+Alt+O`).
+- **Indigo background wash**: added the royal-blue Indigo wash in
+  **Settings › Appearance** (and `background = indigo` in the configuration
+  file), with tailored light and dark palettes and localized names.
+
 ## 3.23.2
 
 - **Remote host status and Connect/Disconnect controls**: **Settings › Remote
