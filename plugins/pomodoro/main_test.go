@@ -203,6 +203,71 @@ func TestSettingsRoundTripAndClamping(t *testing.T) {
 	if s2 != s {
 		t.Fatalf("roundtrip mismatch: got %+v want %+v", s2, s)
 	}
+
+	whiteCfg := DefaultSettings()
+	whiteCfg.AmbientSound = "white"
+	if got := whiteCfg.Normalize().AmbientSound; got != "white" {
+		t.Fatalf("expected white ambient sound to normalize to white, got %q", got)
+	}
+}
+
+func TestSetCustomDuration(t *testing.T) {
+	dir := t.TempDir()
+	t0 := time.Date(2026, 11, 25, 11, 0, 0, 0, time.Local)
+	st, err := newStoreAt(dir, t0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Custom duration before starting works and clamps bounds.
+	snap, err := st.SetDuration(42*60+30, t0)
+	if err != nil {
+		t.Fatalf("SetDuration failed: %v", err)
+	}
+	if snap.Timer.TotalSec != 42*60+30 || snap.Timer.RemainingSec != 42*60+30 {
+		t.Fatalf("unexpected custom timer: %+v", snap.Timer)
+	}
+
+	snap, err = st.SetDuration(3, t0)
+	if err != nil || snap.Timer.TotalSec != 10 {
+		t.Fatalf("expected clamp to 10s, got %+v err=%v", snap.Timer, err)
+	}
+	snap, err = st.SetDuration(999*60, t0)
+	if err != nil || snap.Timer.TotalSec != 180*60 {
+		t.Fatalf("expected clamp to 180m, got %+v err=%v", snap.Timer, err)
+	}
+
+	// Persists across reload.
+	st2, err := newStoreAt(dir, t0.Add(time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if snap2 := st2.Snapshot(t0.Add(time.Minute)); snap2.Timer.TotalSec != 180*60 || snap2.Timer.RemainingSec != 180*60 {
+		t.Fatalf("expected custom duration to persist, got %+v", snap2.Timer)
+	}
+
+	// Rejected while running or paused mid-session.
+	if _, err := st2.Start(t0); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st2.SetDuration(15*60, t0); err == nil {
+		t.Fatal("expected SetDuration to fail while running")
+	}
+	if _, err := st2.Pause(t0.Add(2 * time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := st2.SetDuration(15*60, t0.Add(2*time.Minute)); err == nil {
+		t.Fatal("expected SetDuration to fail when paused mid-session")
+	}
+
+	// Reset restores configured phase duration, and SetDuration is allowed again.
+	snap, err = st2.Reset(t0.Add(3 * time.Minute))
+	if err != nil || snap.Timer.TotalSec != 25*60 {
+		t.Fatalf("expected Reset to restore 25m, got %+v err=%v", snap.Timer, err)
+	}
+	if snap, err = st2.SetDuration(12*60, t0.Add(3*time.Minute)); err != nil || snap.Timer.TotalSec != 12*60 {
+		t.Fatalf("expected SetDuration after Reset to succeed, got %+v err=%v", snap.Timer, err)
+	}
 }
 
 func TestPluginHarnessEndToEnd(t *testing.T) {
@@ -328,6 +393,16 @@ func TestPluginHarnessEndToEnd(t *testing.T) {
 	snap := callRPC("pomodoro.bootstrap", nil)
 	if snap.Timer.TotalSec != 25*60 {
 		t.Fatalf("unexpected bootstrap timer: %+v", snap.Timer)
+	}
+
+	snap = callRPC("pomodoro.setDuration", map[string]any{"seconds": 18 * 60})
+	if snap.Timer.TotalSec != 18*60 || snap.Timer.RemainingSec != 18*60 {
+		t.Fatalf("unexpected setDuration timer: %+v", snap.Timer)
+	}
+
+	snap = callRPC("pomodoro.reset", nil)
+	if snap.Timer.TotalSec != 25*60 {
+		t.Fatalf("expected reset to restore 25m, got %+v", snap.Timer)
 	}
 
 	snap = callRPC("pomodoro.task.add", map[string]any{"title": "Ship Pomodoro", "estPomos": 2})

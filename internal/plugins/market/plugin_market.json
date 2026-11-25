@@ -89,7 +89,7 @@
       "author": "Hyla",
       "description": "Refined Pomodoro focus timer pane with radial watch dial, task queue estimator, 7-day focus analytics, Web Audio chimes & ambient soundscapes, and desktop notifications.",
       "homepage": "https://github.com/smallnest/hyla/tree/master/plugins/pomodoro",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "min_hyla_version": "3.20.0",
       "permissions": [
         "ui.webview",

@@ -1,7 +1,7 @@
 api_version = 1
 id = "hyla.pomodoro"
 name = "Pomodoro"
-version = "1.0.0"
+version = "1.0.1"
 description = "Refined Pomodoro focus timer pane with radial watch dial, task queue estimator, 7-day focus analytics, Web Audio chimes & ambient soundscapes, and desktop notifications."
 author = "Hyla"
 homepage = "https://github.com/smallnest/hyla/tree/master/plugins/pomodoro"
@@ -107,14 +107,14 @@ title = "Ambient Focus Sound"
 description = "Subtle background soundscape played during focus sessions"
 type = "select"
 default = "none"
-options = ["none", "tick", "rain", "brown"]
+options = ["none", "white", "rain", "brown", "tick"]
 
 [[settings]]
 key = "ambient_volume"
 title = "Ambient Volume (%)"
 description = "Volume for ambient focus soundscape (0–100)"
 type = "integer"
-default = 35
+default = 55
 
 [[settings]]
 key = "desktop_notifications"

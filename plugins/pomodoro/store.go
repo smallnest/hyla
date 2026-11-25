@@ -52,7 +52,7 @@ func DefaultSettings() Settings {
 		AlarmVolume:          70,
 		AlarmRepeat:          2,
 		AmbientSound:         "none",
-		AmbientVolume:        35,
+		AmbientVolume:        55,
 		DesktopNotifications: true,
 		DailyGoalPomos:       8,
 	}
@@ -105,7 +105,7 @@ func (s Settings) Normalize() Settings {
 		s.AlarmSound = def.AlarmSound
 	}
 	switch strings.ToLower(strings.TrimSpace(s.AmbientSound)) {
-	case "none", "tick", "rain", "brown":
+	case "none", "white", "tick", "rain", "brown":
 		s.AmbientSound = strings.ToLower(strings.TrimSpace(s.AmbientSound))
 	default:
 		s.AmbientSound = def.AmbientSound
@@ -677,6 +677,22 @@ func (s *Store) SetPhase(phase Phase, now time.Time) (Snapshot, error) {
 	s.st.Timer.EndAtMs = 0
 	s.st.Timer.TotalSec = dur
 	s.st.Timer.RemainingSec = dur
+	if err := s.saveLocked(); err != nil {
+		return Snapshot{}, err
+	}
+	return s.snapshotLocked(now), nil
+}
+
+func (s *Store) SetDuration(seconds int, now time.Time) (Snapshot, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.st.Timer.Running || s.st.Timer.RemainingSec != s.st.Timer.TotalSec {
+		return Snapshot{}, fmt.Errorf("timer duration can only be customized before starting")
+	}
+	seconds = clampInt(seconds, 10, 180*60)
+	s.st.Timer.TotalSec = seconds
+	s.st.Timer.RemainingSec = seconds
+	s.st.Timer.EndAtMs = 0
 	if err := s.saveLocked(); err != nil {
 		return Snapshot{}, err
 	}

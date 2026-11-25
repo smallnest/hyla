@@ -329,6 +329,17 @@ func (s *pomodoroService) handleWebRPC(ctx context.Context, host *hylaplugin.Hos
 		}
 		snap, err = st.SetPhase(req.Phase, now)
 
+	case "pomodoro.setDuration":
+		var req struct {
+			Seconds int `json:"seconds"`
+		}
+		if len(p.Params) > 0 {
+			if jerr := json.Unmarshal(p.Params, &req); jerr != nil {
+				return hylaplugin.WebViewRPCResult{}, hylaplugin.NewError(hylaplugin.ErrCodeInvalidParams, jerr.Error())
+			}
+		}
+		snap, err = st.SetDuration(req.Seconds, now)
+
 	case "pomodoro.task.add":
 		var req struct {
 			Title    string `json:"title"`
@@ -579,7 +590,7 @@ func newPlugin() *hylaplugin.Plugin {
 	svc := newPomodoroService()
 	return &hylaplugin.Plugin{
 		Name:          "Pomodoro",
-		Version:       "1.0.0",
+		Version:       "1.0.1",
 		Capabilities:  []string{"ui.webview"},
 		Subscriptions: []string{"locale.changed", "settings.changed"},
 		OnInitialize: func(ctx context.Context, host *hylaplugin.Host, p hylaplugin.InitializeParams) error {

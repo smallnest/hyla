@@ -71,9 +71,11 @@
       soundDigital: "Digital",
       soundNone: "Mute",
       ambNone: "Off",
+      ambWhite: "White Noise",
       ambTick: "Soft Tick",
       ambRain: "Warm Rain",
       ambBrown: "Brown Noise",
+      dialEditHint: "Double-click to customize time",
       phaseDoneFocus: "Focus session complete — take a break.",
       phaseDoneBreak: "Break finished — ready to focus?",
       hourShort: "{h}h {m}m",
@@ -150,9 +152,11 @@
       soundDigital: "电子提示",
       soundNone: "静音",
       ambNone: "关闭",
+      ambWhite: "纯净白噪",
       ambTick: "轻柔滴答",
       ambRain: "细雨沙沙",
       ambBrown: "棕噪深潜",
+      dialEditHint: "双击自定义时长",
       phaseDoneFocus: "专注结束，休息一下吧。",
       phaseDoneBreak: "休息结束，准备开始下一轮专注！",
       hourShort: "{h}小时{m}分",
@@ -229,9 +233,11 @@
       soundDigital: "デジタル",
       soundNone: "ミュート",
       ambNone: "オフ",
+      ambWhite: "ホワイトノイズ",
       ambTick: "ソフトチック",
       ambRain: "雨音",
       ambBrown: "ブラウンノイズ",
+      dialEditHint: "ダブルクリックで時間を変更",
       phaseDoneFocus: "集中完了！休憩しましょう。",
       phaseDoneBreak: "休憩終了！次の集中を始めましょう。",
       hourShort: "{h}時間{m}分",
@@ -284,11 +290,13 @@
     constructor() {
       this.ctx = null;
       this.ambientMode = "none";
-      this.ambientVolume = 0.35;
+      this.ambientVolume = 0.55;
+      this.ambientGainScale = 0.36;
       this.ambientActive = false;
       this.noiseSource = null;
       this.ambientGain = null;
       this.tickTimer = null;
+      this.tickBeat = 0;
     }
 
     ensureContext() {
@@ -304,7 +312,28 @@
     }
 
     unlock() {
-      this.ensureContext();
+      const ctx = this.ensureContext();
+      if (!ctx) return;
+      try {
+        // Play a 1-sample silent buffer synchronously inside the user gesture so
+        // WKWebView unlocks Web Audio output immediately.
+        const buf = ctx.createBuffer(1, 1, 22050);
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        src.connect(ctx.destination);
+        src.start(0);
+      } catch (_) {}
+    }
+
+    perceptualGain(vol01) {
+      return Math.pow(Math.max(0, Math.min(1, vol01)), 1.25);
+    }
+
+    gainScaleFor(mode) {
+      if (mode === "white") return 0.36;
+      if (mode === "rain") return 0.58;
+      if (mode === "brown") return 0.68;
+      return 0.35;
     }
 
     playChime(kind, volumePct, repeatCount) {
@@ -315,9 +344,16 @@
       const vol = Math.max(0, Math.min(1, Number(volumePct) / 100));
       const repeats = Math.max(1, Math.min(5, Number(repeatCount) || 1));
 
-      for (let i = 0; i < repeats; i++) {
-        const start = ctx.currentTime + i * 0.95;
-        this.triggerChimeOnce(ctx, kind, vol, start);
+      const schedule = () => {
+        for (let i = 0; i < repeats; i++) {
+          const start = ctx.currentTime + i * 0.95;
+          this.triggerChimeOnce(ctx, kind, vol, start);
+        }
+      };
+      if (ctx.state === "suspended") {
+        ctx.resume().then(schedule).catch(() => {});
+      } else {
+        schedule();
       }
     }
 
@@ -357,15 +393,32 @@
       osc.stop(startTime + duration + 0.05);
     }
 
+    normalizeBuffer(data) {
+      let peak = 0;
+      for (let i = 0; i < data.length; i++) {
+        const a = Math.abs(data[i]);
+        if (a > peak) peak = a;
+      }
+      if (peak > 0.0001) {
+        const scale = 0.85 / peak;
+        for (let i = 0; i < data.length; i++) {
+          data[i] *= scale;
+        }
+      }
+    }
+
     syncAmbient(mode, volumePct, shouldPlay) {
       const nextMode = mode || "none";
-      const nextVol = Math.max(0, Math.min(1, Number(volumePct ?? 35) / 100));
+      const nextVol = Math.max(0, Math.min(1, Number(volumePct ?? 55) / 100));
       const active = Boolean(shouldPlay && nextMode !== "none" && nextVol > 0);
+      const gainScale = this.gainScaleFor(nextMode);
+      const targetGain = Math.max(0.0002, this.perceptualGain(nextVol) * gainScale);
 
       if (active === this.ambientActive && nextMode === this.ambientMode) {
         this.ambientVolume = nextVol;
+        this.ambientGainScale = gainScale;
         if (this.ambientGain && this.ctx) {
-          this.ambientGain.gain.setTargetAtTime(nextVol * 0.25, this.ctx.currentTime, 0.15);
+          this.ambientGain.gain.setTargetAtTime(targetGain, this.ctx.currentTime, 0.12);
         }
         return;
       }
@@ -373,6 +426,7 @@
       this.stopAmbient();
       this.ambientMode = nextMode;
       this.ambientVolume = nextVol;
+      this.ambientGainScale = gainScale;
       this.ambientActive = active;
 
       if (!active) return;
@@ -381,77 +435,138 @@
       if (!ctx) return;
 
       if (nextMode === "tick") {
+        this.tickBeat = 0;
         this.playTickPulse();
         this.tickTimer = window.setInterval(() => this.playTickPulse(), 1000);
         return;
       }
 
-      const bufferSize = ctx.sampleRate * 3;
+      const bufferSize = ctx.sampleRate * 4;
       const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
       const data = buffer.getChannelData(0);
 
-      if (nextMode === "brown") {
+      if (nextMode === "white") {
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+      } else if (nextMode === "brown") {
         let lastOut = 0;
         for (let i = 0; i < bufferSize; i++) {
           const white = Math.random() * 2 - 1;
-          data[i] = (lastOut + 0.02 * white) / 1.02;
-          lastOut = data[i];
-          data[i] *= 3.2;
+          lastOut = (lastOut + 0.02 * white) / 1.02;
+          data[i] = lastOut;
         }
       } else {
-        // Warm rain (filtered pink-ish noise)
-        let b0 = 0, b1 = 0, b2 = 0;
+        // Warm rain (7-pole pink noise)
+        let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
         for (let i = 0; i < bufferSize; i++) {
           const white = Math.random() * 2 - 1;
-          b0 = 0.99765 * b0 + white * 0.099046;
-          b1 = 0.96300 * b1 + white * 0.2965164;
-          b2 = 0.57000 * b2 + white * 1.0526913;
-          data[i] = (b0 + b1 + b2 + white * 0.1848) * 0.14;
+          b0 = 0.99886 * b0 + white * 0.0555179;
+          b1 = 0.99332 * b1 + white * 0.0750759;
+          b2 = 0.96900 * b2 + white * 0.1538520;
+          b3 = 0.86650 * b3 + white * 0.3104856;
+          b4 = 0.55000 * b4 + white * 0.5329522;
+          b5 = -0.7616 * b5 - white * 0.0168980;
+          data[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+          b6 = white * 0.115926;
         }
       }
+      this.normalizeBuffer(data);
 
       const src = ctx.createBufferSource();
       src.buffer = buffer;
       src.loop = true;
 
-      const filter = ctx.createBiquadFilter();
-      if (nextMode === "brown") {
-        filter.type = "lowpass";
-        filter.frequency.value = 340;
+      let tailNode = src;
+      if (nextMode === "white") {
+        const hp = ctx.createBiquadFilter();
+        hp.type = "highpass";
+        hp.frequency.value = 140;
+        const lp = ctx.createBiquadFilter();
+        lp.type = "lowpass";
+        lp.frequency.value = 4200;
+        src.connect(hp);
+        hp.connect(lp);
+        tailNode = lp;
+      } else if (nextMode === "brown") {
+        const lp = ctx.createBiquadFilter();
+        lp.type = "lowpass";
+        lp.frequency.value = 680;
+        src.connect(lp);
+        tailNode = lp;
       } else {
-        filter.type = "bandpass";
-        filter.frequency.value = 1150;
-        filter.Q.value = 0.55;
+        const bp = ctx.createBiquadFilter();
+        bp.type = "bandpass";
+        bp.frequency.value = 1350;
+        bp.Q.value = 0.45;
+        src.connect(bp);
+        tailNode = bp;
       }
 
       const gain = ctx.createGain();
-      gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-      gain.gain.linearRampToValueAtTime(nextVol * 0.25, ctx.currentTime + 0.35);
-
-      src.connect(filter);
-      filter.connect(gain);
+      tailNode.connect(gain);
       gain.connect(ctx.destination);
-      src.start();
+
+      const applyRamp = () => {
+        if (this.ambientGain !== gain) return;
+        const now = ctx.currentTime;
+        gain.gain.cancelScheduledValues(now);
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.linearRampToValueAtTime(targetGain, now + 0.25);
+      };
+
+      if (ctx.state === "suspended") {
+        gain.gain.setValueAtTime(0.0001, 0);
+        src.start(0);
+        ctx.resume().then(applyRamp).catch(() => {});
+      } else {
+        applyRamp();
+        src.start(0);
+      }
 
       this.noiseSource = src;
       this.ambientGain = gain;
     }
 
     playTickPulse() {
-      const ctx = this.ctx;
-      if (!ctx || ctx.state !== "running") return;
-      const t = ctx.currentTime;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "triangle";
-      osc.frequency.setValueAtTime(1100, t);
-      osc.frequency.exponentialRampToValueAtTime(380, t + 0.025);
-      gain.gain.setValueAtTime(Math.max(0.0002, this.ambientVolume * 0.08), t);
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.032);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(t);
-      osc.stop(t + 0.04);
+      const ctx = this.ctx || this.ensureContext();
+      if (!ctx) return;
+      const fire = () => {
+        const t = ctx.currentTime;
+        const even = this.tickBeat % 2 === 0;
+        this.tickBeat++;
+        const baseFreq = even ? 980 : 820;
+        const peak = Math.max(0.0004, this.perceptualGain(this.ambientVolume) * 0.35);
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(baseFreq, t);
+        osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.42, t + 0.025);
+        gain.gain.setValueAtTime(0.0001, t);
+        gain.gain.exponentialRampToValueAtTime(peak, t + 0.004);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.035);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.04);
+
+        const clickOsc = ctx.createOscillator();
+        const clickGain = ctx.createGain();
+        clickOsc.type = "sine";
+        clickOsc.frequency.setValueAtTime(even ? 2400 : 2100, t);
+        clickGain.gain.setValueAtTime(peak * 0.35, t);
+        clickGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.012);
+        clickOsc.connect(clickGain);
+        clickGain.connect(ctx.destination);
+        clickOsc.start(t);
+        clickOsc.stop(t + 0.016);
+      };
+      if (ctx.state === "suspended") {
+        ctx.resume().then(fire).catch(() => {});
+      } else {
+        fire();
+      }
     }
 
     stopAmbient() {
@@ -479,13 +594,14 @@
   // --- App State ---
   const DIAL_RADIUS = 106;
   const DIAL_CIRCUMFERENCE = 2 * Math.PI * DIAL_RADIUS;
-  const AMBIENT_CYCLE = ["none", "tick", "rain", "brown"];
+  const AMBIENT_CYCLE = ["none", "white", "rain", "brown", "tick"];
 
   const state = {
     locale: detectInitialLocale(),
     view: "timer",
     snapshot: null,
     clockOffsetMs: 0,
+    editingTime: false,
     composerOpen: false,
     composerEditId: "",
     composerEst: 1,
@@ -600,6 +716,30 @@
     g.appendChild(frag);
   }
 
+  function parseCustomDuration(raw) {
+    const s = String(raw ?? "").trim();
+    if (!s) return null;
+
+    let sec = NaN;
+    const colon = s.match(/^(\d{1,3}):(\d{1,2})$/);
+    if (colon) {
+      const m = Number(colon[1]);
+      const ss = Number(colon[2]);
+      if (ss >= 60) return null;
+      sec = m * 60 + ss;
+    } else {
+      const unit = s.match(/^(?:(\d+(?:\.\d+)?)m)?\s*(?:(\d+)s)?$/i);
+      if (unit && (unit[1] !== undefined || unit[2] !== undefined)) {
+        sec = Math.round((Number(unit[1] || 0) * 60) + Number(unit[2] || 0));
+      } else if (/^\d+(?:\.\d+)?$/.test(s)) {
+        sec = Math.round(Number(s) * 60);
+      }
+    }
+
+    if (!Number.isFinite(sec) || sec <= 0) return null;
+    return Math.max(10, Math.min(180 * 60, sec));
+  }
+
   // --- Render Functions ---
   function renderAll() {
     const snap = state.snapshot;
@@ -618,8 +758,10 @@
       renderReport(snap);
     }
 
-    const shouldPlayAmbient = timer.running && timer.phase === "pomodoro" && settings.ambientSound !== "none";
-    sound.syncAmbient(settings.ambientSound, settings.ambientVolume, shouldPlayAmbient);
+    if (!state.settingsOpen) {
+      const shouldPlayAmbient = settings.ambientSound !== "none";
+      sound.syncAmbient(settings.ambientSound, settings.ambientVolume, shouldPlayAmbient);
+    }
   }
 
   function renderTopbar(snap) {
@@ -635,10 +777,10 @@
 
     const ambBtn = document.getElementById("ambient-btn");
     const ambMode = snap.settings.ambientSound || "none";
-    const ambMap = { none: "ambNone", tick: "ambTick", rain: "ambRain", brown: "ambBrown" };
+    const ambMap = { none: "ambNone", white: "ambWhite", tick: "ambTick", rain: "ambRain", brown: "ambBrown" };
     document.getElementById("ambient-label").textContent = t(ambMap[ambMode] || "ambNone");
-    const playing = snap.timer.running && snap.timer.phase === "pomodoro" && ambMode !== "none";
-    ambBtn.classList.toggle("active", ambMode !== "none");
+    const playing = ambMode !== "none";
+    ambBtn.classList.toggle("active", playing);
     ambBtn.classList.toggle("playing", playing);
   }
 
@@ -648,6 +790,7 @@
     const total = Math.max(1, tm.totalSec || 1);
     const remainingRatio = Math.max(0, Math.min(1, rem / total));
     const elapsedRatio = 1 - remainingRatio;
+    const canEdit = !tm.running && rem === total;
 
     document.getElementById("phase-pomodoro").textContent = t("pomodoro");
     document.getElementById("phase-short").textContent = t("shortBreak");
@@ -659,7 +802,17 @@
 
     const tagKey = tm.phase === "short_break" ? "shortTag" : tm.phase === "long_break" ? "longTag" : "focusTag";
     document.getElementById("dial-phase-tag").textContent = `${t(tagKey)} · #${tm.sessionNumber || 1}`;
-    document.getElementById("dial-time").textContent = formatMMSS(rem);
+
+    if (!canEdit && state.editingTime) {
+      state.editingTime = false;
+    }
+    const dialTimeEl = document.getElementById("dial-time");
+    const dialInputEl = document.getElementById("dial-time-input");
+    dialTimeEl.textContent = formatMMSS(rem);
+    dialTimeEl.classList.toggle("editable", canEdit);
+    dialTimeEl.title = canEdit ? t("dialEditHint") : "";
+    dialTimeEl.hidden = state.editingTime;
+    dialInputEl.hidden = !state.editingTime;
 
     // Progress arc + tip
     const arc = document.getElementById("dial-progress");
@@ -1088,9 +1241,13 @@
     document.getElementById("modal-backdrop").hidden = false;
   }
 
-  function closeSettingsModal() {
+  function closeSettingsModal(saved) {
     state.settingsOpen = false;
     document.getElementById("modal-backdrop").hidden = true;
+    if (!saved && state.snapshot && state.snapshot.settings) {
+      const s = state.snapshot.settings;
+      sound.syncAmbient(s.ambientSound, s.ambientVolume, s.ambientSound !== "none");
+    }
   }
 
   function renderSettingsModal() {
@@ -1173,9 +1330,10 @@
           <span class="set-row-label">${escapeHTML(t("lblAmbientSound"))}</span>
           <select class="set-select" id="set-ambient" style="width:140px">
             <option value="none" ${d.ambientSound === "none" ? "selected" : ""}>${escapeHTML(t("ambNone"))}</option>
-            <option value="tick" ${d.ambientSound === "tick" ? "selected" : ""}>${escapeHTML(t("ambTick"))}</option>
+            <option value="white" ${d.ambientSound === "white" ? "selected" : ""}>${escapeHTML(t("ambWhite"))}</option>
             <option value="rain" ${d.ambientSound === "rain" ? "selected" : ""}>${escapeHTML(t("ambRain"))}</option>
             <option value="brown" ${d.ambientSound === "brown" ? "selected" : ""}>${escapeHTML(t("ambBrown"))}</option>
+            <option value="tick" ${d.ambientSound === "tick" ? "selected" : ""}>${escapeHTML(t("ambTick"))}</option>
           </select>
         </div>
         <div class="set-row">
@@ -1199,11 +1357,20 @@
       </div>
     `;
 
+    const previewAmbient = () => {
+      sound.unlock();
+      const mode = document.getElementById("set-ambient").value;
+      const vol = Number(document.getElementById("set-ambient-vol").value);
+      sound.syncAmbient(mode, vol, mode !== "none");
+    };
+
     document.getElementById("set-alarm-vol").addEventListener("input", (e) => {
       document.getElementById("set-alarm-vol-val").textContent = `${e.target.value}%`;
     });
+    document.getElementById("set-ambient").addEventListener("change", previewAmbient);
     document.getElementById("set-ambient-vol").addEventListener("input", (e) => {
       document.getElementById("set-ambient-vol-val").textContent = `${e.target.value}%`;
+      previewAmbient();
     });
     document.getElementById("set-test-alarm").addEventListener("click", () => {
       sound.unlock();
@@ -1229,8 +1396,10 @@
       ambientVolume: Number(document.getElementById("set-ambient-vol").value),
       desktopNotifications: document.getElementById("set-notify").checked
     };
+    sound.unlock();
+    sound.syncAmbient(next.ambientSound, next.ambientVolume, next.ambientSound !== "none");
+    closeSettingsModal(true);
     await rpc("pomodoro.settings.update", next);
-    closeSettingsModal();
   }
 
   async function cycleAmbientSound() {
@@ -1239,6 +1408,9 @@
     const cur = state.snapshot.settings.ambientSound || "none";
     const idx = AMBIENT_CYCLE.indexOf(cur);
     const nextMode = AMBIENT_CYCLE[(idx + 1) % AMBIENT_CYCLE.length];
+    const nextVol = state.snapshot.settings.ambientVolume ?? 55;
+    // Start/stop audio synchronously inside the user click gesture before async RPC.
+    sound.syncAmbient(nextMode, nextVol, nextMode !== "none");
     const next = { ...state.snapshot.settings, ambientSound: nextMode };
     await rpc("pomodoro.settings.update", next);
   }
@@ -1247,6 +1419,75 @@
   function wireEvents() {
     initDialTicks();
     detectThemeMode();
+
+    const unlockOnGesture = () => {
+      if (!sound.ctx || sound.ctx.state === "suspended") {
+        sound.unlock();
+      }
+    };
+    document.addEventListener("pointerdown", unlockOnGesture, { passive: true });
+    document.addEventListener("keydown", unlockOnGesture, { passive: true });
+
+    const dialTimeEl = document.getElementById("dial-time");
+    const dialInputEl = document.getElementById("dial-time-input");
+    let committingTime = false;
+
+    const cancelDialEdit = () => {
+      if (!state.editingTime) return;
+      state.editingTime = false;
+      if (state.snapshot) {
+        renderDial(state.snapshot);
+      } else {
+        dialTimeEl.hidden = false;
+        dialInputEl.hidden = true;
+      }
+    };
+
+    const commitDialEdit = async () => {
+      if (!state.editingTime || committingTime) return;
+      committingTime = true;
+      const raw = dialInputEl.value;
+      state.editingTime = false;
+      const sec = parseCustomDuration(raw);
+      const curTotal = state.snapshot?.timer?.totalSec || 0;
+      if (state.snapshot) {
+        renderDial(state.snapshot);
+      }
+      if (sec !== null && sec !== curTotal) {
+        try {
+          await rpc("pomodoro.setDuration", { seconds: sec });
+        } catch (err) {
+          console.error(err);
+        }
+      }
+      committingTime = false;
+    };
+
+    dialTimeEl.addEventListener("dblclick", () => {
+      const tm = state.snapshot?.timer;
+      if (!tm || tm.running || currentRemainingSec(state.snapshot) !== tm.totalSec) {
+        return;
+      }
+      state.editingTime = true;
+      dialInputEl.value = formatMMSS(tm.totalSec);
+      dialTimeEl.hidden = true;
+      dialInputEl.hidden = false;
+      dialInputEl.focus();
+      dialInputEl.select();
+    });
+
+    dialInputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        commitDialEdit();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        cancelDialEdit();
+      }
+    });
+    dialInputEl.addEventListener("blur", () => {
+      commitDialEdit();
+    });
 
     document.querySelectorAll(".nav-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -1279,13 +1520,13 @@
     });
 
     document.getElementById("settings-btn").addEventListener("click", openSettingsModal);
-    document.getElementById("modal-close-btn").addEventListener("click", closeSettingsModal);
-    document.getElementById("modal-cancel-btn").addEventListener("click", closeSettingsModal);
+    document.getElementById("modal-close-btn").addEventListener("click", () => closeSettingsModal(false));
+    document.getElementById("modal-cancel-btn").addEventListener("click", () => closeSettingsModal(false));
     document.getElementById("modal-save-btn").addEventListener("click", () => {
       saveSettingsModal().catch(console.error);
     });
     document.getElementById("modal-backdrop").addEventListener("click", (e) => {
-      if (e.target.id === "modal-backdrop") closeSettingsModal();
+      if (e.target.id === "modal-backdrop") closeSettingsModal(false);
     });
 
     // Tasks menu
