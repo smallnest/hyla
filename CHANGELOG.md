@@ -4,6 +4,15 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.24.1
+
+- **Pomodoro improvements (`hyla.pomodoro` 1.0.1)**: double-click the dial
+  time to set a custom focus or break duration before starting; the new
+  setting is saved with the timer. Added a **White Noise** ambient
+  soundscape and raised the default ambient volume. Ambient sound now
+  previews live while you change it in **Settings**, and the chimes and
+  ticks play reliably again on macOS.
+
 ## 3.24.0
 
 - **Pomodoro focus pane (`hyla.pomodoro` 1.0.0)**: new external Pomodoro
