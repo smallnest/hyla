@@ -99,13 +99,11 @@ func openStore(path string) (*sql.DB, error) {
 	return db, nil
 }
 
-// openCodeV2 tells which of the store's two shapes it has: the messages
-// and their parts together, which OpenCode writes now, or a message and a
-// part of its own in two tables, which it wrote before.
+// openCodeV2 tells which of the store's two shapes it has: the messages in
+// tables of their own, which OpenCode writes now, or a message and a part
+// in two tables, which it wrote before.
 func openCodeV2(db *sql.DB) (bool, error) {
-	var n int
-	err := db.QueryRow(`select count(*) from sqlite_master where type = 'table' and name = 'session_message'`).Scan(&n)
-	return n > 0, err
+	return openCodeTable(db, "session_message")
 }
 
 // openCodeSession is the conversation a read parses: conv's, or the newest
@@ -171,9 +169,15 @@ type openCodePart struct {
 		Status string          `json:"status"`
 		Input  json.RawMessage `json:"input"`
 		Output string          `json:"output"`
-		Error  string          `json:"error"`
-		Title  string          `json:"title"`
-		Time   struct {
+		// Content is what a tool said, in the shape the store writes now:
+		// its output as parts, as a text of its own.
+		Content []struct {
+			Type string `json:"type"`
+			Text string `json:"text"`
+		} `json:"content"`
+		Error string `json:"error"`
+		Title string `json:"title"`
+		Time  struct {
 			Start int64 `json:"start"`
 			End   int64 `json:"end"`
 		} `json:"time"`
@@ -199,7 +203,9 @@ type openCodeV2Message struct {
 }
 
 // openCodeV2Messages reads a conversation's messages, the last
-// OpenCodeRead of it, in the order the store wrote them.
+// OpenCodeRead of it, in the order the store wrote them. A message's parts
+// come with it, or, in the shape the store writes now, from the table
+// beside it (session_part), which leaves the message's own data with none.
 func openCodeV2Messages(db *sql.DB, session string) ([]openCodeMessage, error) {
 	rows, err := db.Query(`select id, type, time_created, data from session_message
 		where session_id = ? and type in ('user', 'assistant')
@@ -242,7 +248,67 @@ func openCodeV2Messages(db *sql.DB, session string) ([]openCodeMessage, error) {
 	for i, j := 0, len(msgs)-1; i < j; i, j = i+1, j-1 {
 		msgs[i], msgs[j] = msgs[j], msgs[i]
 	}
+	if err := openCodeV2Parts(db, msgs); err != nil {
+		return nil, err
+	}
 	return msgs, nil
+}
+
+// openCodeV2Parts reads the parts a message's own data did not carry, as
+// the store writes them now: a row a part, in the message's order, in the
+// table session_part. A message whose data has its parts keeps them.
+func openCodeV2Parts(db *sql.DB, msgs []openCodeMessage) error {
+	byID := make(map[string]int, len(msgs))
+	var ids []any
+	for i, m := range msgs {
+		if m.Role != "assistant" || len(m.Parts) > 0 {
+			continue
+		}
+		byID[m.ID] = i
+		ids = append(ids, m.ID)
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	// A store that writes a message's parts in its data, as the ones
+	// before do, has no table beside it.
+	ok, err := openCodeTable(db, "session_part")
+	if err != nil || !ok {
+		return err
+	}
+	marks := strings.TrimSuffix(strings.Repeat("?,", len(ids)), ",")
+	rows, err := db.Query(`select message_id, time_created, data from session_part
+		where message_id in (`+marks+`) order by message_id, ordinal`, ids...)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var msg, raw string
+		var at int64
+		if err := rows.Scan(&msg, &at, &raw); err != nil {
+			return err
+		}
+		i, ok := byID[msg]
+		if !ok {
+			continue
+		}
+		var p openCodePart
+		if json.Unmarshal([]byte(raw), &p) != nil {
+			continue
+		}
+		p.at = at
+		msgs[i].Parts = append(msgs[i].Parts, p)
+	}
+	return rows.Err()
+}
+
+// openCodeTable tells whether the store keeps a table: the versions of the
+// store differ in the tables they have.
+func openCodeTable(db *sql.DB, name string) (bool, error) {
+	var n int
+	err := db.QueryRow(`select count(*) from sqlite_master where type = 'table' and name = ?`, name).Scan(&n)
+	return n > 0, err
 }
 
 // openCodeLegacyMessages reads a conversation's messages and their parts,
@@ -375,8 +441,9 @@ func openCodeSteps(m openCodeMessage) []Step {
 // when it began to when it ended, or what it waits for.
 func openCodeTool(p openCodePart) Step {
 	name := firstOf(p.Name, p.Tool)
+	out := p.output()
 	st := Step{Kind: Tool, Title: name, Detail: line(firstOf(p.State.Title, short(p.State.Input, 200)), 200),
-		Full:  firstOf(firstOf(p.State.Output, p.State.Title), string(p.State.Input)),
+		Full:  firstOf(firstOf(out, p.State.Title), string(p.State.Input)),
 		Start: p.start(), End: p.end(), State: Running}
 	if st.Title == "" {
 		st.Title = "tool"
@@ -408,8 +475,8 @@ func openCodeTool(p openCodePart) Step {
 		if st.End == 0 {
 			st.End = max(p.at, st.Start)
 		}
-		st.Detail = joinLines(st.Detail, line(firstOf(p.State.Error, p.State.Output), 160))
-		st.Full = joinLines(st.Full, firstOf(p.State.Error, p.State.Output))
+		st.Detail = joinLines(st.Detail, line(firstOf(p.State.Error, out), 160))
+		st.Full = joinLines(st.Full, firstOf(p.State.Error, out))
 	case "pending":
 		// It asks the user: the turn waits on it.
 		st.State, st.End = Waiting, 0
@@ -435,6 +502,28 @@ func openCodeSubagent(name string) bool {
 		return true
 	}
 	return false
+}
+
+// output is what a tool said: its output, in the shape that names it so,
+// or the texts of its content, in the shape that keeps its words there.
+func (p openCodePart) output() string {
+	if strings.TrimSpace(p.State.Output) != "" {
+		return p.State.Output
+	}
+	var b strings.Builder
+	for _, c := range p.State.Content {
+		if c.Type != "" && c.Type != "text" {
+			continue
+		}
+		if strings.TrimSpace(c.Text) == "" {
+			continue
+		}
+		if b.Len() > 0 {
+			b.WriteByte('\n')
+		}
+		b.WriteString(c.Text)
+	}
+	return b.String()
 }
 
 // start is when a part began: its own time, as either shape of the store

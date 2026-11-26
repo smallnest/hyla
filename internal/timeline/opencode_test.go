@@ -143,6 +143,50 @@ func TestOpenCodeLegacyStore(t *testing.T) {
 	check(t, summary(steps), want)
 }
 
+// The store that keeps a message's parts in the table beside it, as the
+// newest one does, is read too: its messages' data carries none, and the
+// parts are the turn's steps, a tool's words in its content.
+func TestOpenCodePartStore(t *testing.T) {
+	path, db := openTestStore(t, true)
+	exec(t, db, `create table session_part (message_id text, session_id text, ordinal integer, type text,
+		call_id text, time_created integer, time_updated integer, data text)`)
+	exec(t, db, `insert into session_v2 (id, directory, time_updated) values ('ses_1', '/tmp/app', 0)`)
+	exec(t, db, `insert into session_message (id, session_id, type, seq, time_created, data) values ('m1', 'ses_1', 'user', 10, ?, ?)`,
+		ms(0), `{"time":{"created":`+js(ms(0))+`},"text":"fix it"}`)
+	exec(t, db, `insert into session_message (id, session_id, type, seq, time_created, data) values ('m2', 'ses_1', 'assistant', 11, ?, ?)`,
+		ms(time.Second), `{"time":{"created":`+js(ms(time.Second))+`,"completed":`+js(ms(50*time.Second))+`},"content":[]}`)
+	exec(t, db, `insert into session_part (message_id, session_id, ordinal, type, time_created, data) values ('m2', 'ses_1', 0, 'reasoning', ?, ?)`,
+		ms(time.Second), `{"type":"reasoning","text":"Look at it.","time":{"created":`+js(ms(time.Second))+`,"completed":`+js(ms(5*time.Second))+`}}`)
+	exec(t, db, `insert into session_part (message_id, session_id, ordinal, type, time_created, data) values ('m2', 'ses_1', 1, 'tool', ?, ?)`,
+		ms(6*time.Second), `{"type":"tool","name":"shell","state":{"status":"completed","input":{"command":"go build ./..."},
+			"content":[{"type":"text","text":"ok"}]},"time":{"created":`+js(ms(6*time.Second))+`,"ran":`+js(ms(6*time.Second))+`,"completed":`+js(ms(40*time.Second))+`}}`)
+	exec(t, db, `insert into session_part (message_id, session_id, ordinal, type, time_created, data) values ('m2', 'ses_1', 2, 'text', ?, ?)`,
+		ms(48*time.Second), `{"type":"text","text":"Done."}`)
+	// A message of the shape before, whose parts its data has, keeps them.
+	exec(t, db, `insert into session_message (id, session_id, type, seq, time_created, data) values ('m3', 'ses_1', 'user', 30, ?, ?)`,
+		ms(60*time.Second), `{"time":{"created":`+js(ms(60*time.Second))+`},"text":"and the tests?"}`)
+	exec(t, db, `insert into session_message (id, session_id, type, seq, time_created, data) values ('m4', 'ses_1', 'assistant', 31, ?, ?)`,
+		ms(61*time.Second), `{"time":{"created":`+js(ms(61*time.Second))+`,"completed":`+js(ms(70*time.Second))+`},"content":[
+			{"type":"text","text":"They pass.","time":{"created":`+js(ms(69*time.Second))+`,"completed":`+js(ms(70*time.Second))+`}}]}`)
+
+	steps, err := OpenCode(path, "", "/tmp/app", when.Add(120*time.Second))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{
+		"turn fix it 10:00:00.000..10:00:50.000 done",
+		"  think Look at it. 10:00:01.000..10:00:05.000 done",
+		"  tool shell 10:00:06.000..10:00:40.000 done",
+		"  text Done. 10:00:48.000..10:00:50.000 done",
+		"turn and the tests? 10:01:00.000..10:01:10.000 done",
+		"  text They pass. 10:01:09.000..10:01:10.000 done",
+	}
+	check(t, summary(steps), want)
+	if d := steps[0].Children[1].Full; d != "ok" {
+		t.Errorf("the tool's words are %q, want its content's", d)
+	}
+}
+
 // A read takes the conversation the pane names, or the newest of the
 // pane's directory; one the store has never seen has no turns.
 func TestOpenCodeSession(t *testing.T) {
