@@ -70,6 +70,12 @@ type pane struct {
 	reported  bool
 	progress  string
 	lastTitle string
+	// resumeToken signs the pane's OSC 7577 reports; resume is the last
+	// accepted resume command, whose owner is its pid, and resumeTimes
+	// the last time each owner reported. A full reset leaves them alone.
+	resumeToken string
+	resume      *resumeRecord
+	resumeTimes map[int]int64
 	// awaiting tells that the command the pane started with runs, whose
 	// end its shell will tell (OSC 133;D, see shellArgs).
 	awaiting bool
@@ -146,17 +152,38 @@ func newPane(d *Daemon, sid string, info proto.Pane) (*pane, error) {
 	term.Resize(s.info.Cols, s.info.Rows)
 	term.UseTheme(d.theme.Load())
 	s.term = term
+	// One token for this terminal, new with it, and no other pane shares
+	// it (OSC 7577).
+	s.resumeToken = newResumeToken()
 	return s, nil
 }
 
-// start starts the shell, running command first when set.
+// start starts the shell, running command first when set. A command that
+// came as one line, as `hyla new -- "npm run dev"` gives it, is run as
+// the shell parses it.
 func (s *pane) start(command []string, env []string) error {
+	return s.startFor(command, env, true)
+}
+
+// startArgv starts the shell as start does, but each element of command
+// reaches the program as one argument, never as shell source: a resume
+// command that reported its own argv (OSC 7577).
+func (s *pane) startArgv(command []string, env []string) error {
+	return s.startFor(command, env, false)
+}
+
+func (s *pane) startFor(command []string, env []string, line bool) error {
 	shell := userShell()
 	name := shellName(shell)
 	bin := s.d.binFirst()
-	args := shellArgs(shell, bin, command)
+	args := shellArgsFor(shell, bin, command, line)
 	if bin != "" && name == "zsh" {
 		env = append(env[:len(env):len(env)], zshEnv(bin)...)
+	}
+	// A program reports how to resume itself only with the token, and
+	// only this terminal's (OSC 7577).
+	if s.resumeToken != "" {
+		env = append(env[:len(env):len(env)], resumeTokenEnv+"="+s.resumeToken)
 	}
 	dir := s.info.Dir
 	if st, err := os.Stat(dir); dir == "" || err != nil || !st.IsDir() {
@@ -353,6 +380,11 @@ func (s *pane) tick(now time.Time) bool {
 		s.dropLive()
 		s.progress = ""
 		s.lastTitle = ""
+		// Nor is a resume record, which only makes sense while its owner
+		// runs; the shell's own survives, as a wrapper reports for it.
+		if s.resume != nil && s.resume.PID != s.shellPID {
+			s.resume = nil
+		}
 		// The conversations store hears of it, as the pane's agent ends.
 		if s.info.AgentSession != nil {
 			// This tick holds s.mu: locking it again here would stop
@@ -781,6 +813,9 @@ func (s *pane) exited(proc *ptyProc) {
 	code := proc.code
 	s.proc = nil
 	s.dropLive()
+	// What ran here is gone, so there is nothing to resume. A pane the
+	// daemon closed keeps its record: the terminal ended, not the user.
+	s.resume = nil
 	s.info.ExitCode = code
 	s.info.Process, s.info.Agent, s.info.Runtime, s.info.PID = "", "", "", 0
 	if code == 0 {

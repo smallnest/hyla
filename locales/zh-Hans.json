@@ -1051,5 +1051,9 @@
   "hongguoNextEp": "下一集",
   "hongguoMute": "静音",
   "hongguoUnmute": "取消静音",
-  "hongguoPageOf": "第 {page} / {total} 页"
+  "hongguoPageOf": "第 {page} / {total} 页",
+  "setResumePrograms": "恢复程序",
+  "setResumeProgramsDetail": "通过 OSC 7577 上报过自身恢复命令的程序（如 Neovim、lazygit）会重新运行该命令，而不是只打开一个 shell。只有持有本终端令牌的程序才能上报。",
+  "setResumeAllow": "仅恢复这些程序",
+  "setResumeAllowDetail": "程序名或绝对路径，用逗号分隔；留空则恢复任何程序。"
 }

@@ -89,6 +89,10 @@ type State struct {
 	FeaturesDraft   string
 	FeaturesEditing bool
 	ShellEditing    bool
+	// ResumeAllowDraft is resume-programs-allow as the field has it,
+	// while ResumeAllowEditing.
+	ResumeAllowDraft   string
+	ResumeAllowEditing bool
 	// ProxyDraft is http-proxy as the field has it, while ProxyEditing.
 	ProxyDraft   string
 	ProxyEditing bool
@@ -621,6 +625,33 @@ func generalPage(x App, c *ui.Context, pal *theme.Palette) {
 			kit.Row(c, pal, locales.SetResumeAgents(), locales.SetResumeAgentsDetail(), func() {
 				style.Toggle(c.Key("resume"), &s.ResumeAgents, pal)
 			})
+			kit.Row(c, pal, locales.SetResumePrograms(), locales.SetResumeProgramsDetail(), func() {
+				style.Toggle(c.Key("resume-programs"), &s.ResumePrograms, pal)
+			})
+			if s.ResumePrograms {
+				kit.Row(c, pal, locales.SetResumeAllow(), locales.SetResumeAllowDetail(), func() {
+					if !ss.ResumeAllowEditing {
+						ss.ResumeAllowDraft = strings.Join(s.ResumeCommands, ", ")
+					}
+					in := controls.TextField(c, "resume-allow", &ss.ResumeAllowDraft, "nvim, lazygit, htop", 220, pal)
+					ss.ResumeAllowEditing = in.Focused()
+					set := func() {
+						var list []string
+						for _, a := range strings.Split(ss.ResumeAllowDraft, ",") {
+							if a = strings.TrimSpace(a); a != "" && !slices.Contains(list, a) {
+								list = append(list, a)
+							}
+						}
+						if !slices.Equal(list, s.ResumeCommands) {
+							s.ResumeCommands = list
+						}
+					}
+					in.OnSubmit(set)
+					if !ss.ResumeAllowEditing {
+						set()
+					}
+				})
+			}
 		}
 	})
 	kit.Group(c, pal, locales.SetGit(), locales.SetGitDetail(), func() {

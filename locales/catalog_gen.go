@@ -10385,3 +10385,43 @@ func HongguoPageOf(page string, total string) string {
 func (msgs Messages) HongguoPageOf(page string, total string) string {
 	return Catalog.Format(msgs.locale, "hongguoPageOf", map[string]any{"page": page, "total": total})
 }
+
+// SetResumePrograms says "Resume programs"
+// in the language the app shows.
+func SetResumePrograms() string { return In(i18n.Locale()).SetResumePrograms() }
+
+// SetResumePrograms says "Resume programs"
+// in the language of msgs.
+func (msgs Messages) SetResumePrograms() string {
+	return Catalog.Format(msgs.locale, "setResumePrograms", nil)
+}
+
+// SetResumeProgramsDetail says "A program that reported its own resume command with OSC 7577, as Neovim or lazygit, runs it again instead of a bare s…"
+// in the language the app shows.
+func SetResumeProgramsDetail() string { return In(i18n.Locale()).SetResumeProgramsDetail() }
+
+// SetResumeProgramsDetail says "A program that reported its own resume command with OSC 7577, as Neovim or lazygit, runs it again instead of a bare s…"
+// in the language of msgs.
+func (msgs Messages) SetResumeProgramsDetail() string {
+	return Catalog.Format(msgs.locale, "setResumeProgramsDetail", nil)
+}
+
+// SetResumeAllow says "Resume these programs only"
+// in the language the app shows.
+func SetResumeAllow() string { return In(i18n.Locale()).SetResumeAllow() }
+
+// SetResumeAllow says "Resume these programs only"
+// in the language of msgs.
+func (msgs Messages) SetResumeAllow() string {
+	return Catalog.Format(msgs.locale, "setResumeAllow", nil)
+}
+
+// SetResumeAllowDetail says "Program names or absolute paths, separated by commas; empty resumes any program."
+// in the language the app shows.
+func SetResumeAllowDetail() string { return In(i18n.Locale()).SetResumeAllowDetail() }
+
+// SetResumeAllowDetail says "Program names or absolute paths, separated by commas; empty resumes any program."
+// in the language of msgs.
+func (msgs Messages) SetResumeAllowDetail() string {
+	return Catalog.Format(msgs.locale, "setResumeAllowDetail", nil)
+}

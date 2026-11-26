@@ -25,17 +25,29 @@ func posixShell(name string) bool {
 }
 
 // shellArgs is the argv that starts shell, running command first when set,
-// with bin first on PATH when set (binFirst).
+// with bin first on PATH when set (binFirst). A command that came as one
+// line, as `hyla new -- "npm run dev"` gives it, is run as the shell
+// parses it.
 func shellArgs(shell, bin string, command []string) []string {
+	return shellArgsFor(shell, bin, command, true)
+}
+
+// shellArgsArgv is shellArgs for a command whose elements are arguments:
+// each reaches the program as one, unchanged, and never as shell source.
+func shellArgsArgv(shell, bin string, command []string) []string {
+	return shellArgsFor(shell, bin, command, false)
+}
+
+func shellArgsFor(shell, bin string, command []string, line bool) []string {
 	name := shellName(shell)
 	switch {
 	case name == "pwsh" || name == "powershell":
-		return powershellArgs(name, command)
+		return powershellArgs(name, command, line)
 	case name == "cmd":
 		if len(command) == 0 {
 			return []string{name}
 		}
-		return []string{name, "/K", cmdJoin(command)}
+		return []string{name, "/K", cmdJoin(command, line)}
 	case runtime.GOOS == "windows" && !posixShell(name):
 		return append([]string{name}, command...)
 	}
@@ -69,7 +81,13 @@ func shellArgs(shell, bin string, command []string) []string {
 			pre = "PATH=" + shellQuote(name, bin) + `:"$PATH"; `
 		}
 	}
-	script := pre + shellJoin(name, command) + `; printf '\033]133;D;%s\007' ` + status + "; " + again
+	run := shellJoin(name, command, line)
+	if !line {
+		// A resume command's name is the program's, not a function or
+		// alias of the user's shell that shares it (OSC 7577).
+		run = "command " + run
+	}
+	script := pre + run + `; printf '\033]133;D;%s\007' ` + status + "; " + again
 	if name == "fish" {
 		// fish leaves job control off for -c, so the command would run in
 		// the shell's process group, where tick doesn't see it.
@@ -103,12 +121,12 @@ const powershellPrompt = `$global:__hylaPrompt=$function:prompt;` +
 const powershellExit = `$__hylaOk=$?; $__hylaCode=$LASTEXITCODE; ` +
 	`[Console]::Write("$([char]27)]133;D;$(if ($__hylaOk) {0} elseif ($__hylaCode) {$__hylaCode} else {1})$([char]7)")`
 
-func powershellArgs(name string, command []string) []string {
+func powershellArgs(name string, command []string, line bool) []string {
 	script := powershellPrompt
 	if len(command) > 0 {
 		// Then its exit status (OSC 133;D): a program's, else 1 for a
 		// cmdlet that failed.
-		script += "; " + powershellJoin(command) + "; " + powershellExit
+		script += "; " + powershellJoin(command, line) + "; " + powershellExit
 	}
 	// -NoExit: the session goes on with the shell once the command ends.
 	return []string{name, "-NoLogo", "-NoExit", "-Command", script}
@@ -136,8 +154,8 @@ func oneLine(args []string) bool {
 	return len(args) == 1 && strings.ContainsAny(args[0], " ;|&")
 }
 
-func shellJoin(shell string, args []string) string {
-	if oneLine(args) {
+func shellJoin(shell string, args []string, line bool) string {
+	if line && oneLine(args) {
 		return args[0]
 	}
 	q := make([]string, len(args))
@@ -149,16 +167,16 @@ func shellJoin(shell string, args []string) string {
 
 // powershellJoin writes a command for PowerShell, which runs a quoted
 // program's name only after its call operator.
-func powershellJoin(args []string) string {
-	if oneLine(args) {
+func powershellJoin(args []string, line bool) string {
+	if line && oneLine(args) {
 		return args[0]
 	}
-	return "& " + shellJoin("pwsh", args)
+	return "& " + shellJoin("pwsh", args, line)
 }
 
 // cmdJoin writes a command for cmd.exe.
-func cmdJoin(args []string) string {
-	if oneLine(args) {
+func cmdJoin(args []string, line bool) string {
+	if line && oneLine(args) {
 		return args[0]
 	}
 	q := make([]string, len(args))

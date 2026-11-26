@@ -1659,5 +1659,9 @@
   "hongguoNextEp": "Next Episode",
   "hongguoMute": "Mute",
   "hongguoUnmute": "Unmute",
-  "hongguoPageOf": "Page {page} / {total}"
+  "hongguoPageOf": "Page {page} / {total}",
+  "setResumePrograms": "Resume programs",
+  "setResumeProgramsDetail": "A program that reported its own resume command with OSC 7577, as Neovim or lazygit, runs it again instead of a bare shell. Only a program that holds this terminal’s token can report.",
+  "setResumeAllow": "Resume these programs only",
+  "setResumeAllowDetail": "Program names or absolute paths, separated by commas; empty resumes any program."
 }

@@ -30,10 +30,14 @@ type Settings struct {
 	ConfirmClose      bool   `json:"confirmClose"`      // before closing a pane a program runs in
 	RestoreSessions   bool   `json:"restoreSessions"`   // after hylad restarts, as after a reboot
 	ResumeAgents      bool   `json:"resumeAgents"`      // as it restores sessions: the agents' own
-	QuitEndsSessions  bool   `json:"quitEndsSessions"`  // quitting ends this machine's sessions, as app.quitAll
-	SessionHistory    bool   `json:"sessionHistory"`    // the sidebar lists the agents' ended conversations
-	QuitConfirm       bool   `json:"quitConfirm"`       // tell, the first time, that quitting keeps sessions
-	AppIcon           string `json:"appIcon"`           // macOS: AppIcons; elsewhere the icon is always in the notification area
+	ResumePrograms    bool   `json:"resumePrograms"`    // as it restores sessions: a program's own command (OSC 7577)
+	// ResumeCommands are the programs resume-programs may resume, by name
+	// or absolute path; empty for any.
+	ResumeCommands   []string `json:"resumeCommands,omitempty"`
+	QuitEndsSessions bool     `json:"quitEndsSessions"` // quitting ends this machine's sessions, as app.quitAll
+	SessionHistory   bool     `json:"sessionHistory"`   // the sidebar lists the agents' ended conversations
+	QuitConfirm      bool     `json:"quitConfirm"`      // tell, the first time, that quitting keeps sessions
+	AppIcon          string   `json:"appIcon"`          // macOS: AppIcons; elsewhere the icon is always in the notification area
 
 	// Appearance
 	Appearance    string  `json:"appearance"`    // "system", "light" or "dark"
@@ -232,6 +236,7 @@ func Default() Settings {
 		ConfirmClose:        true,
 		RestoreSessions:     true,
 		ResumeAgents:        true,
+		ResumePrograms:      false,
 		QuitConfirm:         true,
 		Tailcat:             true,
 		AppIcon:             "dock-and-menubar",

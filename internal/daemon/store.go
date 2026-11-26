@@ -61,9 +61,11 @@ type savedPane struct {
 	// terminal, which it starts none of.
 	Background bool `json:"background,omitempty"`
 	// Agent is the agent's session that ran in it, to resume, and Turn
-	// where its last turn started.
+	// where its last turn started. Resume is the command the program in
+	// it reported (OSC 7577), to run again when the user allows it.
 	Agent   *proto.AgentSession `json:"agent,omitempty"`
 	Turn    *proto.Turn         `json:"turn,omitempty"`
+	Resume  *resumeRecord       `json:"resume,omitempty"`
 	Created int64               `json:"created"`
 	Cols    int                 `json:"cols"`
 	Rows    int                 `json:"rows"`
@@ -103,7 +105,8 @@ func (d *Daemon) saveState() {
 			sp := savedPane{ID: p.info.ID, Dir: p.info.Dir, Command: p.info.Command, URL: p.info.URL, File: p.info.File, Timeline: p.info.Timeline, Subagents: p.info.Subagents, Hongguo: p.info.Hongguo,
 				Plugin: p.info.Plugin, PluginView: p.info.PluginView, PluginArgs: p.info.PluginArgs, PluginTitle: p.info.PluginTitle,
 				Background: p.bg != nil,
-				Agent:      p.info.AgentSession, Turn: p.info.Turn, Created: p.info.Created, Cols: p.info.Cols, Rows: p.info.Rows}
+				Agent:      p.info.AgentSession, Turn: p.info.Turn, Resume: p.resume,
+				Created: p.info.Created, Cols: p.info.Cols, Rows: p.info.Rows}
 			if p.info.Browser() {
 				sp.Title = p.info.Title
 			}
@@ -250,8 +253,23 @@ func (d *Daemon) restorePane(sid string, sp savedPane) *pane {
 		return p
 	}
 	// The shell alone: what ran in it may not want to run again unasked.
-	// But an agent's conversation, which only waits for the user.
-	if err := p.start(d.pluginResumeCommand(sp.Agent, sp.Dir), nil); err != nil {
+	// But an agent's conversation, which only waits for the user, and a
+	// program's reported command, when the user allows it (OSC 7577).
+	command, dir := d.pluginResumeCommand(sp.Agent, sp.Dir), sp.Dir
+	resumed := false
+	if argv, cwd, ok := resumeCommandFor(sp, settings.Load()); ok {
+		command, dir, resumed = argv, cwd, true
+	}
+	p.info.Dir = dir
+	err = p.startArgv(command, nil)
+	if err != nil && resumed {
+		// A reported command that does not start is not retried, and not
+		// retried here: the pane comes back with its shell alone.
+		d.log.Printf("resuming %s: %v", sp.ID, err)
+		p.info.Dir = sp.Dir
+		err = p.start(d.pluginResumeCommand(sp.Agent, sp.Dir), nil)
+	}
+	if err != nil {
 		d.log.Printf("restoring %s: %v", sp.ID, err)
 		p.term.Close()
 		return nil

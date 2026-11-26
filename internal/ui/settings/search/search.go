@@ -30,6 +30,8 @@ func Index() []Entry {
 		{"general", locales.SetQuitEndsSessions(), "quit-ends-sessions quit exit stop kill end clean cleanly leave window close background process"},
 		{"general", locales.SetRestoreSessions(), "restore-sessions reboot persist"},
 		{"general", locales.SetResumeAgents(), "resume-agents claude codex pi opencode conversation restore reboot"},
+		{"general", locales.SetResumePrograms(), "resume-programs osc 7577 nvim lazygit htop program restore reboot"},
+		{"general", locales.SetResumeAllow(), "resume-programs-allow programs allow list nvim lazygit path"},
 		{"general", locales.SetGitStatus(), "git-status branch changes diff repository worktree"},
 		{"general", locales.SetDiffLayout(), "diff-layout diff unified split side by side changes"},
 		{"general", locales.SetOpenAtLogin(), "startup launch login items"},

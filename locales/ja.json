@@ -1051,5 +1051,9 @@
   "hongguoNextEp": "次の話",
   "hongguoMute": "ミュート",
   "hongguoUnmute": "ミュート解除",
-  "hongguoPageOf": "{page} / {total} ページ"
+  "hongguoPageOf": "{page} / {total} ページ",
+  "setResumePrograms": "プログラムを再開",
+  "setResumeProgramsDetail": "OSC 7577 で再開コマンドを報告したプログラム（Neovim や lazygit など）は、シェルだけではなくそのコマンドを再実行します。報告できるのは、この端末のトークンを持つプログラムだけです。",
+  "setResumeAllow": "再開するプログラムを限定",
+  "setResumeAllowDetail": "プログラム名または絶対パスをカンマ区切りで。空ならすべてのプログラムを再開します。"
 }

@@ -110,3 +110,24 @@ func testEnv(t *testing.T) []string {
 	// Windows' programs need its own variables to start.
 	return append(exec.Command("cmd").Environ(), "TERM=xterm-256color")
 }
+
+// A resume command's elements are arguments, never shell source: one
+// that looks like a line still reaches the program as one argument.
+func TestShellArgsArgv(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("a POSIX shell's quoting")
+	}
+	for _, shell := range []string{"zsh", "bash", "fish"} {
+		t.Run(shell, func(t *testing.T) {
+			const arg = "npm run dev; touch /tmp/hyla-argv-test"
+			line := strings.Join(shellArgs(shell, "", []string{arg}), " ")
+			argv := strings.Join(shellArgsArgv(shell, "", []string{arg}), " ")
+			if !strings.Contains(line, arg) || strings.Contains(line, shellQuote(shell, arg)) {
+				t.Errorf("%s: a line is not quoted: %q", shell, line)
+			}
+			if !strings.Contains(argv, "command "+shellQuote(shell, arg)) {
+				t.Errorf("%s: argv is not one argument: %q", shell, argv)
+			}
+		})
+	}
+}

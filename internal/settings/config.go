@@ -137,6 +137,20 @@ var keys = append([]key{
 	boolKey("confirm-close", "ask before closing a pane a program runs in", func(s *Settings) *bool { return &s.ConfirmClose }),
 	boolKey("restore-sessions", "start sessions again after hylad restarts, as after a reboot", func(s *Settings) *bool { return &s.RestoreSessions }),
 	boolKey("resume-agents", "as sessions start again, resume the conversation of the coding agent each pane ran", func(s *Settings) *bool { return &s.ResumeAgents }),
+	boolKey("resume-programs", "as sessions start again, run the resume command a program reported itself (OSC 7577) instead of starting its shell alone", func(s *Settings) *bool { return &s.ResumePrograms }),
+	{name: "resume-programs-allow", doc: "the programs resume-programs may resume, by name or absolute path, comma-separated or repeated; empty for any", list: true,
+		get: func(s *Settings) []string { return slices.Clone(s.ResumeCommands) },
+		set: func(s *Settings, v []string) error {
+			s.ResumeCommands = nil
+			for _, l := range v {
+				for _, a := range strings.Split(l, ",") {
+					if a = strings.TrimSpace(a); a != "" && !slices.Contains(s.ResumeCommands, a) {
+						s.ResumeCommands = append(s.ResumeCommands, a)
+					}
+				}
+			}
+			return nil
+		}},
 	boolKey("quit-ends-sessions", "quitting ends this machine's sessions and its hylad, as Quit and End All Sessions does; other machines' keep running", func(s *Settings) *bool { return &s.QuitEndsSessions }),
 	boolKey("session-history", "list the coding agents' ended conversations in the sidebar, to resume or archive", func(s *Settings) *bool { return &s.SessionHistory }),
 	choiceKey("macos-show-app-icon", "where Hyla's icon shows; closing the window keeps Hyla running in the menu bar while it shows there. Windows and Linux always show it in the notification area",
