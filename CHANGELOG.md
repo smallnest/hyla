@@ -4,6 +4,18 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.25.0
+
+- **Resume programs when sessions start again**: a program that reports
+  its own resume command (OSC 7577, as Neovim and lazygit can) now runs
+  that command again instead of a bare shell when Hyla restores the
+  session after a restart. Turn it on in **Settings › General › Resume
+  programs**; it is off by default. **Resume these programs only** limits
+  it to the program names or absolute paths you list, and leaving it
+  empty resumes any program. Only a program that holds the terminal's own
+  token can report, and a reported command never runs as root. Hosts get
+  this with their next update.
+
 ## 3.24.1
 
 - **Pomodoro improvements (`hyla.pomodoro` 1.0.1)**: double-click the dial
