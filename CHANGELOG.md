@@ -4,6 +4,16 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.25.1
+
+- **Conversations of OpenCode 2.4 show their answers again**: OpenCode 2.4
+  moved an assistant message's parts into a table of its own,
+  `session_part`, and left the message's data with none, so a conversation
+  Hyla read showed the prompts alone: no answer, no reasoning and no tool
+  of any turn written since. The chat view, the timeline pane and a
+  subagent's view read them from that table again, and a tool's output is
+  read where OpenCode keeps it now, in its content.
+
 ## 3.25.0
 
 - **Resume programs when sessions start again**: a program that reports
