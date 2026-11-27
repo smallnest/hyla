@@ -109,8 +109,8 @@ type Daemon struct {
 	subsSeen map[string]subsRead
 	// chatMu guards chatSeen, the conversations read from the records the
 	// agents keep, by the file (chat.go).
-	chatMu   sync.Mutex
-	chatSeen map[string]chatRead
+	chatMu          sync.Mutex
+	chatSeen        map[string]chatRead
 	net             *listeners
 	plugins         *daemonhost.Manager
 	pluginStateMu   sync.Mutex
@@ -187,6 +187,14 @@ func Run(opts Options) error {
 	defer ClearLock()
 
 	sock := proto.SocketPath()
+	// A socket another hylad answers on is that one's: as one of another
+	// home's, which a pane started with this home's socket in its
+	// environment. Taking the path would leave it running with nothing to
+	// connect to, its sessions lost to every client, so this one says so
+	// and leaves it alone.
+	if answered(sock) {
+		return fmt.Errorf("another hylad answers on %s", sock)
+	}
 	os.Remove(sock)
 	ln, err := listenSocket(sock)
 	if err != nil {

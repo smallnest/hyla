@@ -27,6 +27,16 @@ func TestCLIPreloadBaseActionsWashAndDo(t *testing.T) {
 	t.Setenv("HYLA_DIR", hylaDir)
 	t.Setenv("HYLA_CONFIG", cfgPath)
 	t.Setenv("HYLA_NO_KEYCHAIN", "1")
+	// The socket this test takes for its fake daemon is its own, and short
+	// enough for one: a test run inside Hyla inherits HYLA_SOCKET, the
+	// hylad the user runs, and taking that one would leave it running with
+	// nothing to connect to.
+	sockDir, err := os.MkdirTemp("", "hy")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.RemoveAll(sockDir) })
+	t.Setenv("HYLA_SOCKET", filepath.Join(sockDir, "h.sock"))
 	t.Cleanup(func() {
 		actions.ClearPluginActions()
 		proto.ClearPluginAgents()
