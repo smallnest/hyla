@@ -654,6 +654,8 @@ func matchAtom(atom string, s *proto.Session, p *proto.Pane) bool {
 		return p != nil && !p.Shown()
 	case "pane.agent":
 		return p != nil && p.Agent != ""
+	case "pane.agentForkable":
+		return p != nil && p.CanForkSession()
 	case "pane.browser":
 		return p != nil && p.Browser()
 	case "pane.file":

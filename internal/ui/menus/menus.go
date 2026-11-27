@@ -81,6 +81,7 @@ var titles = map[string]func() string{
 	"find.previous":       locales.ActionFindPrevious,
 	"pane.split.right":    locales.ActionSplitRight,
 	"pane.split.down":     locales.ActionSplitDown,
+	"pane.fork":           locales.ActionForkSession,
 	"pane.browser":        locales.ActionNewBrowser,
 	"pane.zoom":           locales.ActionZoomPane,
 	"pane.next":           locales.ActionNextPane,
@@ -184,7 +185,7 @@ func Menu(a App) *mygo.Menu {
 // PaneMenuItems builds the items shown under the top-level Pane menu,
 // including enabled plugin actions targeting "Pane".
 func PaneMenuItems(a App) []*mygo.MenuItem {
-	out := Items(a, "Pane", []string{"pane.split.right", "pane.split.down"})
+	out := Items(a, "Pane", []string{"pane.split.right", "pane.split.down", "pane.fork"})
 	out = append(out, mygo.Separator(), Item(a, "pane.browser"), Item(a, "subagents.open"), Item(a, "hongguo.open"))
 	out = append(out, pluginItemsForMenu(a, "Pane")...)
 	out = append(out, mygo.Separator())

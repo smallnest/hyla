@@ -638,6 +638,12 @@ func PaneControls(x App, c *ui.Context, pal *theme.Palette, s *proto.Session, p 
 		}
 		paints.IconButton(c, "split-r", glyph.SplitRight, x.Tip(locales.ActionSplitRight(), "pane.split.right"), pal, func() { SplitPane(x, s, p.ID, "right") })
 		paints.IconButton(c, "split-d", glyph.SplitDown, x.Tip(locales.ActionSplitDown(), "pane.split.down"), pal, func() { SplitPane(x, s, p.ID, "down") })
+		if p.CanForkSession() {
+			sid, pid := s.ID, p.ID
+			paints.IconButton(c, "fork", glyph.Branch, x.Tip(locales.ActionForkSession(), "pane.fork"), pal, func() {
+				x.RunLater(func() { ForkPane(x, x.Session(sid), pid, "right") })
+			})
+		}
 		if multi {
 			sid, pid := s.ID, p.ID
 			zoom := func() { x.RunLater(func() { ZoomPane(x, x.Session(sid), pid) }) }

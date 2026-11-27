@@ -21,6 +21,7 @@
   "actionCloseSession": "关闭会话",
   "actionSplitRight": "向右拆分",
   "actionSplitDown": "向下拆分",
+  "actionForkSession": "分叉智能体会话",
   "actionNewBrowser": "新建浏览器窗格",
   "actionTimelinePane": "打开时间线窗格",
   "actionZoomPane": "放大窗格",

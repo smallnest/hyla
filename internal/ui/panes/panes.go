@@ -186,22 +186,55 @@ func Split(x App, s *proto.Session, p proto.CreateParams) {
 	if s == nil {
 		return
 	}
-	h := x.HostOf(s.ID)
 	if pane := s.PaneByID(p.Split); pane != nil && !pane.Shown() {
-		p.Cols, p.Rows = pane.Cols, pane.Rows
-		if p.Direction == "down" || p.Direction == "up" {
-			p.Rows = max(p.Rows/2, 4)
-		} else {
-			p.Cols = max(p.Cols/2, 10)
-		}
+		p.Cols, p.Rows = splitDimensions(pane, p.Direction)
 	}
+	callSessionSplit(x, s.ID, "split", p)
+}
+
+// ForkPane forks a pane's active coding agent session into a new split pane.
+func ForkPane(x App, s *proto.Session, at, direction string) {
+	if s == nil {
+		return
+	}
+	if at == "" {
+		at = x.FocusOf(s)
+	}
+	pane := s.PaneByID(at)
+	if pane == nil || !pane.CanForkSession() {
+		return
+	}
+	if direction == "" {
+		direction = "right"
+	}
+	cols, rows := splitDimensions(pane, direction)
+	callSessionSplit(x, s.ID, "pane.fork", proto.ForkParams{
+		Pane:      at,
+		Direction: direction,
+		Cols:      cols,
+		Rows:      rows,
+	})
+}
+
+func splitDimensions(pane *proto.Pane, direction string) (cols, rows int) {
+	cols, rows = pane.Cols, pane.Rows
+	if direction == "down" || direction == "up" {
+		rows = max(rows/2, 4)
+	} else {
+		cols = max(cols/2, 10)
+	}
+	return cols, rows
+}
+
+func callSessionSplit(x App, sessionID, method string, params any) {
+	h := x.HostOf(sessionID)
 	cl := h.Client
 	if cl == nil {
 		return
 	}
 	go func() {
 		var ns proto.Session
-		err := cl.Call("split", p, &ns)
+		err := cl.Call(method, params, &ns)
 		x.Update(func() {
 			if err != nil {
 				x.Toast(err.Error())

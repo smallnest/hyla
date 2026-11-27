@@ -164,6 +164,7 @@ var ActionWords = map[string]string{
 	"find.previous":        "search again back",
 	"pane.split.right":     "vertical horizontal side by side new pane",
 	"pane.split.down":      "horizontal vertical below new pane",
+	"pane.fork":            "fork branch clone split agent session claude codex pi opencode 分叉 分支 会话",
 	"pane.browser":         "browser web page url preview localhost open",
 	"pane.zoom":            "maximize fullscreen focus expand",
 	"pane.next":            "switch focus forward",

@@ -76,6 +76,16 @@ func (d *Daemon) call(c *controlConn, method string, raw json.RawMessage) (any, 
 		}
 		return d.create(p)
 
+	case "pane.fork":
+		var p proto.ForkParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		if p.Pane == "" {
+			return nil, errors.New("pane.fork: which pane?")
+		}
+		return d.forkPane(p)
+
 	case "agent.background":
 		var p proto.BackgroundParams
 		if err := decode(&p); err != nil {

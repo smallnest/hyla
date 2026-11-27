@@ -21,6 +21,7 @@
   "actionCloseSession": "セッションを閉じる",
   "actionSplitRight": "右に分割",
   "actionSplitDown": "下に分割",
+  "actionForkSession": "エージェントセッションをフォーク",
   "actionNewBrowser": "新規ブラウザペイン",
   "actionTimelinePane": "タイムラインペインを開く",
   "actionZoomPane": "ペインを拡大",

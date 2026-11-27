@@ -21,6 +21,8 @@ func (a *App) DropTerms(pane string)     { a.dropTerm(pane) }
 
 func (a *App) splitPane(s *proto.Session, at, direction string) { panes.SplitPane(a, s, at, direction) }
 
+func (a *App) forkPane(s *proto.Session, at, direction string) { panes.ForkPane(a, s, at, direction) }
+
 func (a *App) split(s *proto.Session, p proto.CreateParams) { panes.Split(a, s, p) }
 
 func (a *App) closePane(s *proto.Session, pane string, ask bool) { panes.ClosePane(a, s, pane, ask) }

@@ -366,6 +366,15 @@ func (a *App) PaneContextMenu(m *ui.Menu, s *proto.Session, p *proto.Pane) {
 			}
 		})
 	}
+	if p.CanForkSession() {
+		if a.menuShortcut(m.Item(locales.ActionForkSession()), "pane.fork").Chosen() {
+			a.RunLater(func() {
+				if cur := a.session(sid); cur != nil {
+					a.forkPane(cur, pid, "right")
+				}
+			})
+		}
+	}
 	if len(s.Panes) > 1 {
 		if a.menuShortcut(m.Item(locales.ActionZoomPane()), "pane.zoom").Chosen() {
 			a.RunLater(func() {

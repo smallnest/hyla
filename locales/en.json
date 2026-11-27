@@ -21,6 +21,7 @@
   "actionCloseSession": "Close Session",
   "actionSplitRight": "Split Right",
   "actionSplitDown": "Split Down",
+  "actionForkSession": "Fork Agent Session",
   "actionNewBrowser": "New Browser Pane",
   "actionTimelinePane": "Open Timeline Pane",
   "actionZoomPane": "Zoom Pane",

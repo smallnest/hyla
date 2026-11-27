@@ -15,6 +15,7 @@ import (
 	"hash/fnv"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"sync"
@@ -307,6 +308,33 @@ type Turn struct {
 type AgentSession struct {
 	Agent string `json:"agent"` // "claude", "codex", "pi" or "opencode"
 	ID    string `json:"id"`
+}
+
+var agentSessionIDRe = regexp.MustCompile(`^[A-Za-z0-9_-]{1,128}$`)
+
+// ValidAgentSessionID reports whether id is safe and well-formed for an agent
+// session CLI argument.
+func ValidAgentSessionID(id string) bool {
+	return agentSessionIDRe.MatchString(id)
+}
+
+// CanForkAgent reports whether agent supports forking an active session into a
+// new split pane.
+func CanForkAgent(agent string) bool {
+	switch agent {
+	case "claude", "codex", "pi", "opencode":
+		return true
+	}
+	return false
+}
+
+// CanForkSession reports whether the pane is running a live coding agent
+// session that supports forking.
+func (p *Pane) CanForkSession() bool {
+	if p == nil || p.Shown() || p.Status == Exited || p.AgentSession == nil {
+		return false
+	}
+	return CanForkAgent(p.AgentSession.Agent) && ValidAgentSessionID(p.AgentSession.ID)
 }
 
 // Conversation is a coding agent's conversation that ran in one of
@@ -1238,6 +1266,13 @@ type (
 	FocusParams struct {
 		Session string `json:"session"`
 		Pane    string `json:"pane"`
+	}
+	// ForkParams forks a pane's coding agent session into a new split pane (pane.fork).
+	ForkParams struct {
+		Pane      string `json:"pane"`
+		Direction string `json:"direction,omitempty"` // right (default), down, left, up
+		Cols      int    `json:"cols,omitempty"`
+		Rows      int    `json:"rows,omitempty"`
 	}
 	LayoutParams struct {
 		Session string  `json:"session"`

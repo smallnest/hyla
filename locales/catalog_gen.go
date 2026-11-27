@@ -246,6 +246,16 @@ func (msgs Messages) ActionSplitDown() string {
 	return Catalog.Format(msgs.locale, "actionSplitDown", nil)
 }
 
+// ActionForkSession says "Fork Agent Session"
+// in the language the app shows.
+func ActionForkSession() string { return In(i18n.Locale()).ActionForkSession() }
+
+// ActionForkSession says "Fork Agent Session"
+// in the language of msgs.
+func (msgs Messages) ActionForkSession() string {
+	return Catalog.Format(msgs.locale, "actionForkSession", nil)
+}
+
 // ActionNewBrowser says "New Browser Pane"
 // in the language the app shows.
 func ActionNewBrowser() string { return In(i18n.Locale()).ActionNewBrowser() }
