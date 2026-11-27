@@ -4,6 +4,17 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.26.1
+
+- **The daemon that runs keeps its socket**: a hylad started from a Hyla
+  pane, a script or a test — with another home's lock but the running
+  daemon's `HYLA_SOCKET` — used to unlink the socket the running hylad
+  listens on, and then take it away as it ended, leaving the daemon alive
+  but unreachable: every new pane said *hylad is not running: … no such
+  file or directory* until Hyla was restarted. A hylad that finds another
+  answering on its socket now says so and leaves it alone, and the CLI's
+  own test takes a socket of its own.
+
 ## 3.26.0
 
 - **Fork an agent's session into a pane of its own**: **Pane › Fork Agent
