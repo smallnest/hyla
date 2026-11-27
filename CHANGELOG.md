@@ -4,6 +4,17 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.26.0
+
+- **Fork an agent's session into a pane of its own**: **Pane › Fork Agent
+  Session** (`CmdOrCtrl+Alt+D`) opens a copy of the conversation the focused
+  pane's agent runs — `claude --fork-session`, `codex fork`, `pi --fork`,
+  and OpenCode's own `session.fork` — as a new split pane, so a second line
+  of work starts from the same history instead of from nothing. A CLI too
+  old for OpenCode's `session.fork` forks with `--fork` instead. The action
+  stays disabled in a pane that runs no agent session, and a fork that fails
+  says why in a toast.
+
 ## 3.25.1
 
 - **Conversations of OpenCode 2.4 show their answers again**: OpenCode 2.4
