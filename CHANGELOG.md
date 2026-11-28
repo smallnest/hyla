@@ -4,6 +4,27 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.27.0
+
+- **Multi-Agent Arena**: **Session › Multi-Agent Arena…** (`Cmd+Shift+A` on
+  macOS, `Ctrl+Alt+A` elsewhere) and `hyla arena` race Claude Code, Codex,
+  OpenCode, Pi, and Antigravity (`agy`) side by side in isolated git worktrees
+  on the same prompt, run tests across every contestant concurrently, jump
+  straight to any contestant pane, and merge the winner cleanly.
+- **Adversarial Cross-Review**: **Pane › Cross-Review with Another Agent**
+  (`Cmd+Shift+V` on macOS, `Ctrl+Alt+R` elsewhere) and `hyla review` open a
+  read-only review split using another installed agent to audit uncommitted,
+  turn, or branch changes.
+- **Zero-LLM Browser Verification Recording & Replay**: record and replay
+  deterministic browser verification flows directly from the browser pane
+  toolbar (**Record** / **Replay** buttons) or `hyla browser record|replay`
+  with pixel-diff PNG baseline comparison.
+- **Local Merge Queue, Anti-Cheat Guard & Feishu Approval**: **Session › Merge
+  Queue…** (`Cmd+Shift+M` on macOS, `Ctrl+Alt+M` elsewhere) and `hyla mq` land
+  agent branches in verified trains, isolate failures and bounce errors back to
+  originating agent panes, flag deleted tests / skips / CI tampering before
+  merging, and send screenshot approval cards to Feishu.
+
 ## 3.26.2
 
 - **Fork Antigravity CLI (`agy`) sessions**: **Pane › Fork Agent Session**
