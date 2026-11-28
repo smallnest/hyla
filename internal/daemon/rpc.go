@@ -183,6 +183,107 @@ func (d *Daemon) call(c *controlConn, method string, raw json.RawMessage) (any, 
 		}
 		return d.mqClear(p.Repo), nil
 
+	case "claim.add":
+		var p proto.PathClaimParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return d.claimAdd(p)
+
+	case "claim.release":
+		var p proto.PathClaimReleaseParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return true, d.claimRelease(p.ID)
+
+	case "claim.list":
+		var p proto.PathClaimListParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return d.claimList(p.Repo), nil
+
+	case "claim.check":
+		var p proto.PathClaimCheckParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return d.claimCheck(p), nil
+
+	case "clash.check":
+		var p proto.ClashCheckParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return d.clashCheck(p)
+
+	case "checkpoint.list":
+		var p proto.CheckpointListParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return d.checkpointList(p), nil
+
+	case "checkpoint.create":
+		var p proto.CheckpointCreateParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return d.checkpointCreate(p)
+
+	case "checkpoint.restore":
+		var p proto.CheckpointRestoreParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return d.checkpointRestore(p)
+
+	case "checkpoint.fork":
+		var p proto.CheckpointForkParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return d.checkpointFork(p)
+
+	case "rule.add":
+		var p proto.RuleAddParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return d.ruleAdd(p)
+
+	case "factory.start":
+		var p proto.FactoryStartParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return d.factoryStart(p)
+
+	case "factory.list":
+		return d.factoryList(), nil
+
+	case "factory.status":
+		var p proto.FactoryStatusParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return d.factoryStatus(p.ID)
+
+	case "factory.stop":
+		var p proto.FactoryStopParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return true, d.factoryStop(p.ID)
+
+	case "factory.digest":
+		var p proto.FactoryDigestParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return d.factoryDigest(p)
+
 	case "agent.background":
 		var p proto.BackgroundParams
 		if err := decode(&p); err != nil {

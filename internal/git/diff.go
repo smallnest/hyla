@@ -46,6 +46,43 @@ func (r Repo) Snapshot(ctx context.Context) (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
+// RestoreTree restores the working tree of r to match the given git tree object
+// without moving HEAD: files added since tree are removed, and modified or
+// deleted files are checked out from tree via a temporary index.
+func (r Repo) RestoreTree(ctx context.Context, tree string) error {
+	tree = strings.TrimSpace(tree)
+	if tree == "" {
+		return errors.New("restore tree: tree id is required")
+	}
+	cur, err := r.Snapshot(ctx)
+	if err == nil && cur != "" && cur != tree {
+		if extra, derr := run(ctx, r.Root, nil, "diff", "--no-ext-diff", "-z", "--name-only", "--diff-filter=A", tree, cur); derr == nil {
+			for _, raw := range bytes.Split(extra, []byte{0}) {
+				rel := string(raw)
+				if rel == "" {
+					continue
+				}
+				full := filepath.Join(r.Root, filepath.FromSlash(rel))
+				if relCheck, rerr := filepath.Rel(r.Root, full); rerr == nil && relCheck != "." && !strings.HasPrefix(relCheck, "..") {
+					_ = os.Remove(full)
+				}
+			}
+		}
+	}
+	dir, err := os.MkdirTemp("", "hyla-restore-")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(dir)
+	index := filepath.Join(dir, "index")
+	env := []string{"GIT_INDEX_FILE=" + index}
+	if _, err := run(ctx, r.Root, env, "read-tree", tree); err != nil {
+		return err
+	}
+	_, err = run(ctx, r.Root, env, "checkout-index", "-a", "-f")
+	return err
+}
+
 // Bases a diff compares the working tree with.
 const (
 	BaseTurn   = "turn"   // a snapshot: what an agent's turn started from

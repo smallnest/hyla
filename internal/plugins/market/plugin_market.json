@@ -109,6 +109,33 @@
       },
       "download_url": "https://github.com/smallnest/hyla/releases/latest/download/hyla.pomodoro-{version}-{os}-{arch}.hylapkg",
       "sha256_url": "https://github.com/smallnest/hyla/releases/latest/download/hyla.pomodoro-{version}-{os}-{arch}.hylapkg.sha256"
+    },
+    {
+      "id": "hyla.webgames",
+      "name": "Web Games",
+      "author": "Hyla",
+      "description": "Built-in arcade pane featuring 2048, Snake, Tetris, Breakout, and Minesweeper plus custom web game URLs and automatic pause when coding agents finish.",
+      "homepage": "https://github.com/smallnest/hyla/tree/master/plugins/webgames",
+      "version": "1.0.0",
+      "min_hyla_version": "3.20.0",
+      "permissions": [
+        "ui.webview",
+        "ui.slot",
+        "session.read",
+        "network"
+      ],
+      "i18n": {
+        "zh-Hans": {
+          "name": "网页游戏",
+          "description": "内置网页游戏窗格：支持 2048、贪吃蛇、俄罗斯方块、打砖块和扫雷，支持自定义游戏网址收藏及编码 Agent 完成时自动暂停。"
+        },
+        "ja": {
+          "name": "ウェブゲーム",
+          "description": "2048、スネーク、テトリス、ブロック崩し、マインスイーパーを内蔵し、カスタムゲーム URL の保存やエージェント完了時の自動一時停止に対応したペイン。"
+        }
+      },
+      "download_url": "https://github.com/smallnest/hyla/releases/latest/download/hyla.webgames-{version}-{os}-{arch}.hylapkg",
+      "sha256_url": "https://github.com/smallnest/hyla/releases/latest/download/hyla.webgames-{version}-{os}-{arch}.hylapkg.sha256"
     }
   ]
 }

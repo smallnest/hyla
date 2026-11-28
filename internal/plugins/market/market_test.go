@@ -38,6 +38,7 @@ func TestEmbeddedCatalogValid(t *testing.T) {
 		{"hyla.podcast", "podcast"},
 		{"hyla.iptv", "iptv"},
 		{"hyla.pomodoro", "pomodoro"},
+		{"hyla.webgames", "webgames"},
 	} {
 		var entry *Plugin
 		for i := range cat.Plugins {

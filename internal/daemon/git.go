@@ -268,6 +268,7 @@ func (g *gitFollow) snapshot(p *pane, dir string, at time.Time) {
 		p.info.Turn = &proto.Turn{Tree: tree, Root: r.Root, At: at.UnixMilli()}
 	}
 	p.mu.Unlock()
+	g.d.recordTurnCheckpoint(p, r.Root, tree, at.UnixMilli())
 	g.d.changed()
 }
 

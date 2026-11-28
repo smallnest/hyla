@@ -6,6 +6,7 @@ package daemon
 
 import (
 	"bufio"
+	"context"
 	"crypto/rand"
 	"encoding/json"
 	"errors"
@@ -96,9 +97,14 @@ type Daemon struct {
 	// number they went out with.
 	asks        map[int64]chan proto.BrowserAnswer
 	lastAsk     int64
-	browserRecs map[string]*browserRecording
-	arenas      []*proto.Arena
-	mergeLanes  []*proto.MergeLane
+	browserRecs    map[string]*browserRecording
+	arenas         []*proto.Arena
+	mergeLanes     []*proto.MergeLane
+	pathClaims     []*proto.PathClaim
+	checkpoints    []*proto.Checkpoint
+	factoryRuns    []*proto.FactoryRun
+	factoryCancels map[string]context.CancelFunc
+	fetchIssue     func(ctx context.Context, repo string, issue int) (title, body string, err error)
 
 	viewed atomic.Pointer[string]
 	// theme is the colors of the client that last told them, which the

@@ -1,0 +1,89 @@
+api_version = 1
+id = "hyla.webgames"
+name = "Web Games"
+version = "1.0.0"
+description = "Built-in arcade pane featuring 2048, Snake, Tetris, Breakout, and Minesweeper plus custom web game URLs and automatic pause when coding agents finish."
+author = "Hyla"
+homepage = "https://github.com/smallnest/hyla/tree/master/plugins/webgames"
+
+[engines]
+hyla = ">=3.20.0"
+
+[permissions]
+scopes = ["ui.webview", "ui.slot", "session.read", "network"]
+
+[app]
+command = ["./bin/hyla-webgames"]
+transport = "stdio"
+auto_start = true
+
+[[actions]]
+id = "open"
+title = "Open Web Games Pane"
+menu = "Pane"
+shortcut = "CmdOrCtrl+Alt+W"
+palette = true
+remote = true
+target = "app"
+view = "webgames"
+
+[[ui.slots]]
+id = "webgames"
+mount = "pane"
+title = "Web Games"
+mode = "webview"
+host = "app"
+web_root = "web"
+entry = "index.html"
+order = 45
+
+[[settings]]
+key = "auto_pause"
+title = "Auto-pause when agent finishes"
+description = "Pause active games automatically when a coding agent finishes its turn"
+type = "boolean"
+default = true
+
+[[settings]]
+key = "default_game"
+title = "Default game"
+description = "Game selected when opening a fresh Web Games pane"
+type = "select"
+default = "2048"
+options = ["2048", "snake", "tetris", "breakout", "minesweeper"]
+
+[i18n.zh-Hans]
+name = "网页游戏"
+description = "内置网页游戏窗格：支持 2048、贪吃蛇、俄罗斯方块、打砖块和扫雷，支持自定义游戏网址收藏及编码 Agent 完成时自动暂停。"
+
+[i18n.zh-Hans.actions]
+open = "打开网页游戏窗格"
+
+[i18n.zh-Hans.slots]
+webgames = "网页游戏"
+
+[i18n.zh-Hans.settings.auto_pause]
+title = "Agent 完成时自动暂停"
+description = "当编码智能体结束本轮输出时自动暂停当前游戏"
+
+[i18n.zh-Hans.settings.default_game]
+title = "默认游戏"
+description = "新建网页游戏窗格时默认打开的游戏"
+
+[i18n.ja]
+name = "ウェブゲーム"
+description = "2048、スネーク、テトリス、ブロック崩し、マインスイーパーを内蔵し、カスタムゲーム URL の保存やエージェント完了時の自動一時停止に対応したペイン。"
+
+[i18n.ja.actions]
+open = "ウェブゲームペインを開く"
+
+[i18n.ja.slots]
+webgames = "ウェブゲーム"
+
+[i18n.ja.settings.auto_pause]
+title = "エージェント完了時に自動一時停止"
+description = "コーディングエージェントがターンを終えるとゲームを自動で一時停止します"
+
+[i18n.ja.settings.default_game]
+title = "既定のゲーム"
+description = "新しいウェブゲームペインを開いたときの初期ゲーム"

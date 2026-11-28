@@ -18,6 +18,7 @@ import (
 	"hyla/internal/platform"
 	"hyla/internal/proto"
 	"hyla/internal/settings"
+	"hyla/internal/ui/controls"
 	"hyla/internal/ui/glyph"
 	"hyla/internal/ui/paints"
 	"hyla/internal/ui/settings/kit"
@@ -46,8 +47,24 @@ type App interface {
 	TermFamily() string
 	// Update runs fn on the main thread.
 	Update(fn func())
+	// Main runs fn on the UI main loop.
+	Main(fn func())
 	// Toast tells a failure.
 	Toast(msg string)
+}
+
+// DenyAsk holds the modal state for "Deny & Teach": reverting a hunk and
+// persisting an avoidance rule into AGENTS.md or .hyla/rules.md.
+type DenyAsk struct {
+	Open     bool
+	PaneID   string
+	Dir      string
+	File     string
+	Reason   string
+	Dest     string // "agents" or "hyla"
+	Busy     bool
+	Err      string
+	OnRevert func()
 }
 
 // State is the Changes view's: the files changed since a base, each with
@@ -81,6 +98,8 @@ type State struct {
 	// appearance or the terminals' themes change.
 	Theme    *editor.Theme
 	ThemeKey string
+	// Deny holds the open Deny & Teach dialog state, if any.
+	Deny *DenyAsk
 }
 
 // File is a changed file's diff since a base.
@@ -681,8 +700,118 @@ func diffOptions(x App, c *ui.Context, pal *theme.Palette, s *proto.Session, sf 
 			if hunkButton(c, "keep", glyph.Of("lucide-check"), locales.ChangesKeep(), locales.ChangesKeepTip(), pal) {
 				h.Keep()
 			}
+			if hunkButton(c, "deny", glyph.Deny, locales.ChangesDenyTeach(), locales.ChangesDenyTip(), pal) {
+				x.ChangesState().Deny = &DenyAsk{
+					Open:     true,
+					PaneID:   sf.Pane,
+					Dir:      Dir(x, s),
+					File:     sf.F.Path,
+					Dest:     "agents",
+					OnRevert: func() { h.Revert(); writeBack(x, sf) },
+				}
+			}
 		})
 	}
+}
+
+// DenyView renders the "Deny & Teach" modal when x.ChangesState().Deny is active.
+func DenyView(x App, c *ui.Context, pal *theme.Palette) {
+	ch := x.ChangesState()
+	d := ch.Deny
+	if d == nil {
+		return
+	}
+	if d.Dest == "" {
+		d.Dest = "agents"
+	}
+	ui.DialogBase(c.Key("deny-teach"), &d.Open, func(backdrop, panel ui.Element) {
+		backdrop.Background(pal.Overlay)
+		style.Floating(panel.Width(520).Padding(22).Gap(10).Radius(14).Background(pal.Popover), pal).
+			Label(locales.ChangesDenyTitle())
+
+		ui.Column(c.Key("dt-hdr")).Gap(3).Children(func() {
+			ui.Text(c, locales.ChangesDenyTitle()).FontSize(15).FontWeight(650).TextColor(pal.Text)
+			ui.Text(c, locales.ChangesDenySubtitle()).FontSize(12.5).TextColor(pal.TextMuted).LineHeight(1.35)
+			if d.File != "" {
+				ui.Text(c, d.File).FontSize(11.5).TextColor(pal.TextFaint).SingleLine().Ellipsis("…")
+			}
+		})
+
+		submit := false
+		rIn := controls.TextField(c, "dt-reason", &d.Reason, locales.ChangesDenyReasonPlaceholder(), 0, pal)
+		rIn.AutoFocus()
+		if rIn.Submitted() {
+			submit = true
+		}
+
+		ui.Row(c.Key("dt-dest")).AlignItems(ui.Center).Gap(8).Children(func() {
+			kit.Segmented(c, "dt-dest-seg", &d.Dest,
+				[]string{"agents", "hyla"},
+				[]string{locales.ChangesDenyDestAgents(), locales.ChangesDenyDestHyla()},
+			)
+		})
+
+		if d.Err != "" {
+			ui.Text(c, d.Err).FontSize(12).TextColor(pal.Danger)
+		}
+
+		ui.Row(c.Key("dt-actions")).Gap(8).AlignItems(ui.Center).Children(func() {
+			ui.Spacer(c)
+			if style.Button(c, "dt-cancel", locales.CommonCancel(), "esc", false, pal) {
+				d.Open = false
+			}
+			canSave := !d.Busy && strings.TrimSpace(d.Reason) != ""
+			if (style.ButtonDisabled(c, "dt-confirm", locales.ChangesDenyConfirm(), "", true, !canSave, pal) || (submit && canSave)) {
+				submitDenyRule(x, ch, d)
+			}
+		})
+	})
+	if !d.Open {
+		ch.Deny = nil
+	}
+}
+
+func submitDenyRule(x App, ch *State, d *DenyAsk) {
+	reason := strings.TrimSpace(d.Reason)
+	if reason == "" || d.Busy {
+		return
+	}
+	if d.OnRevert != nil {
+		d.OnRevert()
+		d.OnRevert = nil
+	}
+	h := x.HostOf(d.PaneID)
+	if h == nil || h.Client == nil {
+		d.Err = locales.HostNotConnected("local")
+		return
+	}
+	cl := h.Client
+	d.Busy = true
+	d.Err = ""
+	params := proto.RuleAddParams{
+		Target: d.PaneID,
+		Dir:    d.Dir,
+		File:   d.File,
+		Reason: reason,
+		Dest:   d.Dest,
+	}
+	go func() {
+		var res proto.RuleAddResult
+		err := cl.Call("rule.add", params, &res)
+		x.Main(func() {
+			if ch.Deny != d {
+				return
+			}
+			d.Busy = false
+			if err != nil {
+				d.Err = err.Error()
+				return
+			}
+			d.Open = false
+			ch.Deny = nil
+			x.Toast(locales.ChangesDenySaved(res.Path))
+		})
+	}()
 }
 
 // separator is a diff's unchanged lines collapsed between its changes:

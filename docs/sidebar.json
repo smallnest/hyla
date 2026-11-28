@@ -25,6 +25,7 @@
       "agents",
       "arena",
       "merge-queue",
+      "factory",
       "feishu",
       "plugin-tutorial",
       "plugins"

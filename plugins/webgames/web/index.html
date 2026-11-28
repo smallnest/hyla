@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Hyla Web Games</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #131620;
+    --panel: #1b202e;
+    --card: #242a3b;
+    --text: #eef1f7;
+    --muted: #98a2b3;
+    --border: rgba(255,255,255,0.09);
+    --accent: #6b93ff;
+    --green: #30d158;
+    --amber: #f0a33a;
+    --danger: #ff6961;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f4f5f8;
+      --panel: #ffffff;
+      --card: #eef0f5;
+      --text: #1d1d1f;
+      --muted: #6e6e78;
+      --border: rgba(0,0,0,0.08);
+      --accent: #3b6cf6;
+      --green: #248a3d;
+      --amber: #c27b0f;
+      --danger: #d93a35;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column;
+  }
+  header {
+    display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+    background: var(--panel); border-bottom: 1px solid var(--border); flex-wrap: wrap;
+  }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+  button {
+    border: 1px solid var(--border); background: var(--card); color: var(--text);
+    padding: 6px 11px; border-radius: 8px; font-size: 12.5px; font-weight: 500; cursor: pointer;
+  }
+  button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .stats { font-size: 12px; color: var(--muted); display: flex; gap: 12px; align-items: center; }
+  main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 14px; position: relative; overflow: auto; }
+  .stage {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+    padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 12px;
+    max-width: 100%; max-height: 100%;
+  }
+  canvas { background: #0d1018; border-radius: 10px; border: 1px solid var(--border); display: block; outline: none; }
+  .grid2048 { display: grid; grid-template-columns: repeat(4, 72px); gap: 8px; background: var(--card); padding: 10px; border-radius: 10px; }
+  .cell2048 {
+    width: 72px; height: 72px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    font-size: 22px; font-weight: 700; background: rgba(128,128,140,0.16);
+  }
+  .mines { display: grid; grid-template-columns: repeat(9, 32px); gap: 3px; }
+  .mcell {
+    width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; background: var(--card); cursor: pointer; user-select: none;
+    border: 1px solid var(--border);
+  }
+  .mcell.open { background: transparent; cursor: default; }
+  .custom-box { width: min(680px, 92vw); display: flex; flex-direction: column; gap: 12px; }
+  .row { display: flex; gap: 8px; }
+  input {
+    flex: 1; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--card); color: var(--text); font-size: 13px;
+  }
+  .bookmarks { display: flex; flex-wrap: wrap; gap: 8px; }
+  .bm { display: flex; align-items: center; gap: 6px; background: var(--card); padding: 5px 10px; border-radius: 8px; border: 1px solid var(--border); font-size: 12.5px; }
+  iframe.webframe { width: min(760px, 92vw); height: 420px; border: 1px solid var(--border); border-radius: 10px; background: #fff; }
+  .overlay {
+    position: absolute; inset: 0; background: rgba(10,12,18,0.72); backdrop-filter: blur(4px);
+    display: none; align-items: center; justify-content: center; z-index: 20;
+  }
+  .overlay.show { display: flex; }
+  .notice {
+    background: var(--panel); border: 1px solid var(--amber); border-radius: 14px;
+    padding: 20px 24px; text-align: center; display: flex; flex-direction: column; gap: 12px; max-width: 360px;
+  }
+  .badge { font-size: 12px; padding: 3px 10px; border-radius: 999px; background: rgba(240,163,58,0.18); color: var(--amber); align-self: center; font-weight: 600; }
+  .hint { font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <div class="tabs" id="tabs"></div>
+  <div class="stats">
+    <span id="scoreLabel">Score: 0</span>
+    <span id="bestLabel">Best: 0</span>
+    <button id="pauseBtn">Pause</button>
+    <button id="restartBtn" class="primary">New Game</button>
+  </div>
+</header>
+<main>
+  <div class="stage" id="stage"></div>
+  <div class="overlay" id="overlay">
+    <div class="notice">
+      <div class="badge" id="pauseBadge">Agent Finished · Auto-Paused</div>
+      <div id="pauseTitle" style="font-size:15px;font-weight:600;">Your coding agent finished its turn</div>
+      <button class="primary" id="resumeBtn">Resume Game</button>
+    </div>
+  </div>
+</main>
+<script>
+(() => {
+  const i18n = {
+    en: {
+      games: { "2048": "2048", snake: "Snake", tetris: "Tetris", breakout: "Breakout", minesweeper: "Minesweeper", custom: "Custom URL" },
+      score: "Score", best: "Best", pause: "Pause", resume: "Resume", newGame: "New Game",
+      autoBadge: "Agent Finished · Auto-Paused", autoTitle: "Your coding agent finished its turn — paused for you",
+      pausedTitle: "Game Paused", add: "Add", open: "Open", urlPh: "Enter web game URL (https://...)", namePh: "Title (optional)",
+      hint2048: "Use Arrow keys or WASD to merge tiles",
+      hintSnake: "Use Arrow keys / WASD to steer",
+      hintTetris: "Left/Right move · Up rotate · Down soft drop · Space hard drop",
+      hintBreakout: "Move mouse or Left/Right arrows to bounce the ball",
+      hintMines: "Left click reveal · Right click flag"
+    },
+    "zh-Hans": {
+      games: { "2048": "2048", snake: "贪吃蛇", tetris: "俄罗斯方块", breakout: "打砖块", minesweeper: "扫雷", custom: "自定义网址" },
+      score: "得分", best: "最高分", pause: "暂停", resume: "继续游戏", newGame: "重开一局",
+      autoBadge: "Agent 已完成 · 自动暂停", autoTitle: "旁边的编程智能体已停下等待你确认，已自动暂停游戏",
+      pausedTitle: "游戏已暂停", add: "收藏", open: "打开", urlPh: "输入网页游戏链接 (https://...)", namePh: "名称（可选）",
+      hint2048: "方向键或 WASD 滑动合并方块",
+      hintSnake: "方向键或 WASD 控制移动",
+      hintTetris: "左右移动 · 上旋转 · 下加速 · 空格直落",
+      hintBreakout: "移动鼠标或左右方向键接球消砖",
+      hintMines: "左键翻开 · 右键插旗标记地雷"
+    },
+    ja: {
+      games: { "2048": "2048", snake: "スネーク", tetris: "テトリス", breakout: "ブロック崩し", minesweeper: "マインスイーパー", custom: "カスタム URL" },
+      score: "スコア", best: "ベスト", pause: "一時停止", resume: "再開", newGame: "新規ゲーム",
+      autoBadge: "エージェント完了 · 自動停止", autoTitle: "コーディングエージェントが完了したため一時停止しました",
+      pausedTitle: "一時停止中", add: "保存", open: "開く", urlPh: "Web ゲーム URL (https://...)", namePh: "タイトル（任意）",
+      hint2048: "矢印キーまたは WASD でタイルを合体",
+      hintSnake: "矢印キー / WASD で操作",
+      hintTetris: "左右移動 · 上回転 · 下落下 · Space ハードドロップ",
+      hintBreakout: "マウスまたは左右キーでパドルを操作",
+      hintMines: "左クリックで開く · 右クリックで旗"
+    }
+  };
+
+  let locale = "en";
+  let storeState = { highScores: {}, gamesPlayed: 0, bookmarks: [], settings: { autoPause: true, defaultGame: "2048" } };
+  let activeGame = "2048";
+  let currentScore = 0;
+  let paused = false;
+  let cleanupGame = null;
+  let customURL = "";
+
+  const t = () => i18n[locale] || i18n.en;
+  async function rpc(method, params) {
+    if (window.hyla && typeof window.hyla.rpc === "function") {
+      return await window.hyla.rpc(method, params || {});
+    }
+    return { locale, state: storeState };
+  }
+
+  function updateLabels() {
+    const L = t();
+    document.getElementById("scoreLabel").textContent = `${L.score}: ${currentScore}`;
+    document.getElementById("bestLabel").textContent = `${L.best}: ${storeState.highScores[activeGame] || 0}`;
+    document.getElementById("pauseBtn").textContent = paused ? L.resume : L.pause;
+    document.getElementById("restartBtn").textContent = L.newGame;
+    document.getElementById("resumeBtn").textContent = L.resume;
+  }
+
+  function setScore(v) {
+    currentScore = v;
+    if (v > (storeState.highScores[activeGame] || 0)) {
+      storeState.highScores[activeGame] = v;
+    }
+    updateLabels();
+  }
+
+  function finishGame(finalScore) {
+    rpc("webgames.score", { game: activeGame, score: finalScore }).then((res) => {
+      if (res && res.state) storeState = res.state;
+      updateLabels();
+    }).catch(() => {});
+  }
+
+  function showPause(isAuto) {
+    const L = t();
+    paused = true;
+    document.getElementById("pauseBadge").textContent = isAuto ? L.autoBadge : L.pause;
+    document.getElementById("pauseBadge").style.display = isAuto ? "inline-block" : "none";
+    document.getElementById("pauseTitle").textContent = isAuto ? L.autoTitle : L.pausedTitle;
+    document.getElementById("overlay").classList.add("show");
+    updateLabels();
+  }
+
+  function hidePause() {
+    paused = false;
+    document.getElementById("overlay").classList.remove("show");
+    updateLabels();
+  }
+
+  function renderTabs() {
+    const L = t();
+    const el = document.getElementById("tabs");
+    el.innerHTML = "";
+    ["2048", "snake", "tetris", "breakout", "minesweeper", "custom"].forEach((id) => {
+      const b = document.createElement("button");
+      b.textContent = L.games[id];
+      if (id === activeGame) b.classList.add("active");
+      b.onclick = () => { activeGame = id; hidePause(); renderTabs(); startActiveGame(); };
+      el.appendChild(b);
+    });
+  }
+
+  function startActiveGame() {
+    if (cleanupGame) { cleanupGame(); cleanupGame = null; }
+    currentScore = 0;
+    updateLabels();
+    const stage = document.getElementById("stage");
+    stage.innerHTML = "";
+    if (activeGame === "2048") cleanupGame = run2048(stage);
+    else if (activeGame === "snake") cleanupGame = runSnake(stage);
+    else if (activeGame === "tetris") cleanupGame = runTetris(stage);
+    else if (activeGame === "breakout") cleanupGame = runBreakout(stage);
+    else if (activeGame === "minesweeper") cleanupGame = runMinesweeper(stage);
+    else cleanupGame = renderCustomURL(stage);
+  }
+
+  function run2048(stage) {
+    const grid = Array.from({ length: 4 }, () => Array(4).fill(0));
+    const colors = { 2:"#3c4252",4:"#4a5268",8:"#d97706",16:"#ea580c",32:"#dc2626",64:"#b91c1c",128:"#059669",256:"#0d9488",512:"#2563eb",1024:"#7c3aed",2048:"#f59e0b" };
+    const wrap = document.createElement("div"); wrap.className = "grid2048";
+    const hint = document.createElement("div"); hint.className = "hint"; hint.textContent = t().hint2048;
+    stage.append(wrap, hint);
+
+    function spawn() {
+      const empty = [];
+      for (let r=0;r<4;r++) for (let c=0;c<4;c++) if (!grid[r][c]) empty.push([r,c]);
+      if (!empty.length) return;
+      const [r,c] = empty[Math.floor(Math.random()*empty.length)];
+      grid[r][c] = Math.random() < 0.9 ? 2 : 4;
+    }
+    function draw() {
+      wrap.innerHTML = "";
+      for (let r=0;r<4;r++) for (let c=0;c<4;c++) {
+        const d = document.createElement("div"); d.className = "cell2048";
+        const v = grid[r][c];
+        if (v) { d.textContent = v; d.style.background = colors[v] || "#f59e0b"; d.style.color = "#fff"; }
+        wrap.appendChild(d);
+      }
+    }
+    function slide(row) {
+      let arr = row.filter(Boolean), gained = 0;
+      for (let i=0;i<arr.length-1;i++) {
+        if (arr[i] === arr[i+1]) { arr[i] *= 2; gained += arr[i]; arr[i+1] = 0; }
+      }
+      arr = arr.filter(Boolean);
+      while (arr.length < 4) arr.push(0);
+      return [arr, gained];
+    }
+    function move(dir) {
+      if (paused) return;
+      const before = JSON.stringify(grid);
+      let gained = 0;
+      for (let i=0;i<4;i++) {
+        let line = [];
+        for (let j=0;j<4;j++) line.push(dir<2 ? (dir===0 ? grid[i][j] : grid[i][3-j]) : (dir===2 ? grid[j][i] : grid[3-j][i]));
+        const [out, g] = slide(line); gained += g;
+        for (let j=0;j<4;j++) {
+          if (dir===0) grid[i][j]=out[j];
+          else if (dir===1) grid[i][3-j]=out[j];
+          else if (dir===2) grid[j][i]=out[j];
+          else grid[3-j][i]=out[j];
+        }
+      }
+      if (JSON.stringify(grid) !== before) {
+        setScore(currentScore + gained);
+        spawn(); draw();
+        finishGame(currentScore);
+      }
+    }
+    const onKey = (e) => {
+      const m = { ArrowLeft:0, a:0, A:0, ArrowRight:1, d:1, D:1, ArrowUp:2, w:2, W:2, ArrowDown:3, s:3, S:3 };
+      if (e.key in m) { e.preventDefault(); move(m[e.key]); }
+    };
+    window.addEventListener("keydown", onKey);
+    spawn(); spawn(); draw();
+    return () => window.removeEventListener("keydown", onKey);
+  }
+
+  function runSnake(stage) {
+    const cv = document.createElement("canvas"); cv.width = 400; cv.height = 400;
+    const hint = document.createElement("div"); hint.className = "hint"; hint.textContent = t().hintSnake;
+    stage.append(cv, hint);
+    const ctx = cv.getContext("2d"), N = 20, S = 20;
+    let snake = [{x:10,y:10},{x:9,y:10},{x:8,y:10}], dir = {x:1,y:0}, nextDir = {x:1,y:0};
+    let food = {x:15,y:10}, alive = true;
+    const onKey = (e) => {
+      const m = { ArrowUp:[0,-1], w:[0,-1], ArrowDown:[0,1], s:[0,1], ArrowLeft:[-1,0], a:[-1,0], ArrowRight:[1,0], d:[1,0] };
+      const v = m[e.key];
+      if (v && (v[0] !== -dir.x || v[1] !== -dir.y)) { e.preventDefault(); nextDir = {x:v[0],y:v[1]}; }
+    };
+    window.addEventListener("keydown", onKey);
+    const timer = setInterval(() => {
+      if (paused || !alive) return;
+      dir = nextDir;
+      const head = {x: snake[0].x + dir.x, y: snake[0].y + dir.y};
+      if (head.x<0 || head.x>=N || head.y<0 || head.y>=N || snake.some(s=>s.x===head.x&&s.y===head.y)) {
+        alive = false; finishGame(currentScore); return;
+      }
+      snake.unshift(head);
+      if (head.x === food.x && head.y === food.y) {
+        setScore(currentScore + 10);
+        food = {x: Math.floor(Math.random()*N), y: Math.floor(Math.random()*N)};
+      } else snake.pop();
+      ctx.fillStyle = "#0d1018"; ctx.fillRect(0,0,400,400);
+      ctx.fillStyle = "#f0a33a"; ctx.fillRect(food.x*S+2, food.y*S+2, S-4, S-4);
+      snake.forEach((p, idx) => { ctx.fillStyle = idx===0 ? "#30d158" : "#248a3d"; ctx.fillRect(p.x*S+1, p.y*S+1, S-2, S-2); });
+    }, 115);
+    return () => { clearInterval(timer); window.removeEventListener("keydown", onKey); };
+  }
+
+  function runTetris(stage) {
+    const cv = document.createElement("canvas"); cv.width = 240; cv.height = 420;
+    const hint = document.createElement("div"); hint.className = "hint"; hint.textContent = t().hintTetris;
+    stage.append(cv, hint);
+    const ctx = cv.getContext("2d"), W = 10, H = 20, SZ = 21;
+    const shapes = [[[1,1,1,1]],[[1,1],[1,1]],[[0,1,0],[1,1,1]],[[1,0,0],[1,1,1]],[[0,0,1],[1,1,1]],[[1,1,0],[0,1,1]],[[0,1,1],[1,1,0]]];
+    const colors = ["#38bdf8","#facc15","#a855f7","#fb923c","#3b82f6","#ef4444","#22c55e"];
+    const board = Array.from({length:H}, ()=>Array(W).fill(0));
+    let cur = null, alive = true;
+    function spawn() {
+      const idx = Math.floor(Math.random()*shapes.length);
+      cur = { m: shapes[idx].map(r=>[...r]), c: idx+1, x: 3, y: 0 };
+      if (hit(cur.m, cur.x, cur.y)) { alive = false; finishGame(currentScore); }
+    }
+    function hit(m, x, y) {
+      for (let r=0;r<m.length;r++) for (let c=0;c<m[r].length;c++) if (m[r][c]) {
+        const nx = x+c, ny = y+r;
+        if (nx<0 || nx>=W || ny>=H || (ny>=0 && board[ny][nx])) return true;
+      }
+      return false;
+    }
+    function merge() {
+      cur.m.forEach((r,ri)=>r.forEach((v,ci)=>{ if(v && cur.y+ri>=0) board[cur.y+ri][cur.x+ci]=cur.c; }));
+      let cleared = 0;
+      for (let r=H-1;r>=0;r--) if (board[r].every(Boolean)) { board.splice(r,1); board.unshift(Array(W).fill(0)); cleared++; r++; }
+      if (cleared) setScore(currentScore + cleared * 100);
+      spawn();
+    }
+    function rot(m) { return m[0].map((_,i)=>m.map(r=>r[i]).reverse()); }
+    function draw() {
+      ctx.fillStyle="#0d1018"; ctx.fillRect(0,0,240,420);
+      for (let r=0;r<H;r++) for (let c=0;c<W;c++) if (board[r][c]) {
+        ctx.fillStyle=colors[board[r][c]-1]; ctx.fillRect(c*SZ+15, r*SZ, SZ-2, SZ-2);
+      }
+      if (cur) cur.m.forEach((r,ri)=>r.forEach((v,ci)=>{ if(v) { ctx.fillStyle=colors[cur.c-1]; ctx.fillRect((cur.x+ci)*SZ+15,(cur.y+ri)*SZ,SZ-2,SZ-2); }}));
+    }
+    const onKey = (e) => {
+      if (paused || !alive || !cur) return;
+      if (e.key==="ArrowLeft" && !hit(cur.m,cur.x-1,cur.y)) cur.x--;
+      else if (e.key==="ArrowRight" && !hit(cur.m,cur.x+1,cur.y)) cur.x++;
+      else if (e.key==="ArrowDown" && !hit(cur.m,cur.x,cur.y+1)) cur.y++;
+      else if (e.key==="ArrowUp") { const rm=rot(cur.m); if (!hit(rm,cur.x,cur.y)) cur.m=rm; }
+      else if (e.key===" ") { while(!hit(cur.m,cur.x,cur.y+1)) cur.y++; merge(); }
+      else return;
+      e.preventDefault(); draw();
+    };
+    window.addEventListener("keydown", onKey);
+    spawn(); draw();
+    const timer = setInterval(() => {
+      if (paused || !alive) return;
+      if (!hit(cur.m, cur.x, cur.y+1)) cur.y++;
+      else merge();
+      draw();
+    }, 450);
+    return () => { clearInterval(timer); window.removeEventListener("keydown", onKey); };
+  }
+
+  function runBreakout(stage) {
+    const cv = document.createElement("canvas"); cv.width = 440; cv.height = 340;
+    const hint = document.createElement("div"); hint.className = "hint"; hint.textContent = t().hintBreakout;
+    stage.append(cv, hint);
+    const ctx = cv.getContext("2d");
+    let px = 180, pw = 80, bx = 220, by = 220, vx = 3, vy = -3;
+    const bricks = [];
+    for (let r=0;r<4;r++) for (let c=0;c<7;c++) bricks.push({x:22+c*58,y:32+r*24,w:50,h:14,alive:true,color:["#6b93ff","#30d158","#f0a33a","#ff6961"][r]});
+    const onMove = (e) => { const rect=cv.getBoundingClientRect(); px = Math.max(0, Math.min(440-pw, e.clientX-rect.left-pw/2)); };
+    const onKey = (e) => { if (e.key==="ArrowLeft") px=Math.max(0,px-24); if (e.key==="ArrowRight") px=Math.min(440-pw,px+24); };
+    cv.addEventListener("mousemove", onMove); window.addEventListener("keydown", onKey);
+    let raf;
+    function step() {
+      if (!paused) {
+        bx += vx; by += vy;
+        if (bx<6 || bx>434) vx = -vx;
+        if (by<6) vy = -vy;
+        if (by>=314 && by<=324 && bx>=px && bx<=px+pw) vy = -Math.abs(vy);
+        bricks.forEach(b => {
+          if (b.alive && bx>=b.x && bx<=b.x+b.w && by>=b.y && by<=b.y+b.h) { b.alive=false; vy=-vy; setScore(currentScore+10); }
+        });
+        if (by>345) { finishGame(currentScore); bx=220; by=220; vy=-3; }
+      }
+      ctx.fillStyle="#0d1018"; ctx.fillRect(0,0,440,340);
+      bricks.forEach(b => { if (b.alive) { ctx.fillStyle=b.color; ctx.fillRect(b.x,b.y,b.w,b.h); }});
+      ctx.fillStyle="#eef1f7"; ctx.fillRect(px,318,pw,10);
+      ctx.beginPath(); ctx.arc(bx,by,6,0,Math.PI*2); ctx.fillStyle="#f0a33a"; ctx.fill();
+      raf = requestAnimationFrame(step);
+    }
+    raf = requestAnimationFrame(step);
+    return () => { cancelAnimationFrame(raf); cv.removeEventListener("mousemove", onMove); window.removeEventListener("keydown", onKey); };
+  }
+
+  function runMinesweeper(stage) {
+    const N = 9, MINES = 10;
+    const grid = Array.from({length:N}, ()=>Array.from({length:N}, ()=>({mine:false,open:false,flag:false,adj:0})));
+    let placed = 0, ended = false;
+    while (placed < MINES) {
+      const r=Math.floor(Math.random()*N), c=Math.floor(Math.random()*N);
+      if (!grid[r][c].mine) { grid[r][c].mine=true; placed++; }
+    }
+    for (let r=0;r<N;r++) for (let c=0;c<N;c++) {
+      let k=0;
+      for (let dr=-1;dr<=1;dr++) for (let dc=-1;dc<=1;dc++) {
+        const nr=r+dr, nc=c+dc;
+        if (nr>=0 && nr<N && nc>=0 && nc<N && grid[nr][nc].mine) k++;
+      }
+      grid[r][c].adj = k;
+    }
+    const wrap = document.createElement("div"); wrap.className = "mines";
+    const hint = document.createElement("div"); hint.className = "hint"; hint.textContent = t().hintMines;
+    stage.append(wrap, hint);
+    function reveal(r,c) {
+      const cell = grid[r][c];
+      if (cell.open || cell.flag || ended) return;
+      cell.open = true;
+      if (cell.mine) { ended = true; finishGame(currentScore); return; }
+      setScore(currentScore + 5);
+      if (cell.adj === 0) for (let dr=-1;dr<=1;dr++) for (let dc=-1;dc<=1;dc++) {
+        const nr=r+dr, nc=c+dc;
+        if (nr>=0 && nr<N && nc>=0 && nc<N) reveal(nr,nc);
+      }
+    }
+    function draw() {
+      wrap.innerHTML = "";
+      for (let r=0;r<N;r++) for (let c=0;c<N;c++) {
+        const cell = grid[r][c], d = document.createElement("div");
+        d.className = "mcell" + (cell.open ? " open" : "");
+        if (cell.open) d.textContent = cell.mine ? "💣" : (cell.adj || "");
+        else if (cell.flag) d.textContent = "🚩";
+        d.onclick = () => { if (!paused) { reveal(r,c); draw(); } };
+        d.oncontextmenu = (e) => { e.preventDefault(); if (!paused && !cell.open) { cell.flag=!cell.flag; draw(); } };
+        wrap.appendChild(d);
+      }
+    }
+    draw();
+    return () => {};
+  }
+
+  function renderCustomURL(stage) {
+    const L = t();
+    const box = document.createElement("div"); box.className = "custom-box";
+    const row = document.createElement("div"); row.className = "row";
+    const urlIn = document.createElement("input"); urlIn.placeholder = L.urlPh; urlIn.value = customURL;
+    const nameIn = document.createElement("input"); nameIn.placeholder = L.namePh; nameIn.style.maxWidth = "160px";
+    const openBtn = document.createElement("button"); openBtn.textContent = L.open; openBtn.className = "primary";
+    const saveBtn = document.createElement("button"); saveBtn.textContent = L.add;
+    row.append(urlIn, nameIn, openBtn, saveBtn);
+    const bmWrap = document.createElement("div"); bmWrap.className = "bookmarks";
+    const frame = document.createElement("iframe"); frame.className = "webframe";
+    if (customURL) frame.src = customURL;
+    openBtn.onclick = () => {
+      let u = urlIn.value.trim();
+      if (!u) return;
+      if (!u.startsWith("http://") && !u.startsWith("https://")) u = "https://" + u;
+      customURL = u; frame.src = u;
+    };
+    saveBtn.onclick = () => {
+      const u = urlIn.value.trim(); if (!u) return;
+      rpc("webgames.bookmark.add", { name: nameIn.value.trim(), url: u }).then((res) => {
+        if (res && res.state) storeState = res.state;
+        renderBookmarks();
+      });
+    };
+    function renderBookmarks() {
+      bmWrap.innerHTML = "";
+      (storeState.bookmarks || []).forEach((bm) => {
+        const chip = document.createElement("div"); chip.className = "bm";
+        const link = document.createElement("span"); link.textContent = bm.name; link.style.cursor = "pointer";
+        link.onclick = () => { customURL = bm.URL; urlIn.value = bm.URL; frame.src = bm.URL; };
+        const del = document.createElement("span"); del.textContent = "×"; del.style.cursor = "pointer"; del.style.color = "var(--muted)";
+        del.onclick = () => rpc("webgames.bookmark.remove", { id: bm.ID }).then((res) => { if (res && res.state) storeState = res.state; renderBookmarks(); });
+        chip.append(link, del); bmWrap.appendChild(chip);
+      });
+    }
+    renderBookmarks();
+    box.append(row, bmWrap, frame);
+    stage.appendChild(box);
+    return () => {};
+  }
+
+  document.getElementById("pauseBtn").onclick = () => paused ? hidePause() : showPause(false);
+  document.getElementById("resumeBtn").onclick = hidePause;
+  document.getElementById("restartBtn").onclick = () => { hidePause(); startActiveGame(); };
+
+  if (window.hyla && typeof window.hyla.on === "function") {
+    window.hyla.on("webgames.autoPause", () => showPause(true));
+  }
+
+  rpc("webgames.bootstrap", {}).then((res) => {
+    if (res && res.locale) locale = res.locale in i18n ? res.locale : "en";
+    if (res && res.state) {
+      storeState = res.state;
+      activeGame = (res.state.settings && res.state.settings.defaultGame) || "2048";
+    }
+    renderTabs(); startActiveGame();
+  }).catch(() => {
+    renderTabs(); startActiveGame();
+  });
+})();
+</script>
+</body>
+</html>

@@ -1703,4 +1703,178 @@ type (
 		ID     string `json:"id"`
 		Reason string `json:"reason,omitempty"`
 	}
+
+	// PathClaim reserves a file, directory prefix, or glob pattern for an agent pane.
+	PathClaim struct {
+		ID        string `json:"id"`
+		Repo      string `json:"repo"`
+		Pattern   string `json:"pattern"`
+		Mode      string `json:"mode"` // "warn" or "block"
+		SessionID string `json:"sessionId,omitempty"`
+		PaneID    string `json:"paneId,omitempty"`
+		Agent     string `json:"agent,omitempty"`
+		Reason    string `json:"reason,omitempty"`
+		CreatedAt int64  `json:"createdAt"`
+		ExpiresAt int64  `json:"expiresAt,omitempty"`
+	}
+	PathClaimParams struct {
+		Target     string `json:"target,omitempty"` // pane or session ref
+		Repo       string `json:"repo,omitempty"`
+		Pattern    string `json:"pattern"`
+		Mode       string `json:"mode,omitempty"` // "warn" (default) or "block"
+		Reason     string `json:"reason,omitempty"`
+		TTLSeconds int64  `json:"ttlSeconds,omitempty"`
+	}
+	PathClaimReleaseParams struct {
+		ID string `json:"id"`
+	}
+	PathClaimListParams struct {
+		Repo string `json:"repo,omitempty"`
+	}
+	PathClaimCheckParams struct {
+		Pane   string `json:"pane,omitempty"`
+		Repo   string `json:"repo,omitempty"`
+		Path   string `json:"path"`
+		Tool   string `json:"tool,omitempty"`
+	}
+	PathClaimCheckResult struct {
+		Allowed   bool        `json:"allowed"`
+		Conflicts []PathClaim `json:"conflicts,omitempty"`
+		Message   string      `json:"message,omitempty"`
+	}
+	ClashCheckParams struct {
+		Repo     string   `json:"repo,omitempty"`
+		Base     string   `json:"base,omitempty"`
+		Branches []string `json:"branches,omitempty"`
+		CheckCmd string   `json:"checkCmd,omitempty"`
+	}
+	ClashCheckResult struct {
+		Passed        bool     `json:"passed"`
+		Base          string   `json:"base"`
+		Branches      []string `json:"branches"`
+		ConflictFiles []string `json:"conflictFiles,omitempty"`
+		CheckError    string   `json:"checkError,omitempty"`
+		DurationMs    int64    `json:"durationMs"`
+	}
+
+	// Checkpoint records a recoverable turn/manual git tree snapshot for time-travel.
+	Checkpoint struct {
+		ID             string `json:"id"`
+		SessionID      string `json:"sessionId,omitempty"`
+		PaneID         string `json:"paneId,omitempty"`
+		Agent          string `json:"agent,omitempty"`
+		AgentSessionID string `json:"agentSessionId,omitempty"`
+		Root           string `json:"root"`
+		Tree           string `json:"tree"`
+		Label          string `json:"label,omitempty"`
+		Auto           bool   `json:"auto,omitempty"`
+		At             int64  `json:"at"`
+	}
+	CheckpointListParams struct {
+		Target string `json:"target,omitempty"` // pane, session, or repo root
+		Limit  int    `json:"limit,omitempty"`
+	}
+	CheckpointCreateParams struct {
+		Target string `json:"target,omitempty"`
+		Label  string `json:"label,omitempty"`
+	}
+	CheckpointRestoreParams struct {
+		ID    string `json:"id"`
+		Force bool   `json:"force,omitempty"`
+	}
+	CheckpointRestoreResult struct {
+		Restored        Checkpoint `json:"restored"`
+		SafetyBackupID  string     `json:"safetyBackupId,omitempty"`
+	}
+	CheckpointForkParams struct {
+		ID     string `json:"id"`
+		Branch string `json:"branch,omitempty"`
+	}
+	CheckpointForkResult struct {
+		Session    Session    `json:"session"`
+		Checkpoint Checkpoint `json:"checkpoint"`
+		Branch     string     `json:"branch"`
+	}
+	RuleAddParams struct {
+		Target  string `json:"target,omitempty"` // pane/session or dir
+		Dir     string `json:"dir,omitempty"`
+		File    string `json:"file,omitempty"`
+		Reason  string `json:"reason"`
+		Snippet string `json:"snippet,omitempty"`
+		Dest    string `json:"dest,omitempty"` // "agents" (AGENTS.md) or "hyla" (.hyla/rules.md)
+	}
+	RuleAddResult struct {
+		Path    string `json:"path"`
+		Added   bool   `json:"added"`
+		Content string `json:"content"`
+	}
+
+	// FactoryTask tracks a single overnight autonomous task/issue run.
+	FactoryTask struct {
+		ID         string `json:"id"`
+		Issue      int    `json:"issue,omitempty"`
+		Title      string `json:"title,omitempty"`
+		Prompt     string `json:"prompt"`
+		Branch     string `json:"branch,omitempty"`
+		SessionID  string `json:"sessionId,omitempty"`
+		PaneID     string `json:"paneId,omitempty"`
+		Worktree   string `json:"worktree,omitempty"`
+		LaneID     string `json:"laneId,omitempty"`
+		Status     string `json:"status"` // "queued", "running", "verified", "failed", "tripped", "stopped"
+		TripReason string `json:"tripReason,omitempty"`
+		Error      string `json:"error,omitempty"`
+		StartedAt  int64  `json:"startedAt,omitempty"`
+		EndedAt    int64  `json:"endedAt,omitempty"`
+	}
+	FactoryRun struct {
+		ID              string        `json:"id"`
+		Repo            string        `json:"repo"`
+		Base            string        `json:"base"`
+		Agent           string        `json:"agent"`
+		CheckCmd        string        `json:"checkCmd,omitempty"`
+		FlowPath        string        `json:"flowPath,omitempty"`
+		FeishuChat      string        `json:"feishuChat,omitempty"`
+		BrowserPane     string        `json:"browserPane,omitempty"`
+		MaxParallel     int           `json:"maxParallel"`
+		MaxMinutes      int           `json:"maxMinutes"`
+		MaxOutputKB     int           `json:"maxOutputKb"`
+		MaxRepeatErrors int           `json:"maxRepeatErrors"`
+		AutoEnqueue     bool          `json:"autoEnqueue,omitempty"`
+		Status          string        `json:"status"` // "running", "done", "stopped"
+		CreatedAt       int64         `json:"createdAt"`
+		EndedAt         int64         `json:"endedAt,omitempty"`
+		Tasks           []FactoryTask `json:"tasks"`
+	}
+	FactoryStartParams struct {
+		Repo            string   `json:"repo,omitempty"`
+		Base            string   `json:"base,omitempty"`
+		Agent           string   `json:"agent,omitempty"`
+		Issues          []int    `json:"issues,omitempty"`
+		Tasks           []string `json:"tasks,omitempty"`
+		CheckCmd        string   `json:"checkCmd,omitempty"`
+		FlowPath        string   `json:"flowPath,omitempty"`
+		FeishuChat      string   `json:"feishuChat,omitempty"`
+		BrowserPane     string   `json:"browserPane,omitempty"`
+		MaxParallel     int      `json:"maxParallel,omitempty"`
+		MaxMinutes      int      `json:"maxMinutes,omitempty"`
+		MaxDurationMs   int64    `json:"maxDurationMs,omitempty"`
+		MaxOutputKB     int      `json:"maxOutputKb,omitempty"`
+		MaxRepeatErrors int      `json:"maxRepeatErrors,omitempty"`
+		AutoEnqueue     bool     `json:"autoEnqueue,omitempty"`
+	}
+	FactoryStatusParams struct {
+		ID string `json:"id"`
+	}
+	FactoryStopParams struct {
+		ID string `json:"id"`
+	}
+	FactoryDigestParams struct {
+		ID         string `json:"id"`
+		FeishuChat string `json:"feishuChat,omitempty"`
+	}
+	FactoryDigestResult struct {
+		RunID    string `json:"runId"`
+		Markdown string `json:"markdown"`
+		Sent     bool   `json:"sent,omitempty"`
+	}
 )

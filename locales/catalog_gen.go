@@ -11005,3 +11005,223 @@ func BrowserReplayFailedToast(ms string, steps string) string {
 func (msgs Messages) BrowserReplayFailedToast(ms string, steps string) string {
 	return Catalog.Format(msgs.locale, "browserReplayFailedToast", map[string]any{"ms": ms, "steps": steps})
 }
+
+// ChangesDenyTeach says "Deny & Teach"
+// in the language the app shows.
+func ChangesDenyTeach() string { return In(i18n.Locale()).ChangesDenyTeach() }
+
+// ChangesDenyTeach says "Deny & Teach"
+// in the language of msgs.
+func (msgs Messages) ChangesDenyTeach() string {
+	return Catalog.Format(msgs.locale, "changesDenyTeach", nil)
+}
+
+// ChangesDenyTip says "Revert this hunk and save a guardrail rule"
+// in the language the app shows.
+func ChangesDenyTip() string { return In(i18n.Locale()).ChangesDenyTip() }
+
+// ChangesDenyTip says "Revert this hunk and save a guardrail rule"
+// in the language of msgs.
+func (msgs Messages) ChangesDenyTip() string {
+	return Catalog.Format(msgs.locale, "changesDenyTip", nil)
+}
+
+// ChangesDenyTitle says "Deny & Teach Agents"
+// in the language the app shows.
+func ChangesDenyTitle() string { return In(i18n.Locale()).ChangesDenyTitle() }
+
+// ChangesDenyTitle says "Deny & Teach Agents"
+// in the language of msgs.
+func (msgs Messages) ChangesDenyTitle() string {
+	return Catalog.Format(msgs.locale, "changesDenyTitle", nil)
+}
+
+// ChangesDenySubtitle says "Revert this change and teach future agent runs not to repeat it."
+// in the language the app shows.
+func ChangesDenySubtitle() string { return In(i18n.Locale()).ChangesDenySubtitle() }
+
+// ChangesDenySubtitle says "Revert this change and teach future agent runs not to repeat it."
+// in the language of msgs.
+func (msgs Messages) ChangesDenySubtitle() string {
+	return Catalog.Format(msgs.locale, "changesDenySubtitle", nil)
+}
+
+// ChangesDenyReasonPlaceholder says "Why should agents avoid this? (e.g. Never bypass parameterized SQL)"
+// in the language the app shows.
+func ChangesDenyReasonPlaceholder() string { return In(i18n.Locale()).ChangesDenyReasonPlaceholder() }
+
+// ChangesDenyReasonPlaceholder says "Why should agents avoid this? (e.g. Never bypass parameterized SQL)"
+// in the language of msgs.
+func (msgs Messages) ChangesDenyReasonPlaceholder() string {
+	return Catalog.Format(msgs.locale, "changesDenyReasonPlaceholder", nil)
+}
+
+// ChangesDenyDestAgents says "AGENTS.md"
+// in the language the app shows.
+func ChangesDenyDestAgents() string { return In(i18n.Locale()).ChangesDenyDestAgents() }
+
+// ChangesDenyDestAgents says "AGENTS.md"
+// in the language of msgs.
+func (msgs Messages) ChangesDenyDestAgents() string {
+	return Catalog.Format(msgs.locale, "changesDenyDestAgents", nil)
+}
+
+// ChangesDenyDestHyla says ".hyla/rules.md"
+// in the language the app shows.
+func ChangesDenyDestHyla() string { return In(i18n.Locale()).ChangesDenyDestHyla() }
+
+// ChangesDenyDestHyla says ".hyla/rules.md"
+// in the language of msgs.
+func (msgs Messages) ChangesDenyDestHyla() string {
+	return Catalog.Format(msgs.locale, "changesDenyDestHyla", nil)
+}
+
+// ChangesDenyConfirm says "Revert & Save Rule"
+// in the language the app shows.
+func ChangesDenyConfirm() string { return In(i18n.Locale()).ChangesDenyConfirm() }
+
+// ChangesDenyConfirm says "Revert & Save Rule"
+// in the language of msgs.
+func (msgs Messages) ChangesDenyConfirm() string {
+	return Catalog.Format(msgs.locale, "changesDenyConfirm", nil)
+}
+
+// ChangesDenySaved says "Saved rule to {path}"
+// in the language the app shows.
+func ChangesDenySaved(path string) string { return In(i18n.Locale()).ChangesDenySaved(path) }
+
+// ChangesDenySaved says "Saved rule to {path}"
+// in the language of msgs.
+func (msgs Messages) ChangesDenySaved(path string) string {
+	return Catalog.Format(msgs.locale, "changesDenySaved", map[string]any{"path": path})
+}
+
+// ActionCheckpointOpen says "Time-Travel Checkpoints…"
+// in the language the app shows.
+func ActionCheckpointOpen() string { return In(i18n.Locale()).ActionCheckpointOpen() }
+
+// ActionCheckpointOpen says "Time-Travel Checkpoints…"
+// in the language of msgs.
+func (msgs Messages) ActionCheckpointOpen() string {
+	return Catalog.Format(msgs.locale, "actionCheckpointOpen", nil)
+}
+
+// CpTitle says "Time-Travel Checkpoints"
+// in the language the app shows.
+func CpTitle() string { return In(i18n.Locale()).CpTitle() }
+
+// CpTitle says "Time-Travel Checkpoints"
+// in the language of msgs.
+func (msgs Messages) CpTitle() string {
+	return Catalog.Format(msgs.locale, "cpTitle", nil)
+}
+
+// CpSubtitle says "Inspect per-turn snapshots, save manual checkpoints, roll back safely, or fork an experiment."
+// in the language the app shows.
+func CpSubtitle() string { return In(i18n.Locale()).CpSubtitle() }
+
+// CpSubtitle says "Inspect per-turn snapshots, save manual checkpoints, roll back safely, or fork an experiment."
+// in the language of msgs.
+func (msgs Messages) CpSubtitle() string {
+	return Catalog.Format(msgs.locale, "cpSubtitle", nil)
+}
+
+// CpSaveLabelPlaceholder says "Checkpoint label (optional)"
+// in the language the app shows.
+func CpSaveLabelPlaceholder() string { return In(i18n.Locale()).CpSaveLabelPlaceholder() }
+
+// CpSaveLabelPlaceholder says "Checkpoint label (optional)"
+// in the language of msgs.
+func (msgs Messages) CpSaveLabelPlaceholder() string {
+	return Catalog.Format(msgs.locale, "cpSaveLabelPlaceholder", nil)
+}
+
+// CpSave says "Save Checkpoint"
+// in the language the app shows.
+func CpSave() string { return In(i18n.Locale()).CpSave() }
+
+// CpSave says "Save Checkpoint"
+// in the language of msgs.
+func (msgs Messages) CpSave() string {
+	return Catalog.Format(msgs.locale, "cpSave", nil)
+}
+
+// CpRestore says "Restore"
+// in the language the app shows.
+func CpRestore() string { return In(i18n.Locale()).CpRestore() }
+
+// CpRestore says "Restore"
+// in the language of msgs.
+func (msgs Messages) CpRestore() string {
+	return Catalog.Format(msgs.locale, "cpRestore", nil)
+}
+
+// CpFork says "Fork"
+// in the language the app shows.
+func CpFork() string { return In(i18n.Locale()).CpFork() }
+
+// CpFork says "Fork"
+// in the language of msgs.
+func (msgs Messages) CpFork() string {
+	return Catalog.Format(msgs.locale, "cpFork", nil)
+}
+
+// CpEmpty says "No checkpoints recorded yet for this session."
+// in the language the app shows.
+func CpEmpty() string { return In(i18n.Locale()).CpEmpty() }
+
+// CpEmpty says "No checkpoints recorded yet for this session."
+// in the language of msgs.
+func (msgs Messages) CpEmpty() string {
+	return Catalog.Format(msgs.locale, "cpEmpty", nil)
+}
+
+// CpAutoBadge says "auto"
+// in the language the app shows.
+func CpAutoBadge() string { return In(i18n.Locale()).CpAutoBadge() }
+
+// CpAutoBadge says "auto"
+// in the language of msgs.
+func (msgs Messages) CpAutoBadge() string {
+	return Catalog.Format(msgs.locale, "cpAutoBadge", nil)
+}
+
+// CpManualBadge says "manual"
+// in the language the app shows.
+func CpManualBadge() string { return In(i18n.Locale()).CpManualBadge() }
+
+// CpManualBadge says "manual"
+// in the language of msgs.
+func (msgs Messages) CpManualBadge() string {
+	return Catalog.Format(msgs.locale, "cpManualBadge", nil)
+}
+
+// CpRestoredToast says "Restored checkpoint (safety backup {backup})"
+// in the language the app shows.
+func CpRestoredToast(backup string) string { return In(i18n.Locale()).CpRestoredToast(backup) }
+
+// CpRestoredToast says "Restored checkpoint (safety backup {backup})"
+// in the language of msgs.
+func (msgs Messages) CpRestoredToast(backup string) string {
+	return Catalog.Format(msgs.locale, "cpRestoredToast", map[string]any{"backup": backup})
+}
+
+// CpForkedToast says "Forked session on branch {branch}"
+// in the language the app shows.
+func CpForkedToast(branch string) string { return In(i18n.Locale()).CpForkedToast(branch) }
+
+// CpForkedToast says "Forked session on branch {branch}"
+// in the language of msgs.
+func (msgs Messages) CpForkedToast(branch string) string {
+	return Catalog.Format(msgs.locale, "cpForkedToast", map[string]any{"branch": branch})
+}
+
+// CpSavedToast says "Saved checkpoint {id}"
+// in the language the app shows.
+func CpSavedToast(id string) string { return In(i18n.Locale()).CpSavedToast(id) }
+
+// CpSavedToast says "Saved checkpoint {id}"
+// in the language of msgs.
+func (msgs Messages) CpSavedToast(id string) string {
+	return Catalog.Format(msgs.locale, "cpSavedToast", map[string]any{"id": id})
+}

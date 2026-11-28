@@ -37,16 +37,21 @@ func hookCmd(args []string) error {
 	}
 	pane := os.Getenv("HYLA_PANE")
 	var in struct {
-		Event     string `json:"hook_event_name"`
-		AgentID   string `json:"agent_id"`   // set for Claude Code's subagents
-		AgentType string `json:"agent_type"` // a subagent's kind, as Explore
-		Prompt    string `json:"agent_prompt"`
-		TrPath    string `json:"agent_transcript_path"` // a subagent's own record
-		Session   string `json:"session_id"`            // the agent's own
-		Cwd       string `json:"cwd"`
-		Source    string `json:"source"` // "startup", "resume", "clear", "compact"
+		Event     string          `json:"hook_event_name"`
+		AgentID   string          `json:"agent_id"`   // set for Claude Code's subagents
+		AgentType string          `json:"agent_type"` // a subagent's kind, as Explore
+		Prompt    string          `json:"agent_prompt"`
+		TrPath    string          `json:"agent_transcript_path"` // a subagent's own record
+		Session   string          `json:"session_id"`            // the agent's own
+		Cwd       string          `json:"cwd"`
+		Source    string          `json:"source"` // "startup", "resume", "clear", "compact"
+		ToolName  string          `json:"tool_name"`
+		ToolInput json.RawMessage `json:"tool_input"`
 	}
 	json.NewDecoder(io.LimitReader(os.Stdin, 1<<20)).Decode(&in)
+	if in.Event == "PreToolUse" {
+		return preToolUseHook(pane, in.Cwd, in.ToolName, in.ToolInput)
+	}
 	// A subagent's start and its end: the agents the pane's agent gave its
 	// work to, which the Subagents view lists.
 	if in.Event == "SubagentStart" || in.Event == "SubagentStop" {
@@ -83,6 +88,86 @@ func hookCmd(args []string) error {
 		"additionalContext": hookContext(c, pane, sid, away),
 	}}
 	return json.NewEncoder(os.Stdout).Encode(out)
+}
+
+func preToolUseHook(pane, cwd, toolName string, raw json.RawMessage) error {
+	targetPath := extractHookWritePath(toolName, raw)
+	if targetPath == "" {
+		return nil
+	}
+	c, err := client.Connect(true)
+	if err != nil {
+		return nil
+	}
+	defer c.Close()
+
+	var res proto.PathClaimCheckResult
+	if c.Call("claim.check", proto.PathClaimCheckParams{
+		Pane: pane,
+		Repo: cwd,
+		Path: targetPath,
+		Tool: toolName,
+	}, &res) != nil {
+		return nil
+	}
+	payload, ok := preToolUseDecision(res)
+	if !ok {
+		return nil
+	}
+	_, _ = os.Stdout.Write(append(payload, '\n'))
+	return nil
+}
+
+func extractHookWritePath(toolName string, raw json.RawMessage) string {
+	low := strings.ToLower(strings.TrimSpace(toolName))
+	switch low {
+	case "read", "read_file", "glob", "grep", "ls", "list_dir", "view", "view_file", "search":
+		return ""
+	}
+	if len(raw) == 0 {
+		return ""
+	}
+	var fields map[string]any
+	if err := json.Unmarshal(raw, &fields); err != nil {
+		return ""
+	}
+	isWriteTool := false
+	switch low {
+	case "write", "edit", "multiedit", "notebookedit", "write_file", "edit_file", "replace_file_content", "multi_replace_file_content", "apply_patch", "patch":
+		isWriteTool = true
+	}
+	for _, k := range []string{"file_path", "target_file", "notebook_path", "path", "filename"} {
+		if v, ok := fields[k].(string); ok && strings.TrimSpace(v) != "" {
+			if isWriteTool || low == "" || k != "filename" {
+				return strings.TrimSpace(v)
+			}
+		}
+	}
+	return ""
+}
+
+func preToolUseDecision(res proto.PathClaimCheckResult) ([]byte, bool) {
+	if len(res.Conflicts) == 0 {
+		return nil, false
+	}
+	msg := res.Message
+	if msg == "" {
+		msg = "path claimed by another active Hyla pane"
+	}
+	hookOut := map[string]string{
+		"hookEventName": "PreToolUse",
+	}
+	if !res.Allowed {
+		hookOut["permissionDecision"] = "deny"
+		hookOut["permissionDecisionReason"] = "Hyla Path Claim conflict: " + msg
+	} else {
+		hookOut["additionalContext"] = "Hyla Path Claim warning: " + msg
+	}
+	b, err := json.Marshal(map[string]any{"hookSpecificOutput": hookOut})
+	if err != nil {
+		return nil, false
+	}
+	return b, true
 }
 
 // subagentHook tells hylad of a subagent of the pane's agent: that it

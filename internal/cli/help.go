@@ -225,6 +225,44 @@ var commands = []command{
     remove <lane-id>            remove a lane from the queue
     clear                       remove landed and rejected lanes`,
 	},
+	{
+		name: "claim", group: "agents",
+		summary: "reserve file paths and warn/block concurrent agent edits",
+		usage: `hyla claim <add|ls|release|check> [args…]
+    add <pattern> [--target pane] [--mode warn|block] [--reason text] [--ttl sec]
+    ls [--repo path]            list active path claims
+    release <claim-id>          release an active claim
+    check <path> [--pane id]    check path against active claims`,
+	},
+	{
+		name: "clash", group: "agents",
+		summary: "detect cross-branch conflicts in a disposable trial merge",
+		usage: `hyla clash check [--repo path] [--base branch] [--branches a,b] [--cmd cmd]`,
+	},
+	{
+		name: "checkpoint", group: "agents",
+		summary: "time-travel snapshots per turn: list, create, restore, or fork",
+		usage: `hyla checkpoint <ls|create|restore|fork> [args…]
+    ls [--target pane|repo]     list checkpoints (newest first)
+    create [--target pane|dir] [--label text]
+    restore <id> [--force]      restore working tree (saves pre-restore backup)
+    fork <id> [--branch name]   open an isolated worktree session from checkpoint`,
+	},
+	{
+		name: "rule", group: "agents",
+		summary: "append guardrail rules into AGENTS.md or .hyla/rules.md",
+		usage: `hyla rule add <reason> [--dir path] [--file path] [--dest agents|hyla]`,
+	},
+	{
+		name: "factory", group: "agents",
+		summary: "run overnight autonomous issue workers with runaway circuit-breaker",
+		usage: `hyla factory <start|ls|status|stop|digest> [args…]
+    start [--issues 17,20] [--task prompt] [--agent claude] [--cmd cmd] [--auto-enqueue]
+    ls                          list factory runs
+    status <run-id>             inspect per-task status and circuit-breaker trips
+    stop <run-id>               stop an active factory run
+    digest <run-id> [--feishu-chat id]`,
+	},
 
 	{
 		name: "browser", group: "browser",
@@ -618,6 +656,11 @@ var subcommands = map[string][]string{
 	"browser":     {"open", "back", "forward", "reload", "text", "html", "snapshot", "click", "type", "wait", "eval", "screenshot", "cookies", "record", "replay"},
 	"arena":       {"start", "ls", "status", "test", "pick", "close"},
 	"mq":          {"add", "ls", "run", "approve", "reject", "remove", "clear"},
+	"claim":       {"add", "ls", "release", "check"},
+	"clash":       {"check"},
+	"checkpoint":  {"ls", "create", "restore", "fork"},
+	"rule":        {"add"},
+	"factory":     {"start", "ls", "status", "stop", "digest"},
 }
 
 // completionsCmd prints a completion script for a shell: the commands of the

@@ -208,9 +208,22 @@ hyla review --branch --reviewer codex
 hyla mq add <session> --check "go test ./..." --flow .hyla/flows/checkout.json
 hyla mq run --train 4 --cleanup --feishu-chat <chat-id>
 hyla mq approve <lane-id>
+
+hyla claim add "internal/auth/*" --mode block
+hyla clash check --base main --branches feat/a,feat/b --cmd "go test ./..."
+
+hyla checkpoint ls
+hyla checkpoint create --label "before refactor"
+hyla checkpoint restore <checkpoint-id>
+hyla checkpoint fork <checkpoint-id> --branch exp/alt
+hyla rule add "Never bypass SQL params" --file internal/db/query.go
+
+hyla factory start --issues 17,20 --agent claude --cmd "go test ./..." --auto-enqueue
+hyla factory status <run-id>
+hyla factory digest <run-id> --feishu-chat <chat-id>
 ```
 
-See [Multi-Agent Arena & Cross-Review](./arena.md) and [Merge Queue & Browser Verification Gate](./merge-queue.md).
+See [Multi-Agent Arena & Cross-Review](./arena.md), [Merge Queue & Browser Verification Gate](./merge-queue.md), and [Guardrails, Checkpoints & Overnight Factory](./factory.md).
 
 ## Configuration and setup
 

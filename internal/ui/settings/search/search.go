@@ -151,6 +151,7 @@ var ActionWords = map[string]string{
 	"session.newWorktree":  "create add worktree branch checkout agent isolate parallel",
 	"arena.open":           "arena race battle compare multi agent claude codex agy opencode pi 竞技场 竞速 多智能体 对比 pk",
 	"mq.open":              "merge queue mq train land anti-cheat feishu approval 合并队列 列车 反作弊 审批",
+	"checkpoint.open":      "checkpoint time travel restore fork snapshot rollback 时间旅行 检查点 快照 回滚 分叉",
 	"conversation.resume":  "history agent claude codex pi opencode continue reopen restore past chat",
 	"project.open":         "folder directory repo repository workspace add",
 	"palette.open":         "switch jump search find command palette",

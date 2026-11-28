@@ -57,7 +57,7 @@ func TestRecordShortcut(t *testing.T) {
 	a := testApp(t)
 	a.Ss.Draft = map[string]string{}
 	a.Ss.Page = "keyboard"
-	tt := ui.NewTester(uisettings.View(a), 820, 1250)
+	tt := ui.NewTester(uisettings.View(a), 820, 1300)
 	tt.Frame()
 	if err := tt.Click("Shortcut for Split Right"); err != nil {
 		t.Fatal(err)

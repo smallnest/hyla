@@ -68,6 +68,7 @@ var titles = map[string]func() string{
 	"session.newWorktree": locales.ActionNewSessionWorktree,
 	"arena.open":          locales.ActionArenaOpen,
 	"mq.open":             locales.ActionMergeQueueOpen,
+	"checkpoint.open":     locales.ActionCheckpointOpen,
 	"project.open":        locales.ActionOpenProject,
 	"palette.open":        locales.ActionGoToSession,
 	"conversation.resume": locales.ActionResumeConversation,
@@ -170,7 +171,7 @@ func Menu(a App) *mygo.Menu {
 	return mygo.NewMenu([]*mygo.MenuItem{
 		hyla,
 		{Label: locales.MenuSession(), Submenu: Items(a, "Session",
-			[]string{"session.new", "session.newHome", "session.newWorktree", "arena.open", "mq.open", "project.open"},
+			[]string{"session.new", "session.newHome", "session.newWorktree", "arena.open", "mq.open", "checkpoint.open", "project.open"},
 			[]string{"palette.open", "session.attention", "session.next", "session.previous"},
 			[]string{"session.rename", "pane.restart"},
 			[]string{"pane.close", "session.close"})},

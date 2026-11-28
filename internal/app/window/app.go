@@ -39,6 +39,7 @@ import (
 	"hyla/internal/remote"
 	"hyla/internal/settings"
 	"hyla/internal/ui/arenadialog"
+	"hyla/internal/ui/checkpointdialog"
 	"hyla/internal/ui/confirm"
 	"hyla/internal/ui/hongguoview"
 	"hyla/internal/ui/hosts"
@@ -202,9 +203,10 @@ type App struct {
 	WtAsk     *worktree.Ask    // the new session's branch, while asked
 	SshAsk    *sshdialog.Ask   // the sidebar's add-a-host-over-SSH dialog
 	K8sAsk    *k8sdialog.Ask   // the sidebar's add-a-kubectl-exec-pod dialog
-	ArenaAsk  *arenadialog.Ask // the Multi-Agent Arena dialog
-	MQAsk     *mqdialog.Ask    // the Local Merge Queue dialog
-	ReplayAsk *webpane.ReplayAsk
+	ArenaAsk      *arenadialog.Ask // the Multi-Agent Arena dialog
+	MQAsk         *mqdialog.Ask    // the Local Merge Queue dialog
+	CheckpointAsk *checkpointdialog.Ask
+	ReplayAsk     *webpane.ReplayAsk
 	// endedAll shows all of the sidebar's Ended; skillMissing tells, as
 	// of skillsAt, that no kind of agent has Hyla's skill (ended.go).
 	// This fork has no Ended (session history): the fields stay for

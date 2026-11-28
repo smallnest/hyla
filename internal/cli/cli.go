@@ -710,6 +710,21 @@ func run(args []string) error {
 	case "mq":
 		return mqCmd(c, st, args)
 
+	case "claim":
+		return claimCmd(c, st, args)
+
+	case "clash":
+		return clashCmd(c, st, args)
+
+	case "checkpoint":
+		return checkpointCmd(c, st, args)
+
+	case "rule":
+		return ruleCmd(c, st, args)
+
+	case "factory":
+		return factoryCmd(c, st, args)
+
 	case "notify":
 		f, err := parse(args, map[string]string{"session": "target", "s": "target", "title": "title"}, nil)
 		if err != nil {

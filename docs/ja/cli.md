@@ -203,9 +203,22 @@ hyla review --branch --reviewer codex
 hyla mq add <session> --check "go test ./..." --flow .hyla/flows/checkout.json
 hyla mq run --train 4 --cleanup --feishu-chat <chat-id>
 hyla mq approve <lane-id>
+
+hyla claim add "internal/auth/*" --mode block
+hyla clash check --base main --branches feat/a,feat/b --cmd "go test ./..."
+
+hyla checkpoint ls
+hyla checkpoint create --label "before refactor"
+hyla checkpoint restore <checkpoint-id>
+hyla checkpoint fork <checkpoint-id> --branch exp/alt
+hyla rule add "生 SQL 連結を禁止" --file internal/db/query.go
+
+hyla factory start --issues 17,20 --agent claude --cmd "go test ./..." --auto-enqueue
+hyla factory status <run-id>
+hyla factory digest <run-id> --feishu-chat <chat-id>
 ```
 
-[マルチエージェント・アリーナ & クロスレビュー](./arena.md) および [マージキュー & ブラウザ検証ゲート](./merge-queue.md) を参照してください。
+[マルチエージェント・アリーナ & クロスレビュー](./arena.md)、[マージキュー & ブラウザ検証ゲート](./merge-queue.md)、[ガードレール、タイムトラベル & 夜間ファクトリ](./factory.md) を参照してください。
 
 ## 構成とセットアップ
 

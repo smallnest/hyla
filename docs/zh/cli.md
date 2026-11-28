@@ -202,9 +202,22 @@ hyla review --branch --reviewer codex
 hyla mq add <session> --check "go test ./..." --flow .hyla/flows/checkout.json
 hyla mq run --train 4 --cleanup --feishu-chat <chat-id>
 hyla mq approve <lane-id>
+
+hyla claim add "internal/auth/*" --mode block
+hyla clash check --base main --branches feat/a,feat/b --cmd "go test ./..."
+
+hyla checkpoint ls
+hyla checkpoint create --label "before refactor"
+hyla checkpoint restore <checkpoint-id>
+hyla checkpoint fork <checkpoint-id> --branch exp/alt
+hyla rule add "禁止拼接未参数化 SQL" --file internal/db/query.go
+
+hyla factory start --issues 17,20 --agent claude --cmd "go test ./..." --auto-enqueue
+hyla factory status <run-id>
+hyla factory digest <run-id> --feishu-chat <chat-id>
 ```
 
-参见 [多智能体竞技场与交叉审查](./arena.md) 与 [本地合并队列与浏览器回归门禁](./merge-queue.md)。
+参见 [多智能体竞技场与交叉审查](./arena.md)、[本地合并队列与浏览器回归门禁](./merge-queue.md) 与 [多智能体护栏、时间旅行与夜间工厂](./factory.md)。
 
 ## 配置与设置
 

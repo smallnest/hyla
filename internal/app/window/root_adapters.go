@@ -11,6 +11,8 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/settings"
 	"hyla/internal/ui/arenadialog"
+	"hyla/internal/ui/changesview"
+	"hyla/internal/ui/checkpointdialog"
 	"hyla/internal/ui/confirm"
 	"hyla/internal/ui/layout"
 	"hyla/internal/ui/mqdialog"
@@ -58,7 +60,7 @@ func (a *App) UnforcePanel() { a.Side.Forced = false }
 func (a *App) SidebarTakesFiles() bool {
 	h := a.Local()
 	return h.Conn == host.StateReady && h.Client != nil && !a.Prefs.SidebarHidden && !a.Pal.Open && !a.Picker.Open &&
-		a.SshAsk == nil && a.K8sAsk == nil && a.ArenaAsk == nil && a.MQAsk == nil && a.ReplayAsk == nil &&
+		a.SshAsk == nil && a.K8sAsk == nil && a.ArenaAsk == nil && a.MQAsk == nil && a.CheckpointAsk == nil && a.ReplayAsk == nil && a.Side.Changes.Deny == nil &&
 		(a.Confirm == nil || !a.Confirm.Open)
 }
 
@@ -98,6 +100,12 @@ func (a *App) Arena(c *ui.Context, pal *theme.Palette) {
 }
 func (a *App) MergeQueue(c *ui.Context, pal *theme.Palette) {
 	mqdialog.View(a, c, pal, a.MQAsk)
+}
+func (a *App) Checkpoint(c *ui.Context, pal *theme.Palette) {
+	checkpointdialog.View(a, c, pal, a.CheckpointAsk)
+}
+func (a *App) DenyTeach(c *ui.Context, pal *theme.Palette) {
+	changesview.DenyView(a, c, pal)
 }
 func (a *App) BrowserReplay(c *ui.Context, pal *theme.Palette) {
 	webpane.ReplayView(a, c, pal, a.ReplayAsk)
