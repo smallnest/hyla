@@ -165,6 +165,7 @@ var ActionWords = map[string]string{
 	"pane.split.right":     "vertical horizontal side by side new pane",
 	"pane.split.down":      "horizontal vertical below new pane",
 	"pane.fork":            "fork branch clone split agent session claude codex pi opencode agy antigravity 分叉 分支 会话",
+	"pane.crossReview":     "cross review adversarial audit claude codex agy opencode pi 交叉审查 互审 代码审查",
 	"pane.browser":         "browser web page url preview localhost open",
 	"pane.zoom":            "maximize fullscreen focus expand",
 	"pane.next":            "switch focus forward",

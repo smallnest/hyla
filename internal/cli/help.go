@@ -194,6 +194,37 @@ var commands = []command{
 		summary: "drive the sessions from Feishu",
 		usage:   `hyla feishu setup|status     (hyla feishu help)`,
 	},
+	{
+		name: "arena", group: "agents",
+		summary: "race multiple coding agents in isolated worktrees",
+		usage: `hyla arena <start|ls|status|test|pick|close> [args…]
+    start [--agents a,b] [--test cmd] <prompt…>
+    ls                          list active and past arenas
+    status <id>                 show contestants, diff stats, and test status
+    test <id> [-- cmd…]         run checks concurrently across all contestants
+    pick <id> <winner>          merge the winner into base and clean up
+    close <id> [--force]        discard an arena and its worktrees`,
+	},
+	{
+		name: "review", group: "agents",
+		summary: "adversarial code review by another agent in a split pane",
+		usage: `hyla review [target] [--reviewer agent] [--branch|--turn] [--down|--right] [-f]
+    --reviewer <agent>          pick a specific reviewer (default: different installed agent)
+    --branch                    review full branch diff against main/master
+    --turn                      review unstaged working tree diff`,
+	},
+	{
+		name: "mq", group: "agents",
+		summary: "local merge queue with anti-cheat diff guard",
+		usage: `hyla mq <add|ls|run|approve|reject|remove|clear> [args…]
+    add [target] [--check cmd] [--flow flow.json]
+    ls [--repo path]            list queued, bounced, and landed lanes
+    run [--train 4] [--check cmd] [--browser pane] [--feishu-chat id]
+    approve <lane-id>           approve a flagged lane and requeue it
+    reject <lane-id> [reason]   reject a flagged lane
+    remove <lane-id>            remove a lane from the queue
+    clear                       remove landed and rejected lanes`,
+	},
 
 	{
 		name: "browser", group: "browser",
@@ -213,6 +244,8 @@ var commands = []command{
     screenshot [-o file.png]    save a picture of the page, print where
     cookies save [file]         save the browser's cookies
     cookies load <file>         load cookies
+    record start|stop|status    record actions into a replayable JSON flow
+    replay <flow.json>          replay a flow without an LLM and compare baselines
     --ref <ref>                 a snapshot's element, in place of a selector
     --domain <domain>           cookies of a site and its subdomains
     -t, --timeout <dur>         how long to wait (default 10s)`,
@@ -582,7 +615,9 @@ var subcommands = map[string][]string{
 	"skill":       {"setup", "status", "show", "remove"},
 	"feishu":      {"setup", "status"},
 	"completions": {"zsh", "bash", "fish"},
-	"browser":     {"open", "back", "forward", "reload", "text", "html", "snapshot", "click", "type", "wait", "eval", "screenshot", "cookies"},
+	"browser":     {"open", "back", "forward", "reload", "text", "html", "snapshot", "click", "type", "wait", "eval", "screenshot", "cookies", "record", "replay"},
+	"arena":       {"start", "ls", "status", "test", "pick", "close"},
+	"mq":          {"add", "ls", "run", "approve", "reject", "remove", "clear"},
 }
 
 // completionsCmd prints a completion script for a shell: the commands of the

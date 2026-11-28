@@ -150,6 +150,8 @@ hyla browser eval 'document.title'
 | `wait [selector] [--text text]` | 要素かテキストが表示されるまで待つ。どちらもなければページの読み込みまで |
 | `eval <js…>`                    | ページで JavaScript を実行し、その値を出力: 文字列はそのまま、それ以外は JSON |
 | `screenshot [-o file.png]`      | ページの画像を保存し、その場所を出力。`-o -` で標準出力に書き出す |
+| `record start\|stop\|status`    | ブラウザ操作を決定論的な JSON フローとして記録（`--name`、`-o`） |
+| `replay <flow.json>`            | LLM なしでフローを再生し、ベースライン画像と比較 |
 
 セレクタは CSS セレクタです。シェルでは引用符で囲んでください。要素が必要なコマンドは要素が現れるのを待ち、`--timeout`（デフォルト `10s`）でそれらとページの読み込みにかけてよい時間を設定します。`type` と `eval` は、`-` で標準入力からテキストを受け取ります。
 
@@ -188,6 +190,22 @@ hyla diff review --branch                 # デフォルトブランチ以降
 ```
 
 [変更](./changes.md)を参照してください。
+
+## アリーナ、クロスレビュー、マージキュー
+
+```sh
+hyla arena start --agents claude,codex,agy --test "go test ./..." "Add auth"
+hyla arena test <arena-id>
+hyla arena pick <arena-id> claude
+
+hyla review --branch --reviewer codex
+
+hyla mq add <session> --check "go test ./..." --flow .hyla/flows/checkout.json
+hyla mq run --train 4 --cleanup --feishu-chat <chat-id>
+hyla mq approve <lane-id>
+```
+
+[マルチエージェント・アリーナ & クロスレビュー](./arena.md) および [マージキュー & ブラウザ検証ゲート](./merge-queue.md) を参照してください。
 
 ## 構成とセットアップ
 

@@ -216,6 +216,9 @@ func (b *Bot) onCardAction(ctx context.Context, e *callback.CardActionTriggerEve
 	if v, ok := cardValue(e.Event.Action.Value, "hyla"); ok && v == "choice" {
 		return b.onChoiceAction(e)
 	}
+	if v, ok := cardValue(e.Event.Action.Value, "hyla"); ok && (v == "mq.approve" || v == "mq.reject") {
+		return b.onMergeQueueAction(v, e)
+	}
 	if v, ok := cardValue(e.Event.Action.Value, "hyla"); !ok || v != "open" {
 		return nil, nil
 	}

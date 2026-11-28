@@ -153,6 +153,8 @@ hyla browser eval 'document.title'
 | `screenshot [-o file.png]`      | Save a picture of the page, and print where; `-o -` writes it to stdout |
 | `cookies save [file]`           | Save the browser's cookies to a file, or print them; `--domain` keeps a site's |
 | `cookies load <file>`           | Load cookies from a file; `--domain` loads a site's |
+| `record start\|stop\|status`    | Record browser actions into a deterministic JSON flow (`--name`, `-o`) |
+| `replay <flow.json>`            | Replay a recorded flow without an LLM and compare screenshot baselines |
 
 Selectors are CSS selectors; quote them in the shell. Anywhere a command takes a selector, `--ref` takes a ref from `snapshot` in its place: `hyla browser click --ref e5`. An element keeps its ref until the page goes to another, and a ref whose element is gone fails rather than guess another. Commands that need an element wait for it to appear, and `--timeout` (default `10s`) sets how long they, and the page loads, may take. `type` and `eval` take `-` for text from stdin.
 
@@ -193,6 +195,22 @@ hyla diff review --branch                 # since the default branch
 ```
 
 See [Changes](./changes.md).
+
+## Arena, cross-review and merge queue
+
+```sh
+hyla arena start --agents claude,codex,agy --test "go test ./..." "Add auth"
+hyla arena test <arena-id>
+hyla arena pick <arena-id> claude
+
+hyla review --branch --reviewer codex
+
+hyla mq add <session> --check "go test ./..." --flow .hyla/flows/checkout.json
+hyla mq run --train 4 --cleanup --feishu-chat <chat-id>
+hyla mq approve <lane-id>
+```
+
+See [Multi-Agent Arena & Cross-Review](./arena.md) and [Merge Queue & Browser Verification Gate](./merge-queue.md).
 
 ## Configuration and setup
 

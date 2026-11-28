@@ -104,6 +104,8 @@ func (a *App) run(id string, args map[string]string) {
 		a.splitPane(s, "", "down")
 	case "pane.fork":
 		a.forkPane(s, "", "right")
+	case "pane.crossReview":
+		a.crossReviewPane(s, "", "right")
 	case "pane.browser":
 		a.openBrowser(args["url"])
 	case "timeline.open":

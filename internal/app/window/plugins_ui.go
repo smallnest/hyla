@@ -375,6 +375,15 @@ func (a *App) PaneContextMenu(m *ui.Menu, s *proto.Session, p *proto.Pane) {
 			})
 		}
 	}
+	if !p.Shown() {
+		if a.menuShortcut(m.Item(locales.ActionCrossReview()), "pane.crossReview").Chosen() {
+			a.RunLater(func() {
+				if cur := a.session(sid); cur != nil {
+					a.crossReviewPane(cur, pid, "right")
+				}
+			})
+		}
+	}
 	if len(s.Panes) > 1 {
 		if a.menuShortcut(m.Item(locales.ActionZoomPane()), "pane.zoom").Chosen() {
 			a.RunLater(func() {

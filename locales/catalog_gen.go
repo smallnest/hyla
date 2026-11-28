@@ -256,6 +256,16 @@ func (msgs Messages) ActionForkSession() string {
 	return Catalog.Format(msgs.locale, "actionForkSession", nil)
 }
 
+// ActionCrossReview says "Cross-Review with Another Agent"
+// in the language the app shows.
+func ActionCrossReview() string { return In(i18n.Locale()).ActionCrossReview() }
+
+// ActionCrossReview says "Cross-Review with Another Agent"
+// in the language of msgs.
+func (msgs Messages) ActionCrossReview() string {
+	return Catalog.Format(msgs.locale, "actionCrossReview", nil)
+}
+
 // ActionNewBrowser says "New Browser Pane"
 // in the language the app shows.
 func ActionNewBrowser() string { return In(i18n.Locale()).ActionNewBrowser() }

@@ -23,6 +23,10 @@ func (a *App) splitPane(s *proto.Session, at, direction string) { panes.SplitPan
 
 func (a *App) forkPane(s *proto.Session, at, direction string) { panes.ForkPane(a, s, at, direction) }
 
+func (a *App) crossReviewPane(s *proto.Session, at, direction string) {
+	panes.CrossReviewPane(a, s, at, direction)
+}
+
 func (a *App) split(s *proto.Session, p proto.CreateParams) { panes.Split(a, s, p) }
 
 func (a *App) closePane(s *proto.Session, pane string, ask bool) { panes.ClosePane(a, s, pane, ask) }

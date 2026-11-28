@@ -149,6 +149,8 @@ hyla browser eval 'document.title'
 | `wait [selector] [--text text]` | 等到元素或文本出现；两者都不给时，等到页面加载完成 |
 | `eval <js…>`                    | 在页面中运行 JavaScript 并打印结果：字符串原样输出，其他值输出为 JSON |
 | `screenshot [-o file.png]`      | 保存页面截图，并打印保存位置；`-o -` 会写到标准输出 |
+| `record start\|stop\|status`    | 将浏览器操作录制为可确定性回放的 JSON 流程（`--name`、`-o`） |
+| `replay <flow.json>`            | 零 LLM 回放已录制流程并对比截图像素基线 |
 
 选择器是 CSS 选择器，在 shell 中记得加引号。需要元素的命令会等它出现，`--timeout`（默认 `10s`）设定这些命令以及页面加载最多等多久。`type` 和 `eval` 接受 `-`，表示从标准输入读取文本。
 
@@ -187,6 +189,22 @@ hyla diff review --branch                 # 自默认分支以来的改动
 ```
 
 见 [改动](./changes.md)。
+
+## 竞技场、交叉审查与合并队列
+
+```sh
+hyla arena start --agents claude,codex,agy --test "go test ./..." "Add auth"
+hyla arena test <arena-id>
+hyla arena pick <arena-id> claude
+
+hyla review --branch --reviewer codex
+
+hyla mq add <session> --check "go test ./..." --flow .hyla/flows/checkout.json
+hyla mq run --train 4 --cleanup --feishu-chat <chat-id>
+hyla mq approve <lane-id>
+```
+
+参见 [多智能体竞技场与交叉审查](./arena.md) 与 [本地合并队列与浏览器回归门禁](./merge-queue.md)。
 
 ## 配置与设置
 

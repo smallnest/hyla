@@ -23,6 +23,8 @@
     "items": [
       "cli",
       "agents",
+      "arena",
+      "merge-queue",
       "feishu",
       "plugin-tutorial",
       "plugins"

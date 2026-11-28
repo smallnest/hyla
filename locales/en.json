@@ -22,6 +22,7 @@
   "actionSplitRight": "Split Right",
   "actionSplitDown": "Split Down",
   "actionForkSession": "Fork Agent Session",
+  "actionCrossReview": "Cross-Review with Another Agent",
   "actionNewBrowser": "New Browser Pane",
   "actionTimelinePane": "Open Timeline Pane",
   "actionZoomPane": "Zoom Pane",

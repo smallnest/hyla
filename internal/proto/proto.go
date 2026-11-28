@@ -1520,3 +1520,187 @@ type InputParams struct {
 	ID   string `json:"id"`
 	Text string `json:"text"`
 }
+
+// ArenaContestant tracks one coding agent participating in an Arena race.
+type ArenaContestant struct {
+	Agent           string `json:"agent"`
+	SessionID       string `json:"sessionId"`
+	PaneID          string `json:"paneId,omitempty"`
+	Branch          string `json:"branch"`
+	Worktree        string `json:"worktree"`
+	Status          Status `json:"status,omitempty"`
+	Files           int    `json:"files,omitempty"`
+	Added           int    `json:"added,omitempty"`
+	Removed         int    `json:"removed,omitempty"`
+	Commits         int    `json:"commits,omitempty"`
+	CheckStatus     string `json:"checkStatus,omitempty"` // "", "passed", "failed"
+	CheckExitCode   int    `json:"checkExitCode,omitempty"`
+	CheckDurationMs int64  `json:"checkDurationMs,omitempty"`
+	CheckOutput     string `json:"checkOutput,omitempty"`
+	StartedAt       int64  `json:"startedAt"`
+}
+
+// Arena is a multi-agent race comparing heterogeneous coding agents on the
+// same prompt in isolated worktrees.
+type Arena struct {
+	ID          string            `json:"id"`
+	Name        string            `json:"name,omitempty"`
+	Prompt      string            `json:"prompt"`
+	Repo        string            `json:"repo"`
+	Base        string            `json:"base"`
+	TestCmd     string            `json:"testCmd,omitempty"`
+	Status      string            `json:"status"` // "running", "picked", "closed"
+	Winner      string            `json:"winner,omitempty"`
+	CreatedAt   int64             `json:"createdAt"`
+	Contestants []ArenaContestant `json:"contestants"`
+}
+
+type (
+	ArenaStartParams struct {
+		Prompt  string   `json:"prompt"`
+		Agents  []string `json:"agents,omitempty"`
+		Dir     string   `json:"dir,omitempty"`
+		Base    string   `json:"base,omitempty"`
+		TestCmd string   `json:"testCmd,omitempty"`
+		Name    string   `json:"name,omitempty"`
+	}
+	ArenaStatusParams struct {
+		ID string `json:"id"`
+	}
+	ArenaTestParams struct {
+		ID  string `json:"id"`
+		Cmd string `json:"cmd,omitempty"`
+	}
+	ArenaPickParams struct {
+		ID         string `json:"id"`
+		Winner     string `json:"winner"`
+		KeepOthers bool   `json:"keepOthers,omitempty"`
+		NoMerge    bool   `json:"noMerge,omitempty"`
+	}
+	ArenaCloseParams struct {
+		ID    string `json:"id"`
+		Force bool   `json:"force,omitempty"`
+	}
+
+	CrossReviewParams struct {
+		Pane      string `json:"pane"`
+		Reviewer  string `json:"reviewer,omitempty"`
+		Scope     string `json:"scope,omitempty"`     // "working" (default), "turn", "branch"
+		Direction string `json:"direction,omitempty"` // "right" (default), "down"
+		Cols      int    `json:"cols,omitempty"`
+		Rows      int    `json:"rows,omitempty"`
+	}
+	CrossReviewResult struct {
+		Session  Session `json:"session"`
+		Reviewer string  `json:"reviewer"`
+		PaneID   string  `json:"paneId"`
+	}
+
+	BrowserFlowStep struct {
+		Op       string `json:"op"`
+		Selector string `json:"selector,omitempty"`
+		Text     string `json:"text,omitempty"`
+		Enter    bool   `json:"enter,omitempty"`
+		Timeout  int64  `json:"timeout,omitempty"`
+	}
+	BrowserFlow struct {
+		Name      string            `json:"name"`
+		URL       string            `json:"url,omitempty"`
+		CreatedAt int64             `json:"createdAt"`
+		Steps     []BrowserFlowStep `json:"steps"`
+	}
+	BrowserRecordParams struct {
+		Pane string `json:"pane"`
+		Name string `json:"name,omitempty"`
+		Out  string `json:"out,omitempty"`
+	}
+	BrowserRecordStatus struct {
+		Pane      string `json:"pane"`
+		Recording bool   `json:"recording"`
+		Name      string `json:"name,omitempty"`
+		Steps     int    `json:"steps,omitempty"`
+		SavedPath string `json:"savedPath,omitempty"`
+	}
+	BrowserReplayParams struct {
+		Pane           string `json:"pane"`
+		FlowPath       string `json:"flowPath"`
+		OutDir         string `json:"outDir,omitempty"`
+		UpdateBaseline bool   `json:"updateBaseline,omitempty"`
+		FeishuChat     string `json:"feishuChat,omitempty"`
+	}
+	BrowserStepResult struct {
+		Index             int     `json:"index"`
+		Op                string  `json:"op"`
+		OK                bool    `json:"ok"`
+		DurationMs        int64   `json:"durationMs"`
+		Error             string  `json:"error,omitempty"`
+		Screenshot        string  `json:"screenshot,omitempty"`
+		BaselineDiffRatio float64 `json:"baselineDiffRatio,omitempty"`
+	}
+	BrowserReplayResult struct {
+		FlowName          string              `json:"flowName"`
+		Passed            bool                `json:"passed"`
+		DurationMs        int64               `json:"durationMs"`
+		Steps             []BrowserStepResult `json:"steps"`
+		Screenshot        string              `json:"screenshot,omitempty"`
+		BaselineDiffRatio float64             `json:"baselineDiffRatio,omitempty"`
+		FeishuNotified    bool                `json:"feishuNotified,omitempty"`
+	}
+
+	AntiCheatFinding struct {
+		Kind    string `json:"kind"` // "deleted_test", "test_skip", "config_tamper"
+		File    string `json:"file"`
+		Line    int    `json:"line,omitempty"`
+		Snippet string `json:"snippet,omitempty"`
+		Reason  string `json:"reason"`
+	}
+	MergeLane struct {
+		ID            string             `json:"id"`
+		Repo          string             `json:"repo"`
+		Branch        string             `json:"branch"`
+		Base          string             `json:"base"`
+		SessionID     string             `json:"sessionId,omitempty"`
+		PaneID        string             `json:"paneId,omitempty"`
+		Worktree      string             `json:"worktree,omitempty"`
+		CheckCmd      string             `json:"checkCmd,omitempty"`
+		FlowPath      string             `json:"flowPath,omitempty"`
+		Status        string             `json:"status"` // "queued", "running", "landed", "bounced", "needs_review", "rejected"
+		Bounces       int                `json:"bounces,omitempty"`
+		GuardApproved bool               `json:"guardApproved,omitempty"`
+		Findings      []AntiCheatFinding `json:"findings,omitempty"`
+		LastError     string             `json:"lastError,omitempty"`
+		Screenshot    string             `json:"screenshot,omitempty"`
+		CreatedAt     int64              `json:"createdAt"`
+		UpdatedAt     int64              `json:"updatedAt"`
+	}
+	MergeQueueAddParams struct {
+		Target   string `json:"target,omitempty"` // session or pane ID/name
+		Repo     string `json:"repo,omitempty"`
+		Branch   string `json:"branch,omitempty"`
+		Base     string `json:"base,omitempty"`
+		CheckCmd string `json:"checkCmd,omitempty"`
+		FlowPath string `json:"flowPath,omitempty"`
+	}
+	MergeQueueListParams struct {
+		Repo string `json:"repo,omitempty"`
+	}
+	MergeQueueRunParams struct {
+		Repo        string `json:"repo,omitempty"`
+		Train       int    `json:"train,omitempty"`
+		MaxBounces  int    `json:"maxBounces,omitempty"`
+		CheckCmd    string `json:"checkCmd,omitempty"`
+		Cleanup     bool   `json:"cleanup,omitempty"`
+		FeishuChat  string `json:"feishuChat,omitempty"`
+		BrowserPane string `json:"browserPane,omitempty"`
+	}
+	MergeQueueRunResult struct {
+		Landed      []string    `json:"landed,omitempty"`
+		Bounced     []string    `json:"bounced,omitempty"`
+		NeedsReview []string    `json:"needsReview,omitempty"`
+		Lanes       []MergeLane `json:"lanes"`
+	}
+	MergeQueueLaneParams struct {
+		ID     string `json:"id"`
+		Reason string `json:"reason,omitempty"`
+	}
+)

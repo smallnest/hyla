@@ -222,6 +222,53 @@ func ForkPane(x App, s *proto.Session, at, direction string) {
 	})
 }
 
+// CrossReviewPane opens a read-only adversarial review pane using another installed agent.
+func CrossReviewPane(x App, s *proto.Session, at, direction string) {
+	if s == nil {
+		return
+	}
+	if at == "" {
+		at = x.FocusOf(s)
+	}
+	pane := s.PaneByID(at)
+	if pane == nil || pane.Shown() {
+		return
+	}
+	if direction == "" {
+		direction = "right"
+	}
+	cols, rows := splitDimensions(pane, direction)
+	h := x.HostOf(s.ID)
+	cl := h.Client
+	if cl == nil {
+		return
+	}
+	go func() {
+		var res proto.CrossReviewResult
+		err := cl.Call("pane.crossReview", proto.CrossReviewParams{
+			Pane:      at,
+			Direction: direction,
+			Cols:      cols,
+			Rows:      rows,
+		}, &res)
+		x.Update(func() {
+			if err != nil {
+				x.Toast(err.Error())
+				return
+			}
+			x.ReplaceSession(h, res.Session)
+			if cur := x.Session(res.Session.ID); cur != nil {
+				x.FocusMap()[res.Session.ID] = res.Session.Focus
+				x.EnsureTerm(res.Session.Focus)
+				x.Touch(res.Session.Focus)
+				if !x.Shows(res.Session.Focus) {
+					x.PaneRef(res.Session.Focus).Focus()
+				}
+			}
+		})
+	}()
+}
+
 func splitDimensions(pane *proto.Pane, direction string) (cols, rows int) {
 	cols, rows = pane.Cols, pane.Rows
 	if direction == "down" || direction == "up" {

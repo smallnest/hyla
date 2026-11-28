@@ -94,8 +94,11 @@ type Daemon struct {
 	appEnv []string
 	// asks are the browser calls waiting for the app's answer, by the
 	// number they went out with.
-	asks    map[int64]chan proto.BrowserAnswer
-	lastAsk int64
+	asks        map[int64]chan proto.BrowserAnswer
+	lastAsk     int64
+	browserRecs map[string]*browserRecording
+	arenas      []*proto.Arena
+	mergeLanes  []*proto.MergeLane
 
 	viewed atomic.Pointer[string]
 	// theme is the colors of the client that last told them, which the
@@ -210,6 +213,7 @@ func Run(opts Options) error {
 		pocketWatch: map[*PocketWatch]struct{}{},
 		clients:     map[*proto.ClientInfo]struct{}{},
 		panes:       map[string]*pane{},
+		browserRecs: map[string]*browserRecording{},
 		changeCh:    make(chan struct{}, 1),
 		saveCh:      make(chan struct{}, 1),
 		quit:        make(chan struct{}),
@@ -229,6 +233,8 @@ func Run(opts Options) error {
 	d.initPlugins()
 	d.startFeishu()
 	d.loadConversations()
+	d.loadArenas()
+	d.loadMergeQueue()
 	d.restore()
 	d.ensureDefaultProject()
 

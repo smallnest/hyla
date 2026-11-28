@@ -701,6 +701,15 @@ func run(args []string) error {
 	case "browser":
 		return browserCmd(c, st, args)
 
+	case "arena":
+		return arenaCmd(c, st, args)
+
+	case "review":
+		return reviewCmd(c, st, args)
+
+	case "mq":
+		return mqCmd(c, st, args)
+
 	case "notify":
 		f, err := parse(args, map[string]string{"session": "target", "s": "target", "title": "title"}, nil)
 		if err != nil {

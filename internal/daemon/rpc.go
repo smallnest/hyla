@@ -86,6 +86,103 @@ func (d *Daemon) call(c *controlConn, method string, raw json.RawMessage) (any, 
 		}
 		return d.forkPane(p)
 
+	case "pane.crossReview":
+		var p proto.CrossReviewParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		if p.Pane == "" {
+			return nil, errors.New("pane.crossReview: which pane?")
+		}
+		return d.crossReviewPane(p)
+
+	case "arena.start":
+		var p proto.ArenaStartParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return d.arenaStart(p)
+
+	case "arena.list":
+		return d.arenaList(), nil
+
+	case "arena.status":
+		var p proto.ArenaStatusParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return d.arenaStatus(p.ID)
+
+	case "arena.test":
+		var p proto.ArenaTestParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return d.arenaTest(p)
+
+	case "arena.pick":
+		var p proto.ArenaPickParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return d.arenaPick(p)
+
+	case "arena.close":
+		var p proto.ArenaCloseParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return true, d.arenaClose(p)
+
+	case "mq.add":
+		var p proto.MergeQueueAddParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return d.mqAdd(p)
+
+	case "mq.list":
+		var p proto.MergeQueueListParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return d.mqList(p), nil
+
+	case "mq.run":
+		var p proto.MergeQueueRunParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return d.mqRun(c, p)
+
+	case "mq.approve":
+		var p proto.MergeQueueLaneParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return d.mqApprove(p.ID)
+
+	case "mq.reject":
+		var p proto.MergeQueueLaneParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return d.mqReject(p.ID, p.Reason)
+
+	case "mq.remove":
+		var p proto.MergeQueueLaneParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return true, d.mqRemove(p.ID)
+
+	case "mq.clear":
+		var p proto.MergeQueueListParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return d.mqClear(p.Repo), nil
+
 	case "agent.background":
 		var p proto.BackgroundParams
 		if err := decode(&p); err != nil {
@@ -326,7 +423,43 @@ func (d *Daemon) call(c *controlConn, method string, raw json.RawMessage) (any, 
 		if err != nil {
 			return nil, err
 		}
-		return d.browse(c, pn, p)
+		res, err := d.browse(c, pn, p)
+		if err == nil {
+			d.recordBrowserStep(pn.info.ID, p)
+		}
+		return res, err
+
+	case "browser.record.start":
+		var p proto.BrowserRecordParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return d.browserRecordStart(p)
+
+	case "browser.record.stop":
+		var p proto.BrowserRecordParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return d.browserRecordStop(p)
+
+	case "browser.record.status":
+		var p proto.BrowserRecordParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		return d.browserRecordStatus(p.Pane)
+
+	case "browser.replay":
+		var p proto.BrowserReplayParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		pn, err := findPane(p.Pane)
+		if err != nil {
+			return nil, err
+		}
+		return d.browserReplay(c, pn, p)
 
 	case "browser.answer":
 		var p proto.BrowserAnswer

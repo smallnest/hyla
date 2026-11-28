@@ -16,17 +16,19 @@ import (
 
 // browserCommands are what hyla browser does to a page, which name no
 // target: hyla browser text is this session's browser's text.
-var browserCommands = []string{"open", "back", "forward", "reload", "text", "html", "snapshot", "click", "type", "wait", "eval", "screenshot", "cookies"}
+var browserCommands = []string{"open", "back", "forward", "reload", "text", "html", "snapshot", "click", "type", "wait", "eval", "screenshot", "cookies", "record", "replay"}
 
 // browserCmd drives a browser pane's page, which the app has: hylad asks
 // the app, and hands its answer back.
 func browserCmd(c *client.Client, st proto.State, args []string) error {
-	f, err := parse(args, map[string]string{"timeout": "timeout", "t": "timeout", "o": "out", "out": "out", "text": "text", "ref": "ref", "domain": "domain"},
-		map[string]string{"enter": "enter", "E": "enter"})
+	f, err := parse(args, map[string]string{
+		"timeout": "timeout", "t": "timeout", "o": "out", "out": "out", "text": "text", "ref": "ref", "domain": "domain",
+		"name": "name", "out-dir": "outDir", "feishu-chat": "feishuChat",
+	}, map[string]string{"enter": "enter", "E": "enter", "update-baseline": "updateBaseline", "json": "json"})
 	if err != nil {
 		return err
 	}
-	const use = "hyla browser [target] <open|back|forward|reload|text|html|snapshot|click|type|wait|eval|screenshot|cookies> [args…]"
+	const use = "hyla browser [target] <open|back|forward|reload|text|html|snapshot|click|type|wait|eval|screenshot|cookies|record|replay> [args…]"
 	pos := f.pos
 	var t target
 	if len(pos) > 0 && !slices.Contains(browserCommands, pos[0]) {
@@ -117,6 +119,10 @@ func browserCmd(c *client.Client, st proto.State, args []string) error {
 		p.Text = f.vals["text"]
 	case "cookies":
 		return cookiesCmd(c, p, pos, f)
+	case "record":
+		return browserRecordCmd(c, pane, pos, f)
+	case "replay":
+		return browserReplayCmd(c, pane, pos, f)
 	case "eval":
 		if p.Text, err = rest(pos); err != nil {
 			return err
@@ -201,5 +207,67 @@ func saveShot(png []byte, pane, out string) error {
 		return err
 	}
 	fmt.Println(out)
+	return nil
+}
+
+func browserRecordCmd(c *client.Client, pane string, pos []string, f *flags) error {
+	if len(pos) == 0 {
+		return usageErr("hyla browser [target] record <start|stop|status> [--name flow] [-o file.json]")
+	}
+	sub := pos[0]
+	var status proto.BrowserRecordStatus
+	switch sub {
+	case "start":
+		if err := c.Call("browser.record.start", proto.BrowserRecordParams{
+			Pane: pane, Name: f.vals["name"], Out: f.vals["out"],
+		}, &status); err != nil {
+			return err
+		}
+	case "stop":
+		if err := c.Call("browser.record.stop", proto.BrowserRecordParams{
+			Pane: pane, Out: f.vals["out"],
+		}, &status); err != nil {
+			return err
+		}
+	case "status":
+		if err := c.Call("browser.record.status", proto.BrowserRecordParams{Pane: pane}, &status); err != nil {
+			return err
+		}
+	default:
+		return usageErr("hyla browser [target] record <start|stop|status>")
+	}
+	if f.set["json"] {
+		return printJSON(status)
+	}
+	if status.SavedPath != "" {
+		fmt.Printf("%s (%d steps)\n", status.SavedPath, status.Steps)
+	} else {
+		fmt.Printf("recording=%v name=%s steps=%d\n", status.Recording, status.Name, status.Steps)
+	}
+	return nil
+}
+
+func browserReplayCmd(c *client.Client, pane string, pos []string, f *flags) error {
+	if len(pos) < 1 {
+		return usageErr("hyla browser [target] replay <flow.json> [--out-dir dir] [--update-baseline] [--feishu-chat id]")
+	}
+	var res proto.BrowserReplayResult
+	if err := c.Call("browser.replay", proto.BrowserReplayParams{
+		Pane:           pane,
+		FlowPath:       pos[0],
+		OutDir:         f.vals["outDir"],
+		UpdateBaseline: f.set["updateBaseline"],
+		FeishuChat:     f.vals["feishuChat"],
+	}, &res); err != nil {
+		return err
+	}
+	if f.set["json"] {
+		return printJSON(res)
+	}
+	fmt.Printf("flow=%s passed=%v steps=%d duration=%dms diff=%.2f%%\n",
+		res.FlowName, res.Passed, len(res.Steps), res.DurationMs, res.BaselineDiffRatio*100)
+	if !res.Passed {
+		return errors.New("browser replay failed")
+	}
 	return nil
 }
