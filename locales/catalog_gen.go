@@ -10467,3 +10467,541 @@ func SetResumeAllowDetail() string { return In(i18n.Locale()).SetResumeAllowDeta
 func (msgs Messages) SetResumeAllowDetail() string {
 	return Catalog.Format(msgs.locale, "setResumeAllowDetail", nil)
 }
+
+// ActionArenaOpen says "Multi-Agent Arena…"
+// in the language the app shows.
+func ActionArenaOpen() string { return In(i18n.Locale()).ActionArenaOpen() }
+
+// ActionArenaOpen says "Multi-Agent Arena…"
+// in the language of msgs.
+func (msgs Messages) ActionArenaOpen() string {
+	return Catalog.Format(msgs.locale, "actionArenaOpen", nil)
+}
+
+// ActionMergeQueueOpen says "Merge Queue…"
+// in the language the app shows.
+func ActionMergeQueueOpen() string { return In(i18n.Locale()).ActionMergeQueueOpen() }
+
+// ActionMergeQueueOpen says "Merge Queue…"
+// in the language of msgs.
+func (msgs Messages) ActionMergeQueueOpen() string {
+	return Catalog.Format(msgs.locale, "actionMergeQueueOpen", nil)
+}
+
+// ArenaTitle says "Multi-Agent Arena"
+// in the language the app shows.
+func ArenaTitle() string { return In(i18n.Locale()).ArenaTitle() }
+
+// ArenaTitle says "Multi-Agent Arena"
+// in the language of msgs.
+func (msgs Messages) ArenaTitle() string {
+	return Catalog.Format(msgs.locale, "arenaTitle", nil)
+}
+
+// ArenaSubtitle says "Race multiple coding agents on the same prompt in isolated worktrees, run tests across each, and merge the winner."
+// in the language the app shows.
+func ArenaSubtitle() string { return In(i18n.Locale()).ArenaSubtitle() }
+
+// ArenaSubtitle says "Race multiple coding agents on the same prompt in isolated worktrees, run tests across each, and merge the winner."
+// in the language of msgs.
+func (msgs Messages) ArenaSubtitle() string {
+	return Catalog.Format(msgs.locale, "arenaSubtitle", nil)
+}
+
+// ArenaTabNew says "New Arena"
+// in the language the app shows.
+func ArenaTabNew() string { return In(i18n.Locale()).ArenaTabNew() }
+
+// ArenaTabNew says "New Arena"
+// in the language of msgs.
+func (msgs Messages) ArenaTabNew() string {
+	return Catalog.Format(msgs.locale, "arenaTabNew", nil)
+}
+
+// ArenaTabList says "Active Arenas"
+// in the language the app shows.
+func ArenaTabList() string { return In(i18n.Locale()).ArenaTabList() }
+
+// ArenaTabList says "Active Arenas"
+// in the language of msgs.
+func (msgs Messages) ArenaTabList() string {
+	return Catalog.Format(msgs.locale, "arenaTabList", nil)
+}
+
+// ArenaPromptPlaceholder says "Describe the task for all competing agents…"
+// in the language the app shows.
+func ArenaPromptPlaceholder() string { return In(i18n.Locale()).ArenaPromptPlaceholder() }
+
+// ArenaPromptPlaceholder says "Describe the task for all competing agents…"
+// in the language of msgs.
+func (msgs Messages) ArenaPromptPlaceholder() string {
+	return Catalog.Format(msgs.locale, "arenaPromptPlaceholder", nil)
+}
+
+// ArenaAgentsLabel says "Agents"
+// in the language the app shows.
+func ArenaAgentsLabel() string { return In(i18n.Locale()).ArenaAgentsLabel() }
+
+// ArenaAgentsLabel says "Agents"
+// in the language of msgs.
+func (msgs Messages) ArenaAgentsLabel() string {
+	return Catalog.Format(msgs.locale, "arenaAgentsLabel", nil)
+}
+
+// ArenaTestPlaceholder says "Optional test command (e.g. go test ./...)"
+// in the language the app shows.
+func ArenaTestPlaceholder() string { return In(i18n.Locale()).ArenaTestPlaceholder() }
+
+// ArenaTestPlaceholder says "Optional test command (e.g. go test ./...)"
+// in the language of msgs.
+func (msgs Messages) ArenaTestPlaceholder() string {
+	return Catalog.Format(msgs.locale, "arenaTestPlaceholder", nil)
+}
+
+// ArenaDirPlaceholder says "Repository directory (defaults to current session)"
+// in the language the app shows.
+func ArenaDirPlaceholder() string { return In(i18n.Locale()).ArenaDirPlaceholder() }
+
+// ArenaDirPlaceholder says "Repository directory (defaults to current session)"
+// in the language of msgs.
+func (msgs Messages) ArenaDirPlaceholder() string {
+	return Catalog.Format(msgs.locale, "arenaDirPlaceholder", nil)
+}
+
+// ArenaStart says "Start Arena"
+// in the language the app shows.
+func ArenaStart() string { return In(i18n.Locale()).ArenaStart() }
+
+// ArenaStart says "Start Arena"
+// in the language of msgs.
+func (msgs Messages) ArenaStart() string {
+	return Catalog.Format(msgs.locale, "arenaStart", nil)
+}
+
+// ArenaRefresh says "Refresh"
+// in the language the app shows.
+func ArenaRefresh() string { return In(i18n.Locale()).ArenaRefresh() }
+
+// ArenaRefresh says "Refresh"
+// in the language of msgs.
+func (msgs Messages) ArenaRefresh() string {
+	return Catalog.Format(msgs.locale, "arenaRefresh", nil)
+}
+
+// ArenaEmpty says "No arenas yet. Switch to New Arena to launch a multi-agent race."
+// in the language the app shows.
+func ArenaEmpty() string { return In(i18n.Locale()).ArenaEmpty() }
+
+// ArenaEmpty says "No arenas yet. Switch to New Arena to launch a multi-agent race."
+// in the language of msgs.
+func (msgs Messages) ArenaEmpty() string {
+	return Catalog.Format(msgs.locale, "arenaEmpty", nil)
+}
+
+// ArenaRunTests says "Run Tests"
+// in the language the app shows.
+func ArenaRunTests() string { return In(i18n.Locale()).ArenaRunTests() }
+
+// ArenaRunTests says "Run Tests"
+// in the language of msgs.
+func (msgs Messages) ArenaRunTests() string {
+	return Catalog.Format(msgs.locale, "arenaRunTests", nil)
+}
+
+// ArenaPickWinner says "Pick Winner"
+// in the language the app shows.
+func ArenaPickWinner() string { return In(i18n.Locale()).ArenaPickWinner() }
+
+// ArenaPickWinner says "Pick Winner"
+// in the language of msgs.
+func (msgs Messages) ArenaPickWinner() string {
+	return Catalog.Format(msgs.locale, "arenaPickWinner", nil)
+}
+
+// ArenaFocus says "Focus"
+// in the language the app shows.
+func ArenaFocus() string { return In(i18n.Locale()).ArenaFocus() }
+
+// ArenaFocus says "Focus"
+// in the language of msgs.
+func (msgs Messages) ArenaFocus() string {
+	return Catalog.Format(msgs.locale, "arenaFocus", nil)
+}
+
+// ArenaClose says "Close"
+// in the language the app shows.
+func ArenaClose() string { return In(i18n.Locale()).ArenaClose() }
+
+// ArenaClose says "Close"
+// in the language of msgs.
+func (msgs Messages) ArenaClose() string {
+	return Catalog.Format(msgs.locale, "arenaClose", nil)
+}
+
+// ArenaStartedToast says "Started Arena {id}"
+// in the language the app shows.
+func ArenaStartedToast(id string) string { return In(i18n.Locale()).ArenaStartedToast(id) }
+
+// ArenaStartedToast says "Started Arena {id}"
+// in the language of msgs.
+func (msgs Messages) ArenaStartedToast(id string) string {
+	return Catalog.Format(msgs.locale, "arenaStartedToast", map[string]any{"id": id})
+}
+
+// ArenaPickedToast says "Picked {winner} as winner"
+// in the language the app shows.
+func ArenaPickedToast(winner string) string { return In(i18n.Locale()).ArenaPickedToast(winner) }
+
+// ArenaPickedToast says "Picked {winner} as winner"
+// in the language of msgs.
+func (msgs Messages) ArenaPickedToast(winner string) string {
+	return Catalog.Format(msgs.locale, "arenaPickedToast", map[string]any{"winner": winner})
+}
+
+// ArenaTestsDoneToast says "Arena tests completed"
+// in the language the app shows.
+func ArenaTestsDoneToast() string { return In(i18n.Locale()).ArenaTestsDoneToast() }
+
+// ArenaTestsDoneToast says "Arena tests completed"
+// in the language of msgs.
+func (msgs Messages) ArenaTestsDoneToast() string {
+	return Catalog.Format(msgs.locale, "arenaTestsDoneToast", nil)
+}
+
+// MqTitle says "Local Merge Queue"
+// in the language the app shows.
+func MqTitle() string { return In(i18n.Locale()).MqTitle() }
+
+// MqTitle says "Local Merge Queue"
+// in the language of msgs.
+func (msgs Messages) MqTitle() string {
+	return Catalog.Format(msgs.locale, "mqTitle", nil)
+}
+
+// MqSubtitle says "Merge parallel agent branches in verified trains, guard against test tampering, and run deterministic browser checks."
+// in the language the app shows.
+func MqSubtitle() string { return In(i18n.Locale()).MqSubtitle() }
+
+// MqSubtitle says "Merge parallel agent branches in verified trains, guard against test tampering, and run deterministic browser checks."
+// in the language of msgs.
+func (msgs Messages) MqSubtitle() string {
+	return Catalog.Format(msgs.locale, "mqSubtitle", nil)
+}
+
+// MqTargetPlaceholder says "Session ID / name or branch"
+// in the language the app shows.
+func MqTargetPlaceholder() string { return In(i18n.Locale()).MqTargetPlaceholder() }
+
+// MqTargetPlaceholder says "Session ID / name or branch"
+// in the language of msgs.
+func (msgs Messages) MqTargetPlaceholder() string {
+	return Catalog.Format(msgs.locale, "mqTargetPlaceholder", nil)
+}
+
+// MqCheckPlaceholder says "Check command (e.g. go test ./...)"
+// in the language the app shows.
+func MqCheckPlaceholder() string { return In(i18n.Locale()).MqCheckPlaceholder() }
+
+// MqCheckPlaceholder says "Check command (e.g. go test ./...)"
+// in the language of msgs.
+func (msgs Messages) MqCheckPlaceholder() string {
+	return Catalog.Format(msgs.locale, "mqCheckPlaceholder", nil)
+}
+
+// MqFlowPlaceholder says "Optional browser flow JSON path"
+// in the language the app shows.
+func MqFlowPlaceholder() string { return In(i18n.Locale()).MqFlowPlaceholder() }
+
+// MqFlowPlaceholder says "Optional browser flow JSON path"
+// in the language of msgs.
+func (msgs Messages) MqFlowPlaceholder() string {
+	return Catalog.Format(msgs.locale, "mqFlowPlaceholder", nil)
+}
+
+// MqFeishuPlaceholder says "Optional Feishu chat ID for visual approval"
+// in the language the app shows.
+func MqFeishuPlaceholder() string { return In(i18n.Locale()).MqFeishuPlaceholder() }
+
+// MqFeishuPlaceholder says "Optional Feishu chat ID for visual approval"
+// in the language of msgs.
+func (msgs Messages) MqFeishuPlaceholder() string {
+	return Catalog.Format(msgs.locale, "mqFeishuPlaceholder", nil)
+}
+
+// MqEnqueue says "Enqueue"
+// in the language the app shows.
+func MqEnqueue() string { return In(i18n.Locale()).MqEnqueue() }
+
+// MqEnqueue says "Enqueue"
+// in the language of msgs.
+func (msgs Messages) MqEnqueue() string {
+	return Catalog.Format(msgs.locale, "mqEnqueue", nil)
+}
+
+// MqRunQueue says "Run Queue"
+// in the language the app shows.
+func MqRunQueue() string { return In(i18n.Locale()).MqRunQueue() }
+
+// MqRunQueue says "Run Queue"
+// in the language of msgs.
+func (msgs Messages) MqRunQueue() string {
+	return Catalog.Format(msgs.locale, "mqRunQueue", nil)
+}
+
+// MqClear says "Clear Landed"
+// in the language the app shows.
+func MqClear() string { return In(i18n.Locale()).MqClear() }
+
+// MqClear says "Clear Landed"
+// in the language of msgs.
+func (msgs Messages) MqClear() string {
+	return Catalog.Format(msgs.locale, "mqClear", nil)
+}
+
+// MqRefresh says "Refresh"
+// in the language the app shows.
+func MqRefresh() string { return In(i18n.Locale()).MqRefresh() }
+
+// MqRefresh says "Refresh"
+// in the language of msgs.
+func (msgs Messages) MqRefresh() string {
+	return Catalog.Format(msgs.locale, "mqRefresh", nil)
+}
+
+// MqEmpty says "Merge queue is empty."
+// in the language the app shows.
+func MqEmpty() string { return In(i18n.Locale()).MqEmpty() }
+
+// MqEmpty says "Merge queue is empty."
+// in the language of msgs.
+func (msgs Messages) MqEmpty() string {
+	return Catalog.Format(msgs.locale, "mqEmpty", nil)
+}
+
+// MqApprove says "Approve"
+// in the language the app shows.
+func MqApprove() string { return In(i18n.Locale()).MqApprove() }
+
+// MqApprove says "Approve"
+// in the language of msgs.
+func (msgs Messages) MqApprove() string {
+	return Catalog.Format(msgs.locale, "mqApprove", nil)
+}
+
+// MqReject says "Reject"
+// in the language the app shows.
+func MqReject() string { return In(i18n.Locale()).MqReject() }
+
+// MqReject says "Reject"
+// in the language of msgs.
+func (msgs Messages) MqReject() string {
+	return Catalog.Format(msgs.locale, "mqReject", nil)
+}
+
+// MqRemove says "Remove"
+// in the language the app shows.
+func MqRemove() string { return In(i18n.Locale()).MqRemove() }
+
+// MqRemove says "Remove"
+// in the language of msgs.
+func (msgs Messages) MqRemove() string {
+	return Catalog.Format(msgs.locale, "mqRemove", nil)
+}
+
+// MqFocus says "Focus"
+// in the language the app shows.
+func MqFocus() string { return In(i18n.Locale()).MqFocus() }
+
+// MqFocus says "Focus"
+// in the language of msgs.
+func (msgs Messages) MqFocus() string {
+	return Catalog.Format(msgs.locale, "mqFocus", nil)
+}
+
+// MqGuardWarning says "Anti-cheat guard flagged suspicious diff:"
+// in the language the app shows.
+func MqGuardWarning() string { return In(i18n.Locale()).MqGuardWarning() }
+
+// MqGuardWarning says "Anti-cheat guard flagged suspicious diff:"
+// in the language of msgs.
+func (msgs Messages) MqGuardWarning() string {
+	return Catalog.Format(msgs.locale, "mqGuardWarning", nil)
+}
+
+// MqEnqueuedToast says "Enqueued {branch}"
+// in the language the app shows.
+func MqEnqueuedToast(branch string) string { return In(i18n.Locale()).MqEnqueuedToast(branch) }
+
+// MqEnqueuedToast says "Enqueued {branch}"
+// in the language of msgs.
+func (msgs Messages) MqEnqueuedToast(branch string) string {
+	return Catalog.Format(msgs.locale, "mqEnqueuedToast", map[string]any{"branch": branch})
+}
+
+// MqRunDoneToast says "Merge queue finished: {landed} landed, {bounced} bounced, {review} need review"
+// in the language the app shows.
+func MqRunDoneToast(landed string, bounced string, review string) string {
+	return In(i18n.Locale()).MqRunDoneToast(landed, bounced, review)
+}
+
+// MqRunDoneToast says "Merge queue finished: {landed} landed, {bounced} bounced, {review} need review"
+// in the language of msgs.
+func (msgs Messages) MqRunDoneToast(landed string, bounced string, review string) string {
+	return Catalog.Format(msgs.locale, "mqRunDoneToast", map[string]any{"landed": landed, "bounced": bounced, "review": review})
+}
+
+// MqApprovedToast says "Approved and re-queued lane"
+// in the language the app shows.
+func MqApprovedToast() string { return In(i18n.Locale()).MqApprovedToast() }
+
+// MqApprovedToast says "Approved and re-queued lane"
+// in the language of msgs.
+func (msgs Messages) MqApprovedToast() string {
+	return Catalog.Format(msgs.locale, "mqApprovedToast", nil)
+}
+
+// MqRejectedToast says "Rejected lane"
+// in the language the app shows.
+func MqRejectedToast() string { return In(i18n.Locale()).MqRejectedToast() }
+
+// MqRejectedToast says "Rejected lane"
+// in the language of msgs.
+func (msgs Messages) MqRejectedToast() string {
+	return Catalog.Format(msgs.locale, "mqRejectedToast", nil)
+}
+
+// BrowserRecordStart says "Record verification flow"
+// in the language the app shows.
+func BrowserRecordStart() string { return In(i18n.Locale()).BrowserRecordStart() }
+
+// BrowserRecordStart says "Record verification flow"
+// in the language of msgs.
+func (msgs Messages) BrowserRecordStart() string {
+	return Catalog.Format(msgs.locale, "browserRecordStart", nil)
+}
+
+// BrowserRecordStop says "Stop recording flow"
+// in the language the app shows.
+func BrowserRecordStop() string { return In(i18n.Locale()).BrowserRecordStop() }
+
+// BrowserRecordStop says "Stop recording flow"
+// in the language of msgs.
+func (msgs Messages) BrowserRecordStop() string {
+	return Catalog.Format(msgs.locale, "browserRecordStop", nil)
+}
+
+// BrowserReplay says "Replay verification flow"
+// in the language the app shows.
+func BrowserReplay() string { return In(i18n.Locale()).BrowserReplay() }
+
+// BrowserReplay says "Replay verification flow"
+// in the language of msgs.
+func (msgs Messages) BrowserReplay() string {
+	return Catalog.Format(msgs.locale, "browserReplay", nil)
+}
+
+// BrowserRecordStartedToast says "Recording browser steps…"
+// in the language the app shows.
+func BrowserRecordStartedToast() string { return In(i18n.Locale()).BrowserRecordStartedToast() }
+
+// BrowserRecordStartedToast says "Recording browser steps…"
+// in the language of msgs.
+func (msgs Messages) BrowserRecordStartedToast() string {
+	return Catalog.Format(msgs.locale, "browserRecordStartedToast", nil)
+}
+
+// BrowserRecordSavedToast says "Saved flow to {path}"
+// in the language the app shows.
+func BrowserRecordSavedToast(path string) string {
+	return In(i18n.Locale()).BrowserRecordSavedToast(path)
+}
+
+// BrowserRecordSavedToast says "Saved flow to {path}"
+// in the language of msgs.
+func (msgs Messages) BrowserRecordSavedToast(path string) string {
+	return Catalog.Format(msgs.locale, "browserRecordSavedToast", map[string]any{"path": path})
+}
+
+// BrowserReplayTitle says "Replay Browser Flow"
+// in the language the app shows.
+func BrowserReplayTitle() string { return In(i18n.Locale()).BrowserReplayTitle() }
+
+// BrowserReplayTitle says "Replay Browser Flow"
+// in the language of msgs.
+func (msgs Messages) BrowserReplayTitle() string {
+	return Catalog.Format(msgs.locale, "browserReplayTitle", nil)
+}
+
+// BrowserReplaySubtitle says "Deterministically replay a recorded JSON flow with zero LLM calls and pixel-diff baseline verification."
+// in the language the app shows.
+func BrowserReplaySubtitle() string { return In(i18n.Locale()).BrowserReplaySubtitle() }
+
+// BrowserReplaySubtitle says "Deterministically replay a recorded JSON flow with zero LLM calls and pixel-diff baseline verification."
+// in the language of msgs.
+func (msgs Messages) BrowserReplaySubtitle() string {
+	return Catalog.Format(msgs.locale, "browserReplaySubtitle", nil)
+}
+
+// BrowserReplayPathPlaceholder says "Path to flow JSON (e.g. .hyla/flows/checkout.json)"
+// in the language the app shows.
+func BrowserReplayPathPlaceholder() string { return In(i18n.Locale()).BrowserReplayPathPlaceholder() }
+
+// BrowserReplayPathPlaceholder says "Path to flow JSON (e.g. .hyla/flows/checkout.json)"
+// in the language of msgs.
+func (msgs Messages) BrowserReplayPathPlaceholder() string {
+	return Catalog.Format(msgs.locale, "browserReplayPathPlaceholder", nil)
+}
+
+// BrowserReplayUpdateBaseline says "Update baseline screenshot"
+// in the language the app shows.
+func BrowserReplayUpdateBaseline() string { return In(i18n.Locale()).BrowserReplayUpdateBaseline() }
+
+// BrowserReplayUpdateBaseline says "Update baseline screenshot"
+// in the language of msgs.
+func (msgs Messages) BrowserReplayUpdateBaseline() string {
+	return Catalog.Format(msgs.locale, "browserReplayUpdateBaseline", nil)
+}
+
+// BrowserReplayRun says "Replay"
+// in the language the app shows.
+func BrowserReplayRun() string { return In(i18n.Locale()).BrowserReplayRun() }
+
+// BrowserReplayRun says "Replay"
+// in the language of msgs.
+func (msgs Messages) BrowserReplayRun() string {
+	return Catalog.Format(msgs.locale, "browserReplayRun", nil)
+}
+
+// BrowserReplayNoFlows says "No saved flows found in .hyla/flows — enter a flow path below."
+// in the language the app shows.
+func BrowserReplayNoFlows() string { return In(i18n.Locale()).BrowserReplayNoFlows() }
+
+// BrowserReplayNoFlows says "No saved flows found in .hyla/flows — enter a flow path below."
+// in the language of msgs.
+func (msgs Messages) BrowserReplayNoFlows() string {
+	return Catalog.Format(msgs.locale, "browserReplayNoFlows", nil)
+}
+
+// BrowserReplayPassedToast says "Flow passed in {ms}ms (diff {diff}%)"
+// in the language the app shows.
+func BrowserReplayPassedToast(ms string, diff string) string {
+	return In(i18n.Locale()).BrowserReplayPassedToast(ms, diff)
+}
+
+// BrowserReplayPassedToast says "Flow passed in {ms}ms (diff {diff}%)"
+// in the language of msgs.
+func (msgs Messages) BrowserReplayPassedToast(ms string, diff string) string {
+	return Catalog.Format(msgs.locale, "browserReplayPassedToast", map[string]any{"ms": ms, "diff": diff})
+}
+
+// BrowserReplayFailedToast says "Flow failed in {ms}ms ({steps} steps)"
+// in the language the app shows.
+func BrowserReplayFailedToast(ms string, steps string) string {
+	return In(i18n.Locale()).BrowserReplayFailedToast(ms, steps)
+}
+
+// BrowserReplayFailedToast says "Flow failed in {ms}ms ({steps} steps)"
+// in the language of msgs.
+func (msgs Messages) BrowserReplayFailedToast(ms string, steps string) string {
+	return Catalog.Format(msgs.locale, "browserReplayFailedToast", map[string]any{"ms": ms, "steps": steps})
+}

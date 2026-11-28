@@ -55,6 +55,12 @@ type Entry struct {
 	// Staged lays the page out unseen, for hyla browser screenshot of a
 	// pane never shown, which has no size, and so no picture.
 	Staged bool
+	// Browser verification flow recording & replay state for this pane.
+	Recording    bool
+	RecordName   string
+	RecordSteps  int
+	LastFlowPath string
+	Replaying    bool
 }
 
 // browserUA makes the page look like Safari's on macOS: sites serve a bare
@@ -289,8 +295,18 @@ func browserBar(a App, c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown
 		if top && left {
 			panes.SidebarButtons(a.Panes(), c, pal, bar, shown)
 		}
-		navButton(c, "back", glyph.ChevronLeft, locales.BrowserBack(), e.Back, pal, func() { e.View.Page().GoBack() })
-		navButton(c, "forward", glyph.Chevron, locales.BrowserForward(), e.Fwd, pal, func() { e.View.Page().GoForward() })
+		navButton(c, "back", glyph.ChevronLeft, locales.BrowserBack(), e.Back, pal, func() {
+			e.View.Page().GoBack()
+			if e.Recording {
+				a.RecordBrowserNav(p.ID, "back", "")
+			}
+		})
+		navButton(c, "forward", glyph.Chevron, locales.BrowserForward(), e.Fwd, pal, func() {
+			e.View.Page().GoForward()
+			if e.Recording {
+				a.RecordBrowserNav(p.ID, "forward", "")
+			}
+		})
 		if e.Loading {
 			navButton(c, "stop", glyph.Close, locales.BrowserStop(), true, pal, func() { e.View.Page().Stop(); e.Loading = false })
 			// Loading ends with an event, which a page that never ends
@@ -301,10 +317,17 @@ func browserBar(a App, c *ui.Context, pal *theme.Palette, bar ui.TitleBar, shown
 			navButton(c, "reload", glyph.Reload, locales.BrowserReload(), e.View != nil && e.URL != proto.BlankURL, pal, func() {
 				e.View.Page().Reload()
 				e.Loading = true
+				if e.Recording {
+					a.RecordBrowserNav(p.ID, "reload", "")
+				}
 			})
 		}
 		gap := ui.Box(c.Key("drag-l")).Width(8).Shrink(0).AlignSelf(ui.Stretch)
 		dragging = addressBar(a, c, pal, s, p, e, multi)
+		recordButton(a, c, pal, p, e)
+		navButton(c, "replay", glyph.Play, locales.BrowserReplay(), !e.Replaying, pal, func() {
+			a.OpenBrowserReplay(p.ID)
+		})
 		// The room the address bar leaves moves the window, and zooms it
 		// on a double click.
 		rest := ui.Box(c.Key("drag")).Grow(1).MinWidth(8).AlignSelf(ui.Stretch)
@@ -335,6 +358,33 @@ func navButton(c *ui.Context, key string, svg *ui.SVG, label string, enabled boo
 	b.Children(func() { ui.Icon(c, svg).Size(15, 15) })
 	if enabled && b.Clicked() {
 		fn()
+	}
+}
+
+func recordButton(a App, c *ui.Context, pal *theme.Palette, p *proto.Pane, e *Entry) {
+	svg, label := glyph.Record, locales.BrowserRecordStart()
+	if e.Recording {
+		svg, label = glyph.StopSquare, locales.BrowserRecordStop()
+	}
+	b := ui.ButtonBase(c.Key("record")).Size(28, 26).Radius(6).Center().Label(label).Tooltip(label)
+	switch {
+	case e.Recording:
+		b.TextColor(pal.Danger)
+		if b.Pressed() {
+			b.Background(pal.Danger.Alpha(0.18))
+		} else if b.Hovered() {
+			b.Background(pal.Danger.Alpha(0.12))
+		}
+	case b.Pressed():
+		b.Background(pal.RowHover.Alpha(0.12)).TextColor(pal.Text)
+	case b.Hovered():
+		b.Background(pal.RowHover).TextColor(pal.Text)
+	default:
+		b.TextColor(pal.TextMuted)
+	}
+	b.Children(func() { ui.Icon(c, svg).Size(14, 14) })
+	if b.Clicked() {
+		a.ToggleBrowserRecord(p.ID)
 	}
 }
 
@@ -395,6 +445,9 @@ func addressBar(a App, c *ui.Context, pal *theme.Palette, s *proto.Session, p *p
 	}
 	if in.Submitted() && e.Address != "" {
 		e.Load(e.Address)
+		if e.Recording {
+			a.RecordBrowserNav(p.ID, "open", e.URL)
+		}
 		// The page takes the keyboard, through its element, which the
 		// field gives the focus up to.
 		e.Focused = false

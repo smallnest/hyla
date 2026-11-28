@@ -9,6 +9,8 @@ Hyla 可以同时驾驭 Claude Code、Codex、OpenCode、Pi 和 Antigravity（`a
 
 ## Arena：多智能体同题竞速
 
+你可以在桌面端直接点击菜单 **会话 › 多智能体竞技场…**（macOS 快捷键 <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>A</kbd>，Windows/Linux 为 <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>A</kbd>）发起或管理竞速，也可以使用命令行：
+
 在任意 Git 仓库中发起一场竞技场。Hyla 会为每个参赛智能体创建独立的 Git worktree 与分支，同时启动任务并实时统计状态与改动行数：
 
 ```sh

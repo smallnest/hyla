@@ -9,6 +9,8 @@ Hyla は Claude Code、Codex、OpenCode、Pi、Antigravity（`agy`）を並べ�
 
 ## Arena：エージェント並列競走
 
+デスクトップアプリのメニュー **セッション › マルチエージェントアリーナ…**（macOS: <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>A</kbd>、Windows/Linux: <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>A</kbd>）または CLI から開始・管理できます。
+
 任意の Git リポジトリでアリーナを開始すると、Hyla は各エージェント用に独立した worktree とブランチを作成して同時に起動し、ステータスと差分統計を追跡します。
 
 ```sh

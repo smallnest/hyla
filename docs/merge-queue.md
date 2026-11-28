@@ -9,7 +9,7 @@ Parallel coding agents write code fast, but landing multiple branches into `main
 
 ## 1. Record & replay browser flows (zero LLM)
 
-Record interactive verification steps performed in any Hyla browser pane into a portable JSON flow:
+Use the **Record** / **Replay** buttons in any Hyla browser pane toolbar to start/stop recording navigation steps or open the Replay dialog, or drive interactive verification from the CLI into a portable JSON flow:
 
 ```sh
 hyla browser record start --name checkout -o .hyla/flows/checkout.json
@@ -28,6 +28,8 @@ hyla browser replay .hyla/flows/checkout.json --feishu-chat <chat-id>
 ```
 
 ## 2. Local Merge Queue (`hyla mq`)
+
+Manage queued agent branches visually from **Session › Merge Queue…** (<kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>M</kbd> on macOS / <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>M</kbd> on Windows/Linux)—including Enqueue, Run Queue, Approve/Reject anti-cheat flags, and jumping to bounced agent panes—or via CLI:
 
 Queue finished agent worktree sessions and land them in trains of up to 4 branches inside a temporary integration worktree:
 

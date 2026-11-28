@@ -10,11 +10,14 @@ import (
 	"hyla/internal/app/host"
 	"hyla/internal/proto"
 	"hyla/internal/settings"
+	"hyla/internal/ui/arenadialog"
 	"hyla/internal/ui/confirm"
 	"hyla/internal/ui/layout"
+	"hyla/internal/ui/mqdialog"
 	"hyla/internal/ui/root"
 	"hyla/internal/ui/side"
 	"hyla/internal/ui/theme"
+	"hyla/internal/ui/webpane"
 	"hyla/internal/ui/worktree"
 	"hyla/locales"
 )
@@ -55,7 +58,8 @@ func (a *App) UnforcePanel() { a.Side.Forced = false }
 func (a *App) SidebarTakesFiles() bool {
 	h := a.Local()
 	return h.Conn == host.StateReady && h.Client != nil && !a.Prefs.SidebarHidden && !a.Pal.Open && !a.Picker.Open &&
-		a.SshAsk == nil && a.K8sAsk == nil && (a.Confirm == nil || !a.Confirm.Open)
+		a.SshAsk == nil && a.K8sAsk == nil && a.ArenaAsk == nil && a.MQAsk == nil && a.ReplayAsk == nil &&
+		(a.Confirm == nil || !a.Confirm.Open)
 }
 
 func (a *App) SidebarDropped(files []string) {
@@ -89,6 +93,15 @@ func (a *App) AskClose(cf *confirm.Ask) { a.Confirm = cf }
 
 func (a *App) SelectedHost() *host.Host              { return a.selectedHost() }
 func (a *App) K8s(c *ui.Context, pal *theme.Palette) { a.k8sView(c, pal) }
+func (a *App) Arena(c *ui.Context, pal *theme.Palette) {
+	arenadialog.View(a, c, pal, a.ArenaAsk)
+}
+func (a *App) MergeQueue(c *ui.Context, pal *theme.Palette) {
+	mqdialog.View(a, c, pal, a.MQAsk)
+}
+func (a *App) BrowserReplay(c *ui.Context, pal *theme.Palette) {
+	webpane.ReplayView(a, c, pal, a.ReplayAsk)
+}
 
 // Undo is a removal's words and what puts back what it took away.
 func (a *App) Undo() (msg, undo string, act func(), ok bool) {

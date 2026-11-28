@@ -7,12 +7,15 @@ import (
 	"hyla/internal/ui/layout"
 	"hyla/internal/ui/panes"
 	"hyla/internal/ui/webpane"
+	"hyla/locales"
 
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/proto"
 	"hyla/internal/ui/theme"
 )
+
+var _ webpane.ReplayApp = (*App)(nil)
 
 // The browser panes are internal/ui/webpane's: the page, its toolbar and
 // its find, which this file answers for.
@@ -86,3 +89,77 @@ func (a *App) sessionOfPane(id string) *proto.Session {
 func (a *App) Shows(id string) bool { return webpane.Shows(a, id) }
 
 func (a *App) findInPage(e *webpane.Entry, next, back bool) { webpane.FindInPage(a, e, next, back) }
+
+func (a *App) ReplayAskNow() *webpane.ReplayAsk { return a.ReplayAsk }
+
+func (a *App) SetReplayAsk(d *webpane.ReplayAsk) { a.ReplayAsk = d }
+
+func (a *App) ToggleBrowserRecord(paneID string) {
+	e := a.Webs[paneID]
+	if e == nil {
+		return
+	}
+	h := a.hostOf(paneID)
+	if h == nil || h.Client == nil {
+		a.toast(locales.HostNotConnected(a.selectedHost().Label()))
+		return
+	}
+	cl := h.Client
+	stop := e.Recording
+	go func() {
+		method := "browser.record.start"
+		if stop {
+			method = "browser.record.stop"
+		}
+		var st proto.BrowserRecordStatus
+		err := cl.Call(method, proto.BrowserRecordParams{Pane: paneID}, &st)
+		a.Main(func() {
+			if err != nil {
+				a.toast(err.Error())
+				return
+			}
+			cur := a.Webs[paneID]
+			if cur == nil {
+				return
+			}
+			cur.Recording = st.Recording
+			cur.RecordName = st.Name
+			cur.RecordSteps = st.Steps
+			if st.Recording {
+				a.toast(locales.BrowserRecordStartedToast())
+			} else if st.SavedPath != "" {
+				cur.LastFlowPath = st.SavedPath
+				a.toast(locales.BrowserRecordSavedToast(st.SavedPath))
+			}
+		})
+	}()
+}
+
+func (a *App) OpenBrowserReplay(paneID string) {
+	h := a.hostOf(paneID)
+	workDir, lastFlow := "", ""
+	if s := a.sessionOfPane(paneID); s != nil {
+		if p := s.PaneByID(paneID); p != nil {
+			workDir = p.WorkDir()
+		}
+	}
+	if e := a.Webs[paneID]; e != nil {
+		lastFlow = e.LastFlowPath
+	}
+	webpane.OpenReplay(a, h, paneID, workDir, lastFlow)
+}
+
+func (a *App) RecordBrowserNav(paneID, op, url string) {
+	h := a.hostOf(paneID)
+	if h == nil || h.Client == nil {
+		return
+	}
+	if e := a.Webs[paneID]; e != nil {
+		e.RecordSteps++
+	}
+	h.Client.Go("browser.record.step", proto.BrowserParams{
+		ID:   paneID,
+		Op:   op,
+		Text: url,
+	}, nil)
+}

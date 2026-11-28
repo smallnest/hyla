@@ -9,6 +9,8 @@ Hyla drives Claude Code, Codex, OpenCode, Pi, and Antigravity (`agy`) side by si
 
 ## Arena: race agents in parallel
 
+You can launch and manage arenas either from the desktop app (**Session › Multi-Agent Arena…**, <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>A</kbd> on macOS / <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>A</kbd> on Windows/Linux) or from the CLI:
+
 Start an arena in any git repository. Hyla creates an isolated worktree and branch for each agent, launches them concurrently with the same prompt, and tracks their live status and git diff metrics:
 
 ```sh

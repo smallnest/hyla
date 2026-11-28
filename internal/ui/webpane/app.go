@@ -50,4 +50,10 @@ type App interface {
 	ChromeStateOf() panes.Chrome
 	// Panes is the app, as the panes' buttons ask it.
 	Panes() panes.App
+	// ToggleBrowserRecord starts or stops recording browser verification steps.
+	ToggleBrowserRecord(paneID string)
+	// OpenBrowserReplay opens the dialog to replay a saved verification flow.
+	OpenBrowserReplay(paneID string)
+	// RecordBrowserNav records a user-initiated toolbar/address-bar navigation step.
+	RecordBrowserNav(paneID, op, url string)
 }

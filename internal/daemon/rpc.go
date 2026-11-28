@@ -450,6 +450,14 @@ func (d *Daemon) call(c *controlConn, method string, raw json.RawMessage) (any, 
 		}
 		return d.browserRecordStatus(p.Pane)
 
+	case "browser.record.step":
+		var p proto.BrowserParams
+		if err := decode(&p); err != nil {
+			return nil, err
+		}
+		d.recordBrowserStep(p.ID, p)
+		return true, nil
+
 	case "browser.replay":
 		var p proto.BrowserReplayParams
 		if err := decode(&p); err != nil {

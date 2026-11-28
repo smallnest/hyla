@@ -8,7 +8,9 @@ import (
 
 	"hyla/internal/proto"
 
+	"hyla/internal/ui/arenadialog"
 	"hyla/internal/ui/menus"
+	"hyla/internal/ui/mqdialog"
 	"hyla/internal/ui/worktree"
 	"hyla/locales"
 )
@@ -63,6 +65,10 @@ func (a *App) run(id string, args map[string]string) {
 		a.NewSessionInDir(a.Local(), proto.Home())
 	case "session.newWorktree":
 		worktree.NewSession(a)
+	case "arena.open":
+		arenadialog.Open(a)
+	case "mq.open":
+		mqdialog.Open(a)
 	case "project.open":
 		a.OpenProjectDialog()
 	case "palette.open":

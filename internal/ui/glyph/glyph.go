@@ -159,6 +159,8 @@ var (
 	VolumeMuted = Drawn(`<path d="M2.5 6.2H5l3.5-2.8v9.2L5 9.8H2.5z"/><path d="M11.2 6l3.3 4M14.5 6l-3.3 4"/>`)
 	History     = Drawn(`<path d="M3.2 4.3A5.8 5.8 0 1 1 2.2 8"/><path d="M2.4 2.2v2.7h2.7"/><path d="M8 5.2v3l2.1 1.3"/>`)
 	Episodes    = Drawn(`<rect x="2.2" y="2.5" width="4.6" height="4.6" rx="1"/><rect x="9.2" y="2.5" width="4.6" height="4.6" rx="1"/><rect x="2.2" y="9.2" width="4.6" height="4.6" rx="1"/><rect x="9.2" y="9.2" width="4.6" height="4.6" rx="1"/>`)
+	Record      = Drawn(`<circle cx="8" cy="8" r="4.8" fill="currentColor" stroke="none"/>`)
+	StopSquare  = Drawn(`<rect x="4" y="4" width="8" height="8" rx="1.6" fill="currentColor" stroke="none"/>`)
 )
 
 // MenuIcon is an icon as a menu item's image, made once: the items that

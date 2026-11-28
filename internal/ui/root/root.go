@@ -63,6 +63,9 @@ type App interface {
 	Worktree(c *ui.Context, pal *theme.Palette)
 	SSH(c *ui.Context, pal *theme.Palette)
 	K8s(c *ui.Context, pal *theme.Palette)
+	Arena(c *ui.Context, pal *theme.Palette)
+	MergeQueue(c *ui.Context, pal *theme.Palette)
+	BrowserReplay(c *ui.Context, pal *theme.Palette)
 	// Undo is a removal's words and what puts back what it took away, and
 	// TakeToast a line to show: each clears what it returns.
 	Undo() (msg, undo string, act func(), ok bool)
@@ -145,5 +148,8 @@ func View(x App, c *ui.Context) {
 	x.Worktree(c, pal)
 	x.SSH(c, pal) // the dialog that adds a machine
 	x.K8s(c, pal)
+	x.Arena(c, pal)
+	x.MergeQueue(c, pal)
+	x.BrowserReplay(c, pal)
 	x.EndFrame(c)
 }

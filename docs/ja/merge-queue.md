@@ -9,7 +9,7 @@ description: 列車型ローカルマージキュー、チート防止 diff ガ�
 
 ## 1. ブラウザ検証の録画とゼロ LLM リプレイ
 
-Hyla のブラウザペインで実行した検証手順を JSON フローとして記録できます。
+Hyla ブラウザペインのツールバーにある **録画 / 停止**・**リプレイ** ボタンから操作を録画・再生するか、CLI から検証手順を JSON フローとして記録できます。
 
 ```sh
 hyla browser record start --name checkout -o .hyla/flows/checkout.json
@@ -28,6 +28,8 @@ hyla browser replay .hyla/flows/checkout.json --feishu-chat <chat-id>
 ```
 
 ## 2. ローカルマージキュー（`hyla mq`）
+
+デスクトップアプリの **セッション › マージキュー…**（macOS: <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>M</kbd>、Windows/Linux: <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>M</kbd>）からキューの追加・実行・チート防止アラートの承認/却下ができます。CLI の場合：
 
 完了したエージェントのワークツリーセッションをキューに追加し、一時統合ワークツリーで最大 4 本ずつまとめてチェック・マージします。
 

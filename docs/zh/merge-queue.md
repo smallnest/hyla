@@ -9,7 +9,7 @@ description: 用集成列车合并队列、反作弊 Diff 守卫、零 LLM 浏�
 
 ## 1. 浏览器验收录制与零 LLM 回放
 
-在任意 Hyla 浏览器窗格中录制一次交互验证步骤，生成可复用的 JSON 流程文件：
+你可以直接点击任意 Hyla 浏览器窗格工具栏上的 **录制 / 停止** 与 **回放** 按钮来录制跳转操作或打开回放弹窗，也可以通过命令行录制完整的交互验证步骤生成 JSON 流程文件：
 
 ```sh
 hyla browser record start --name checkout -o .hyla/flows/checkout.json
@@ -28,6 +28,8 @@ hyla browser replay .hyla/flows/checkout.json --feishu-chat <chat-id>
 ```
 
 ## 2. 本地合并队列（`hyla mq`）
+
+在桌面端通过 **会话 › 本地合并队列…**（macOS <kbd>⌘</kbd> <kbd>⇧</kbd> <kbd>M</kbd>，Windows/Linux <kbd>Ctrl</kbd> <kbd>Alt</kbd> <kbd>M</kbd>）即可可视化入队、运行列车合并、审批/拒绝反作弊拦截并跳转到被打回的智能体窗格，或使用 CLI：
 
 把完成任务的智能体会话加入队列，Hyla 会在临时集成工作树中以最多 4 条分支为一列自动合并并跑全量检查：
 

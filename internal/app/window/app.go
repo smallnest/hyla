@@ -38,11 +38,13 @@ import (
 	"hyla/internal/proto"
 	"hyla/internal/remote"
 	"hyla/internal/settings"
+	"hyla/internal/ui/arenadialog"
 	"hyla/internal/ui/confirm"
 	"hyla/internal/ui/hongguoview"
 	"hyla/internal/ui/hosts"
 	"hyla/internal/ui/k8sdialog"
 	"hyla/internal/ui/marks"
+	"hyla/internal/ui/mqdialog"
 	"hyla/internal/ui/palette"
 	"hyla/internal/ui/panes"
 	"hyla/internal/ui/petme"
@@ -197,9 +199,12 @@ type App struct {
 	Pal     palette.State
 	Find    findState
 	Confirm *confirm.Ask
-	WtAsk   *worktree.Ask  // the new session's branch, while asked
-	SshAsk  *sshdialog.Ask // the sidebar's add-a-host-over-SSH dialog
-	K8sAsk  *k8sdialog.Ask // the sidebar's add-a-kubectl-exec-pod dialog
+	WtAsk     *worktree.Ask    // the new session's branch, while asked
+	SshAsk    *sshdialog.Ask   // the sidebar's add-a-host-over-SSH dialog
+	K8sAsk    *k8sdialog.Ask   // the sidebar's add-a-kubectl-exec-pod dialog
+	ArenaAsk  *arenadialog.Ask // the Multi-Agent Arena dialog
+	MQAsk     *mqdialog.Ask    // the Local Merge Queue dialog
+	ReplayAsk *webpane.ReplayAsk
 	// endedAll shows all of the sidebar's Ended; skillMissing tells, as
 	// of skillsAt, that no kind of agent has Hyla's skill (ended.go).
 	// This fork has no Ended (session history): the fields stay for
@@ -258,7 +263,8 @@ type App struct {
 	SwitchAtTime time.Time
 	// from is the host whose program asked for the action being run (hyla
 	// do), nil for the user's.
-	From   *host.Host
+	From     *host.Host
+	mainHook func(func()) // test-only hook to pump Main(fn) callbacks without a window
 	Picker picker.State // the folders of a host, to open a project in
 	Side   side.State   // the side panel, beside a session's panes
 	// info is what the Info views read, by pane (info.go).
@@ -378,6 +384,10 @@ func (a *App) UpdateNow(fn func()) { a.Update(fn) }
 // main runs fn on the main thread, and draws: a test's app, which has no
 // window's loop, runs it as it comes.
 func (a *App) main(fn func()) {
+	if a.mainHook != nil {
+		a.mainHook(fn)
+		return
+	}
 	if a.Win != nil {
 		a.UpdateNow(fn)
 		return
