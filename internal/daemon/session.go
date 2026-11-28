@@ -395,6 +395,7 @@ func (s *pane) tick(now time.Time) bool {
 			s.info.AgentSession = nil
 		}
 	}
+	agentChanged := agent != s.info.Agent
 	if proc != s.info.Process || agent != s.info.Agent || runtime != s.info.Runtime {
 		if s.info.Agent != "" && agent != s.info.Agent {
 			// Another agent starts from no progress; the first keeps what
@@ -405,7 +406,8 @@ func (s *pane) tick(now time.Time) bool {
 		s.seen, s.looked = "", false
 		changed = true
 	}
-	if now.Sub(s.cwdAt) > 1500*time.Millisecond || proc == "" && s.info.ProcessDir != "" {
+	cwdTick := now.Sub(s.cwdAt) > 1500*time.Millisecond
+	if cwdTick || proc == "" && s.info.ProcessDir != "" {
 		s.cwdAt = now
 		if dir := procCwd(s.shellPID); dir != "" && dir != s.info.Dir {
 			s.info.Dir = dir
@@ -426,6 +428,13 @@ func (s *pane) tick(now time.Time) bool {
 			s.info.ProcessDir = pdir
 			changed = true
 			s.d.git.poke(s.info.WorkDir())
+		}
+	}
+	if (agent == "agy" || agent == "antigravity") && pg != 0 && pg != s.shellPID && (cwdTick || agentChanged) {
+		if id := procAgyConversation(pg); id != "" && (s.info.AgentSession == nil || s.info.AgentSession.Agent != agent || s.info.AgentSession.ID != id) {
+			s.info.AgentSession = &proto.AgentSession{Agent: agent, ID: id}
+			s.info.AgentSessionID = id
+			changed = true
 		}
 	}
 	if s.look(now) {

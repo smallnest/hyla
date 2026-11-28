@@ -85,6 +85,8 @@
   "toastPasteImageUnsupported": "无法粘贴图片：不支持 {format}。请复制为 PNG 或 JPEG，或把图片文件拖到窗格上。",
   "toastConfigProblems": "配置文件有 {count} 个问题：请查看 设置 › 高级",
   "toastNothingNeedsYou": "没有需要你处理的会话",
+  "toastForkNoAgentSession": "当前窗格没有可分叉的智能体会话",
+  "toastForkUnsupportedAgent": "{agent} 不支持分叉会话",
   "cliInstallFailed": "无法安装命令行工具：{error}",
   "cliInstalledIn": "已将 hyla 命令安装到 {dir}",
   "cliAddedToPath": "已将 hyla 命令添加到 PATH：新开的终端即可使用",

@@ -195,6 +195,7 @@ func Split(x App, s *proto.Session, p proto.CreateParams) {
 // ForkPane forks a pane's active coding agent session into a new split pane.
 func ForkPane(x App, s *proto.Session, at, direction string) {
 	if s == nil {
+		x.Toast(locales.ToastForkNoAgentSession())
 		return
 	}
 	if at == "" {
@@ -202,6 +203,11 @@ func ForkPane(x App, s *proto.Session, at, direction string) {
 	}
 	pane := s.PaneByID(at)
 	if pane == nil || !pane.CanForkSession() {
+		if pane != nil && pane.Agent != "" && !proto.CanForkAgent(pane.Agent) {
+			x.Toast(locales.ToastForkUnsupportedAgent(proto.AgentDisplayName(pane.Agent)))
+		} else {
+			x.Toast(locales.ToastForkNoAgentSession())
+		}
 		return
 	}
 	if direction == "" {

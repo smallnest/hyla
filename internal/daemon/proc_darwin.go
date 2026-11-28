@@ -54,9 +54,21 @@ func procArgs(pid int) []string {
 }
 
 var (
-	libprocOnce sync.Once
-	procPidinfo func(pid int32, flavor int32, arg uint64, buffer unsafe.Pointer, size int32) int32
+	libprocOnce   sync.Once
+	procPidinfo   func(pid int32, flavor int32, arg uint64, buffer unsafe.Pointer, size int32) int32
+	procPidfdinfo func(pid int32, fd int32, flavor int32, buffer unsafe.Pointer, size int32) int32
 )
+
+func initLibproc() {
+	libprocOnce.Do(func() {
+		lib, err := purego.Dlopen("/usr/lib/libSystem.B.dylib", purego.RTLD_NOW|purego.RTLD_GLOBAL)
+		if err != nil {
+			return
+		}
+		purego.RegisterLibFunc(&procPidinfo, lib, "proc_pidinfo")
+		purego.RegisterLibFunc(&procPidfdinfo, lib, "proc_pidfdinfo")
+	})
+}
 
 // procList returns every process, as ps lists them.
 func procList() []osProc {
@@ -85,13 +97,7 @@ func procList() []osProc {
 // procCwd returns the working directory of a process, through
 // proc_pidinfo's PROC_PIDVNODEPATHINFO.
 func procCwd(pid int) string {
-	libprocOnce.Do(func() {
-		lib, err := purego.Dlopen("/usr/lib/libSystem.B.dylib", purego.RTLD_NOW|purego.RTLD_GLOBAL)
-		if err != nil {
-			return
-		}
-		purego.RegisterLibFunc(&procPidinfo, lib, "proc_pidinfo")
-	})
+	initLibproc()
 	if procPidinfo == nil {
 		return ""
 	}
@@ -119,4 +125,59 @@ func procParent(pid int) int {
 		return 0
 	}
 	return int(kp.Eproc.Ppid)
+}
+
+// procAgyConversation inspects open file descriptors of an agy process to find
+// its active conversation ID (presence/<id>.lock or conversations/<id>.db).
+func procAgyConversation(pid int) string {
+	if pid <= 0 {
+		return ""
+	}
+	initLibproc()
+	if procPidinfo == nil || procPidfdinfo == nil {
+		return ""
+	}
+	const (
+		procPIDListFDs        = 1
+		proxFDTypeVnode       = 1
+		procPIDFDVnodePathInf = 2
+		vnodePathOffset       = 176
+	)
+	n := procPidinfo(int32(pid), procPIDListFDs, 0, nil, 0)
+	if n <= 0 {
+		return ""
+	}
+	if n > 1<<20 {
+		n = 1 << 20
+	}
+	buf := make([]byte, n)
+	n2 := procPidinfo(int32(pid), procPIDListFDs, 0, unsafe.Pointer(&buf[0]), int32(len(buf)))
+	if n2 <= 0 {
+		return ""
+	}
+	bestID, bestPrio := "", 0
+	var vbuf [1200]byte
+	for off := 0; off+8 <= int(n2); off += 8 {
+		fd := int32(binary.LittleEndian.Uint32(buf[off:]))
+		fdtype := binary.LittleEndian.Uint32(buf[off+4:])
+		if fdtype != proxFDTypeVnode {
+			continue
+		}
+		vn := procPidfdinfo(int32(pid), fd, procPIDFDVnodePathInf, unsafe.Pointer(&vbuf[0]), int32(len(vbuf)))
+		if vn <= vnodePathOffset || int(vn) > len(vbuf) {
+			continue
+		}
+		raw := vbuf[vnodePathOffset:vn]
+		if i := bytes.IndexByte(raw, 0); i >= 0 {
+			raw = raw[:i]
+		}
+		id, prio := agyConversationFromPath(string(raw))
+		if prio == 2 {
+			return id
+		}
+		if prio > bestPrio {
+			bestID, bestPrio = id, prio
+		}
+	}
+	return bestID
 }

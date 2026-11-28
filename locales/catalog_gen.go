@@ -892,6 +892,28 @@ func (msgs Messages) ToastNothingNeedsYou() string {
 	return Catalog.Format(msgs.locale, "toastNothingNeedsYou", nil)
 }
 
+// ToastForkNoAgentSession says "No forkable agent session in this pane"
+// in the language the app shows.
+func ToastForkNoAgentSession() string { return In(i18n.Locale()).ToastForkNoAgentSession() }
+
+// ToastForkNoAgentSession says "No forkable agent session in this pane"
+// in the language of msgs.
+func (msgs Messages) ToastForkNoAgentSession() string {
+	return Catalog.Format(msgs.locale, "toastForkNoAgentSession", nil)
+}
+
+// ToastForkUnsupportedAgent says "{agent} doesn’t support forking sessions"
+// in the language the app shows.
+func ToastForkUnsupportedAgent(agent string) string {
+	return In(i18n.Locale()).ToastForkUnsupportedAgent(agent)
+}
+
+// ToastForkUnsupportedAgent says "{agent} doesn’t support forking sessions"
+// in the language of msgs.
+func (msgs Messages) ToastForkUnsupportedAgent(agent string) string {
+	return Catalog.Format(msgs.locale, "toastForkUnsupportedAgent", map[string]any{"agent": agent})
+}
+
 // CliInstallFailed says "Couldn’t install the command line tool: {error}"
 // in the language the app shows.
 func CliInstallFailed(error string) string { return In(i18n.Locale()).CliInstallFailed(error) }

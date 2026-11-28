@@ -26,12 +26,13 @@ func TestCanForkSession(t *testing.T) {
 		{"file pane", &proto.Pane{ID: "p1", File: "/tmp/a.go", AgentSession: &proto.AgentSession{Agent: "claude", ID: "sess-1"}}, false},
 		{"invalid session id", &proto.Pane{ID: "p1", Status: proto.Idle, AgentSession: &proto.AgentSession{Agent: "claude", ID: "../bad"}}, false},
 		{"unsupported agent dsh", &proto.Pane{ID: "p1", Status: proto.Idle, AgentSession: &proto.AgentSession{Agent: "dsh", ID: "sess-1"}}, false},
-		{"unsupported agent agy", &proto.Pane{ID: "p1", Status: proto.Idle, AgentSession: &proto.AgentSession{Agent: "agy", ID: "sess-1"}}, false},
 		{"unsupported agent vim", &proto.Pane{ID: "p1", Status: proto.Idle, AgentSession: &proto.AgentSession{Agent: "vim", ID: "sess-1"}}, false},
 		{"claude", &proto.Pane{ID: "p1", Status: proto.Idle, AgentSession: &proto.AgentSession{Agent: "claude", ID: "13b997c3-f8b3-4b3e-bb8a-ca1b5d1b9787"}}, true},
 		{"codex", &proto.Pane{ID: "p1", Status: proto.Working, AgentSession: &proto.AgentSession{Agent: "codex", ID: "019a2b3c-4d5e"}}, true},
 		{"pi", &proto.Pane{ID: "p1", Status: proto.Waiting, AgentSession: &proto.AgentSession{Agent: "pi", ID: "0f3c2a1b-8e9d"}}, true},
 		{"opencode", &proto.Pane{ID: "p1", Status: proto.Idle, AgentSession: &proto.AgentSession{Agent: "opencode", ID: "ses_ea7b9b964ffemfrVYxK9yw55Gz"}}, true},
+		{"agy", &proto.Pane{ID: "p1", Status: proto.Idle, AgentSession: &proto.AgentSession{Agent: "agy", ID: "f6999341-108b-450b-9087-3ae193332eed"}}, true},
+		{"antigravity", &proto.Pane{ID: "p1", Status: proto.Idle, AgentSession: &proto.AgentSession{Agent: "antigravity", ID: "f6999341-108b-450b-9087-3ae193332eed"}}, true},
 	}
 	for _, tc := range cases {
 		if got := tc.pane.CanForkSession(); got != tc.want {
@@ -52,6 +53,8 @@ func TestResolveForkCommand(t *testing.T) {
 		{"claude", "13b997c3-f8b3", []string{"claude", "--resume", "13b997c3-f8b3", "--fork-session"}},
 		{"codex", "019a2b3c-4d5e", []string{"codex", "fork", "019a2b3c-4d5e"}},
 		{"pi", "0f3c2a1b-8e9d", []string{"pi", "--fork", "0f3c2a1b-8e9d"}},
+		{"agy", "f6999341-108b", []string{"agy", "--resume", "f6999341-108b"}},
+		{"antigravity", "f6999341-108b", []string{"agy", "--resume", "f6999341-108b"}},
 	} {
 		got, err := resolveForkCommand(context.Background(), &proto.AgentSession{Agent: tc.agent, ID: tc.id}, "/repo")
 		if err != nil {
@@ -168,5 +171,163 @@ func TestPaneForkRPC(t *testing.T) {
 	}
 	if ns.Layout == nil || !ns.Layout.Row {
 		t.Errorf("expected default right split (Row layout), got %+v", ns.Layout)
+	}
+}
+
+func TestIsOpenCodeLegacyOutput(t *testing.T) {
+	cases := []struct {
+		name   string
+		output string
+		want   bool
+	}{
+		{
+			name: "opencode 1.x yargs help dump",
+			output: `Commands:
+  opencode [project]  start opencode tui
+  opencode session    manage sessions
+
+Options:
+  -s, --session  session id to continue
+      --fork     fork the session when continuing`,
+			want: true,
+		},
+		{
+			name:   "explicit unknown command",
+			output: "error: unknown command: api",
+			want:   true,
+		},
+		{
+			name:   "explicit unknown subcommand",
+			output: "Unknown subcommand 'api'",
+			want:   true,
+		},
+		{
+			name:   "explicit unexpected argument",
+			output: "error: unexpected argument 'api' found",
+			want:   true,
+		},
+		{
+			name: "opencode v2 help with api subcommand",
+			output: `Commands:
+  opencode api   call server API
+Options:
+  --fork`,
+			want: false,
+		},
+		{
+			name:   "json error from server",
+			output: `{"error":"session not found"}`,
+			want:   false,
+		},
+		{
+			name:   "connection refused",
+			output: "connection refused",
+			want:   false,
+		},
+	}
+	for _, tc := range cases {
+		if got := isOpenCodeLegacyOutput(tc.output); got != tc.want {
+			t.Errorf("%s: isOpenCodeLegacyOutput = %v, want %v", tc.name, got, tc.want)
+		}
+	}
+}
+
+func TestAgyConversationFromPath(t *testing.T) {
+	cases := []struct {
+		path     string
+		wantID   string
+		wantPrio int
+	}{
+		{"/Users/u/.gemini/antigravity-cli/presence/2859d64d-df68-4d7c-ac4c-1e1cb49256ad.lock", "2859d64d-df68-4d7c-ac4c-1e1cb49256ad", 2},
+		{"/Users/u/.gemini/antigravity-cli/conversations/2859d64d-df68-4d7c-ac4c-1e1cb49256ad.db", "2859d64d-df68-4d7c-ac4c-1e1cb49256ad", 1},
+		{"/Users/u/.gemini/antigravity-cli/conversation_summaries.db", "", 0},
+		{"/Users/u/.gemini/antigravity-cli/conversations/2859d64d-df68-4d7c-ac4c-1e1cb49256ad.db-wal", "", 0},
+		{"/Users/u/.gemini/antigravity-cli/conversations/2859d64d-df68-4d7c-ac4c-1e1cb49256ad.db-shm", "", 0},
+		{"/Users/u/.gemini/antigravity-cli/presence/bad;id.lock", "", 0},
+	}
+	for _, tc := range cases {
+		gotID, gotPrio := agyConversationFromPath(tc.path)
+		if gotID != tc.wantID || gotPrio != tc.wantPrio {
+			t.Errorf("agyConversationFromPath(%q) = (%q, %d), want (%q, %d)", tc.path, gotID, gotPrio, tc.wantID, tc.wantPrio)
+		}
+	}
+}
+
+func TestAgyPromptReady(t *testing.T) {
+	cases := []struct {
+		name   string
+		screen string
+		want   bool
+	}{
+		{
+			name:   "signing in screen",
+			screen: "Welcome to the Antigravity CLI.\nSigning in...\n────────\n>\n────────",
+			want:   false,
+		},
+		{
+			name:   "trust prompt",
+			screen: "Do you trust the contents of this project?\n> Yes, I trust this folder",
+			want:   false,
+		},
+		{
+			name:   "ready prompt box",
+			screen: "Antigravity CLI 1.5.18\n────────────────────────\n>\n────────────────────────",
+			want:   true,
+		},
+		{
+			name:   "ready prompt with advisory banner above",
+			screen: "This conversation is already open in another instance. Use /fork.\n────────────────────────\n>\n────────────────────────",
+			want:   true,
+		},
+	}
+	for _, tc := range cases {
+		if got := agyPromptReady(tc.screen); got != tc.want {
+			t.Errorf("%s: agyPromptReady = %v, want %v", tc.name, got, tc.want)
+		}
+	}
+}
+
+func TestPaneForkAgyRPC(t *testing.T) {
+	orig := startAgyFork
+	t.Cleanup(func() { startAgyFork = orig })
+
+	var triggeredPaneID string
+	startAgyFork = func(pn *pane) {
+		if pn != nil {
+			triggeredPaneID = pn.info.ID
+		}
+	}
+
+	d := testDaemon(t)
+	dir := d.projects[0].Dir
+	ses, err := d.create(proto.CreateParams{Project: "pr", Dir: dir})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { d.removeSession(ses.ID) })
+	pID := ses.Panes[0].ID
+
+	pn := d.findPane(pID)
+	pn.mu.Lock()
+	pn.info.Agent = "agy"
+	pn.info.AgentSession = &proto.AgentSession{Agent: "agy", ID: "2859d64d-df68-4d7c-ac4c-1e1cb49256ad"}
+	pn.info.AgentSessionID = "2859d64d-df68-4d7c-ac4c-1e1cb49256ad"
+	pn.mu.Unlock()
+
+	raw, _ := json.Marshal(proto.ForkParams{Pane: pID})
+	res, err := d.call(nil, "pane.fork", raw)
+	if err != nil {
+		t.Fatalf("pane.fork agy failed: %v", err)
+	}
+	ns := res.(proto.Session)
+	forked := ns.PaneByID(ns.Focus)
+	if forked == nil || forked.ID == pID {
+		t.Fatalf("expected focus on newly forked pane, got %+v", forked)
+	}
+	if want := "agy --resume 2859d64d-df68-4d7c-ac4c-1e1cb49256ad"; strings.Join(forked.Command, " ") != want {
+		t.Errorf("forked command = %q, want %q", strings.Join(forked.Command, " "), want)
+	}
+	if triggeredPaneID != forked.ID {
+		t.Errorf("startAgyFork triggered on %q, want %q", triggeredPaneID, forked.ID)
 	}
 }

@@ -58,7 +58,7 @@ var All = []Action{
 
 	{ID: "pane.split.right", Title: "Split Right", Menu: "Pane", Keys: "CmdOrCtrl+D", Remote: true},
 	{ID: "pane.split.down", Title: "Split Down", Menu: "Pane", Keys: "CmdOrCtrl+Shift+D", Remote: true},
-	{ID: "pane.fork", Title: "Fork Agent Session", Menu: "Pane", Keys: "CmdOrCtrl+Alt+D", Remote: true, When: "pane.agentForkable"},
+	{ID: "pane.fork", Title: "Fork Agent Session", Menu: "Pane", Keys: "CmdOrCtrl+Shift+F", Remote: true, When: "pane.agentForkable"},
 	{ID: "pane.browser", Title: "New Browser Pane", Menu: "Pane", Keys: "CmdOrCtrl+Shift+B", Remote: true},
 	{ID: "pane.zoom", Title: "Zoom Pane", Menu: "Pane", Keys: "CmdOrCtrl+Shift+Enter", Remote: true},
 	{ID: "pane.next", Title: "Next Pane", Menu: "Pane", Keys: "CmdOrCtrl+]", Remote: true},

@@ -3,6 +3,7 @@ package daemon
 import (
 	"bytes"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -48,4 +49,30 @@ func procParent(pid int) int {
 	}
 	ppid, _ := strconv.Atoi(f[1])
 	return ppid
+}
+
+func procAgyConversation(pid int) string {
+	if pid <= 0 {
+		return ""
+	}
+	fdDir := "/proc/" + strconv.Itoa(pid) + "/fd"
+	entries, err := os.ReadDir(fdDir)
+	if err != nil {
+		return ""
+	}
+	bestID, bestPrio := "", 0
+	for _, e := range entries {
+		target, err := os.Readlink(filepath.Join(fdDir, e.Name()))
+		if err != nil {
+			continue
+		}
+		id, prio := agyConversationFromPath(target)
+		if prio == 2 {
+			return id
+		}
+		if prio > bestPrio {
+			bestID, bestPrio = id, prio
+		}
+	}
+	return bestID
 }

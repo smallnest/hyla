@@ -29,6 +29,8 @@ func TestMatchesWhenAgentForkable(t *testing.T) {
 		{"codex with session", &proto.Pane{ID: "p1", Agent: "codex", AgentSession: &proto.AgentSession{Agent: "codex", ID: "sess-2"}}, true},
 		{"pi with session", &proto.Pane{ID: "p1", Agent: "pi", AgentSession: &proto.AgentSession{Agent: "pi", ID: "sess-3"}}, true},
 		{"opencode with session", &proto.Pane{ID: "p1", Agent: "opencode", AgentSession: &proto.AgentSession{Agent: "opencode", ID: "ses_4"}}, true},
+		{"agy with session", &proto.Pane{ID: "p1", Agent: "agy", AgentSession: &proto.AgentSession{Agent: "agy", ID: "f6999341-108b"}}, true},
+		{"antigravity with session", &proto.Pane{ID: "p1", Agent: "antigravity", AgentSession: &proto.AgentSession{Agent: "antigravity", ID: "f6999341-108b"}}, true},
 	}
 	for _, tc := range cases {
 		if got := uihost.MatchesWhen("pane.agentForkable", sess, tc.pane); got != tc.want {
@@ -63,7 +65,7 @@ func TestForkPaneActionAndPalette(t *testing.T) {
 	a.Local().Client = cl
 	defer stop()
 
-	// 1. Plain shell pane: not in palette, and pane.fork sends no RPC.
+	// 1. Plain shell pane: not in palette, shows toast, and pane.fork sends no RPC.
 	a.St.Sessions = []proto.Session{{
 		ID:    "s1",
 		Focus: "p1",
@@ -76,14 +78,38 @@ func TestForkPaneActionAndPalette(t *testing.T) {
 	if slices.Contains(a.paletteItems(), wantTitle) {
 		t.Fatalf("palette offered %q on plain shell pane", wantTitle)
 	}
+	a.PendingToast = ""
 	a.run("pane.fork", nil)
+	if got, want := a.PendingToast, locales.ToastForkNoAgentSession(); got != want {
+		t.Fatalf("plain shell pane toast = %q, want %q", got, want)
+	}
 	select {
 	case got := <-calls:
 		t.Fatalf("pane.fork unexpectedly sent RPC %+v on plain shell pane", got)
 	case <-time.After(80 * time.Millisecond):
 	}
 
-	// 2. Pane with forkable agent session: shown in palette and sends pane.fork RPC.
+	// 2. Unsupported agent pane: not in palette, shows agent-specific toast, and sends no RPC.
+	a.St.Sessions = []proto.Session{{
+		ID:    "s1",
+		Focus: "p1",
+		Panes: []proto.Pane{{ID: "p1", Agent: "dsh"}},
+	}}
+	if slices.Contains(a.paletteItems(), wantTitle) {
+		t.Fatalf("palette offered %q on unsupported agent pane", wantTitle)
+	}
+	a.PendingToast = ""
+	a.run("pane.fork", nil)
+	if got, want := a.PendingToast, locales.ToastForkUnsupportedAgent(proto.AgentDisplayName("dsh")); got != want {
+		t.Fatalf("unsupported agent pane toast = %q, want %q", got, want)
+	}
+	select {
+	case got := <-calls:
+		t.Fatalf("pane.fork unexpectedly sent RPC %+v on unsupported agent pane", got)
+	case <-time.After(80 * time.Millisecond):
+	}
+
+	// 3. Pane with forkable agent session: shown in palette and sends pane.fork RPC.
 	a.St.Sessions = []proto.Session{{
 		ID:    "s1",
 		Focus: "p1",

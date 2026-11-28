@@ -31,8 +31,95 @@ func forkCommand(a *proto.AgentSession) []string {
 		return []string{"codex", "fork", a.ID}
 	case "pi":
 		return []string{"pi", "--fork", a.ID}
+	case "agy", "antigravity":
+		return []string{"agy", "--resume", a.ID}
 	}
 	return nil
+}
+
+// agyConversationFromPath extracts an Antigravity CLI conversation ID from an
+// open file path, returning its ID and priority (2 for presence lock, 1 for
+// conversation SQLite DB).
+func agyConversationFromPath(path string) (string, int) {
+	p := filepath.ToSlash(path)
+	if strings.Contains(p, "/presence/") && strings.HasSuffix(p, ".lock") {
+		id := strings.TrimSuffix(filepath.Base(p), ".lock")
+		if proto.ValidAgentSessionID(id) {
+			return id, 2
+		}
+	}
+	if strings.Contains(p, "/conversations/") && strings.HasSuffix(p, ".db") {
+		id := strings.TrimSuffix(filepath.Base(p), ".db")
+		if proto.ValidAgentSessionID(id) {
+			return id, 1
+		}
+	}
+	return "", 0
+}
+
+func agyPromptReady(screen string) bool {
+	if strings.Contains(screen, "Signing in...") || strings.Contains(screen, "Do you trust the contents") {
+		return false
+	}
+	lines := strings.Split(screen, "\n")
+	for i, line := range lines {
+		if !strings.Contains(line, "────────") {
+			continue
+		}
+		for j := i + 1; j < len(lines) && j <= i+3; j++ {
+			if strings.TrimSpace(lines[j]) != ">" {
+				continue
+			}
+			for k := j + 1; k < len(lines) && k <= j+3; k++ {
+				if strings.Contains(lines[k], "────────") {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+// startAgyFork sends `/fork` to a newly resumed Antigravity CLI pane once its
+// prompt box is ready. Overridden in tests.
+var startAgyFork = triggerAgyFork
+
+func triggerAgyFork(pn *pane) {
+	if pn == nil {
+		return
+	}
+	go func() {
+		deadline := time.Now().Add(20 * time.Second)
+		ticker := time.NewTicker(150 * time.Millisecond)
+		defer ticker.Stop()
+		for time.Now().Before(deadline) {
+			<-ticker.C
+			pn.mu.Lock()
+			if pn.closed || pn.info.Status == proto.Exited {
+				pn.mu.Unlock()
+				return
+			}
+			agent := pn.info.Agent
+			screen := pn.screen()
+			proc := pn.proc
+			pn.mu.Unlock()
+			if proc == nil || (agent != "agy" && agent != "antigravity") || !agyPromptReady(screen) {
+				continue
+			}
+			time.Sleep(300 * time.Millisecond)
+			pn.mu.Lock()
+			if pn.closed || pn.info.Status == proto.Exited || pn.proc == nil {
+				pn.mu.Unlock()
+				return
+			}
+			proc = pn.proc
+			pn.mu.Unlock()
+			_, _ = proc.Write([]byte("/fork"))
+			time.Sleep(150 * time.Millisecond)
+			_, _ = proc.Write([]byte("\r"))
+			return
+		}
+	}()
 }
 
 // runOpenCodeFork forks an OpenCode session via its background server API
@@ -50,6 +137,19 @@ func findOpenCodeExe() (string, error) {
 	return "", errors.New("opencode executable not found")
 }
 
+func isOpenCodeLegacyOutput(combined string) bool {
+	lower := strings.ToLower(combined)
+	if strings.Contains(lower, "unknown command") || strings.Contains(lower, "unknown subcommand") || strings.Contains(lower, "unexpected argument") {
+		return true
+	}
+	// OpenCode 1.x uses yargs, which prints top-level help and exits 1 when
+	// given an unknown subcommand like "api", without an "unknown command" line.
+	return strings.Contains(lower, "commands:") &&
+		strings.Contains(lower, "options:") &&
+		strings.Contains(lower, "--fork") &&
+		!strings.Contains(lower, "opencode api")
+}
+
 func defaultOpenCodeFork(ctx context.Context, id, dir string) (string, error) {
 	exe, err := findOpenCodeExe()
 	if err != nil {
@@ -64,8 +164,7 @@ func defaultOpenCodeFork(ctx context.Context, id, dir string) (string, error) {
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
 		combined := strings.TrimSpace(stderr.String() + "\n" + stdout.String())
-		lower := strings.ToLower(combined)
-		if strings.Contains(lower, "unknown command") || strings.Contains(lower, "unknown subcommand") || strings.Contains(lower, "unexpected argument") {
+		if isOpenCodeLegacyOutput(combined) {
 			return "", errOpenCodeLegacyCLI
 		}
 		if msg := extractJSONErrorMessage(stdout.Bytes(), stderr.Bytes()); msg != "" {
@@ -180,7 +279,7 @@ func (d *Daemon) forkPane(p proto.ForkParams) (proto.Session, error) {
 	if direction == "" {
 		direction = "right"
 	}
-	return d.split(proto.CreateParams{
+	ns, err := d.split(proto.CreateParams{
 		Split:     atID,
 		Direction: direction,
 		Dir:       workDir,
@@ -188,4 +287,13 @@ func (d *Daemon) forkPane(p proto.ForkParams) (proto.Session, error) {
 		Cols:      p.Cols,
 		Rows:      p.Rows,
 	})
+	if err != nil {
+		return ns, err
+	}
+	if as.Agent == "agy" || as.Agent == "antigravity" {
+		if forked := d.findPane(ns.Focus); forked != nil {
+			startAgyFork(forked)
+		}
+	}
+	return ns, nil
 }

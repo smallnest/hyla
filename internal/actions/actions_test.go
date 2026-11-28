@@ -90,3 +90,29 @@ func TestPluginActionsConcurrent(t *testing.T) {
 	}
 	wg.Wait()
 }
+
+func TestDefaultShortcutsUniqueAndNoDockConflict(t *testing.T) {
+	seenMac := make(map[string]string)
+	seenPC := make(map[string]string)
+	for _, a := range All {
+		if a.ID == "pane.fork" && a.Keys == "CmdOrCtrl+Alt+D" {
+			t.Fatalf("pane.fork defaults to CmdOrCtrl+Alt+D, which conflicts with macOS Dock shortcut")
+		}
+		if a.Keys != "" {
+			if prev, dup := seenMac[a.Keys]; dup {
+				t.Errorf("duplicate macOS shortcut %q on %q and %q", a.Keys, prev, a.ID)
+			}
+			seenMac[a.Keys] = a.ID
+		}
+		pcKey := a.Keys
+		if override, ok := pcKeys[a.ID]; ok {
+			pcKey = override
+		}
+		if pcKey != "" {
+			if prev, dup := seenPC[pcKey]; dup {
+				t.Errorf("duplicate PC shortcut %q on %q and %q", pcKey, prev, a.ID)
+			}
+			seenPC[pcKey] = a.ID
+		}
+	}
+}

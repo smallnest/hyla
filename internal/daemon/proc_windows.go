@@ -197,3 +197,5 @@ func procParent(pid int) int {
 	}
 	return 0
 }
+
+func procAgyConversation(pid int) string { return "" }

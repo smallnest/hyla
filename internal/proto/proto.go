@@ -303,10 +303,10 @@ type Turn struct {
 	At   int64  `json:"at"`   // unix ms
 }
 
-// AgentSession is a coding agent's session: Claude Code's or Codex's,
-// by its id.
+// AgentSession is a coding agent's session: Claude Code's, Codex's, or
+// Antigravity's (`agy`), by its id.
 type AgentSession struct {
-	Agent string `json:"agent"` // "claude", "codex", "pi" or "opencode"
+	Agent string `json:"agent"` // "claude", "codex", "pi", "opencode" or "agy"
 	ID    string `json:"id"`
 }
 
@@ -322,7 +322,7 @@ func ValidAgentSessionID(id string) bool {
 // new split pane.
 func CanForkAgent(agent string) bool {
 	switch agent {
-	case "claude", "codex", "pi", "opencode":
+	case "claude", "codex", "pi", "opencode", "agy", "antigravity":
 		return true
 	}
 	return false
@@ -386,7 +386,7 @@ type EndedSession struct {
 }
 
 // AgentNames are the coding agents' names as they show them.
-var AgentNames = map[string]string{"claude": "Claude Code", "codex": "Codex", "pi": "Pi", "opencode": "OpenCode"}
+var AgentNames = map[string]string{"claude": "Claude Code", "codex": "Codex", "pi": "Pi", "opencode": "OpenCode", "agy": "Antigravity", "antigravity": "Antigravity"}
 
 // AgentMeta describes a plugin-contributed coding agent.
 type AgentMeta struct {
