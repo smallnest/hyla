@@ -268,7 +268,11 @@ func Stop(force bool) error {
 	if ok && !force {
 		if p, err := os.FindProcess(w.PID); err == nil && Interrupt(p) == nil {
 			for end := time.Now().Add(stopTimeout); time.Now().Before(end); {
-				if v, ok := daemonWelcome(); !ok || v.PID != w.PID || v.Started != w.Started {
+				if v, ok := daemonWelcome(); ok {
+					if v.PID != w.PID || v.Started != w.Started {
+						return nil
+					}
+				} else if !Running(w.PID) {
 					return nil
 				}
 				time.Sleep(50 * time.Millisecond)

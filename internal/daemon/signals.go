@@ -16,3 +16,5 @@ func ignoreSignals() [][]os.Signal { return [][]os.Signal{{syscall.SIGHUP, sysca
 func stopSignals() chan os.Signal { return make(chan os.Signal, 1) }
 
 func stopSignal() os.Signal { return syscall.SIGTERM }
+
+func stopNotify() []os.Signal { return []os.Signal{syscall.SIGTERM, syscall.SIGINT} }

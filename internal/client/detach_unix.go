@@ -2,7 +2,10 @@
 
 package client
 
-import "os"
+import (
+	"os"
+	"syscall"
+)
 
 // Interrupt asks the daemon of a pid to save and stop.
-func Interrupt(p *os.Process) error { return p.Signal(os.Interrupt) }
+func Interrupt(p *os.Process) error { return p.Signal(syscall.SIGTERM) }

@@ -252,3 +252,21 @@ func TestSettleStop(t *testing.T) {
 		t.Error("the fake hylad does not go as it is settled")
 	}
 }
+
+// TestStopGracefulSIGTERMAndWaitsForExit verifies Stop(false) sends SIGTERM
+// and waits until the daemon process has actually exited.
+func TestStopGracefulSIGTERMAndWaitsForExit(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("SIGTERM is Unix-only")
+	}
+	d := fakeDaemon(t, `trap "sleep 0.15; exit 0" TERM; while :; do sleep 1 & wait $!; done`)
+	if err := Stop(false); err != nil {
+		t.Fatal(err)
+	}
+	if Running(d.cmd.Process.Pid) {
+		t.Fatal("Stop(false) returned while daemon process is still running")
+	}
+	if !d.gone() {
+		t.Fatal("the daemon runs")
+	}
+}

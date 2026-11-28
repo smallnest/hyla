@@ -249,7 +249,7 @@ func Run(opts Options) error {
 		signal.Ignore(sig...)
 	}
 	sigs := stopSignals()
-	signal.Notify(sigs, stopSignal())
+	signal.Notify(sigs, stopNotify()...)
 	notifyStop(sigs)
 	// Where $HYLA_PROFILE asks, a development hylad profiles itself on the
 	// signals the same one does, rather than them stopping it.
@@ -257,7 +257,7 @@ func Run(opts Options) error {
 	go func() {
 		s := <-sigs
 		d.logStop(lg, s)
-		if s == stopSignal() {
+		if s == os.Interrupt || s == stopSignal() {
 			// No client asked: the next restore draws no new mark, but
 			// not one that drew its own, as hylad that started as the
 			// app connected stops.

@@ -40,6 +40,22 @@ type App interface {
 	EventOf(h *host.Host, cl *client.Client, m proto.Message)
 }
 
+// Reset drops any active connection to h and invalidates pending dials and
+// reconnect timers before a fresh connect attempt (such as restarting hylad).
+func Reset(a App, h *host.Host) {
+	h.Gen++
+	h.Dialing = false
+	h.Retries, h.Err = 0, ""
+	h.Conn = host.StateConnecting
+	if cl := h.Client; cl != nil {
+		h.Client = nil
+		go cl.Close()
+	}
+	a.DropHostTerms(h)
+	a.StatusesForget(h)
+	a.InvalidateHosts()
+}
+
 // Connect connects to this machine's hylad, starting it.
 func Connect(a App) { ConnectHost(a, a.Local()) }
 
@@ -110,6 +126,9 @@ func Connected(a App, h *host.Host, gen int, cl *client.Client, err error) {
 		a.InvalidateHosts()
 		return
 	}
+	if old := h.Client; old != nil && old != cl {
+		go old.Close()
+	}
 	h.Client, h.Conn, h.Err, h.Retries = cl, host.StateReady, "", 0
 	h.Hylad = host.ID(cl)
 	h.DaemonApp, h.DaemonFP = cl.Welcome.App, cl.Welcome.Build
@@ -150,14 +169,19 @@ func disconnected(a App, h *host.Host, cl *client.Client) {
 	if h.Client != cl {
 		return
 	}
-	h.Gen++
-	gen := h.Gen
 	h.Client = nil
 	h.Conn = host.StateConnecting
 	a.DropHostTerms(h)
 	// What changed while the app was away tells nothing new.
 	a.StatusesForget(h)
 	a.InvalidateHosts()
+	// A newer ConnectHost is already dialing: do not bump h.Gen (which would
+	// reject its fresh connection in Connected) or schedule a duplicate retry.
+	if h.Dialing {
+		return
+	}
+	h.Gen++
+	gen := h.Gen
 	time.AfterFunc(300*time.Millisecond, func() { a.UpdateNow(func() { reconnect(a, h, gen) }) })
 }
 

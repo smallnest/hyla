@@ -8,6 +8,7 @@ import (
 	"github.com/egoist/mygo/ui"
 
 	"hyla/internal/app/host"
+	"hyla/internal/app/link"
 	"hyla/internal/proto"
 	"hyla/internal/settings"
 	"hyla/internal/ui/arenadialog"
@@ -169,12 +170,13 @@ func (a *App) Leaving()                                { a.quittingApp = true }
 func (a *App) SessionsOn(h *host.Host) []proto.Session { return a.sessionsOn(h) }
 
 // The restart's steps, as a quit's restart asks them.
-func (a *App) Restarting() { a.Local().Conn = host.StateConnecting }
+func (a *App) Restarting() { link.Reset(a, a.Local()) }
 
 func (a *App) RestartEnded(err error) {
 	h := a.Local()
 	if err != nil {
 		h.Conn, h.Err = host.StateFailed, err.Error()
+		a.InvalidateHosts()
 		a.toast(locales.HostRestartFailed(err.Error()))
 		return
 	}

@@ -11,3 +11,5 @@ func ignoreSignals() [][]os.Signal { return nil }
 func stopSignals() chan os.Signal { return make(chan os.Signal, 1) }
 
 func stopSignal() os.Signal { return os.Interrupt }
+
+func stopNotify() []os.Signal { return []os.Signal{os.Interrupt} }
