@@ -4,6 +4,13 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.28.0
+
+- **Time-Travel Checkpoints & Deny-to-Teach**: **Session › Time-Travel Checkpoints…** (`Cmd+Shift+H` on macOS, `Ctrl+Alt+H` elsewhere) and `hyla checkpoint` capture per-turn and manual git snapshots with safe pre-restore backups and worktree forking; **Deny & Teach** in the **Changes** panel (`hyla rule add`) reverts a hunk and saves a permanent rule to `AGENTS.md` or `.hyla/rules.md`.
+- **Cross-Agent Path Claims & Clash Radar**: `hyla claim` reserves files or globs in `warn` or `block` mode (integrated into `PreToolUse` agent hooks), and `hyla clash check` runs disposable trial merges with optional test commands across parallel branches.
+- **Overnight Autonomous Factory & Runaway Circuit-Breaker**: `hyla factory` runs queued GitHub issues or prompts across isolated worktrees with wall-clock, output-size, and repeated-error circuit-breakers, auto-enqueues verified branches into the Merge Queue, and sends morning digest cards to Feishu.
+- **Web Games Plugin (`hyla.webgames`)**: first-party WebView plugin in the plugin market with 5 built-in games (2048, Snake, Tetris, Breakout, Minesweeper), custom URL bookmarks, high scores, and automatic pause when a coding agent finishes its turn.
+
 ## 3.27.0
 
 - **Multi-Agent Arena**: **Session › Multi-Agent Arena…** (`Cmd+Shift+A` on
