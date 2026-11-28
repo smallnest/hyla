@@ -4,6 +4,18 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.26.2
+
+- **Fork Antigravity CLI (`agy`) sessions**: **Pane › Fork Agent Session**
+  now detects active `agy` conversations automatically, opens a split pane
+  resuming the conversation, and runs `/fork` once the prompt is ready.
+- **Fork shortcut, OpenCode 1.x fallback, and clearer feedback**: the
+  macOS default shortcut for **Pane › Fork Agent Session** moved from
+  `Cmd+Option+D` (which macOS reserves for hiding the Dock) to
+  `Cmd+Shift+F`; OpenCode 1.x CLIs without the `api` subcommand now fall
+  back cleanly to `opencode --session <id> --fork`; and invoking fork on a
+  pane without a forkable agent session now shows a toast saying why.
+
 ## 3.26.1
 
 - **The daemon that runs keeps its socket**: a hylad started from a Hyla
