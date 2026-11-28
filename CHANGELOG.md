@@ -4,6 +4,11 @@ This is smallnest's fork of Kero, which Hyla was called. A fork release
 takes a number above upstream's, so it never takes an upstream tag's
 number; the notes of the upstream releases it includes follow its own.
 
+## 3.28.1
+
+- **Fix reconnect after restarting the background service**: clicking **Restart Service** after installing a new version no longer leaves the app stuck connecting while the new `hylad` is already running in the background. Restarting now detaches the old connection cleanly, prevents an in-flight dial from being discarded by a late disconnect callback, sends `SIGTERM` so older daemons save their sessions gracefully (with `hylad` handling both `SIGTERM` and `SIGINT`), and waits for the old daemon to exit before reconnecting.
+- **Inkstone background & streamlined background choices**: **Settings › Appearance** adds **Inkstone** (`background = inkstone`, 草墨石砚), a celadon inkstone wash paired with matching warm paper cards, sidebar hover/selection tints, hairlines, and default terminal background in both light and dark modes. The built-in background list is streamlined to **Petal**, **Inkstone**, **Dock**, and **Plain**; existing configs naming retired washes migrate automatically without errors (`meadow` to `inkstone`, others to `petal`).
+
 ## 3.28.0
 
 - **Time-Travel Checkpoints & Deny-to-Teach**: **Session › Time-Travel Checkpoints…** (`Cmd+Shift+H` on macOS, `Ctrl+Alt+H` elsewhere) and `hyla checkpoint` capture per-turn and manual git snapshots with safe pre-restore backups and worktree forking; **Deny & Teach** in the **Changes** panel (`hyla rule add`) reverts a hunk and saves a permanent rule to `AGENTS.md` or `.hyla/rules.md`.
