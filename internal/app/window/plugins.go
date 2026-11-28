@@ -205,10 +205,7 @@ func (a *App) shutdownPlugins() {
 }
 
 func (a *App) pluginPalette() *theme.Palette {
-	if a.pluginIsDark() {
-		return &theme.Dark
-	}
-	return &theme.Light
+	return theme.PaletteFor(a.pluginIsDark(), a.settingsIn.Background)
 }
 
 func (a *App) pluginIsDark() bool {

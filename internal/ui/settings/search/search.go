@@ -52,7 +52,7 @@ func Index() []Entry {
 		{"appearance", locales.SetPaneImageOpacity(), "pane-image-opacity opacity translucent fade picture image terminal 终端 背景图 不透明度 透明度"},
 		{"appearance", locales.SetPaneImageFit(), "pane-image-fit fill fit stretch center tile cover contain wallpaper picture terminal 终端 背景图 填充 适合 拉伸 居中 拼贴"},
 		{"appearance", locales.SetPet(), "pet frog hyla mascot sprite companion agent status drag offset position 小精灵 青蛙 宠物"},
-		{"appearance", locales.SetBackground(), "background wash petal mist meadow indigo plain dock gradient color 靛蓝"},
+		{"appearance", locales.SetBackground(), "background wash petal inkstone dock plain gradient color 草墨 石砚"},
 
 		{"terminal", locales.SetFont(), "font-family typeface jetbrains mono nerd"},
 		{"terminal", locales.SetFontFallback(), "font-fallback fonts chinese cjk han emoji glyphs missing"},

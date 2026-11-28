@@ -470,48 +470,12 @@ var Table = map[string]Wash{
 		Light: []string{"#ebe0f3", "#f3e7f1", "#f7eee4", "#f6efcf"}, LightGlow: ui.RGBA(247, 220, 241, 0.75),
 		Dark: []string{"#17141f", "#191620", "#1b1916"}, DarkGlow: ui.RGBA(120, 70, 120, 0.22),
 	},
-	"mist": {
-		Light: []string{"#e3e9f4", "#ebeff6", "#f1f2f3", "#f2f1ec"}, LightGlow: ui.RGBA(210, 225, 248, 0.75),
-		Dark: []string{"#12151b", "#14171d", "#17181b"}, DarkGlow: ui.RGBA(70, 100, 150, 0.22),
-	},
-	"meadow": {
-		Light: []string{"#e2eee5", "#ebf2e7", "#f3f2e2", "#f5f0d6"}, LightGlow: ui.RGBA(214, 240, 222, 0.75),
-		Dark: []string{"#111814", "#141a16", "#181a14"}, DarkGlow: ui.RGBA(70, 130, 95, 0.2),
-	},
-	"plain": {
-		Light: []string{"#eceef4", "#eceef4"}, LightGlow: ui.RGBA(0, 0, 0, 0),
-		Dark: []string{"#141418", "#141418"}, DarkGlow: ui.RGBA(0, 0, 0, 0),
-	},
-	// Ember's: a fire at the bottom left, dark brick at the top right.
-	"ember": {
-		Light: []string{"#3a1a1c", "#5c2623", "#8a3d2c", "#c4703a", "#ecab63"}, LightGlow: ui.RGBA(255, 150, 90, 0.35),
-		Dark: []string{"#100708", "#1a0c0b", "#2a1310", "#3d1c15", "#57301f"}, DarkGlow: ui.RGBA(255, 120, 60, 0.18),
-	},
-	// Tidal's: deep water below, a pale band at the horizon, night above,
-	// turned so that it runs from the top left corner down.
-	"tidal": {
-		Light: []string{"#1f4050", "#2f6272", "#6b9aa4", "#d7c9a8", "#efe3c8"}, LightGlow: ui.RGBA(255, 236, 200, 0.5), LightAngle: 135,
-		Dark: []string{"#070f16", "#0d1c26", "#163440", "#234b56", "#2e5b63"}, DarkGlow: ui.RGBA(140, 200, 210, 0.16), DarkAngle: 135,
-	},
-	// Umbra's: deep indigo with violet at the upper right and its dark
-	// under it; the moon, faint, at the lower left.
-	"umbra": {
-		Light: []string{"#3b3a6b", "#504a7d", "#6b5f8e", "#8a7a9e", "#a99bb0"}, LightGlow: ui.RGBA(190, 170, 255, 0.45),
-		Dark: []string{"#08080f", "#0d0c18", "#131126", "#191632", "#1f1a3b"}, DarkGlow: ui.RGBA(120, 100, 220, 0.2),
-		Scene: umbraScene,
-	},
-	// Static's: a field of teal, turned, and the faint lines of a
-	// teletype's ruling across it.
-	"static": {
-		Light: []string{"#dfe6e4", "#e9eeeb", "#f1f3ee", "#f5f4ea"}, LightGlow: ui.RGBA(160, 220, 200, 0.5), LightAngle: 160,
-		Dark: []string{"#0c1413", "#101a18", "#141f1c", "#17251f"}, DarkGlow: ui.RGBA(80, 200, 170, 0.14), DarkAngle: 160,
-		Scene: staticScene,
-	},
-	// Indigo's: the royal blue of the screenshot that asked for it, as a
-	// wash of the dusk: violet at the top, its own blue at the foot.
-	"indigo": {
-		Light: []string{"#dcdff7", "#c9cdf5", "#a8b0ea", "#7e8cdc"}, LightGlow: ui.RGBA(86, 103, 243, 0.4),
-		Dark: []string{"#10142c", "#141a3a", "#1a2150", "#232d6b"}, DarkGlow: ui.RGBA(86, 103, 243, 0.22),
+	// Inkstone's (草墨石砚): celadon inkstone ash-green around the frame and
+	// sidebar (#e9ede9) softening toward warm paper (#f2f5f1) with a muted
+	// sage glow; deep pine-slate inkstone in the dark.
+	"inkstone": {
+		Light: []string{"#e6ebe6", "#e9ede9", "#edf1ed", "#f2f5f1"}, LightGlow: ui.RGBA(213, 226, 213, 0.65),
+		Dark: []string{"#111613", "#141a16", "#181e1a"}, DarkGlow: ui.RGBA(86, 134, 100, 0.22),
 	},
 	// The Dock's: the desktop behind the window, frosted, under a thin
 	// neutral veil that grounds what sits on it, in the Dock's gray.
@@ -519,47 +483,8 @@ var Table = map[string]Wash{
 		Light: []string{"#f3f4f6", "#eeeff2", "#f6f6f7"}, LightGlow: ui.RGBA(0, 0, 0, 0),
 		Dark: []string{"#131315", "#161618", "#19191b"}, DarkGlow: ui.RGBA(0, 0, 0, 0),
 	},
-}
-
-// umbraScene draws Umbra's moon: a soft disc at the lower left, Faded at
-// its edge, and the faint ring around it.
-func umbraScene(p *ui.Painter, r ui.Rect, dark bool, alpha float32) {
-	if r.W <= 0 || r.H <= 0 {
-		return
-	}
-	cx, cy := r.X+r.W*0.22, r.Y+r.H*0.72
-	rad := min(r.W, r.H) * 0.09
-	core := ui.Oklch(0.86, 0.03, 85)
-	if dark {
-		core = ui.Oklch(0.93, 0.02, 85)
-	}
-	p.FillRadialGradient(ui.Rect{X: cx - rad, Y: cy - rad, W: 2 * rad, H: 2 * rad}, ui.RadialGradient{
-		Stops: []ui.GradientStop{{Color: core.Alpha(0.55 * alpha), At: 0.72}, {Color: core.Alpha(0), At: 1}},
-	}, rad*0.999)
-	ring := (&ui.Path{}).MoveTo(cx+rad*1.5, cy)
-	for i := 1; i <= 64; i++ {
-		a := float64(i) / 64 * 2 * math.Pi
-		ring.LineTo(cx+rad*1.5*float32(math.Cos(a)), cy+rad*1.5*float32(math.Sin(a)))
-	}
-	p.StrokePath(ring, 1, core.Alpha(0.12*alpha))
-}
-
-// staticScene draws Static's teletype ruling: faint horizontal lines a
-// little apart, and a column of sprocket holes down the left, as a
-// printer's paper has.
-func staticScene(p *ui.Painter, r ui.Rect, dark bool, alpha float32) {
-	if r.W <= 0 || r.H <= 0 {
-		return
-	}
-	ink := ui.Oklch(0.25, 0.02, 180)
-	if dark {
-		ink = ui.Oklch(0.85, 0.03, 170)
-	}
-	const step = 18
-	for y := r.Y + step; y < r.Y+r.H; y += step {
-		p.Fill(ui.Rect{X: r.X, Y: y, W: r.W, H: 1}, ink.Alpha(0.035*alpha), 0)
-	}
-	for y := r.Y + 9; y < r.Y+r.H; y += step * 2 {
-		p.Fill(ui.Rect{X: r.X + 22, Y: y, W: 5, H: 5}, ink.Alpha(0.06*alpha), 1)
-	}
+	"plain": {
+		Light: []string{"#eceef4", "#eceef4"}, LightGlow: ui.RGBA(0, 0, 0, 0),
+		Dark: []string{"#141418", "#141418"}, DarkGlow: ui.RGBA(0, 0, 0, 0),
+	},
 }

@@ -308,14 +308,8 @@ var AppIcons = []string{"dock-and-menubar", "dock", "menubar"}
 // Backgrounds are the washes the window can show.
 var Backgrounds = []struct{ ID, Name string }{
 	{"rex", "Petal"},
-	{"mist", "Mist"},
-	{"meadow", "Meadow"},
+	{"inkstone", "Inkstone"},
 	{"dock", "Dock"},
-	{"ember", "Ember"},
-	{"tidal", "Tidal"},
-	{"umbra", "Umbra"},
-	{"static", "Static"},
-	{"indigo", "Indigo"},
 	{"plain", "Plain"},
 }
 

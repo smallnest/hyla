@@ -185,10 +185,10 @@ var keys = append([]key{
 	stringKey("pet-set", `the pet on the window's edge: hyla, codex (the Codex app's active pet), or a Codex pet's directory name in ~/.codex/pets, or in hyla's own`, func(s *Settings) *string { return &s.PetSet }),
 	choiceKey("window-theme", "the app's appearance", func(s *Settings) *string { return &s.Appearance }, "system", "light", "dark"),
 	choiceKey("language", "the app's language; system follows the system's", func(s *Settings) *string { return &s.Language }, append([]string{"system"}, Languages...)...),
-	{name: "background", doc: "the window's wash (petal, mist, meadow, indigo, plain, dock)",
+	{name: "background", doc: "the window's wash (petal, inkstone, dock, plain)",
 		get: func(s *Settings) []string {
-			file := []string{"petal", "mist", "meadow", "indigo", "plain", "dock"}
-			ours := []string{"rex", "mist", "meadow", "indigo", "plain", "dock"}
+			file := []string{"petal", "inkstone", "dock", "plain"}
+			ours := []string{"rex", "inkstone", "dock", "plain"}
 			if i := slices.Index(ours, s.Background); i >= 0 {
 				return []string{file[i]}
 			}
@@ -198,8 +198,8 @@ var keys = append([]key{
 			return []string{"petal"}
 		},
 		set: func(s *Settings, v []string) error {
-			file := []string{"petal", "mist", "meadow", "indigo", "plain", "dock"}
-			ours := []string{"rex", "mist", "meadow", "indigo", "plain", "dock"}
+			file := []string{"petal", "inkstone", "dock", "plain"}
+			ours := []string{"rex", "inkstone", "dock", "plain"}
 			val := v[len(v)-1]
 			if i := slices.Index(file, val); i >= 0 {
 				s.Background = ours[i]
@@ -641,10 +641,13 @@ func parse(data string) (Settings, []string) {
 		k := findKey(name)
 		v := values[name]
 		if name == "background" {
-			// Dusk is gone: its wash was too close to Petal's. A file that
-			// still names it gets Petal, without a problem to report.
+			// Retired washes migrate cleanly without reporting problems:
+			// meadow -> inkstone; dusk and the others -> petal.
 			for i, val := range v {
-				if val == "dusk" {
+				switch val {
+				case "meadow":
+					v[i] = "inkstone"
+				case "dusk", "mist", "indigo", "ember", "tidal", "umbra", "static":
 					v[i] = "petal"
 				}
 			}

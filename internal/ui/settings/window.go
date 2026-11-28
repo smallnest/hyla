@@ -292,7 +292,7 @@ func allSettingsPages(x App) (builtin, plugin, all []settingsPage) {
 
 func view(x App, c *ui.Context) {
 	ss, s := x.SettingsState(), x.Settings()
-	pal := theme.For(c)
+	pal := theme.ForBackground(c, s.Background)
 	c.SetTheme(x.Borderless(c, pal))
 	if ss.Toast != "" {
 		c.Toast(ss.Toast)
@@ -953,8 +953,7 @@ func localeTag(language string) string {
 
 // backgroundName is a wash's name in the language the app shows.
 func backgroundName(id, name string) string {
-	if t, ok := map[string]func() string{"rex": locales.BgPetal, "mist": locales.BgMist, "meadow": locales.BgMeadow, "plain": locales.BgPlain, "dock": locales.BgDock,
-		"ember": locales.BgEmber, "tidal": locales.BgTidal, "umbra": locales.BgUmbra, "static": locales.BgStatic, "indigo": locales.BgIndigo}[id]; ok {
+	if t, ok := map[string]func() string{"rex": locales.BgPetal, "inkstone": locales.BgInkstone, "dock": locales.BgDock, "plain": locales.BgPlain}[id]; ok {
 		return t()
 	}
 	return name
@@ -988,8 +987,9 @@ func backgroundTile(x App, c *ui.Context, pal *theme.Palette, id, name string) {
 				ui.Box(c).Absolute().Top(0).Left(0).Right(0).Bottom(0).Draw(func(p *ui.Painter, r ui.Rect) { scene(p, r, pal.Dark, 1) })
 			}
 			// A card on it, as the window shows them.
-			ui.Box(c).Absolute().Top(12).Left(26).Right(8).Bottom(-6).Radius(7).Background(pal.Card)
-			ui.Box(c).Absolute().Top(20).Left(8).Width(12).Height(4).Radius(2).Background(pal.TextFaint.Alpha(0.5))
+			tilePal := theme.ForBackground(c, id)
+			ui.Box(c).Absolute().Top(12).Left(26).Right(8).Bottom(-6).Radius(7).Background(tilePal.Card)
+			ui.Box(c).Absolute().Top(20).Left(8).Width(12).Height(4).Radius(2).Background(tilePal.TextFaint.Alpha(0.5))
 			if sel {
 				ui.Box(c).Absolute().Top(6).Right(6).Size(18, 18).Radius(9).Center().Background(pal.Accent).Children(func() {
 					ui.Box(c).Size(10, 10).Draw(func(p *ui.Painter, r ui.Rect) {

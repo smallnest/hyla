@@ -62,7 +62,7 @@ hyla config check             # report unknown keys and bad values
 | -------------------- | -------- | --------------------------------------------------------------- |
 | `window-theme`       | `system` | The app's appearance: `system`, `light` or `dark`               |
 | `language`           | `system` | The app's language: `system`, `en`, `ja` or `zh-Hans`           |
-| `background`         | `petal`  | The window's wash: `petal`, `mist`, `meadow`, `indigo`, `plain` or `dock` (the Dock's: Liquid Glass under a thin veil) |
+| `background`         | `petal`  | The window's wash: `petal`, `inkstone` (celadon inkstone), `dock` (the Dock's: Liquid Glass under a thin veil), or `plain` |
 | `window-translucent` | `true`   | Let the desktop show through the window                         |
 | `window-opacity`     | `0.82`   | How much of the window's background the wash covers while translucent, 0 to 1 |
 | `window-blur`        | `true`   | Blur the desktop behind the translucent background; off is plain transparency |

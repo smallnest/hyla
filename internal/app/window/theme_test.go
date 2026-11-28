@@ -8,6 +8,7 @@ import (
 
 	"hyla/internal/settings"
 	uisettings "hyla/internal/ui/settings"
+	"hyla/internal/ui/theme"
 	"hyla/internal/ui/wash"
 )
 
@@ -45,28 +46,37 @@ func TestBackgroundTiles(t *testing.T) {
 		}
 	}
 	// A new one is chosen, and saved.
-	if err := tt.Click(uisettings.BackgroundName("umbra", "Umbra")); err != nil {
+	if err := tt.Click(uisettings.BackgroundName("inkstone", "Inkstone")); err != nil {
 		t.Fatal(err)
 	}
 	tt.Frame()
-	if a.settingsIn.Background != "umbra" || settings.Load().Background != "umbra" {
-		t.Errorf("choosing Umbra left %q", a.settingsIn.Background)
+	if a.settingsIn.Background != "inkstone" || settings.Load().Background != "inkstone" {
+		t.Errorf("choosing Inkstone left %q", a.settingsIn.Background)
 	}
-	// A window of it, either theme, draws its scene without a panic.
-	a.settingsIn.Background = "static"
+	// Companion Inkstone palette and terminal theme match the screenshot colors.
+	inkPal := theme.PaletteFor(false, "inkstone")
+	if inkPal.Sidebar != ui.Hex("#e9ede9") || inkPal.Card != ui.Hex("#fafbf9") ||
+		inkPal.RowHover != ui.Hex("#dfe6df") || inkPal.RowSelected != ui.Hex("#d5e2d5") ||
+		inkPal.Divider != ui.Hex("#d4dcd4") {
+		t.Errorf("unexpected Inkstone light palette: %+v", inkPal)
+	}
+	if lt := theme.LightTermFor("inkstone"); lt.Background != theme.InkstoneLight.Card {
+		t.Errorf("Inkstone light terminal bg = %v, want %v", lt.Background, theme.InkstoneLight.Card)
+	}
+	// A window of it, either theme, draws without a panic.
 	for _, dark := range []bool{false, true} {
 		main := ui.NewTester(a.view, 1000, 600)
 		main.SetDark(dark)
 		main.Frame()
 		main.Advance(50 * time.Millisecond)
 		main.Frame()
-		shot(t, main, "wash-static-"+map[bool]string{true: "dark", false: "light"}[dark])
+		shot(t, main, "wash-inkstone-"+map[bool]string{true: "dark", false: "light"}[dark])
 	}
 }
 
 // Each background, light and dark, for a look ($HYLA_SHOTS).
 func TestWashShots(t *testing.T) {
-	for _, id := range []string{"ember", "tidal", "umbra", "static", "indigo"} {
+	for _, id := range []string{"rex", "inkstone", "dock", "plain"} {
 		for _, dark := range []bool{false, true} {
 			a := testApp(t)
 			a.settingsIn.Background = id
@@ -111,7 +121,7 @@ func TestWashesAreKept(t *testing.T) {
 	if &base.Stops[0] != &again.Stops[0] {
 		t.Fatal("washes made twice")
 	}
-	other, _ := wash.Washes("mist", false)
+	other, _ := wash.Washes("inkstone", false)
 	if &other.Stops[0] == &base.Stops[0] {
 		t.Fatal("two backgrounds have one wash")
 	}

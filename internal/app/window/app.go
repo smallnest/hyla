@@ -1034,7 +1034,7 @@ func (a *App) termThemes() (light, dark *terminal.Theme) {
 		}
 		return def
 	}
-	return pick(a.settingsIn.LightTheme, theme.LightTerm()), pick(a.settingsIn.DarkTheme, theme.DarkTerm())
+	return pick(a.settingsIn.LightTheme, theme.LightTermFor(a.settingsIn.Background)), pick(a.settingsIn.DarkTheme, theme.DarkTermFor(a.settingsIn.Background))
 }
 
 // commandKeys are the keys that, with ⌘ alone on a Mac, send the program a
@@ -1242,7 +1242,7 @@ func (a *App) apply(s settings.Settings, save bool) {
 	font := old.FontFamily != s.FontFamily || old.FontFallback != s.FontFallback || old.FontSize != s.FontSize || old.FontWeight != s.FontWeight ||
 		old.CellWidth != s.CellWidth || old.LineHeight != s.LineHeight || old.Ligatures != s.Ligatures || old.Thicken != s.Thicken ||
 		!slices.Equal(old.FontFeatures, s.FontFeatures)
-	themes := old.LightTheme != s.LightTheme || old.DarkTheme != s.DarkTheme
+	themes := old.LightTheme != s.LightTheme || old.DarkTheme != s.DarkTheme || (old.Background == "inkstone") != (s.Background == "inkstone")
 	anew := old.Cursor != s.Cursor || old.CursorBlink != s.CursorBlink || old.OptionAsAlt != s.OptionAsAlt ||
 		old.Clipboard != s.Clipboard || old.RightClick != s.RightClick
 	light, dark := a.termThemes()

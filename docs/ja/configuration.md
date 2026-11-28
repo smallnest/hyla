@@ -61,7 +61,7 @@ hyla config check             # 不明なキーと不正な値を報告
 | -------------------- | ---------- | --------------------------------------------------------------- |
 | `window-theme`       | `system`   | アプリの外観: `system`、`light`、`dark`                         |
 | `language`           | `system`   | アプリの言語: `system`、`en`、`ja`、`zh-Hans`                   |
-| `background`         | `petal`    | ウインドウの背景: `petal`、`mist`、`meadow`、`indigo`、`plain`、`dock`（Dock のもの: Liquid Glass と薄いベール）    |
+| `background`         | `petal`    | ウインドウの背景: `petal`、`inkstone`（草墨石硯）、`dock`（Dock のもの: Liquid Glass と薄いベール）、`plain`    |
 | `window-translucent` | `true`     | ウインドウからデスクトップを透けて見せる                        |
 | `window-material`    | `sidebar` | ぼかすときのウインドウ背景の素材: `sidebar`、`window`、`popover`、`plastic`（磨りガラスのコンテンツ背景）、`glass`（Dock のような Liquid Glass）、`glass-clear` |
 | `sidebar-image`      |           | サイドバーのセッションの後ろに表示する画像: 高さはサイドバー全体の 80%、上下中央に置き、左端に少し余白を空けます。空欄なら表示しません |

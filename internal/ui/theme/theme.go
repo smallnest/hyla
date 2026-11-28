@@ -161,10 +161,123 @@ var Dark = Palette{
 	KbdBorder: ui.RGBA(255, 255, 255, 0.1),
 }
 
-// For returns the palette of the appearance c draws in.
-func For(c *ui.Context) *Palette {
-	if c.Theme().Dark {
+// InkstoneLight is the companion light palette for the "inkstone" (草墨石砚)
+// wash: celadon inkstone ash-green shell/sidebar with warm off-white cards.
+var InkstoneLight = Palette{
+	Sidebar:      ui.Hex("#e9ede9"),
+	Text:         ui.Hex("#1c241e"),
+	TextMuted:    ui.Hex("#5f6b62"),
+	TextFaint:    ui.Hex("#8e9b91"),
+	Group:        ui.Hex("#738176"),
+	RowHover:     ui.Hex("#dfe6df"),
+	RowSelected:  ui.Hex("#d5e2d5"),
+	RowSelBorder: ui.Hex("#c5d4c5"),
+	RowShadow:    ui.RGBA(28, 48, 34, 0.06),
+
+	Card:          ui.Hex("#fafbf9"),
+	CardBorder:    ui.Hex("#d4dcd4"),
+	CardShadow:    ui.RGBA(28, 48, 34, 0.06),
+	CardShadow2:   ui.RGBA(28, 48, 34, 0.03),
+	FloatShadow:   ui.RGBA(22, 38, 28, 0.13),
+	CardDim:       ui.RGBA(250, 251, 249, 0.62),
+	Veil:          ui.RGBA(233, 237, 233, 0.28),
+	ButtonBg:      ui.Hex("#fafbf9"),
+	Control:       ui.Hex("#fafbf9"),
+	ControlHover:  ui.Hex("#edf2ed"),
+	ControlShadow: true,
+	Divider:       ui.Hex("#d4dcd4"),
+	Chip:          ui.RGBA(42, 74, 52, 0.065),
+
+	TlThink:   ui.RGBA(150, 143, 210, 0.80),
+	TlText:    ui.RGBA(110, 165, 145, 0.80),
+	TlTool:    ui.RGBA(190, 175, 150, 0.90),
+	TlSub:     ui.RGBA(120, 155, 200, 0.80),
+	TlWait:    ui.RGBA(214, 160, 74, 0.85),
+	TlFail:    ui.RGBA(203, 118, 112, 0.85),
+	Attention: ui.Hex("#b87514"),
+	AttnSoft:  ui.RGBA(232, 154, 40, 0.13),
+	Done:      ui.Hex("#2f6b43"),
+	OnDone:    ui.Hex("#fafbf9"),
+	Online:    ui.Hex("#2e7d4a"),
+	Danger:    ui.Hex("#cf3a35"),
+	Accent:    ui.Hex("#2f6b43"),
+
+	Overlay:   ui.RGBA(18, 30, 22, 0.12),
+	Popover:   ui.Hex("#fafbf9"),
+	Kbd:       ui.RGBA(42, 74, 52, 0.06),
+	KbdBorder: ui.Hex("#d4dcd4"),
+}
+
+// InkstoneDark is the companion dark palette for the "inkstone" (草墨石砚)
+// wash: deep pine-slate inkstone surfaces with soft moss accents.
+var InkstoneDark = Palette{
+	Dark:         true,
+	Sidebar:      ui.Hex("#131814"),
+	Text:         ui.Hex("#e7eee8"),
+	TextMuted:    ui.Hex("#9aa99e"),
+	TextFaint:    ui.Hex("#738277"),
+	Group:        ui.Hex("#829286"),
+	RowHover:     ui.RGBA(213, 226, 213, 0.06),
+	RowSelected:  ui.RGBA(213, 226, 213, 0.13),
+	RowSelBorder: ui.RGBA(212, 220, 212, 0.10),
+	RowShadow:    ui.RGBA(0, 0, 0, 0.25),
+
+	Card:         ui.Hex("#1c231e"),
+	CardBorder:   ui.RGBA(212, 220, 212, 0.09),
+	CardShadow:   ui.RGBA(0, 0, 0, 0.35),
+	CardShadow2:  ui.RGBA(0, 0, 0, 0.2),
+	FloatShadow:  ui.RGBA(0, 0, 0, 0.45),
+	CardDim:      ui.RGBA(28, 35, 30, 0.52),
+	Veil:         ui.RGBA(16, 22, 18, 0.42),
+	Edge:         ui.RGBA(212, 220, 212, 0.08),
+	EdgeHigh:     ui.RGBA(212, 220, 212, 0.12),
+	ButtonBg:     ui.Hex("#2d3931"),
+	Control:      ui.Hex("#2d3931"),
+	ControlHover: ui.Hex("#36453b"),
+	ControlLight: ui.RGBA(213, 226, 213, 0.09),
+	Divider:      ui.RGBA(212, 220, 212, 0.08),
+	Chip:         ui.RGBA(213, 226, 213, 0.08),
+
+	TlThink:   ui.RGBA(140, 132, 200, 0.85),
+	TlText:    ui.RGBA(120, 172, 152, 0.85),
+	TlTool:    ui.RGBA(168, 155, 134, 0.85),
+	TlSub:     ui.RGBA(126, 156, 196, 0.85),
+	TlWait:    ui.RGBA(206, 154, 70, 0.85),
+	TlFail:    ui.RGBA(190, 120, 114, 0.85),
+	Attention: ui.Hex("#f0a33a"),
+	AttnSoft:  ui.RGBA(240, 163, 58, 0.15),
+	Done:      ui.Hex("#63a86e"),
+	OnDone:    ui.Hex("#131814"),
+	Online:    ui.Hex("#4cc36b"),
+	Danger:    ui.Hex("#ff6961"),
+	Accent:    ui.Hex("#63a86e"),
+
+	Overlay:   ui.RGBA(0, 0, 0, 0.38),
+	Popover:   ui.Hex("#1e2620"),
+	Kbd:       ui.RGBA(213, 226, 213, 0.07),
+	KbdBorder: ui.RGBA(212, 220, 212, 0.12),
+}
+
+// PaletteFor returns the palette for the given dark mode and window background.
+func PaletteFor(dark bool, background string) *Palette {
+	if background == "inkstone" {
+		if dark {
+			return &InkstoneDark
+		}
+		return &InkstoneLight
+	}
+	if dark {
 		return &Dark
 	}
 	return &Light
+}
+
+// ForBackground returns the palette of c's appearance and background wash.
+func ForBackground(c *ui.Context, background string) *Palette {
+	return PaletteFor(c.Theme().Dark, background)
+}
+
+// For returns the palette of the appearance c draws in.
+func For(c *ui.Context) *Palette {
+	return PaletteFor(c.Theme().Dark, "")
 }

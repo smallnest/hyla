@@ -233,17 +233,23 @@ func TestDuskBackgroundMigrates(t *testing.T) {
 	}
 }
 
-// Indigo is a wash of its own, and the file names it as it is.
-func TestIndigoBackground(t *testing.T) {
-	s, probs := parse("background = indigo\n")
-	if len(probs) != 0 || s.Background != "indigo" {
-		t.Errorf("background indigo: %q, %v", s.Background, probs)
+// Inkstone is a wash of its own, and retired washes migrate cleanly without
+// reporting configuration problems.
+func TestInkstoneBackground(t *testing.T) {
+	s, probs := parse("background = inkstone\n")
+	if len(probs) != 0 || s.Background != "inkstone" {
+		t.Errorf("background inkstone: %q, %v", s.Background, probs)
 	}
-	if s, _ := parse("background = indigo\n"); s.Background != "indigo" {
-		t.Errorf("a file of it keeps indigo, not %q", s.Background)
+	if !slices.ContainsFunc(Backgrounds, func(b struct{ ID, Name string }) bool { return b.ID == "inkstone" }) {
+		t.Error("Inkstone's background is not one Settings offers")
 	}
-	if !slices.ContainsFunc(Backgrounds, func(b struct{ ID, Name string }) bool { return b.ID == "indigo" }) {
-		t.Error("Indigo's background is not one Settings offers")
+	if s, probs := parse("background = meadow\n"); len(probs) != 0 || s.Background != "inkstone" {
+		t.Errorf("background meadow: %q, %v; want inkstone", s.Background, probs)
+	}
+	for _, retired := range []string{"mist", "indigo", "ember", "tidal", "umbra", "static"} {
+		if s, probs := parse("background = " + retired + "\n"); len(probs) != 0 || s.Background != "rex" {
+			t.Errorf("background %s: %q, %v; want rex", retired, s.Background, probs)
+		}
 	}
 }
 

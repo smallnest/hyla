@@ -43,6 +43,26 @@ var darkTerm = &terminal.Theme{
 	},
 }
 
+var inkstoneLightTerm = &terminal.Theme{
+	Foreground:    InkstoneLight.Text,
+	Background:    InkstoneLight.Card,
+	Cursor:        InkstoneLight.Text,
+	CursorText:    InkstoneLight.Card,
+	Selection:     ui.Hex("#d5e2d5"),
+	SelectionText: InkstoneLight.Text,
+	Palette:       lightTerm.Palette,
+}
+
+var inkstoneDarkTerm = &terminal.Theme{
+	Foreground:    InkstoneDark.Text,
+	Background:    InkstoneDark.Card,
+	Cursor:        InkstoneDark.Text,
+	CursorText:    InkstoneDark.Sidebar,
+	Selection:     ui.Hex("#2b4232"),
+	SelectionText: ui.Hex("#ffffff"),
+	Palette:       darkTerm.Palette,
+}
+
 // LightTerm is the terminal's colors on the light palette's card, and
 // DarkTerm on the dark one's: Apple's system colors, a little deeper in
 // the light.
@@ -51,6 +71,22 @@ func LightTerm() *terminal.Theme { return lightTerm }
 // DarkTerm is the dark appearance's terminal theme, as LightTerm is the
 // light one's.
 func DarkTerm() *terminal.Theme { return darkTerm }
+
+// LightTermFor returns the built-in light terminal theme for background.
+func LightTermFor(background string) *terminal.Theme {
+	if background == "inkstone" {
+		return inkstoneLightTerm
+	}
+	return lightTerm
+}
+
+// DarkTermFor returns the built-in dark terminal theme for background.
+func DarkTermFor(background string) *terminal.Theme {
+	if background == "inkstone" {
+		return inkstoneDarkTerm
+	}
+	return darkTerm
+}
 
 var (
 	pluginThemeMu sync.RWMutex

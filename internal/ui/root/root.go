@@ -79,7 +79,7 @@ type App interface {
 
 // View draws the app's window.
 func View(x App, c *ui.Context) {
-	pal := theme.For(c)
+	pal := theme.ForBackground(c, x.AppSettings().Background)
 	c.SetTheme(x.BorderlessTheme(c, pal))
 	if msg, undo, act, ok := x.Undo(); ok {
 		// The removal's own words, even as another toast came first.
